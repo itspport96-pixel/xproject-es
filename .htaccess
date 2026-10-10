@@ -1,0 +1,16 @@
+# ============================================
+# RAIZ DEL PROYECTO - ACCESO WEB RESTRINGIDO
+# Solo /public es accesible via HTTP.
+# Bloquea .env, src/, database/, composer.json, etc.
+# ============================================
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule !^public/ - [F,L]
+</IfModule>
+
+# Bloqueo extra de archivos ocultos (.env, .git, .htaccess...)
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>

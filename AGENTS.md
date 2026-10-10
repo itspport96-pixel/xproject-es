@@ -1,0 +1,16 @@
+# AGENTS.md
+
+Reglas permanentes para trabajar en este repositorio (XP Platform).
+
+## Reglas
+
+1. **No inventar endpoints.** Si falta un endpoint, reportarlo explícitamente (hueco) y usar sólo los endpoints existentes. Jamás simular respuestas inventadas en frontend ni tests.
+2. **No tocar el backend salvo pedido explícito** del usuario (tampoco rutas, permisos, BD o migraciones por iniciativa propia).
+3. **Sin emojis** en código, nombres de ficheros ni mensajes.
+4. **Reportar desviaciones**: todo lo encontrado fuera del alcance (huegos, inconsistencias, riesgos) se lista en el informe de cierre; nada se corrige en silencio.
+5. **Cambios de esquema de BD**: la base de datos viva es la fuente de verdad. Tras cualquier `ALTER`/`CREATE` en vivo, regenera `database/schema/schema.sql` con `php bin/regenerate-schema.php` y ejecuta `php bin/check-schema-drift.php` antes de cerrar el sprint: tiene que salir `SIN DRIFT`. El DDL vive en un único fichero (`schema.sql`, generado); `database/schema/create_tables.ps1` sólo lo ejecuta, no lleva SQL propio. Nunca editar `schema.sql` a mano.
+6. **Permisos nuevos**: siembrarlos en los seeders (`InventoryPermissionSeeder` u otro que corresponda) de forma idempotente, asignarlos a los roles que apliquen y cubrirlos con tests.
+7. **Cierre de cada sprint**: `php -l` en los PHP tocados, `composer test` verde, `php bin/check-schema-drift.php` en `SIN DRIFT`, verificación end-to-end con los scripts de `tools\e2e\` (corren contra la BD de E2E, ver regla 10) y entrada en `CHANGELOG.md`.
+8. **Verificación JS**: `node --check` en los ficheros modificados y smoke jsdom con `node tools\smoke\smoke-v162.mjs` (y `smoke-v171.mjs`).
+9. **Verificar contra la BD viva**: para comprobar tablas, columnas, tipos, índices, enums o datos, consulta siempre la base de datos en vivo (`information_schema`, `SHOW CREATE TABLE`, `SELECT`). `database/schema/schema.sql` es un reflejo generado y `create_tables.ps1` un wrapper: ninguno de los dos sirve para comprobar nada por sí solo.
+10. **E2E aislados**: los scripts de `tools\e2e\` nunca escriben en la BD de trabajo. `tools\e2e\_env.ps1` (dot-source en la línea 2 de cada script) fija `E2E_DB_NAME` (por defecto `xproject_e2e`), ejecuta `php bin/prepare-e2e-db.php` (esquema desde `database/schema/schema.sql`, copia de `tenants, users, roles, permissions, role_assignments` y fixtures `PROD-001`/`E2E-ALMACEN`/`E2E-PICK`) y arranca el servidor PHP embebido en `http://127.0.0.1:8099/api` con `tools\e2e\router.php`, de modo que tampoco dependen de Apache. `bootstrap.php` lee `E2E_DB_NAME` con `getenv()` y la usa en lugar de `DB_DATABASE`: todo proceso que exporte esa variable (API embebida y CLI de `bin/`) opera contra la BD de E2E, y el resto sigue en la de `.env`. Reglas asociadas: `bin/prepare-e2e-db.php --fresh` es la única forma de recrear la BD de E2E; `bin/regenerate-schema.php` y `bin/check-schema-drift.php` se niegan a arrancar con `E2E_DB_NAME` definida (siempre sobre la BD de trabajo); el servidor se detiene al final de cada script (`Stop-E2EServer`) y si un script aborta, `powershell tools\e2e\stop-e2e-server.ps1` lo para a mano (el PID queda en `tools\e2e\.e2e-server.pid` y el siguiente arranque lo reutiliza o lo mata).

@@ -1,0 +1,62 @@
+{
+  "audit": {
+    "title": "Auditoría",
+    "subtitle": "Bitácora de eventos de la plataforma (sólo lectura)",
+    "permission": {
+      "title": "Sin permiso",
+      "body": "Necesitas el permiso <code>audit.log.view</code> para consultar la bitácora de auditoría."
+    },
+    "filters": {
+      "fecha_desde": "Fecha desde",
+      "fecha_hasta": "Fecha hasta",
+      "usuario": "Usuario (id)",
+      "usuario_placeholder": "UUID del actor",
+      "accion": "Acción",
+      "accion_placeholder": "product.create o POST /api/inventory/products",
+      "entidad": "Entidad",
+      "resultado": "Resultado",
+      "apply": "Filtrar",
+      "clear": "Limpiar"
+    },
+    "results": {
+      "all": "Todos",
+      "success": "Exitoso",
+      "failure": "Fallido",
+      "failure_badge": "Fallo"
+    },
+    "summary": {
+      "total": "Registros (filtro activo)",
+      "success": "Exitosos",
+      "failure": "Fallidos"
+    },
+    "empty": {
+      "title": "Sin registros",
+      "message": "No hay eventos que coincidan con los filtros actuales."
+    },
+    "columns": {
+      "date": "Fecha",
+      "user": "Usuario",
+      "action": "Acción",
+      "entity": "Entidad",
+      "result": "Resultado",
+      "detail": "Detalle"
+    },
+    "pagination": {
+      "per_page": "por página"
+    },
+    "detail": {
+      "title": "Detalle del evento",
+      "module_resource": "Módulo / recurso",
+      "entity_id": "Entidad (id)",
+      "change_type": "Tipo de cambio",
+      "ip_duration": "IP / duración",
+      "values_before": "Valores antes",
+      "values_after": "Valores después",
+      "extra_details": "Detalles adicionales",
+      "no_changes": "— sin cambios —"
+    },
+    "messages": {
+      "load_error": "No se pudo cargar la bitácora"
+    }
+  }
+}

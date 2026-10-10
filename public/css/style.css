@@ -1,0 +1,480 @@
+/* ============================================
+   STYLE - Estilos base de la aplicación
+   Complementa themes.css (variables) y components.css (componentes)
+
+   ORDEN DE CASCADA (verificado con navegador real): el <style> que genera
+   el CDN de Tailwind se inserta AL FINAL del <head> (document.head.append),
+   despues de estos tres ficheros locales. Consecuencias:
+     - Utilidades Tailwind (.p-0, .mb-0, .text-2xl...) ganan en empate de
+       especificidad a las reglas de clase de components.css/style.css.
+     - El preflight de Tailwind (.hidden, h1-h6 { font-size: inherit },
+       p { margin: 0 }, a { color: inherit }) gana a las reglas de elemento
+       de aqui. Las reglas h1-h6/p/a de este fichero quedan como fallback
+       si el CDN no carga; NO son la fuente de verdad visual.
+     - Para que una regla local pise una utilidad hace falta especificidad
+       propia (p.ej. .card.p-0, .form-grid > .form-group, .hidden !important).
+   ============================================ */
+
+/* ============================================
+   RESET & BASE
+   ============================================ */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+/* body (background, color, font-family y smoothing) vive en themes.css,
+   junto a los tokens que lo alimentan. Aqui sólo lo que no depende del tema. */
+body {
+    min-height: 100vh;
+    line-height: 1.5;
+}
+
+img, picture, video, canvas, svg {
+    display: block;
+    max-width: 100%;
+}
+
+input, button, textarea, select {
+    font: inherit;
+    color: inherit;
+}
+
+button {
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+
+a {
+    color: rgb(var(--color-primary));
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+a:hover {
+    color: rgb(var(--color-primary-hover));
+}
+
+ul, ol {
+    list-style: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    line-height: 1.25;
+    font-weight: 600;
+    color: rgb(var(--color-text));
+}
+
+h1 { font-size: 1.875rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.125rem; }
+h5 { font-size: 1rem; }
+h6 { font-size: 0.875rem; }
+
+p {
+    margin-bottom: 0.75rem;
+    color: rgb(var(--color-text-muted));
+}
+
+code, pre {
+    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+    font-size: 0.875em;
+}
+
+code {
+    background-color: rgb(var(--color-surface-alt));
+    padding: 0.125rem 0.375rem;
+    border-radius: var(--radius-sm);
+    color: rgb(var(--color-primary));
+}
+
+pre {
+    background-color: rgb(var(--color-surface-alt));
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    border: 1px solid rgb(var(--color-border));
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid rgb(var(--color-border));
+    margin: 1.5rem 0;
+}
+
+/* ============================================
+   LAYOUT - App Shell
+   ============================================ */
+#app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header del shell: selector .app-header (clase real del markup en
+   index.php), no el elemento `header` generico, para no capturar
+   cabeceras que un modulo pueda renderizar dentro del contenido. */
+.app-header {
+    background-color: rgb(var(--color-surface));
+    border-bottom: 1px solid rgb(var(--color-border));
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: var(--z-header);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Contenido principal: unica fuente de padding (antes: reglas CSS 1.5rem/2rem
+   pisadas por `p-4 md:p-6` del markup, que es lo que realmente se veia). */
+main {
+    flex: 1;
+    padding: 1rem;
+    max-width: 100%;
+}
+
+@media (min-width: 768px) {
+    main {
+        padding: 1.5rem;
+    }
+}
+
+/* ============================================
+   LOADING SPINNER
+   ============================================ */
+.spinner {
+    display: inline-block;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 3px solid rgb(var(--color-border));
+    border-top-color: rgb(var(--color-primary));
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.spinner-sm {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-width: 2px;
+}
+
+.spinner-lg {
+    width: 4rem;
+    height: 4rem;
+    border-width: 4px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   UTILIDADES
+   ============================================
+   Prácticamente todas las utilidades que se declaraban aqui (flex, grid,
+   gap, p-*, m-*, text-*, font-*, rounded, shadow, overflow-*, position,
+   display, cursor, opacity...) las genera Tailwind por CDN con exactamente
+   el mismo significado, asi que se han eliminado para que cada clase tenga
+   una sola definicion. Las que DIFIEREN de la escala de Tailwind se
+   reconcilian en `tailwind.config` (index.php) para que el CDN genere el
+   valor de los tokens:
+     - borderRadius: .rounded-sm -> 0.25rem, .rounded -> 0.375rem
+                     (= --radius-sm / --radius-md; Tailwind trae 0.125/0.25)
+     - boxShadow:    .shadow-sm / .shadow / .shadow-lg -> var(--shadow-*)
+                     (sombras tokenizadas, distintas en claro y oscuro)
+   Con ambos lados iguales el resultado deja de depender del orden de carga
+   entre el CDN y estos ficheros. Se conserva sólo .hidden (ver mas abajo).
+   ============================================ */
+
+/* Tailwind genera `.hidden { display: none }` sin !important. Aqui hace
+   falta: `.sidebar { display: flex }` (components.css, mismo especificidad
+   y carga despues del CDN) dejaria visible el sidebar de las rutas
+   publicas si no lo ganamos con !important. */
+.hidden { display: none !important; }
+
+/* ============================================
+   LOGIN PAGE
+   ============================================ */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: linear-gradient(135deg,
+        rgb(var(--color-background)) 0%,
+        rgb(var(--color-surface)) 100%);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    background-color: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-border));
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+}
+
+.login-logo {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-logo h1 {
+    color: rgb(var(--color-primary));
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.login-logo p {
+    color: rgb(var(--color-text-muted));
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    line-height: 1.5;
+}
+
+.badge-success {
+    background-color: rgb(var(--color-success) / 0.15);
+    color: rgb(var(--color-success));
+}
+
+.badge-warning {
+    background-color: rgb(var(--color-warning) / 0.15);
+    color: rgb(var(--color-warning));
+}
+
+.badge-danger {
+    background-color: rgb(var(--color-danger) / 0.15);
+    color: rgb(var(--color-danger));
+}
+
+.badge-info {
+    background-color: rgb(var(--color-info) / 0.15);
+    color: rgb(var(--color-info));
+}
+
+.badge-neutral {
+    background-color: rgb(var(--color-surface-alt));
+    color: rgb(var(--color-text-muted));
+}
+
+/* ============================================
+   DIVIDERS
+   ============================================ */
+.divider {
+    height: 1px;
+    background-color: rgb(var(--color-border));
+    margin: 1rem 0;
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+.card {
+    background-color: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-border));
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Padding de la card como decisión del componente, no de la utilidad:
+   `.card.p-0` (listados con tabla a hueso) y `.card.p-3` (tarjetas de
+   filtros). La especificidad propia hace que no dependa de si el <style>
+   que genera Tailwind por CDN cae antes o después de este fichero. */
+.card.p-0 { padding: 0; }
+.card.p-3 { padding: 0.75rem; }
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgb(var(--color-border));
+}
+
+.card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: rgb(var(--color-text));
+}
+
+.card-body {
+    color: rgb(var(--color-text-muted));
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: rgb(var(--color-text-muted));
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: rgb(var(--color-text));
+}
+
+/* ============================================
+   ALERTS
+   ============================================ */
+.alert {
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.alert-success {
+    background-color: rgb(var(--color-success) / 0.1);
+    border-color: rgb(var(--color-success) / 0.3);
+    color: rgb(var(--color-success));
+}
+
+.alert-warning {
+    background-color: rgb(var(--color-warning) / 0.1);
+    border-color: rgb(var(--color-warning) / 0.3);
+    color: rgb(var(--color-warning));
+}
+
+.alert-danger {
+    background-color: rgb(var(--color-danger) / 0.1);
+    border-color: rgb(var(--color-danger) / 0.3);
+    color: rgb(var(--color-danger));
+}
+
+.alert-info {
+    background-color: rgb(var(--color-info) / 0.1);
+    border-color: rgb(var(--color-info) / 0.3);
+    color: rgb(var(--color-info));
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Skip link */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: rgb(var(--color-primary));
+    color: rgb(var(--color-primary-foreground));
+    padding: 0.5rem 1rem;
+    /* Literal (100), no token: al recibir foco debe quedar por encima de
+       todo, incluido el toast; acoplarlo a --z-toast lo arrastraria si esa
+       capa se reordena. Igual que --z-toast hoy. */
+    z-index: 100;
+    transition: top 0.2s;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+}
+
+.animate-slide-in {
+    animation: slideIn 0.2s ease-out;
+}
+
+.animate-scale-in {
+    animation: scaleIn 0.15s ease-out;
+}
+
+/* ============================================
+   RESPONSIVE (breakpoint sm = 640px)
+   Los helpers .hide-mobile / .hide-desktop se retiraron en 1.9.2: no se
+   usaban en ningun markup y la estrategia responsive de las tablas es el
+   scroll horizontal de .table-wrapper (components.css).
+   ============================================ */
+@media (max-width: 640px) {
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.25rem; }
+}
+
+/* ============================================
+   PRINT
+   ============================================ */
+@media print {
+    .app-header, footer, .no-print {
+        display: none !important;
+    }
+    body {
+        background: rgb(var(--print-background));
+        color: rgb(var(--print-text));
+    }
+}

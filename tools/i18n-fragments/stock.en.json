@@ -1,0 +1,131 @@
+{
+  "inventory": {
+    "stock": {
+      "title": "Current stock",
+      "subtitle": "Physical units with physical, reserved, in transit and available quantities",
+      "units": "units",
+      "columns": {
+        "barcode": "Barcode",
+        "producto": "Product",
+        "ubicacion": "Location",
+        "cantidad": "Quantity",
+        "estado": "Status",
+        "acciones": "Actions"
+      },
+      "summary": {
+        "unidades": "Units",
+        "fisica": "Physical",
+        "reservada": "Reserved",
+        "en_transito": "In transit",
+        "disponible": "Available"
+      },
+      "states": {
+        "disponible": "Available",
+        "reservado": "Reserved",
+        "en_preparacion": "In preparation",
+        "cargado": "Loaded",
+        "en_transito": "In transit",
+        "entregado": "Delivered",
+        "devuelto": "Returned",
+        "dannado": "Damaged",
+        "bloqueado": "Blocked",
+        "perdido": "Lost"
+      },
+      "filters": {
+        "all_products": "All products",
+        "all_locations": "All locations",
+        "all_states": "All statuses",
+        "apply": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters"
+      },
+      "empty": {
+        "title": "No stock units",
+        "message": "No units match the current filters."
+      },
+      "row": {
+        "disp": "avail {value}",
+        "res": "· res {value}",
+        "tran": "· trans {value}"
+      },
+      "actions": {
+        "move": "Move",
+        "reserve": "Reserve",
+        "block": "Block",
+        "unblock": "Unblock",
+        "history": "History"
+      },
+      "modals": {
+        "cancel": "Cancel",
+        "unit": "Unit",
+        "state": "Status",
+        "optional_placeholder": "Optional",
+        "move": {
+          "title": "Move unit",
+          "current_location": "Current location",
+          "destination_label": "Destination location",
+          "destination_hint": "Active with space, without TRANSITO type and different from the current one.",
+          "select_destination": "Select a destination location",
+          "no_destinations": "No destination locations available",
+          "no_limit": "no limit",
+          "reason_label": "Reason",
+          "reason_placeholder": "REUBICACION (default)",
+          "external_ref_label": "External reference"
+        },
+        "reserve": {
+          "title": "Reserve unit",
+          "location_label": "Location",
+          "available_label": "Available",
+          "quantity_label": "Quantity to reserve",
+          "quantity_placeholder": "Empty = unit total",
+          "quantity_hint": "Maximum {max} available.",
+          "expiration_label": "Expiration",
+          "expiration_hint": "Optional. Must be later than the reservation date.",
+          "order_ref_label": "Order reference"
+        }
+      },
+      "history": {
+        "title": "Unit history",
+        "event": "Event",
+        "movement": "Movement",
+        "correction": "Correction",
+        "cant": "qty {from} → {to}",
+        "by": "by {actor}",
+        "empty_title": "No movements",
+        "empty_message": "This unit has no events or movements yet.",
+        "footer_info": "{total} record(s) · newest first"
+      },
+      "messages": {
+        "sending": "Sending...",
+        "unit_not_found_title": "Unit not found",
+        "unit_not_found_message": "The unit no longer exists.",
+        "history_forbidden": "You need inventory.stock.view to view the history.",
+        "history_load_error": "Could not load the history",
+        "confirm_block": "Block this unit? It cannot be moved or reserved until unblocked.",
+        "confirm_unblock": "Unblock this unit? It will become available again.",
+        "blocked_title": "Unit blocked",
+        "unblocked_title": "Unit unblocked",
+        "state_with": "Status: {estado}",
+        "block_error": "Could not block the unit",
+        "unblock_error": "Could not unblock the unit",
+        "destination_required": "Select a destination location.",
+        "destination_same": "The destination location must be different from the current one.",
+        "quantity_positive": "Quantity must be greater than zero.",
+        "quantity_exceeds": "Exceeds available ({available}).",
+        "expiration_invalid": "Enter a valid date and time.",
+        "expiration_future": "The expiration must be later than the current date.",
+        "moved_title": "Unit moved",
+        "moved_message": "Destination {destino}",
+        "moved_correction": "marked as correction",
+        "warning_title": "Warning",
+        "reserved_warning": "The unit has active reservations.",
+        "move_error": "Could not move the unit",
+        "reserve_created_title": "Reservation created",
+        "reserve_created_message": "Unit {barcode}",
+        "reserve_error": "Could not create the reservation",
+        "capacity_exceeded": "Capacity exceeded",
+        "stock_load_error": "Could not load the stock"
+      }
+    }
+  }
+}

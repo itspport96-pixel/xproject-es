@@ -1,0 +1,149 @@
+{
+  "inventory": {
+    "counts": {
+      "title": "Conteos físicos",
+      "subtitle": "Conteo físico de unidades y reconciliación de discrepancias (CU-011)",
+      "pagination_label": "conteos",
+      "summary": {
+        "conteos": "Conteos",
+        "pendientes": "Pendientes",
+        "en_curso": "En curso",
+        "completados": "Completados",
+        "reconciliados": "Reconciliados"
+      },
+      "filters": {
+        "estado": "Estado",
+        "all_states": "Todos",
+        "ubicacion": "Ubicación",
+        "all_locations": "Todas",
+        "ubicacion_id": "Ubicación (id)",
+        "ubicacion_placeholder": "ID de ubicación",
+        "fecha_desde": "Fecha desde",
+        "fecha_hasta": "Fecha hasta",
+        "apply": "Filtrar",
+        "clear": "Limpiar",
+        "clear_title": "Limpiar filtros"
+      },
+      "columns": {
+        "conteo": "Conteo",
+        "ubicacion": "Ubicación",
+        "estado": "Estado",
+        "fecha": "Fecha",
+        "discrepancias": "Discrepancias",
+        "reconciliado": "Reconciliado",
+        "acciones": "Acciones",
+        "unidad": "Unidad",
+        "barcode": "Barcode",
+        "esperada": "Esperada",
+        "contada": "Contada",
+        "notas": "Notas",
+        "encontrada": "Encontrada",
+        "diferencia": "Diferencia",
+        "accion": "Acción",
+        "justificacion": "Justificación",
+        "cantidad": "Cantidad",
+        "incidencia": "Incidencia",
+        "autoriza": "Autoriza"
+      },
+      "states": {
+        "pendiente": "Pendiente",
+        "en_curso": "En curso",
+        "completado": "Completado",
+        "reconciliado": "Reconciliado"
+      },
+      "actions": {
+        "start": "Iniciar conteo",
+        "view": "Ver",
+        "count": "Contar",
+        "reconcile": "Reconciliar",
+        "download_sheet": "Descargar hoja",
+        "submit_results": "Registrar resultados",
+        "complete": "Completar",
+        "ajustar": "Ajustar",
+        "justificar": "Justificar"
+      },
+      "badges": {
+        "si": "Sí",
+        "no": "No",
+        "resuelta": "Resuelta"
+      },
+      "empty": {
+        "title": "Sin conteos",
+        "message": "No hay conteos que coincidan con los filtros actuales."
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>inventory.count.view</code> para ver esta pantalla."
+      },
+      "detail": {
+        "info_title": "Conteo",
+        "coverage_title": "Cobertura",
+        "field_id": "ID",
+        "field_estado": "Estado",
+        "field_fecha": "Fecha",
+        "field_responsable": "Responsable",
+        "field_ubicacion": "Ubicación",
+        "field_unidades_contadas": "Unidades contadas",
+        "field_discrepancias": "Discrepancias",
+        "field_pendientes": "Pendientes",
+        "all_tenant": "Todo el tenant",
+        "sheet_title": "Hoja teórica ({count} unidades)",
+        "sheet_hint": "Cargá la cantidad contada por unidad y registrá los resultados.",
+        "sheet_empty_title": "Hoja vacía",
+        "sheet_empty_message": "Este conteo no tiene unidades en la lista teórica.",
+        "notes_placeholder": "Notas",
+        "discrepancies_title": "Discrepancias ({count})",
+        "select_action": "Seleccionar...",
+        "justification_placeholder": "Obligatoria para Justificar",
+        "reconcile_hint": "AJUSTAR actualiza la cantidad al valor encontrado; JUSTIFICAR deja la diferencia sin tocar el stock.",
+        "adjustments_title": "Ajustes aplicados ({count})"
+      },
+      "modals": {
+        "cancel": "Cancelar",
+        "start": {
+          "title": "Iniciar conteo físico",
+          "submit": "Iniciar",
+          "ubicacion_label": "Ubicación",
+          "ubicacion_hint": "Si se indica, sólo se cuentan las unidades presentes en esa ubicación.",
+          "fecha_label": "Fecha del conteo",
+          "fecha_hint": "Opcional; por defecto la fecha actual.",
+          "all_tenant": "Todo el tenant (sin ubicación)"
+        },
+        "detail": {
+          "title": "Conteo físico"
+        }
+      },
+      "messages": {
+        "forbidden_view": "Necesitas inventory.count.view para ver los conteos.",
+        "load_error": "No se pudieron cargar los conteos",
+        "detail_load_error": "No se pudo cargar el conteo",
+        "sending": "Enviando...",
+        "start_error": "No se pudo iniciar el conteo",
+        "started_title": "Conteo iniciado",
+        "started_units": "Unidades en la lista: {count}.",
+        "started_pending": "El conteo quedó en estado Pendiente.",
+        "error_invalid_quantity": "Cantidad inválida: debe ser un número no negativo.",
+        "error_results_required": "Cargá al menos una cantidad para registrar los resultados.",
+        "results_registered_title": "Resultados registrados",
+        "results_registered_message": "Pendientes: {count}.",
+        "results_error": "No se pudieron registrar los resultados",
+        "missing_unit_row": "Falta el resultado de esta unidad.",
+        "confirm_complete": "¿Completar el conteo? Se calcularán las discrepancias contra la hoja teórica.",
+        "completed_title": "Conteo completado",
+        "completed_message": "Discrepancias: {count}.",
+        "complete_error": "No se pudo completar el conteo",
+        "stale_field_error": "Justificá la diferencia o iniciá un conteo nuevo.",
+        "stale_title": "Hoja teórica vencida",
+        "stale_message": "Unidad {unidad}: esperada {esperada}, actual {actual}. Pasá la fila a Justificar o iniciá un conteo nuevo.",
+        "adjustment_state_field_error": "Registrá la acción JUSTIFICAR con su justificación.",
+        "justification_required": "La acción JUSTIFICAR requiere una justificación.",
+        "error_actions_required": "Elegí Ajustar o Justificar en al menos una discrepancia pendiente.",
+        "reconciled_title": "Discrepancias reconciliadas",
+        "reconciled_message": "Acciones aplicadas: {acciones}.",
+        "reconciled_message_incidents": "Acciones aplicadas: {acciones}. Incidencias generadas: {incidencias}.",
+        "reconcile_error": "No se pudieron reconciliar las discrepancias",
+        "download_error": "No se pudo descargar la hoja"
+      }
+    }
+  }
+}

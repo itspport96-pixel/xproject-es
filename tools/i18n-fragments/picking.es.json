@@ -1,0 +1,108 @@
+{
+  "inventory": {
+    "picking": {
+      "title": "Picking",
+      "subtitle": "Selección de unidades reservadas (CU-004)",
+      "operations_title": "Operaciones de picking",
+      "pagination_label": "operaciones",
+      "states": {
+        "pendiente": "Pendiente",
+        "en_curso": "En curso",
+        "completada": "Completada",
+        "verificada": "Verificada"
+      },
+      "summary": {
+        "operaciones": "Operaciones",
+        "en_curso": "En curso",
+        "completadas": "Completadas",
+        "verificadas": "Verificadas"
+      },
+      "filters": {
+        "all_states": "Todos los estados",
+        "search_placeholder": "Buscar por lote",
+        "apply": "Filtrar",
+        "clear": "Limpiar",
+        "clear_title": "Limpiar filtros"
+      },
+      "columns": {
+        "barcode": "Barcode",
+        "producto": "Producto",
+        "reservada": "Reservada",
+        "vencimiento": "Vencimiento",
+        "lote": "Lote",
+        "unidades": "Unidades",
+        "estado": "Estado",
+        "referencia": "Referencia",
+        "selector": "Selector",
+        "supervisor": "Supervisor",
+        "creado": "Creado",
+        "acciones": "Acciones"
+      },
+      "actions": {
+        "expand": "Unidades",
+        "collapse": "Ocultar",
+        "complete": "Completar",
+        "verify": "Verificar"
+      },
+      "empty": {
+        "reservations_title": "Sin reservas pendientes",
+        "reservations_message": "No hay reservas activas para preparar.",
+        "title": "Sin operaciones de picking",
+        "message": "Aún no se inició ningún lote que coincida con los filtros."
+      },
+      "start": {
+        "title": "Nuevo lote de picking",
+        "lote_label": "Lote",
+        "generate": "Generar",
+        "generate_title": "Generar un lote nuevo",
+        "lote_hint": "Debe ser único dentro del tenant.",
+        "location_label": "Ubicación de preparación",
+        "location_loading": "Cargando ubicaciones PICKING...",
+        "location_hint": "Zonas activas de tipo PICKING.",
+        "location_select": "Seleccione una ubicación",
+        "location_empty": "No hay ubicaciones PICKING activas",
+        "location_no_limit": "sin límite",
+        "order_label": "Referencia de orden",
+        "order_placeholder": "Opcional",
+        "scan_label": "Escanear barcode",
+        "scan_placeholder": "Escaneá o escribí un barcode y presioná Enter",
+        "scan_hint": "Selecciona la reserva pendiente que coincida con el barcode.",
+        "selection_count": "unidad(es) seleccionada(s)",
+        "select_all": "Seleccionar todas",
+        "clear_selection": "Limpiar selección",
+        "submit": "Iniciar picking",
+        "sending": "Enviando..."
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
+      },
+      "detail": {
+        "route": "origen {origen} → preparación {destino}"
+      },
+      "messages": {
+        "forbidden_locations": "Necesitas {permiso} para listar las zonas de preparación.",
+        "forbidden_reservations": "Necesitas {permiso} para ver las reservas.",
+        "forbidden_view": "Necesitas {permiso} para ver las operaciones.",
+        "reservations_load_error": "No se pudieron cargar las reservas",
+        "pickings_load_error": "No se pudieron cargar las operaciones de picking",
+        "error_lote_required": "Indique el identificador del lote.",
+        "error_location_required": "Seleccione una ubicación de preparación.",
+        "error_units_required": "Seleccioná al menos una reserva pendiente.",
+        "started_title": "Picking iniciado",
+        "started_message": "Lote {lote} con {unidades} unidad(es).",
+        "start_error": "No se pudo iniciar el picking",
+        "completed_title": "Lote completado",
+        "verified_title": "Lote verificado",
+        "lote_message": "Lote {lote}",
+        "complete_error": "No se pudo completar el lote",
+        "verify_error": "No se pudo verificar el lote",
+        "scan_not_found": "No hay reservas pendientes con el barcode \"{codigo}\".",
+        "barcode_not_found_title": "Barcode no encontrado",
+        "barcode_not_found_message": "Revisá el código o actualizá la lista.",
+        "unit_selected_title": "Unidad seleccionada",
+        "unit_selected_message": "{barcode} · {producto}"
+      }
+    }
+  }
+}

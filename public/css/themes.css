@@ -1,0 +1,284 @@
+/* ============================================
+   THEMES - Variables CSS Dark/Light Mode
+   ============================================ */
+
+/* ============================================
+   ESCALA DE BREAKPOINTS (unica, para todo el CSS propio)
+   sm = 640px   (paneles apilados, paginacion en columna, toast a ancho completo)
+   md = 768px   (rejillas de filtros/formularios, sidebar off-canvas)
+   lg = 1024px  (rejillas de tarjetas y dashboard)
+   Las utilidades responsive con prefijo (sm:, md:, lg:) las genera Tailwind
+   con estos mismos valores: este archivo no declara ningun otro umbral.
+   ============================================ */
+
+/* Transición suave entre temas */
+:root {
+    transition: background-color 0.2s ease, color 0.2s ease;
+
+    /* Tipografía (fuente unica de la app) */
+    --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+    /* Layout del shell */
+    --sidebar-width: 260px;
+
+    /* Capas (z-index), escala unica de toda la app. El orden real, de menor
+       a mayor: header/dropdown < overlay del sidebar < sidebar < modal < toast.
+       En mobile el sidebar se superpone al header sticky (45 > 40); antes
+       estaba por debajo (30 < 40) y el panel quedaba cortado por el header. */
+    --z-header: 40;
+    --z-dropdown: 40;
+    --z-overlay: 44;
+    --z-sidebar: 45;
+    --z-modal: 50;
+    --z-toast: 100;
+
+    /* Anchos de modal */
+    --modal-width-sm: 24rem;
+    --modal-width: 32rem;
+    --modal-width-lg: 48rem;
+    --modal-width-xl: 64rem;
+
+    /* Superposiciones opacas (antes literales en components.css) */
+    --overlay-modal: rgb(0 0 0 / 0.6);
+    --overlay-sidebar: rgb(0 0 0 / 0.5);
+
+    /* Pomo del toggle (antes `white` en components.css) */
+    --toggle-knob: 255 255 255;
+
+    /* Impresion (antes `white`/`black` en style.css) */
+    --print-background: 255 255 255;
+    --print-text: 0 0 0;
+}
+
+*, *::before, *::after {
+    transition: background-color 0.2s ease,
+                border-color 0.2s ease,
+                color 0.2s ease,
+                fill 0.2s ease,
+                stroke 0.2s ease;
+}
+
+/* ============================================
+   LIGHT MODE (default)
+   ============================================ */
+:root,
+html.light {
+    /* Brand. Acento unico: azul-600 (#2563eb), con AA como texto sobre
+       fondo claro (5.2:1) y como fondo con texto blanco (5.2:1); el
+       anterior azul-500 (#3b82f6) quedaba en 3.7:1 y 3.1:1. */
+    --color-primary: 37 99 235;        /* #2563eb */
+    --color-primary-hover: 29 78 216;  /* #1d4ed8 */
+    --color-primary-foreground: 255 255 255;
+
+    /* Surfaces */
+    --color-background: 255 255 255;    /* #ffffff */
+    --color-surface: 248 250 252;       /* #f8fafc */
+    --color-surface-alt: 241 245 249;   /* #f1f5f9 */
+    --color-surface-hover: 226 232 240; /* #e2e8f0 */
+
+    /* Text */
+    --color-text: 15 23 42;             /* #0f172a */
+    --color-text-muted: 71 85 105;      /* #475569 */
+    --color-text-subtle: 100 116 139;   /* #64748b */
+
+    /* Borders */
+    --color-border: 226 232 240;        /* #e2e8f0 */
+    --color-border-strong: 203 213 225; /* #cbd5e1 */
+
+    /* Status. Tonos -700/-800 para que el texto pequeno (badges, alerts,
+       enlaces de accion) alcance 4.5:1 sobre su propio tinte y sobre
+       blanco; los -400/-500 anteriores quedaban entre 2.2:1 y 3.8:1. */
+    --color-success: 22 101 52;         /* #166534 */
+    --color-warning: 146 64 14;         /* #92400e */
+    --color-danger: 185 28 28;          /* #b91c1c */
+    --color-info: 37 99 235;            /* #2563eb */
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+    /* Focus ring */
+    --focus-ring: 0 0 0 3px rgb(var(--color-primary) / 0.35);
+
+    /* Radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+
+    color-scheme: light;
+}
+
+/* ============================================
+   DARK MODE
+   ============================================ */
+html.dark {
+    /* Brand. En dark el acento es claro y el texto sobre el va en tinta
+       oscura: blanco sobre #60a5fa daba 2.5:1; tinta da 6.4:1. El hover
+       aclara (#93c5fd) en vez de oscurecer, como es habitual en dark. */
+    --color-primary: 96 165 250;        /* #60a5fa */
+    --color-primary-hover: 147 197 253; /* #93c5fd */
+    --color-primary-foreground: 15 23 42;
+
+    /* Surfaces */
+    --color-background: 15 23 42;       /* #0f172a */
+    --color-surface: 30 41 59;          /* #1e293b */
+    --color-surface-alt: 51 65 85;      /* #334155 */
+    --color-surface-hover: 71 85 105;   /* #475569 */
+
+    /* Text. subtle sube de #64748b (3.0:1 sobre #0f172a) a #8291a5 (5.0:1)
+       para titulos de seccion y placeholders, sin igualar a muted. */
+    --color-text: 226 232 240;          /* #e2e8f0 */
+    --color-text-muted: 148 163 184;    /* #94a3b8 */
+    --color-text-subtle: 130 145 165;   /* #8291a5 */
+
+    /* Borders */
+    --color-border: 51 65 85;           /* #334155 */
+    --color-border-strong: 71 85 105;   /* #475569 */
+
+    /* Status */
+    --color-success: 74 222 128;        /* #4ade80 */
+    --color-warning: 251 191 36;        /* #fbbf24 */
+    --color-danger: 248 113 113;        /* #f87171 */
+    --color-info: 96 165 250;           /* #60a5fa */
+
+    /* Shadows (más sutiles en dark) */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+
+    /* Focus ring */
+    --focus-ring: 0 0 0 3px rgb(var(--color-primary) / 0.4);
+
+    color-scheme: dark;
+}
+
+/* ============================================
+   BASE - Aplicación de variables al body
+   ============================================ */
+body {
+    background-color: rgb(var(--color-background));
+    color: rgb(var(--color-text));
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   UTILIDADES SEMÁNTICAS (usar con variables)
+   ============================================ */
+.bg-primary       { background-color: rgb(var(--color-primary)); }
+.bg-surface       { background-color: rgb(var(--color-surface)); }
+.bg-surface-alt   { background-color: rgb(var(--color-surface-alt)); }
+.bg-background    { background-color: rgb(var(--color-background)); }
+
+.text-primary     { color: rgb(var(--color-primary)); }
+.text-muted       { color: rgb(var(--color-text-muted)); }
+.text-subtle      { color: rgb(var(--color-text-subtle)); }
+
+.border-default   { border-color: rgb(var(--color-border)); }
+.border-strong    { border-color: rgb(var(--color-border-strong)); }
+
+.text-success     { color: rgb(var(--color-success)); }
+.text-warning     { color: rgb(var(--color-warning)); }
+.text-danger      { color: rgb(var(--color-danger)); }
+.text-info        { color: rgb(var(--color-info)); }
+
+.bg-success       { background-color: rgb(var(--color-success)); }
+.bg-warning       { background-color: rgb(var(--color-warning)); }
+.bg-danger        { background-color: rgb(var(--color-danger)); }
+.bg-info          { background-color: rgb(var(--color-info)); }
+
+/* Variantes :hover de utilidades semanticas. El CDN de Tailwind NO las
+   genera (surface-alt / border-strong no estan en su config de colores),
+   y el markup de varias vistas ya las usa (dashboard, password), asi que
+   aqui se declaran con la misma notacion para que surtan efecto. */
+.hover\:bg-surface-alt:hover { background-color: rgb(var(--color-surface-alt)); }
+.hover\:border-strong:hover  { border-color: rgb(var(--color-border-strong)); }
+
+/* Enlaces de contenido sin clase (p.ej. "Ver firma" en la tabla de
+   entregas): el preflight de Tailwind los pinta con color heredado y sin
+   subrayado, de modo que no se distinguen del texto plano. Esta regla
+   (especificidad 0-1-1) gana al preflight y les devuelve el acento; los
+   enlaces con clase (.btn, .dropdown-item...) no la ven. */
+a:not([class]) {
+    color: rgb(var(--color-primary));
+}
+
+a:not([class]):hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* ============================================
+   FOCUS ACCESSIBILITY
+   El anillo sigue el radio propio del elemento: antes se forzaba
+   border-radius: var(--radius-sm), lo que deformaba a los redondos
+   (toggle, avatar, botones pill) al recibir foco de teclado.
+   ============================================ */
+:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+/* ============================================
+   SCROLLBAR CUSTOM (dark/light)
+   ============================================ */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgb(var(--color-surface));
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-border-strong));
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--color-text-subtle));
+}
+
+/* Firefox */
+* {
+    scrollbar-color: rgb(var(--color-border-strong)) rgb(var(--color-surface));
+    scrollbar-width: thin;
+}
+
+/* ============================================
+   SELECTION
+   ============================================ */
+::selection {
+    background-color: rgb(var(--color-primary) / 0.3);
+    color: rgb(var(--color-text));
+}
+
+/* ============================================
+   PREFERS COLOR SCHEME (fallback inicial)
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+    html:not(.light):not(.dark) {
+        /* Aplicar dark solo si no hay preferencia explícita */
+    }
+}
+
+/* ============================================
+   REDUCED MOTION (accesibilidad)
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}

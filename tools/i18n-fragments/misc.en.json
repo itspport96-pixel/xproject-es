@@ -1,0 +1,380 @@
+{
+  "inventory": {
+    "returns": {
+      "title": "Returns",
+      "subtitle": "Log of unit returns (CU-009)",
+      "pagination_label": "returns",
+      "actions": {
+        "register": "Register return",
+        "cancel": "Cancel",
+        "sending": "Sending..."
+      },
+      "filters": {
+        "estado": "Status on return",
+        "motivo": "Reason",
+        "shipment": "Shipment (id or reference)",
+        "fecha_desde": "From date",
+        "fecha_hasta": "To date",
+        "all": "All",
+        "apply": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters"
+      },
+      "placeholders": {
+        "opcional": "Optional",
+        "unit_search": "Barcode, product, sku, lot or location"
+      },
+      "columns": {
+        "devolucion": "Return",
+        "envio": "Shipment",
+        "barcode": "Barcode",
+        "cantidad": "Quantity",
+        "motivo": "Reason",
+        "estado": "Status on return",
+        "destino": "Destination",
+        "detalle": "Detail",
+        "fecha": "Date"
+      },
+      "summary": {
+        "devoluciones": "Returns",
+        "ok": "OK",
+        "danadas": "Damaged",
+        "deterioradas": "Deteriorated",
+        "perdidas": "Lost"
+      },
+      "empty": {
+        "title": "No returns",
+        "message": "There are no returns matching the current filters."
+      },
+      "permission": {
+        "title": "Permission denied",
+        "body": "You need <code>{permiso}</code> to view this screen."
+      },
+      "states": {
+        "ok": "OK",
+        "danado": "Damaged",
+        "deteriorado": "Deteriorated",
+        "perdido": "Lost"
+      },
+      "reasons": {
+        "cambio_cliente": "Customer exchange",
+        "dano": "Damage",
+        "fallo_entrega": "Delivery failed",
+        "no_aplica": "Not applicable",
+        "otro": "Other"
+      },
+      "modal": {
+        "title": "Register return",
+        "estado_unidad": "Unit status",
+        "estado_unidad_hint": "The backend only accepts units in ENTREGADO or DEVUELTO.",
+        "buscar_unidad": "Search unit",
+        "unidad": "Unit",
+        "loading_units": "Loading units...",
+        "units_available": "{count} unit(s) available.",
+        "motivo": "Reason",
+        "select_motivo": "Select a reason",
+        "estado": "Status on return",
+        "select_estado": "Select a status",
+        "ubicacion_destino": "Destination location",
+        "select_unit": "Select a unit",
+        "no_destination": "No destination",
+        "destination_required_hint": "Required when the status is OK.",
+        "destination_optional_hint": "Ignored: DAÑADO/DETERIORADO go to the DAÑADOS zone and PERDIDO does not store a location.",
+        "observaciones": "Notes"
+      },
+      "validation": {
+        "unidad": "Select the unit to return.",
+        "motivo": "Select the return reason.",
+        "estado": "Select the status on return.",
+        "destino": "Select the destination location."
+      },
+      "messages": {
+        "stock_load_error": "Could not load the stock",
+        "locations_load_error": "Could not load the locations",
+        "load_error": "Could not load the returns",
+        "forbidden_view": "You need {permiso} to view this list.",
+        "registered_title": "Return registered",
+        "register_error": "Could not register the return"
+      }
+    },
+    "incidents": {
+      "title": "Incidents",
+      "subtitle": "Incident reporting and investigation (CU-010)",
+      "pagination_label": "incidents",
+      "actions": {
+        "report": "Report incident",
+        "view": "View",
+        "investigate": "Investigate",
+        "resolve": "Resolve"
+      },
+      "states": {
+        "abierta": "Open",
+        "investigacion": "Under investigation",
+        "resuelta": "Resolved",
+        "no_resuelto": "Not resolved"
+      },
+      "types": {
+        "dano": "Damage",
+        "perdida": "Loss",
+        "discrepancia_cantidad": "Quantity discrepancy",
+        "ubicacion_desconocida": "Unknown location",
+        "entrega_rechazada": "Delivery rejected",
+        "transporte_fallido": "Failed transport",
+        "inventario_desaparecido": "Missing inventory",
+        "otro": "Other"
+      },
+      "results": {
+        "encontrada": "Found",
+        "no_encontrada": "Not found"
+      },
+      "priorities": {
+        "alta": "High",
+        "normal": "Normal"
+      },
+      "summary": {
+        "incidencias": "Incidents",
+        "abiertas": "Open",
+        "investigacion": "Under investigation",
+        "resueltas": "Resolved",
+        "no_resueltas": "Not resolved"
+      },
+      "filters": {
+        "estado": "Status",
+        "tipo": "Type",
+        "unidad": "Unit",
+        "unidad_id": "Unit (id)",
+        "fecha_desde": "From date",
+        "fecha_hasta": "To date",
+        "all": "All",
+        "all_units": "All",
+        "apply": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters",
+        "unit_placeholder": "Physical unit ID"
+      },
+      "columns": {
+        "incidencia": "Incident",
+        "tipo": "Type",
+        "descripcion": "Description",
+        "unidad": "Unit",
+        "ubicacion": "Location",
+        "estado": "Status",
+        "prioridad": "Priority",
+        "deteccion": "Detection",
+        "acciones": "Actions"
+      },
+      "empty": {
+        "title": "No incidents",
+        "message": "There are no incidents matching the current filters."
+      },
+      "permission": {
+        "title": "Permission denied",
+        "body": "You need <code>{permiso}</code> to view this screen."
+      },
+      "messages": {
+        "forbidden_view": "You need inventory.incident.view to view the incidents.",
+        "load_error": "Could not load the incidents",
+        "stock_load_error": "Could not load the stock",
+        "locations_load_error": "Could not load the locations",
+        "incident_load_error": "Could not load the incident",
+        "report_error": "Could not report the incident",
+        "resolve_error": "Could not resolve the incident",
+        "investigate_error": "Could not start the investigation",
+        "reported_title": "Incident reported",
+        "reported_message": "The incident is now in the Open state.",
+        "resolved_title": "Incident closed",
+        "resolved_message": "The resolution has been recorded.",
+        "investigating_title": "Incident under investigation",
+        "investigating_message": "The status changed to Under investigation.",
+        "confirm_investigate": "Start the investigation of this incident?",
+        "sending": "Sending..."
+      },
+      "validation": {
+        "tipo_required": "Select the incident type.",
+        "descripcion_required": "Describe the incident.",
+        "text_max": "The description cannot exceed {max} characters.",
+        "observaciones_max": "The notes cannot exceed {max} characters.",
+        "ubicacion_required": "Choose the affected location (or a unit that has a location).",
+        "estado_required": "Choose the final status (Resolved or Not resolved).",
+        "resultado_required": "Indicate whether the unit was found or not.",
+        "resolucion_descripcion_required": "Describe the resolution.",
+        "acciones_required": "Indicate the actions taken.",
+        "acciones_max": "The actions cannot exceed {max} characters.",
+        "compensacion_max": "The compensation cannot exceed {max} characters."
+      },
+      "detail": {
+        "resolution_section": "Resolution",
+        "final_state": "Final status",
+        "resultado": "Result",
+        "ubicacion_destino": "Destination location",
+        "descripcion": "Description",
+        "acciones_tomadas": "Actions taken",
+        "compensacion": "Compensation",
+        "resuelta_por": "Resolved by",
+        "fecha": "Date",
+        "incident_section": "Incident",
+        "id": "ID",
+        "tipo": "Type",
+        "estado": "Status",
+        "prioridad": "Priority",
+        "deteccion": "Detection",
+        "creada": "Created",
+        "actualizada": "Updated",
+        "context_section": "Context",
+        "unidad": "Unit",
+        "ubicacion": "Location",
+        "reportada_por": "Reported by",
+        "conteo_vinculado": "Linked count",
+        "observaciones": "Notes"
+      },
+      "modals": {
+        "cancel": "Cancel",
+        "report": {
+          "title": "Report incident",
+          "submit": "Report",
+          "tipo_label": "Incident type",
+          "select_tipo": "Select a type",
+          "tipo_hint": "DAÑO marks the unit as DAÑADO; PERDIDA releases it; DISCREPANCIA_CANTIDAD creates a count.",
+          "unit_label": "Physical unit",
+          "unit_search_placeholder": "Search by barcode, product, sku or location",
+          "no_unit_option": "No unit (location only)",
+          "loading_units": "Loading units...",
+          "units_available": "{count} unit(s) available.",
+          "location_label": "Location",
+          "no_location": "No location",
+          "loading_locations": "Loading locations...",
+          "location_hint": "Required for DISCREPANCIA_CANTIDAD if the unit has no location.",
+          "descripcion_label": "Description",
+          "descripcion_placeholder": "What happened and in which unit or location",
+          "observaciones_label": "Notes",
+          "observaciones_placeholder": "Additional information (optional)"
+        },
+        "detail": {
+          "title": "Incident detail"
+        },
+        "resolve": {
+          "title": "Resolve incident",
+          "submit": "Save resolution",
+          "context_label": "Incident",
+          "requires_result": "Requires an inventory result",
+          "estado_label": "Final status",
+          "estado_hint": "Resolved closes the incident; Not resolved leaves it closed without a solution.",
+          "resultado_label": "Inventory result",
+          "select_resultado": "Select a result",
+          "resultado_hint": "Found returns the unit to DISPONIBLE; Not found marks it as PERDIDA.",
+          "ubicacion_destino_label": "Destination location",
+          "previous_location": "The previous location",
+          "loading_locations": "Loading locations...",
+          "ubicacion_destino_hint": "Optional: fill in if the unit reappeared in another location.",
+          "compensacion_label": "Compensation",
+          "compensacion_placeholder": "Financial adjustment, replacement, etc. (optional)",
+          "descripcion_label": "Resolution description",
+          "acciones_label": "Actions taken"
+        }
+      }
+    }
+  },
+  "audit": {
+    "title": "Audit",
+    "subtitle": "Platform event log (read only)",
+    "permission": {
+      "title": "Permission denied",
+      "body": "You need the <code>audit.log.view</code> permission to view the audit log."
+    },
+    "filters": {
+      "fecha_desde": "From date",
+      "fecha_hasta": "To date",
+      "usuario": "User (id)",
+      "usuario_placeholder": "Actor UUID",
+      "accion": "Action",
+      "accion_placeholder": "product.create or POST /api/inventory/products",
+      "entidad": "Entity",
+      "resultado": "Result",
+      "apply": "Filter",
+      "clear": "Clear"
+    },
+    "results": {
+      "all": "All",
+      "success": "Success",
+      "failure": "Failure",
+      "failure_badge": "Fail"
+    },
+    "summary": {
+      "total": "Records (active filter)",
+      "success": "Successful",
+      "failure": "Failed"
+    },
+    "empty": {
+      "title": "No records",
+      "message": "No events match the current filters."
+    },
+    "columns": {
+      "date": "Date",
+      "user": "User",
+      "action": "Action",
+      "entity": "Entity",
+      "result": "Result",
+      "detail": "Detail"
+    },
+    "pagination": {
+      "per_page": "per page"
+    },
+    "detail": {
+      "title": "Event detail",
+      "module_resource": "Module / resource",
+      "entity_id": "Entity (id)",
+      "change_type": "Change type",
+      "ip_duration": "IP / duration",
+      "values_before": "Values before",
+      "values_after": "Values after",
+      "extra_details": "Additional details",
+      "no_changes": "— no changes —"
+    },
+    "messages": {
+      "load_error": "Could not load the audit log"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Summary of your operation",
+    "greeting": "Hello, {name}",
+    "cards": {
+      "active_users": "Active users",
+      "stock_units": "Units in stock",
+      "quick_access": "Quick access",
+      "stock_summary": "Stock summary",
+      "operation": "Operation"
+    },
+    "quick": {
+      "products_title": "View products",
+      "products_desc": "Manage the product catalog",
+      "locations_desc": "Manage warehouse locations",
+      "users_desc": "Manage tenant users"
+    },
+    "stock": {
+      "columns": {
+        "product": "Product",
+        "units": "Units",
+        "quantity": "Quantity"
+      },
+      "empty": "There are no active products in the catalog.",
+      "counts": {
+        "products_without_stock": "Products without stock",
+        "critical_locations": "Critical locations",
+        "units_in_stock": "Units in stock"
+      }
+    },
+    "metrics": {
+      "locations_available": "Available locations",
+      "active_reservations": "Active reservations",
+      "in_transit": "In transit",
+      "open_incidents": "Open incidents"
+    },
+    "messages": {
+      "error_title": "Error loading data",
+      "retry": "Retry",
+      "http_unavailable": "HttpClient not available",
+      "stats_load_error": "Could not load the statistics"
+    }
+  }
+}

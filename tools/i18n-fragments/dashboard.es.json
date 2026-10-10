@@ -1,0 +1,45 @@
+{
+  "dashboard": {
+    "title": "Panel de control",
+    "subtitle": "Resumen de tu operación",
+    "greeting": "Hola, {name}",
+    "cards": {
+      "active_users": "Usuarios activos",
+      "stock_units": "Unidades en stock",
+      "quick_access": "Accesos rápidos",
+      "stock_summary": "Stock resumido",
+      "operation": "Operación"
+    },
+    "quick": {
+      "products_title": "Ver productos",
+      "products_desc": "Gestiona el catálogo de productos",
+      "locations_desc": "Administra ubicaciones del almacén",
+      "users_desc": "Gestiona usuarios del tenant"
+    },
+    "stock": {
+      "columns": {
+        "product": "Producto",
+        "units": "Unidades",
+        "quantity": "Cantidad"
+      },
+      "empty": "No hay productos activos en el catálogo.",
+      "counts": {
+        "products_without_stock": "Productos sin stock",
+        "critical_locations": "Ubicaciones críticas",
+        "units_in_stock": "Unidades en stock"
+      }
+    },
+    "metrics": {
+      "locations_available": "Ubicaciones disponibles",
+      "active_reservations": "Reservas activas",
+      "in_transit": "En tránsito",
+      "open_incidents": "Incidencias abiertas"
+    },
+    "messages": {
+      "error_title": "Error al cargar datos",
+      "retry": "Reintentar",
+      "http_unavailable": "HttpClient no disponible",
+      "stats_load_error": "No se pudieron cargar las estadísticas"
+    }
+  }
+}

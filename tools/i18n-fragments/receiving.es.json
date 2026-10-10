@@ -1,0 +1,89 @@
+{
+  "inventory": {
+    "receiving": {
+      "title": "Recepción",
+      "subtitle": "Entrada de inventario: unidad física + ledger + evento en una sola transacción",
+      "card_title": "Nueva recepción",
+      "labels": {
+        "producto": "Producto",
+        "ubicacion_destino": "Ubicación destino",
+        "cantidad_esperada": "Cantidad esperada",
+        "cantidad_recibida": "Cantidad recibida",
+        "lote": "Lote",
+        "numero_serie": "Número de serie",
+        "rechazo_total": "Rechazo total de la entrega"
+      },
+      "selects": {
+        "producto": "Seleccione un producto",
+        "ubicacion": "Seleccione una ubicación"
+      },
+      "placeholders": {
+        "cantidad_recibida": "Vacío = igual a la esperada",
+        "opcional": "Opcional"
+      },
+      "hints": {
+        "producto": "Sólo productos activos del catálogo.",
+        "ubicacion": "Sólo ubicaciones activas. Etiqueta: código (usada / capacidad).",
+        "cantidad_recibida": "Menor que la esperada genera recepción parcial con incidencia.",
+        "rechazo_total": "No entra en stock: no crea unidad ni ledger y abre una incidencia de entrega rechazada con prioridad alta. La cantidad recibida queda en 0."
+      },
+      "buttons": {
+        "submit": "Registrar recepción",
+        "submitting": "Registrando..."
+      },
+      "options": {
+        "sin_limite": "sin límite",
+        "sin_espacio": " - sin espacio"
+      },
+      "result": {
+        "title": "Última recepción",
+        "empty_title": "Sin recepciones en esta sesión",
+        "empty_hint": "El código de barras de la unidad aparecerá aquí."
+      },
+      "states": {
+        "rechazada": "Rechazada",
+        "parcial": "Parcial",
+        "completa": "Completa",
+        "sin_unidad": "— sin unidad —"
+      },
+      "prioridad": {
+        "alta": "Alta",
+        "normal": "Normal"
+      },
+      "columns": {
+        "ubicacion": "Ubicación",
+        "estado": "Estado",
+        "discrepancia": "Discrepancia",
+        "codigo_barras": "Código de barras",
+        "sku": "SKU",
+        "esperada": "Esperada",
+        "recibida": "Recibida"
+      },
+      "messages": {
+        "catalog_error": "No se pudieron cargar productos y ubicaciones",
+        "error_producto_required": "Seleccione un producto.",
+        "error_ubicacion_required": "Seleccione una ubicación destino.",
+        "error_cantidad_esperada": "La cantidad esperada debe ser mayor que cero.",
+        "error_cantidad_recibida": "La cantidad recibida debe ser mayor que cero.",
+        "error_cantidad_recibida_max": "No puede ser mayor que la cantidad esperada.",
+        "submit_error": "No se pudo registrar la recepción",
+        "rechazo_titulo": "Entrega rechazada.",
+        "rechazo_fallback": "No se registró stock; se abrió una incidencia de entrega rechazada.",
+        "parcial_titulo": "Recepción parcial.",
+        "parcial_fallback": "Se registró una incidencia de discrepancia de cantidad.",
+        "evento": "Evento {tipo}",
+        "evento_hash": "· hash {hash}...",
+        "toast_rechazo_titulo": "Entrega rechazada",
+        "toast_rechazo_fallback": "Sin stock; se abrió una incidencia de prioridad alta.",
+        "toast_registrada_titulo": "Recepción registrada",
+        "toast_registrada_mensaje": "{codigo} en {ubicacion}",
+        "error_401_form": "Sesión expirada. Vuelve a iniciar sesión; la clave de idempotencia se conserva.",
+        "error_401_toast": "Vuelve a iniciar sesión para continuar",
+        "error_409_form": "La clave de idempotencia ya se había usado con otros datos. Se generó una nueva clave: revisa el stock antes de reintentar.",
+        "error_409_toast_titulo": "Idempotencia",
+        "error_409_toast": "Clave reutilizada con datos distintos; se generó una nueva",
+        "toast_capacidad": "Capacidad excedida"
+      }
+    }
+  }
+}

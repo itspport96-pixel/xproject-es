@@ -1,0 +1,131 @@
+{
+  "inventory": {
+    "stock": {
+      "title": "Stock actual",
+      "subtitle": "Unidades físicas con cantidades física, reservada, en tránsito y disponible",
+      "units": "unidades",
+      "columns": {
+        "barcode": "Barcode",
+        "producto": "Producto",
+        "ubicacion": "Ubicación",
+        "cantidad": "Cantidad",
+        "estado": "Estado",
+        "acciones": "Acciones"
+      },
+      "summary": {
+        "unidades": "Unidades",
+        "fisica": "Física",
+        "reservada": "Reservada",
+        "en_transito": "En tránsito",
+        "disponible": "Disponible"
+      },
+      "states": {
+        "disponible": "Disponible",
+        "reservado": "Reservado",
+        "en_preparacion": "En preparación",
+        "cargado": "Cargado",
+        "en_transito": "En tránsito",
+        "entregado": "Entregado",
+        "devuelto": "Devuelto",
+        "dannado": "Dañado",
+        "bloqueado": "Bloqueado",
+        "perdido": "Perdido"
+      },
+      "filters": {
+        "all_products": "Todos los productos",
+        "all_locations": "Todas las ubicaciones",
+        "all_states": "Todos los estados",
+        "apply": "Filtrar",
+        "clear": "Limpiar",
+        "clear_title": "Limpiar filtros"
+      },
+      "empty": {
+        "title": "Sin unidades en stock",
+        "message": "No hay unidades que coincidan con los filtros actuales."
+      },
+      "row": {
+        "disp": "disp {value}",
+        "res": "· res {value}",
+        "tran": "· trán {value}"
+      },
+      "actions": {
+        "move": "Mover",
+        "reserve": "Reservar",
+        "block": "Bloquear",
+        "unblock": "Desbloquear",
+        "history": "Historial"
+      },
+      "modals": {
+        "cancel": "Cancelar",
+        "unit": "Unidad",
+        "state": "Estado",
+        "optional_placeholder": "Opcional",
+        "move": {
+          "title": "Mover unidad",
+          "current_location": "Ubicación actual",
+          "destination_label": "Ubicación destino",
+          "destination_hint": "Activas con espacio, sin tipo TRANSITO y distintas de la actual.",
+          "select_destination": "Seleccione una ubicación destino",
+          "no_destinations": "No hay ubicaciones destino disponibles",
+          "no_limit": "sin límite",
+          "reason_label": "Motivo",
+          "reason_placeholder": "REUBICACION (por defecto)",
+          "external_ref_label": "Referencia externa"
+        },
+        "reserve": {
+          "title": "Reservar unidad",
+          "location_label": "Ubicación",
+          "available_label": "Disponible",
+          "quantity_label": "Cantidad a reservar",
+          "quantity_placeholder": "Vacío = total de la unidad",
+          "quantity_hint": "Máximo {max} disponible.",
+          "expiration_label": "Expiración",
+          "expiration_hint": "Opcional. Debe ser posterior a la fecha de reserva.",
+          "order_ref_label": "Referencia de orden"
+        }
+      },
+      "history": {
+        "title": "Historial de la unidad",
+        "event": "Evento",
+        "movement": "Movimiento",
+        "correction": "Corrección",
+        "cant": "cant {from} → {to}",
+        "by": "por {actor}",
+        "empty_title": "Sin movimientos",
+        "empty_message": "Esta unidad todavía no tiene eventos ni movimientos.",
+        "footer_info": "{total} registro(s) · más reciente primero"
+      },
+      "messages": {
+        "sending": "Enviando...",
+        "unit_not_found_title": "Unidad no encontrada",
+        "unit_not_found_message": "La unidad ya no existe.",
+        "history_forbidden": "Necesitas inventory.stock.view para ver el historial.",
+        "history_load_error": "No se pudo cargar el historial",
+        "confirm_block": "¿Bloquear esta unidad? No podrá moverse ni reservarse hasta desbloquearla.",
+        "confirm_unblock": "¿Desbloquear esta unidad? Volverá a quedar disponible.",
+        "blocked_title": "Unidad bloqueada",
+        "unblocked_title": "Unidad desbloqueada",
+        "state_with": "Estado: {estado}",
+        "block_error": "No se pudo bloquear la unidad",
+        "unblock_error": "No se pudo desbloquear la unidad",
+        "destination_required": "Seleccione una ubicación destino.",
+        "destination_same": "La ubicación destino debe ser distinta de la actual.",
+        "quantity_positive": "La cantidad debe ser mayor que cero.",
+        "quantity_exceeds": "Supera lo disponible ({available}).",
+        "expiration_invalid": "Indique una fecha y hora válidas.",
+        "expiration_future": "La expiración debe ser posterior a la fecha actual.",
+        "moved_title": "Unidad movida",
+        "moved_message": "Destino {destino}",
+        "moved_correction": "marcado como corrección",
+        "warning_title": "Aviso",
+        "reserved_warning": "La unidad tiene reservas activas.",
+        "move_error": "No se pudo mover la unidad",
+        "reserve_created_title": "Reserva creada",
+        "reserve_created_message": "Unidad {barcode}",
+        "reserve_error": "No se pudo crear la reserva",
+        "capacity_exceeded": "Capacidad excedida",
+        "stock_load_error": "No se pudo cargar el stock"
+      }
+    }
+  }
+}

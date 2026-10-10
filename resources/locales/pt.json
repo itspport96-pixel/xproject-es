@@ -1,0 +1,1958 @@
+{
+  "shell": {
+    "guest": "Invitado",
+    "logout": "Cerrar sesion",
+    "change_password": "Cambiar contraseña",
+    "language": "Idioma",
+    "toggle_menu": "Alternar menú",
+    "toggle_theme": "Toggle theme",
+    "no_role": "Sin rol",
+    "sidebar_close": "Cerrar menú",
+    "sidebar_menu": "Menú principal",
+    "session_expired": "Sesión expirada",
+    "session_idle": "Se cerro tu sesion por inactividad."
+  },
+  "ui": {
+    "empty_title": "Sin datos",
+    "pagination": "Mostrando {shown} de {total} {label}",
+    "records": "registros",
+    "close": "Cerrar",
+    "error_generic": "Error",
+    "error_not_csv": "La respuesta no es un CSV.",
+    "toast_invalid": "Datos inválidos",
+    "toast_session": "Sesión expirada",
+    "toast_forbidden": "Acceso denegado",
+    "toast_not_found": "No encontrado",
+    "toast_conflict": "Conflicto",
+    "toast_rejected": "Operación rechazada",
+    "toast_lang_save_title": "Idioma",
+    "toast_lang_save_failed": "Nao foi possivel salvar o idioma no servidor; ele vale apenas neste navegador."
+  },
+  "theme": {
+    "action_dark": "Claro",
+    "action_light": "Oscuro",
+    "action_system": "Auto",
+    "title_dark": "Modo claro",
+    "title_light": "Modo oscuro",
+    "title_system": "Auto (sistema)",
+    "toggle_default": "Cambiar tema",
+    "aria": "Tema actual: {preference}. Click para cambiar.",
+    "synced_title": "Tema sincronizado",
+    "synced_message": "Tema cambiado a {effective} desde otra pestaña"
+  },
+  "login": {
+    "tagline": "Gestión de Inventario Multi-Tenant",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "email_placeholder": "tu@empresa.com",
+    "password_placeholder": "Ingresa tu contraseña",
+    "submit": "Iniciar sesión",
+    "submitting": "Iniciando sesión...",
+    "terms": "Al iniciar sesión aceptas los términos de uso.",
+    "error_required_email": "El correo electrónico es obligatorio",
+    "error_invalid_email": "Formato de correo inválido",
+    "error_required_password": "La contraseña es obligatoria",
+    "error_short_password": "La contraseña debe tener al menos 8 caracteres",
+    "welcome": "Bienvenido",
+    "welcome_message": "Hola, {nombre}",
+    "error_generic": "Error al iniciar sesión. Intenta nuevamente.",
+    "error_401": "Credenciales inválidas. Verifica tu correo y contraseña.",
+    "error_403": "Cuenta no activa. Contacta al administrador.",
+    "error_429": "Demasiados intentos. Espera unos minutos.",
+    "error_408": "Tiempo de espera agotado. Verifica tu conexión.",
+    "error_invalid_response": "Respuesta inválida del servidor"
+  },
+  "loader": {
+    "loading_module": "Cargando módulo...",
+    "error_title": "Error al cargar módulo",
+    "error_body": "No se pudo cargar el módulo {modulo}.",
+    "retry": "Reintentar",
+    "error_unknown": "Error desconocido",
+    "error_not_registered": "Módulo \"{modulo}\" no registrado",
+    "error_no_global": "Módulo \"{modulo}\" no expuso \"{clave}\" en window"
+  },
+  "router": {
+    "not_found_title": "Ruta no encontrada",
+    "not_found_body": "La página que buscas no existe.",
+    "go_dashboard": "Ir al dashboard",
+    "unavailable_title": "Módulo no disponible",
+    "unavailable_body": "{titulo} está planificado pero aún no está habilitado en esta versión de la plataforma."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "products": "Productos",
+    "locations": "Ubicaciones",
+    "receiving": "Recepción",
+    "stock": "Stock",
+    "movements": "Movimientos",
+    "reservations": "Reservas",
+    "picking": "Picking",
+    "shipments": "Envíos",
+    "deliveries": "Entregas",
+    "returns": "Devoluciones",
+    "incidents": "Incidencias",
+    "counts": "Conteos",
+    "users": "Usuarios",
+    "roles": "Roles",
+    "groups": "Grupos",
+    "audit": "Auditoría",
+    "settings": "Configuración",
+    "section_principal": "Principal",
+    "section_inventory": "Inventario",
+    "section_admin": "Administración",
+    "section_system": "Sistema"
+  },
+  "routes": {
+    "login": "Iniciar sesión",
+    "dashboard": "Dashboard",
+    "users": "Usuarios",
+    "roles": "Roles",
+    "groups": "Grupos",
+    "inventory": "Inventario",
+    "locations": "Ubicaciones",
+    "receiving": "Recepción",
+    "stock": "Stock actual",
+    "movements": "Movimientos",
+    "reservations": "Reservas",
+    "picking": "Picking",
+    "shipments": "Envíos",
+    "deliveries": "Entregas",
+    "returns": "Devoluciones",
+    "incidents": "Incidencias",
+    "counts": "Conteos",
+    "audit": "Auditoría",
+    "settings": "Configuración"
+  },
+  "inventory": {
+    "stock": {
+      "title": "Stock actual",
+      "subtitle": "Unidades físicas con cantidades física, reservada, en tránsito y disponible",
+      "units": "unidades",
+      "columns": {
+        "barcode": "Barcode",
+        "producto": "Producto",
+        "ubicacion": "Ubicación",
+        "cantidad": "Cantidad",
+        "estado": "Estado",
+        "acciones": "Acciones"
+      },
+      "summary": {
+        "unidades": "Unidades",
+        "fisica": "Física",
+        "reservada": "Reservada",
+        "en_transito": "En tránsito",
+        "disponible": "Disponible"
+      },
+      "states": {
+        "disponible": "Disponible",
+        "reservado": "Reservado",
+        "en_preparacion": "En preparación",
+        "cargado": "Cargado",
+        "en_transito": "En tránsito",
+        "entregado": "Entregado",
+        "devuelto": "Devuelto",
+        "dannado": "Dañado",
+        "bloqueado": "Bloqueado",
+        "perdido": "Perdido"
+      },
+      "filters": {
+        "all_products": "Todos los productos",
+        "all_locations": "Todas las ubicaciones",
+        "all_states": "Todos los estados",
+        "apply": "Filtrar",
+        "clear": "Limpiar",
+        "clear_title": "Limpiar filtros"
+      },
+      "empty": {
+        "title": "Sin unidades en stock",
+        "message": "No hay unidades que coincidan con los filtros actuales."
+      },
+      "row": {
+        "disp": "disp {value}",
+        "res": "· res {value}",
+        "tran": "· trán {value}"
+      },
+      "actions": {
+        "move": "Mover",
+        "reserve": "Reservar",
+        "block": "Bloquear",
+        "unblock": "Desbloquear",
+        "history": "Historial"
+      },
+      "modals": {
+        "cancel": "Cancelar",
+        "unit": "Unidad",
+        "state": "Estado",
+        "optional_placeholder": "Opcional",
+        "move": {
+          "title": "Mover unidad",
+          "current_location": "Ubicación actual",
+          "destination_label": "Ubicación destino",
+          "destination_hint": "Activas con espacio, sin tipo TRANSITO y distintas de la actual.",
+          "select_destination": "Seleccione una ubicación destino",
+          "no_destinations": "No hay ubicaciones destino disponibles",
+          "no_limit": "sin límite",
+          "reason_label": "Motivo",
+          "reason_placeholder": "REUBICACION (por defecto)",
+          "external_ref_label": "Referencia externa"
+        },
+        "reserve": {
+          "title": "Reservar unidad",
+          "location_label": "Ubicación",
+          "available_label": "Disponible",
+          "quantity_label": "Cantidad a reservar",
+          "quantity_placeholder": "Vacío = total de la unidad",
+          "quantity_hint": "Máximo {max} disponible.",
+          "expiration_label": "Expiración",
+          "expiration_hint": "Opcional. Debe ser posterior a la fecha de reserva.",
+          "order_ref_label": "Referencia de orden"
+        }
+      },
+      "history": {
+        "title": "Historial de la unidad",
+        "event": "Evento",
+        "movement": "Movimiento",
+        "correction": "Corrección",
+        "cant": "cant {from} → {to}",
+        "by": "por {actor}",
+        "empty_title": "Sin movimientos",
+        "empty_message": "Esta unidad todavía no tiene eventos ni movimientos.",
+        "footer_info": "{total} registro(s) · más reciente primero"
+      },
+      "messages": {
+        "sending": "Enviando...",
+        "unit_not_found_title": "Unidad no encontrada",
+        "unit_not_found_message": "La unidad ya no existe.",
+        "history_forbidden": "Necesitas inventory.stock.view para ver el historial.",
+        "history_load_error": "No se pudo cargar el historial",
+        "confirm_block": "¿Bloquear esta unidad? No podrá moverse ni reservarse hasta desbloquearla.",
+        "confirm_unblock": "¿Desbloquear esta unidad? Volverá a quedar disponible.",
+        "blocked_title": "Unidad bloqueada",
+        "unblocked_title": "Unidad desbloqueada",
+        "state_with": "Estado: {estado}",
+        "block_error": "No se pudo bloquear la unidad",
+        "unblock_error": "No se pudo desbloquear la unidad",
+        "destination_required": "Seleccione una ubicación destino.",
+        "destination_same": "La ubicación destino debe ser distinta de la actual.",
+        "quantity_positive": "La cantidad debe ser mayor que cero.",
+        "quantity_exceeds": "Supera lo disponible ({available}).",
+        "expiration_invalid": "Indica una fecha y hora válidas.",
+        "expiration_future": "La expiración debe ser posterior a la fecha actual.",
+        "moved_title": "Unidad movida",
+        "moved_message": "Destino {destino}",
+        "moved_correction": "marcado como corrección",
+        "warning_title": "Aviso",
+        "reserved_warning": "La unidad tiene reservas activas.",
+        "move_error": "No se pudo mover la unidad",
+        "reserve_created_title": "Reserva creada",
+        "reserve_created_message": "Unidad {barcode}",
+        "reserve_error": "No se pudo crear la reserva",
+        "capacity_exceeded": "Capacidad excedida",
+        "stock_load_error": "No se pudo cargar el stock"
+      }
+    },
+    "locations": {
+      "title": "Ubicaciones",
+      "subtitle": "Gestión de ubicaciones físicas del almacén",
+      "pagination_label": "ubicaciones",
+      "actions": {
+        "create": "Nueva ubicación",
+        "units": "Unidades",
+        "edit": "Editar",
+        "activate": "Activar",
+        "deactivate": "Desactivar",
+        "delete": "Eliminar"
+      },
+      "filters": {
+        "search_placeholder": "Buscar código o nombre...",
+        "all_types": "Todos los tipos",
+        "all_states": "Todos los estados",
+        "active": "Activas",
+        "inactive": "Inactivas",
+        "apply": "Filtrar",
+        "clear": "Limpiar"
+      },
+      "types": {
+        "almacenamiento": "Almacenamiento",
+        "picking": "Picking",
+        "danados": "Dañados",
+        "bloqueados": "Bloqueados",
+        "transito": "Tránsito",
+        "devolucion": "Devolución"
+      },
+      "columns": {
+        "code": "Código",
+        "name_hierarchy": "Nombre / Jerarquía",
+        "type": "Tipo",
+        "capacity": "Capacidad",
+        "state": "Estado",
+        "created": "Creada",
+        "actions": "Acciones",
+        "barcode": "Barcode",
+        "product": "Producto",
+        "quantity": "Cantidad"
+      },
+      "states": {
+        "active": "Activa",
+        "inactive": "Inactiva",
+        "no_limit": "Sin límite",
+        "empty_title": "Sin ubicaciones",
+        "empty_body": "No hay ubicaciones para mostrar. Crea la primera.",
+        "units_empty_title": "Ubicación vacía",
+        "units_empty_body": "No hay unidades físicas en esta ubicación."
+      },
+      "modals": {
+        "create_title": "Nueva ubicación",
+        "edit_title": "Editar ubicación",
+        "units_title": "Unidades en {codigo}",
+        "cancel": "Cancelar",
+        "save_changes": "Guardar cambios",
+        "create_submit": "Crear ubicación",
+        "fields": {
+          "code": "Código",
+          "type": "Tipo",
+          "name": "Nombre",
+          "hierarchy": "Jerarquía",
+          "capacity": "Capacidad"
+        },
+        "placeholders": {
+          "code": "Ej: A-01-02-03",
+          "name": "Etiqueta legible de la ubicación",
+          "hierarchy": "Ej: A-01 (padre de esta ubicación)",
+          "capacity": "Dejar vacío = sin límite"
+        },
+        "hints": {
+          "code": "Único por tenant. Soporta jerarquía con guiones.",
+          "type": "TRANSITO (virtual) no admite capacidad."
+        }
+      },
+      "messages": {
+        "load_error": "No se pudieron cargar las ubicaciones",
+        "load_units_error": "No se pudieron cargar las unidades",
+        "save_error": "Error al guardar",
+        "saved_updated": "Ubicación actualizada",
+        "saved_created": "Ubicación creada",
+        "activated": "Ubicación activada",
+        "deactivated": "Ubicación desactivada",
+        "toggle_error": "No se pudo cambiar el estado",
+        "delete_confirm": "¿Eliminar esta ubicación? Esta acción es reversible.",
+        "deleted": "Ubicación eliminada",
+        "delete_error": "No se pudo eliminar",
+        "total": "Total",
+        "units_count": "{total} unidad(es)",
+        "available_short": "disp",
+        "truncated": "Sólo se muestran las primeras 100 unidades.",
+        "capacity_no_limit": "sin límite"
+      }
+    },
+    "products": {
+      "title": "Productos",
+      "subtitle": "Gestión de catálogo de productos",
+      "pagination_label": "productos",
+      "actions": {
+        "create": "+ Nuevo producto",
+        "stock": "Stock",
+        "edit": "Editar",
+        "activate": "Activar",
+        "deactivate": "Desactivar",
+        "delete": "Eliminar"
+      },
+      "filters": {
+        "search_placeholder": "Buscar SKU o nombre...",
+        "all_units": "Todas las unidades",
+        "all_states": "Todos los estados",
+        "active": "Activos",
+        "inactive": "Inactivos",
+        "apply": "Filtrar",
+        "clear": "Limpiar"
+      },
+      "columns": {
+        "sku": "SKU",
+        "nombre": "Nombre",
+        "unidad": "Unidad",
+        "stock_total": "Stock total",
+        "estado": "Estado",
+        "creado": "Creado",
+        "acciones": "Acciones"
+      },
+      "states": {
+        "active": "Activo",
+        "inactive": "Inactivo"
+      },
+      "empty": {
+        "title": "Sin productos",
+        "message": "No hay productos para mostrar. Crea el primero."
+      },
+      "modals": {
+        "edit_title": "Editar producto",
+        "create_title": "Nuevo producto",
+        "labels": {
+          "sku": "SKU",
+          "nombre": "Nombre",
+          "unidad": "Unidad de medida",
+          "categoria": "Categoría",
+          "descripcion": "Descripción",
+          "peso": "Peso (kg)",
+          "volumen": "Volumen",
+          "dimensiones": "Dimensiones (LxAxH)"
+        },
+        "placeholders": {
+          "sku": "Ej: PROD-001",
+          "nombre": "Nombre del producto",
+          "categoria": "Ej: Electrónica",
+          "dimensiones": "Ej: 100x50x30"
+        },
+        "unit_hint": "KG requiere peso. M3/LT requiere volumen.",
+        "cancel": "Cancelar",
+        "submit_edit": "Guardar cambios",
+        "submit_create": "Crear producto"
+      },
+      "stock": {
+        "title": "Stock de {sku}",
+        "available": "disp {cantidad}",
+        "empty_title": "Sin stock registrado",
+        "empty_message": "Este producto aún no tiene unidades físicas.",
+        "columns": {
+          "ubicacion": "Ubicación",
+          "cantidad": "Cantidad",
+          "disponible": "Disponible",
+          "estado": "Estado"
+        },
+        "total_label": "Total",
+        "units": "{total} unidad(es)",
+        "truncated": "Sólo se muestran las primeras 100 unidades."
+      },
+      "messages": {
+        "load_error": "No se pudieron cargar los productos",
+        "stock_load_error": "No se pudo cargar el stock del producto",
+        "save_error": "Error al guardar",
+        "toggle_error": "No se pudo cambiar el estado",
+        "delete_error": "No se pudo eliminar",
+        "confirm_delete": "¿Eliminar este producto? Esta acción es reversible.",
+        "created": "Producto creado",
+        "updated": "Producto actualizado",
+        "activated": "Producto activado",
+        "deactivated": "Producto desactivado",
+        "deleted": "Producto eliminado"
+      }
+    },
+    "receiving": {
+      "title": "Recepción",
+      "subtitle": "Entrada de inventario: unidad física + ledger + evento en una sola transacción",
+      "card_title": "Nueva recepción",
+      "labels": {
+        "producto": "Producto",
+        "ubicacion_destino": "Ubicación destino",
+        "cantidad_esperada": "Cantidad esperada",
+        "cantidad_recibida": "Cantidad recibida",
+        "lote": "Lote",
+        "numero_serie": "Número de serie",
+        "rechazo_total": "Rechazo total de la entrega"
+      },
+      "selects": {
+        "producto": "Seleccione un producto",
+        "ubicacion": "Seleccione una ubicación"
+      },
+      "placeholders": {
+        "cantidad_recibida": "Vacío = igual a la esperada",
+        "opcional": "Opcional"
+      },
+      "hints": {
+        "producto": "Sólo productos activos del catálogo.",
+        "ubicacion": "Sólo ubicaciones activas. Etiqueta: código (usada / capacidad).",
+        "cantidad_recibida": "Menor que la esperada genera recepción parcial con incidencia.",
+        "rechazo_total": "No entra en stock: no crea unidad ni ledger y abre una incidencia de entrega rechazada con prioridad alta. La cantidad recibida queda en 0."
+      },
+      "buttons": {
+        "submit": "Registrar recepción",
+        "submitting": "Registrando..."
+      },
+      "options": {
+        "sin_limite": "sin límite",
+        "sin_espacio": " - sin espacio"
+      },
+      "result": {
+        "title": "Última recepción",
+        "empty_title": "Sin recepciones en esta sesión",
+        "empty_hint": "El código de barras de la unidad aparecerá aquí."
+      },
+      "states": {
+        "rechazada": "Rechazada",
+        "parcial": "Parcial",
+        "completa": "Completa",
+        "sin_unidad": "— sin unidad —"
+      },
+      "prioridad": {
+        "alta": "Alta",
+        "normal": "Normal"
+      },
+      "columns": {
+        "ubicacion": "Ubicación",
+        "estado": "Estado",
+        "discrepancia": "Discrepancia",
+        "codigo_barras": "Código de barras",
+        "sku": "SKU",
+        "esperada": "Esperada",
+        "recibida": "Recibida"
+      },
+      "messages": {
+        "catalog_error": "No se pudieron cargar productos y ubicaciones",
+        "error_producto_required": "Seleccione un producto.",
+        "error_ubicacion_required": "Seleccione una ubicación destino.",
+        "error_cantidad_esperada": "La cantidad esperada debe ser mayor que cero.",
+        "error_cantidad_recibida": "La cantidad recibida debe ser mayor que cero.",
+        "error_cantidad_recibida_max": "No puede ser mayor que la cantidad esperada.",
+        "submit_error": "No se pudo registrar la recepción",
+        "rechazo_titulo": "Entrega rechazada.",
+        "rechazo_fallback": "No se registró stock; se abrió una incidencia de entrega rechazada.",
+        "parcial_titulo": "Recepción parcial.",
+        "parcial_fallback": "Se registró una incidencia de discrepancia de cantidad.",
+        "evento": "Evento {tipo}",
+        "evento_hash": "· hash {hash}...",
+        "toast_rechazo_titulo": "Entrega rechazada",
+        "toast_rechazo_fallback": "Sin stock; se abrió una incidencia de prioridad alta.",
+        "toast_registrada_titulo": "Recepción registrada",
+        "toast_registrada_mensaje": "{codigo} en {ubicacion}",
+        "error_401_form": "Sesión expirada. Vuelve a iniciar sesión; la clave de idempotencia se conserva.",
+        "error_401_toast": "Vuelve a iniciar sesión para continuar",
+        "error_409_form": "La clave de idempotencia ya se había usado con otros datos. Se generó una nueva clave: revisa el stock antes de reintentar.",
+        "error_409_toast_titulo": "Idempotencia",
+        "error_409_toast": "Clave reutilizada con datos distintos; se generó una nueva",
+        "toast_capacidad": "Capacidad excedida"
+      }
+    },
+    "movements": {
+      "title": "Movimientos",
+      "subtitle": "Historial de movimientos internos de inventario (CU-002 / R3)",
+      "pagination_label": "movimientos",
+      "summary": {
+        "correcciones": "Correcciones",
+        "en_pantalla": "En pantalla"
+      },
+      "filters": {
+        "unit": "Unidad",
+        "unit_placeholder": "ID de unidad física",
+        "origin": "Origen",
+        "destination": "Destino",
+        "reason": "Motivo",
+        "reason_placeholder": "REUBICACION, ...",
+        "correction": "Corrección",
+        "all": "Todas",
+        "only_corrections": "Sólo correcciones",
+        "no_correction": "Sin corrección",
+        "date_from": "Fecha desde",
+        "date_to": "Fecha hasta",
+        "apply": "Filtrar",
+        "clear": "Limpiar",
+        "clear_title": "Limpiar filtros"
+      },
+      "columns": {
+        "movimiento": "Movimiento",
+        "fecha": "Fecha",
+        "unidad": "Unidad",
+        "ruta": "Ruta",
+        "motivo": "Motivo",
+        "actor": "Actor",
+        "correccion": "Corrección"
+      },
+      "empty": {
+        "title": "Sin movimientos",
+        "message": "No hay movimientos que coincidan con los filtros actuales."
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver los movimientos."
+      },
+      "messages": {
+        "forbidden_view": "Necesitas {permiso} para ver los movimientos.",
+        "load_error": "No se pudieron cargar los movimientos"
+      }
+    },
+    "reservations": {
+      "title": "Reservas",
+      "subtitle": "Reservas de unidades de inventario (CU-003)",
+      "pagination_label": "reservas",
+      "summary": {
+        "total": "Reservas",
+        "activas": "Activas",
+        "con_vencimiento": "Con vencimiento"
+      },
+      "states": {
+        "activa": "ACTIVA",
+        "cancelada": "CANCELADA"
+      },
+      "columns": {
+        "barcode": "Barcode",
+        "producto": "Producto",
+        "reservada": "Reservada",
+        "estado": "Estado",
+        "vencimiento": "Vencimiento",
+        "acciones": "Acciones"
+      },
+      "actions": {
+        "release": "Liberar"
+      },
+      "empty": {
+        "title": "Sin reservas",
+        "message": "No hay reservas registradas."
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
+      },
+      "messages": {
+        "load_error": "No se pudieron cargar las reservas",
+        "forbidden_view": "Necesitas {permiso} para ver las reservas.",
+        "forbidden_release": "Necesitas {permiso} para liberar reservas.",
+        "confirm_release": "¿Liberar esta reserva? La unidad quedará disponible de nuevo.",
+        "released_title": "Reserva liberada",
+        "released_message": "La unidad volvió a estar disponible.",
+        "not_found_title": "Reserva no encontrada",
+        "not_found_message": "La reserva ya no existe.",
+        "release_conflict_title": "No se pudo liberar",
+        "release_conflict_message": "La reserva ya no está activa.",
+        "release_error": "No se pudo liberar la reserva"
+      }
+    },
+    "deliveries": {
+      "title": "Entregas",
+      "subtitle": "Confirmación de entrega y fallos (CU-007 / CU-008)",
+      "pagination_label": "entregas",
+      "sections": {
+        "en_ruta": "Envíos en ruta",
+        "history": "Historial de entregas"
+      },
+      "actions": {
+        "reload": "Actualizar",
+        "filter": "Filtrar",
+        "clear": "Limpiar",
+        "clear_title": "Limpiar filtros",
+        "confirm": "Confirmar entrega",
+        "failed": "Registrar fallo",
+        "mark_all": "Marcar todas",
+        "unmark_all": "Desmarcar todas",
+        "view_signature": "Ver firma"
+      },
+      "filters": {
+        "estado": "Estado",
+        "all_states": "Todos los estados",
+        "shipment": "Envío (id o referencia)",
+        "date_from": "Fecha desde",
+        "date_to": "Fecha hasta"
+      },
+      "columns": {
+        "envio": "Envío",
+        "referencia": "Referencia",
+        "destinatario": "Destinatario",
+        "conductor": "Conductor",
+        "items": "Ítems",
+        "creado": "Creado",
+        "acciones": "Acciones",
+        "entrega": "Entrega",
+        "barcode": "Barcode",
+        "cantidad": "Cantidad",
+        "estado": "Estado",
+        "firma": "Firma",
+        "entregado": "Entregado",
+        "producto": "Producto",
+        "firma_url": "Firma (URL http/https)",
+        "observaciones": "Observaciones",
+        "destinatario_real": "Destinatario real"
+      },
+      "states": {
+        "pendiente": "Pendiente",
+        "entregada": "Entregada",
+        "rechazada": "Rechazada",
+        "parcial": "Parcial"
+      },
+      "reasons": {
+        "no_disponible": "No disponible",
+        "rechazo": "Rechazo",
+        "acceso_denegado": "Acceso denegado",
+        "otro": "Otro"
+      },
+      "summary": {
+        "entregas": "Entregas",
+        "entregadas": "Entregadas",
+        "rechazadas": "Rechazadas",
+        "pendientes": "Pendientes"
+      },
+      "empty": {
+        "en_ruta_title": "Sin envíos en ruta",
+        "en_ruta_message": "No hay envíos con estado EN_RUTA esperando entrega.",
+        "history_title": "Sin entregas",
+        "history_message": "No hay entregas que coincidan con los filtros actuales.",
+        "units_title": "Sin unidades pendientes",
+        "confirm_message": "Este envío no tiene unidades pendientes de entrega.",
+        "failed_message": "Este envío no tiene unidades pendientes que devolver."
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla.",
+        "en_ruta_title": "Sin acceso a los envíos",
+        "en_ruta_body": "Necesitas <code>{permiso}</code> para listar los envíos EN_RUTA; la pantalla de entregas no incluye un endpoint propio."
+      },
+      "modals": {
+        "open_error": "No se pudo abrir el envío",
+        "confirm_title": "Confirmar entrega",
+        "failed_title": "Registrar fallo de entrega",
+        "cancel": "Cancelar",
+        "sending": "Enviando...",
+        "context_destinatario": "Destinatario",
+        "context_destino": "Destino",
+        "context_salida": "Salida",
+        "units_count": "Unidades del envío ({count})"
+      },
+      "placeholders": {
+        "optional": "Opcional",
+        "signature": "https://firma.ejemplo/acta"
+      },
+      "form": {
+        "motivo": "Motivo",
+        "select_motivo": "Seleccione un motivo",
+        "observaciones": "Observaciones",
+        "motivo_fallo": "Motivo de fallo para las unidades no marcadas",
+        "hint_unmarked": "Las unidades sin marcar se procesan como fallo de entrega (CU-008) dentro de la misma operación.",
+        "hint_no_units": "Si no marca ninguna unidad, el fallo se aplica a todas las no entregadas del envío.",
+        "affected": "Unidades afectadas ({marcadas} de {total})"
+      },
+      "messages": {
+        "load_shipment_error": "No se pudo cargar el envío",
+        "load_en_ruta_error": "No se pudieron cargar los envíos en ruta",
+        "load_history_error": "No se pudo cargar el historial",
+        "forbidden_view": "Necesitas {permiso} para ver el historial.",
+        "confirm_partial": "Vas a confirmar {marcadas} de {total} unidad(es). Las {sin_marcar} no marcadas se procesarán como fallo de entrega. ¿Continuar?",
+        "confirmed_title": "Entrega confirmada",
+        "failed_title": "Fallo registrado",
+        "shipment_ref": "Envío {id}",
+        "units_delivered": "{count} unidad(es) entregada(s)",
+        "shipment_failed": "El envío quedó en FALLO_ENTREGA",
+        "confirm_error": "No se pudo confirmar la entrega",
+        "failed_error": "No se pudo registrar el fallo",
+        "notice_all_marked": "Las {marcadas} unidad(es) están marcadas como entregadas.",
+        "notice_partial": "{marcadas} marcada(s) como entregada(s) y {sin_marcar} se procesarán como fallo de entrega con motivo {motivo}."
+      },
+      "validations": {
+        "unit_required": "Marca al menos una unidad como entregada.",
+        "signature_url": "La firma debe ser una URL http:// o https://",
+        "reason_required": "Selecciona el motivo del fallo."
+      }
+    },
+    "picking": {
+      "title": "Picking",
+      "subtitle": "Selección de unidades reservadas (CU-004)",
+      "operations_title": "Operaciones de picking",
+      "pagination_label": "operaciones",
+      "states": {
+        "pendiente": "Pendiente",
+        "en_curso": "En curso",
+        "completada": "Completada",
+        "verificada": "Verificada"
+      },
+      "summary": {
+        "operaciones": "Operaciones",
+        "en_curso": "En curso",
+        "completadas": "Completadas",
+        "verificadas": "Verificadas"
+      },
+      "filters": {
+        "all_states": "Todos los estados",
+        "search_placeholder": "Buscar por lote",
+        "apply": "Filtrar",
+        "clear": "Limpiar",
+        "clear_title": "Limpiar filtros"
+      },
+      "columns": {
+        "barcode": "Barcode",
+        "producto": "Producto",
+        "reservada": "Reservada",
+        "vencimiento": "Vencimiento",
+        "lote": "Lote",
+        "unidades": "Unidades",
+        "estado": "Estado",
+        "referencia": "Referencia",
+        "selector": "Selector",
+        "supervisor": "Supervisor",
+        "creado": "Creado",
+        "acciones": "Acciones"
+      },
+      "actions": {
+        "expand": "Unidades",
+        "collapse": "Ocultar",
+        "complete": "Completar",
+        "verify": "Verificar"
+      },
+      "empty": {
+        "reservations_title": "Sin reservas pendientes",
+        "reservations_message": "No hay reservas activas para preparar.",
+        "title": "Sin operaciones de picking",
+        "message": "Aún no se inició ningún lote que coincida con los filtros."
+      },
+      "start": {
+        "title": "Nuevo lote de picking",
+        "lote_label": "Lote",
+        "generate": "Generar",
+        "generate_title": "Generar un lote nuevo",
+        "lote_hint": "Debe ser único dentro del tenant.",
+        "location_label": "Ubicación de preparación",
+        "location_loading": "Cargando ubicaciones PICKING...",
+        "location_hint": "Zonas activas de tipo PICKING.",
+        "location_select": "Seleccione una ubicación",
+        "location_empty": "No hay ubicaciones PICKING activas",
+        "location_no_limit": "sin límite",
+        "order_label": "Referencia de orden",
+        "order_placeholder": "Opcional",
+        "scan_label": "Escanear barcode",
+        "scan_placeholder": "Escanea o escribe un barcode y presiona Enter",
+        "scan_hint": "Selecciona la reserva pendiente que coincida con el barcode.",
+        "selection_count": "unidad(es) seleccionada(s)",
+        "select_all": "Seleccionar todas",
+        "clear_selection": "Limpiar selección",
+        "submit": "Iniciar picking",
+        "sending": "Enviando..."
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
+      },
+      "detail": {
+        "route": "origen {origen} → preparación {destino}"
+      },
+      "messages": {
+        "forbidden_locations": "Necesitas {permiso} para listar las zonas de preparación.",
+        "forbidden_reservations": "Necesitas {permiso} para ver las reservas.",
+        "forbidden_view": "Necesitas {permiso} para ver las operaciones.",
+        "reservations_load_error": "No se pudieron cargar las reservas",
+        "pickings_load_error": "No se pudieron cargar las operaciones de picking",
+        "error_lote_required": "Indique el identificador del lote.",
+        "error_location_required": "Seleccione una ubicación de preparación.",
+        "error_units_required": "Selecciona al menos una reserva pendiente.",
+        "started_title": "Picking iniciado",
+        "started_message": "Lote {lote} con {unidades} unidad(es).",
+        "start_error": "No se pudo iniciar el picking",
+        "completed_title": "Lote completado",
+        "verified_title": "Lote verificado",
+        "lote_message": "Lote {lote}",
+        "complete_error": "No se pudo completar el lote",
+        "verify_error": "No se pudo verificar el lote",
+        "scan_not_found": "No hay reservas pendientes con el barcode \"{codigo}\".",
+        "barcode_not_found_title": "Barcode no encontrado",
+        "barcode_not_found_message": "Revisa el código o actualiza la lista.",
+        "unit_selected_title": "Unidad seleccionada",
+        "unit_selected_message": "{barcode} · {producto}"
+      }
+    },
+    "returns": {
+      "title": "Devoluciones",
+      "subtitle": "Registro de devoluciones de unidades (CU-009)",
+      "pagination_label": "devoluciones",
+      "actions": {
+        "register": "Registrar devolución",
+        "cancel": "Cancelar",
+        "sending": "Enviando..."
+      },
+      "filters": {
+        "estado": "Estado al devolver",
+        "motivo": "Motivo",
+        "shipment": "Envío (id o referencia)",
+        "fecha_desde": "Fecha desde",
+        "fecha_hasta": "Fecha hasta",
+        "all": "Todos",
+        "apply": "Filtrar",
+        "clear": "Limpiar",
+        "clear_title": "Limpiar filtros"
+      },
+      "placeholders": {
+        "opcional": "Opcional",
+        "unit_search": "Barcode, producto, sku, lote o ubicación"
+      },
+      "columns": {
+        "devolucion": "Devolución",
+        "envio": "Envío",
+        "barcode": "Barcode",
+        "cantidad": "Cantidad",
+        "motivo": "Motivo",
+        "estado": "Estado al devolver",
+        "destino": "Destino",
+        "detalle": "Detalle",
+        "fecha": "Fecha"
+      },
+      "summary": {
+        "devoluciones": "Devoluciones",
+        "ok": "OK",
+        "danadas": "Dañadas",
+        "deterioradas": "Deterioradas",
+        "perdidas": "Perdidas"
+      },
+      "empty": {
+        "title": "Sin devoluciones",
+        "message": "No hay devoluciones que coincidan con los filtros actuales."
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
+      },
+      "states": {
+        "ok": "OK",
+        "danado": "Dañado",
+        "deteriorado": "Deteriorado",
+        "perdido": "Perdido"
+      },
+      "reasons": {
+        "cambio_cliente": "Cambio de cliente",
+        "dano": "Daño",
+        "fallo_entrega": "Fallo de entrega",
+        "no_aplica": "No aplica",
+        "otro": "Otro"
+      },
+      "modal": {
+        "title": "Registrar devolución",
+        "estado_unidad": "Estado de la unidad",
+        "estado_unidad_hint": "El backend sólo acepta unidades ENTREGADO o DEVUELTO.",
+        "buscar_unidad": "Buscar unidad",
+        "unidad": "Unidad",
+        "loading_units": "Cargando unidades...",
+        "units_available": "{count} unidad(es) disponibles.",
+        "motivo": "Motivo",
+        "select_motivo": "Seleccione un motivo",
+        "estado": "Estado al devolver",
+        "select_estado": "Seleccione un estado",
+        "ubicacion_destino": "Ubicación destino",
+        "select_unit": "Seleccione una unidad",
+        "no_destination": "Sin destino",
+        "destination_required_hint": "Obligatoria cuando el estado es OK.",
+        "destination_optional_hint": "Se ignora: DAÑADO/DETERIORADO van a la zona DAÑADOS y PERDIDO no guarda ubicación.",
+        "observaciones": "Observaciones"
+      },
+      "validation": {
+        "unidad": "Selecciona la unidad a devolver.",
+        "motivo": "Selecciona el motivo de la devolución.",
+        "estado": "Selecciona el estado al devolver.",
+        "destino": "Selecciona la ubicación destino."
+      },
+      "messages": {
+        "stock_load_error": "No se pudo cargar el stock",
+        "locations_load_error": "No se pudieron cargar las ubicaciones",
+        "load_error": "No se pudieron cargar las devoluciones",
+        "forbidden_view": "Necesitas {permiso} para ver el listado.",
+        "registered_title": "Devolución registrada",
+        "register_error": "No se pudo registrar la devolución"
+      }
+    },
+    "shipments": {
+      "title": "Envíos",
+      "subtitle": "Carga y autorización de salida (CU-005 / CU-006)",
+      "list_title": "Listado de envíos",
+      "pagination_label": "envíos",
+      "states": {
+        "preparacion": "En preparación",
+        "en_ruta": "En ruta",
+        "entregado": "Entregado",
+        "fallo_entrega": "Fallo de entrega",
+        "devuelto": "Devuelto"
+      },
+      "summary": {
+        "envios": "Envíos",
+        "en_preparacion": "En preparación",
+        "en_ruta": "En ruta",
+        "entregados": "Entregados"
+      },
+      "filters": {
+        "all_states": "Todos los estados",
+        "apply": "Filtrar",
+        "clear": "Limpiar",
+        "clear_title": "Limpiar filtros"
+      },
+      "columns": {
+        "envio": "Envío",
+        "destinatario": "Destinatario",
+        "tipo": "Tipo",
+        "conductor": "Conductor",
+        "items": "Ítems",
+        "estado": "Estado",
+        "creado": "Creado",
+        "acciones": "Acciones",
+        "barcode": "Barcode",
+        "producto": "Producto",
+        "zona": "Zona",
+        "cantidad": "Cantidad"
+      },
+      "labels": {
+        "tipo": "Tipo",
+        "origen": "Origen",
+        "referencia_externa": "Referencia externa",
+        "destino_direccion": "Destino / dirección",
+        "destinatario": "Destinatario",
+        "destinatario_contacto": "Contacto del destinatario",
+        "entrega_esperada": "Entrega esperada",
+        "conductor": "Conductor",
+        "conductor_contacto": "Contacto del conductor",
+        "vehiculo": "Vehículo",
+        "observaciones": "Observaciones",
+        "estado": "Estado",
+        "destino": "Destino",
+        "salida": "Salida"
+      },
+      "load": {
+        "title": "Nuevo envío",
+        "units_title": "Unidades a cargar",
+        "submit": "Cargar unidades",
+        "sending": "Enviando...",
+        "select_all": "Seleccionar todas",
+        "clear_selection": "Limpiar selección",
+        "selection_count": "unidad(es) seleccionada(s)",
+        "modes": {
+          "lote": "Por lote",
+          "unidades": "Selección manual"
+        },
+        "selects": {
+          "sin_origen": "Sin origen"
+        },
+        "placeholders": {
+          "opcional": "Opcional",
+          "destino_direccion": "Dirección de entrega",
+          "destinatario_nombre": "Nombre o razón social",
+          "contacto": "Teléfono o correo",
+          "conductor_nombre": "Nombre del conductor",
+          "vehiculo_referencia": "Patente o referencia"
+        },
+        "hints": {
+          "destinatario": "Obligatorio para autorizar la salida."
+        },
+        "lote": {
+          "label": "Lote de picking",
+          "select": "Seleccione un lote",
+          "hint": "Sólo lotes con picking COMPLETADA o VERIFICADA y unidades en preparación.",
+          "ready_count": "({listas}/{total} listas)",
+          "empty_title": "Sin lotes listos para cargar",
+          "empty_message": "No hay lotes de picking COMPLETADA o VERIFICADA.",
+          "empty_selection": "Elige un lote para ver sus unidades.",
+          "no_units": "Ninguna unidad del lote está en preparación."
+        },
+        "units": {
+          "empty_title": "Sin unidades en preparación",
+          "empty_message": "No hay unidades EN_PREPARACION listas para cargar."
+        }
+      },
+      "actions": {
+        "detail": "Detalle",
+        "authorize": "Autorizar salida"
+      },
+      "empty": {
+        "title": "Sin envíos",
+        "message": "No hay envíos que coincidan con los filtros actuales."
+      },
+      "detail": {
+        "title": "Envío {id}",
+        "items_count": "Ítems ({count})",
+        "items_empty": "Este envío aún no tiene ítems."
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla.",
+        "dashboard": "Ir al dashboard"
+      },
+      "messages": {
+        "catalog_forbidden": "Necesitas inventory.stock.view, inventory.picking.view e inventory.location.view para armar la carga.",
+        "catalog_load_error": "No se pudieron cargar los datos de la carga",
+        "list_forbidden": "Necesitas inventory.shipping.view para ver los envíos.",
+        "list_load_error": "No se pudieron cargar los envíos",
+        "detail_load_error": "No se pudo cargar el envío",
+        "error_tipo_required": "Seleccione el tipo de envío.",
+        "error_destinatario_required": "Indique el destinatario.",
+        "error_unidades_required": "Selecciona al menos una unidad para cargar.",
+        "loaded_title": "Unidades cargadas",
+        "loaded_message": "{unidades} unidad(es) · envío {id}",
+        "loaded_fallback_id": "creado",
+        "load_error": "No se pudieron cargar las unidades",
+        "authorize_confirm": "¿Autorizar la salida del envío {id}? Las unidades pasarán a EN_TRANSITO en la ubicación de tránsito.",
+        "authorized_title": "Salida autorizada",
+        "authorized_transit": "Unidades en tránsito ({codigo}).",
+        "authorized_en_ruta": "El envío pasó a EN_RUTA.",
+        "authorize_error": "No se pudo autorizar la salida"
+      }
+    },
+    "counts": {
+      "title": "Conteos físicos",
+      "subtitle": "Conteo físico de unidades y reconciliación de discrepancias (CU-011)",
+      "pagination_label": "conteos",
+      "summary": {
+        "conteos": "Conteos",
+        "pendientes": "Pendientes",
+        "en_curso": "En curso",
+        "completados": "Completados",
+        "reconciliados": "Reconciliados"
+      },
+      "filters": {
+        "estado": "Estado",
+        "all_states": "Todos",
+        "ubicacion": "Ubicación",
+        "all_locations": "Todas",
+        "ubicacion_id": "Ubicación (id)",
+        "ubicacion_placeholder": "ID de ubicación",
+        "fecha_desde": "Fecha desde",
+        "fecha_hasta": "Fecha hasta",
+        "apply": "Filtrar",
+        "clear": "Limpiar",
+        "clear_title": "Limpiar filtros"
+      },
+      "columns": {
+        "conteo": "Conteo",
+        "ubicacion": "Ubicación",
+        "estado": "Estado",
+        "fecha": "Fecha",
+        "discrepancias": "Discrepancias",
+        "reconciliado": "Reconciliado",
+        "acciones": "Acciones",
+        "unidad": "Unidad",
+        "barcode": "Barcode",
+        "esperada": "Esperada",
+        "contada": "Contada",
+        "notas": "Notas",
+        "encontrada": "Encontrada",
+        "diferencia": "Diferencia",
+        "accion": "Acción",
+        "justificacion": "Justificación",
+        "cantidad": "Cantidad",
+        "incidencia": "Incidencia",
+        "autoriza": "Autoriza"
+      },
+      "states": {
+        "pendiente": "Pendiente",
+        "en_curso": "En curso",
+        "completado": "Completado",
+        "reconciliado": "Reconciliado"
+      },
+      "actions": {
+        "start": "Iniciar conteo",
+        "view": "Ver",
+        "count": "Contar",
+        "reconcile": "Reconciliar",
+        "download_sheet": "Descargar hoja",
+        "submit_results": "Registrar resultados",
+        "complete": "Completar",
+        "ajustar": "Ajustar",
+        "justificar": "Justificar"
+      },
+      "badges": {
+        "si": "Sí",
+        "no": "No",
+        "resuelta": "Resuelta"
+      },
+      "empty": {
+        "title": "Sin conteos",
+        "message": "No hay conteos que coincidan con los filtros actuales."
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>inventory.count.view</code> para ver esta pantalla."
+      },
+      "detail": {
+        "info_title": "Conteo",
+        "coverage_title": "Cobertura",
+        "field_id": "ID",
+        "field_estado": "Estado",
+        "field_fecha": "Fecha",
+        "field_responsable": "Responsable",
+        "field_ubicacion": "Ubicación",
+        "field_unidades_contadas": "Unidades contadas",
+        "field_discrepancias": "Discrepancias",
+        "field_pendientes": "Pendientes",
+        "all_tenant": "Todo el tenant",
+        "sheet_title": "Hoja teórica ({count} unidades)",
+        "sheet_hint": "Carga la cantidad contada por unidad y registra los resultados.",
+        "sheet_empty_title": "Hoja vacía",
+        "sheet_empty_message": "Este conteo no tiene unidades en la lista teórica.",
+        "notes_placeholder": "Notas",
+        "discrepancies_title": "Discrepancias ({count})",
+        "select_action": "Seleccionar...",
+        "justification_placeholder": "Obligatoria para Justificar",
+        "reconcile_hint": "AJUSTAR actualiza la cantidad al valor encontrado; JUSTIFICAR deja la diferencia sin tocar el stock.",
+        "adjustments_title": "Ajustes aplicados ({count})"
+      },
+      "modals": {
+        "cancel": "Cancelar",
+        "start": {
+          "title": "Iniciar conteo físico",
+          "submit": "Iniciar",
+          "ubicacion_label": "Ubicación",
+          "ubicacion_hint": "Si se indica, sólo se cuentan las unidades presentes en esa ubicación.",
+          "fecha_label": "Fecha del conteo",
+          "fecha_hint": "Opcional; por defecto la fecha actual.",
+          "all_tenant": "Todo el tenant (sin ubicación)"
+        },
+        "detail": {
+          "title": "Conteo físico"
+        }
+      },
+      "messages": {
+        "forbidden_view": "Necesitas inventory.count.view para ver los conteos.",
+        "load_error": "No se pudieron cargar los conteos",
+        "detail_load_error": "No se pudo cargar el conteo",
+        "sending": "Enviando...",
+        "start_error": "No se pudo iniciar el conteo",
+        "started_title": "Conteo iniciado",
+        "started_units": "Unidades en la lista: {count}.",
+        "started_pending": "El conteo quedó en estado Pendiente.",
+        "error_invalid_quantity": "Cantidad inválida: debe ser un número no negativo.",
+        "error_results_required": "Carga al menos una cantidad para registrar los resultados.",
+        "results_registered_title": "Resultados registrados",
+        "results_registered_message": "Pendientes: {count}.",
+        "results_error": "No se pudieron registrar los resultados",
+        "missing_unit_row": "Falta el resultado de esta unidad.",
+        "confirm_complete": "¿Completar el conteo? Se calcularán las discrepancias contra la hoja teórica.",
+        "completed_title": "Conteo completado",
+        "completed_message": "Discrepancias: {count}.",
+        "complete_error": "No se pudo completar el conteo",
+        "stale_field_error": "Justifica la diferencia o inicia un conteo nuevo.",
+        "stale_title": "Hoja teórica vencida",
+        "stale_message": "Unidad {unidad}: esperada {esperada}, actual {actual}. Pasa la fila a Justificar o inicia un conteo nuevo.",
+        "adjustment_state_field_error": "Registra la acción JUSTIFICAR con su justificación.",
+        "justification_required": "La acción JUSTIFICAR requiere una justificación.",
+        "error_actions_required": "Elige Ajustar o Justificar en al menos una discrepancia pendiente.",
+        "reconciled_title": "Discrepancias reconciliadas",
+        "reconciled_message": "Acciones aplicadas: {acciones}.",
+        "reconciled_message_incidents": "Acciones aplicadas: {acciones}. Incidencias generadas: {incidencias}.",
+        "reconcile_error": "No se pudieron reconciliar las discrepancias",
+        "download_error": "No se pudo descargar la hoja"
+      }
+    },
+    "incidents": {
+      "title": "Incidencias",
+      "subtitle": "Reporte e investigación de incidencias (CU-010)",
+      "pagination_label": "incidencias",
+      "actions": {
+        "report": "Reportar incidencia",
+        "view": "Ver",
+        "investigate": "Investigar",
+        "resolve": "Resolver"
+      },
+      "states": {
+        "abierta": "Abierta",
+        "investigacion": "En investigación",
+        "resuelta": "Resuelta",
+        "no_resuelto": "No resuelto"
+      },
+      "types": {
+        "dano": "Daño",
+        "perdida": "Pérdida",
+        "discrepancia_cantidad": "Discrepancia de cantidad",
+        "ubicacion_desconocida": "Ubicación desconocida",
+        "entrega_rechazada": "Entrega rechazada",
+        "transporte_fallido": "Transporte fallido",
+        "inventario_desaparecido": "Inventario desaparecido",
+        "otro": "Otro"
+      },
+      "results": {
+        "encontrada": "Encontrada",
+        "no_encontrada": "No encontrada"
+      },
+      "priorities": {
+        "alta": "Alta",
+        "normal": "Normal"
+      },
+      "summary": {
+        "incidencias": "Incidencias",
+        "abiertas": "Abiertas",
+        "investigacion": "En investigación",
+        "resueltas": "Resueltas",
+        "no_resueltas": "No resueltas"
+      },
+      "filters": {
+        "estado": "Estado",
+        "tipo": "Tipo",
+        "unidad": "Unidad",
+        "unidad_id": "Unidad (id)",
+        "fecha_desde": "Fecha desde",
+        "fecha_hasta": "Fecha hasta",
+        "all": "Todos",
+        "all_units": "Todas",
+        "apply": "Filtrar",
+        "clear": "Limpiar",
+        "clear_title": "Limpiar filtros",
+        "unit_placeholder": "ID de unidad física"
+      },
+      "columns": {
+        "incidencia": "Incidencia",
+        "tipo": "Tipo",
+        "descripcion": "Descripción",
+        "unidad": "Unidad",
+        "ubicacion": "Ubicación",
+        "estado": "Estado",
+        "prioridad": "Prioridad",
+        "deteccion": "Detección",
+        "acciones": "Acciones"
+      },
+      "empty": {
+        "title": "Sin incidencias",
+        "message": "No hay incidencias que coincidan con los filtros actuales."
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
+      },
+      "messages": {
+        "forbidden_view": "Necesitas inventory.incident.view para ver las incidencias.",
+        "load_error": "No se pudieron cargar las incidencias",
+        "stock_load_error": "No se pudo cargar el stock",
+        "locations_load_error": "No se pudieron cargar las ubicaciones",
+        "incident_load_error": "No se pudo cargar la incidencia",
+        "report_error": "No se pudo reportar la incidencia",
+        "resolve_error": "No se pudo resolver la incidencia",
+        "investigate_error": "No se pudo iniciar la investigación",
+        "reported_title": "Incidencia reportada",
+        "reported_message": "La incidencia quedó en estado Abierta.",
+        "resolved_title": "Incidencia cerrada",
+        "resolved_message": "La resolución quedó registrada.",
+        "investigating_title": "Incidencia en investigación",
+        "investigating_message": "El estado pasó a En investigación.",
+        "confirm_investigate": "¿Iniciar la investigación de esta incidencia?",
+        "sending": "Enviando..."
+      },
+      "validation": {
+        "tipo_required": "Selecciona el tipo de incidencia.",
+        "descripcion_required": "Describe la incidencia.",
+        "text_max": "La descripción no puede superar {max} caracteres.",
+        "observaciones_max": "Las observaciones no pueden superar {max} caracteres.",
+        "ubicacion_required": "Elige la ubicación afectada (o una unidad que tenga ubicación).",
+        "estado_required": "Elige el estado final (Resuelta o No resuelto).",
+        "resultado_required": "Indica si la unidad fue encontrada o no.",
+        "resolucion_descripcion_required": "Describe la resolución.",
+        "acciones_required": "Indica las acciones tomadas.",
+        "acciones_max": "Las acciones no pueden superar {max} caracteres.",
+        "compensacion_max": "La compensación no puede superar {max} caracteres."
+      },
+      "detail": {
+        "resolution_section": "Resolución",
+        "final_state": "Estado final",
+        "resultado": "Resultado",
+        "ubicacion_destino": "Ubicación destino",
+        "descripcion": "Descripción",
+        "acciones_tomadas": "Acciones tomadas",
+        "compensacion": "Compensación",
+        "resuelta_por": "Resuelta por",
+        "fecha": "Fecha",
+        "incident_section": "Incidencia",
+        "id": "ID",
+        "tipo": "Tipo",
+        "estado": "Estado",
+        "prioridad": "Prioridad",
+        "deteccion": "Detección",
+        "creada": "Creada",
+        "actualizada": "Actualizada",
+        "context_section": "Contexto",
+        "unidad": "Unidad",
+        "ubicacion": "Ubicación",
+        "reportada_por": "Reportada por",
+        "conteo_vinculado": "Conteo vinculado",
+        "observaciones": "Observaciones"
+      },
+      "modals": {
+        "cancel": "Cancelar",
+        "report": {
+          "title": "Reportar incidencia",
+          "submit": "Reportar",
+          "tipo_label": "Tipo de incidencia",
+          "select_tipo": "Seleccione un tipo",
+          "tipo_hint": "DAÑO marca la unidad como DAÑADO; PERDIDA la libera; DISCREPANCIA_CANTIDAD crea un conteo.",
+          "unit_label": "Unidad física",
+          "unit_search_placeholder": "Buscar por barcode, producto, sku o ubicación",
+          "no_unit_option": "Sin unidad (sólo ubicación)",
+          "loading_units": "Cargando unidades...",
+          "units_available": "{count} unidad(es) disponibles.",
+          "location_label": "Ubicación",
+          "no_location": "Sin ubicación",
+          "loading_locations": "Cargando ubicaciones...",
+          "location_hint": "Obligatoria para DISCREPANCIA_CANTIDAD si la unidad no tiene ubicación.",
+          "descripcion_label": "Descripción",
+          "descripcion_placeholder": "Qué ocurrió y en qué unidad o ubicación",
+          "observaciones_label": "Observaciones",
+          "observaciones_placeholder": "Información adicional (opcional)"
+        },
+        "detail": {
+          "title": "Detalle de incidencia"
+        },
+        "resolve": {
+          "title": "Resolver incidencia",
+          "submit": "Guardar resolución",
+          "context_label": "Incidencia",
+          "requires_result": "Requiere resultado de inventario",
+          "estado_label": "Estado final",
+          "estado_hint": "Resuelta cierra la incidencia; No resuelto la deja cerrada sin solución.",
+          "resultado_label": "Resultado del inventario",
+          "select_resultado": "Seleccione un resultado",
+          "resultado_hint": "Encontrada devuelve la unidad a DISPONIBLE; No encontrada la marca PERDIDA.",
+          "ubicacion_destino_label": "Ubicación destino",
+          "previous_location": "La ubicación anterior",
+          "loading_locations": "Cargando ubicaciones...",
+          "ubicacion_destino_hint": "Opcional: completa si la unidad reapareció en otra ubicación.",
+          "compensacion_label": "Compensación",
+          "compensacion_placeholder": "Ajuste económico, reposición, etc. (opcional)",
+          "descripcion_label": "Descripción de la resolución",
+          "acciones_label": "Acciones tomadas"
+        }
+      }
+    }
+  },
+  "dashboard": {
+    "title": "Panel de control",
+    "subtitle": "Resumen de tu operación",
+    "greeting": "Hola, {name}",
+    "cards": {
+      "active_users": "Usuarios activos",
+      "stock_units": "Unidades en stock",
+      "quick_access": "Accesos rápidos",
+      "stock_summary": "Stock resumido",
+      "operation": "Operación"
+    },
+    "quick": {
+      "products_title": "Ver productos",
+      "products_desc": "Gestiona el catálogo de productos",
+      "locations_desc": "Administra ubicaciones del almacén",
+      "users_desc": "Gestiona usuarios del tenant"
+    },
+    "stock": {
+      "columns": {
+        "product": "Producto",
+        "units": "Unidades",
+        "quantity": "Cantidad"
+      },
+      "empty": "No hay productos activos en el catálogo.",
+      "counts": {
+        "products_without_stock": "Productos sin stock",
+        "critical_locations": "Ubicaciones críticas",
+        "units_in_stock": "Unidades en stock"
+      }
+    },
+    "metrics": {
+      "locations_available": "Ubicaciones disponibles",
+      "active_reservations": "Reservas activas",
+      "in_transit": "En tránsito",
+      "open_incidents": "Incidencias abiertas"
+    },
+    "messages": {
+      "error_title": "Error al cargar datos",
+      "retry": "Reintentar",
+      "http_unavailable": "HttpClient no disponible",
+      "stats_load_error": "No se pudieron cargar las estadísticas"
+    }
+  },
+  "audit": {
+    "title": "Auditoría",
+    "subtitle": "Bitácora de eventos de la plataforma (sólo lectura)",
+    "permission": {
+      "title": "Sin permiso",
+      "body": "Necesitas el permiso <code>audit.log.view</code> para consultar la bitácora de auditoría."
+    },
+    "filters": {
+      "fecha_desde": "Fecha desde",
+      "fecha_hasta": "Fecha hasta",
+      "usuario": "Usuario (id)",
+      "usuario_placeholder": "UUID del actor",
+      "accion": "Acción",
+      "accion_placeholder": "product.create o POST /api/inventory/products",
+      "entidad": "Entidad",
+      "resultado": "Resultado",
+      "apply": "Filtrar",
+      "clear": "Limpiar"
+    },
+    "results": {
+      "all": "Todos",
+      "success": "Exitoso",
+      "failure": "Fallido",
+      "failure_badge": "Fallo"
+    },
+    "summary": {
+      "total": "Registros (filtro activo)",
+      "success": "Exitosos",
+      "failure": "Fallidos"
+    },
+    "empty": {
+      "title": "Sin registros",
+      "message": "No hay eventos que coincidan con los filtros actuales."
+    },
+    "columns": {
+      "date": "Fecha",
+      "user": "Usuario",
+      "action": "Acción",
+      "entity": "Entidad",
+      "result": "Resultado",
+      "detail": "Detalle"
+    },
+    "pagination": {
+      "per_page": "por página"
+    },
+    "detail": {
+      "title": "Detalle del evento",
+      "module_resource": "Módulo / recurso",
+      "entity_id": "Entidad (id)",
+      "change_type": "Tipo de cambio",
+      "ip_duration": "IP / duración",
+      "values_before": "Valores antes",
+      "values_after": "Valores después",
+      "extra_details": "Detalles adicionales",
+      "no_changes": "— sin cambios —"
+    },
+    "messages": {
+      "load_error": "No se pudo cargar la bitácora"
+    }
+  },
+  "users": {
+    "title": "Usuarios",
+    "subtitle": "Gestión de usuarios de la organización",
+    "records": "usuarios",
+    "tabs": {
+      "users": "Usuarios",
+      "temp": "Permisos temporales"
+    },
+    "actions": {
+      "create": "Nuevo usuario",
+      "edit": "Editar",
+      "status": "Cambiar estado",
+      "reset": "Restablecer contraseña",
+      "roles": "Roles",
+      "temp_view": "Ver permisos temporales",
+      "delete": "Eliminar",
+      "restore": "Restaurar"
+    },
+    "filters": {
+      "estado": "Estado",
+      "all": "Todos los estados",
+      "search": "Búsqueda",
+      "search_placeholder": "Email o nombre",
+      "apply": "Aplicar",
+      "clear": "Limpiar",
+      "deleted": "Mostrar eliminados"
+    },
+    "columns": {
+      "email": "Email",
+      "name": "Nombre",
+      "status": "Estado",
+      "roles": "Roles",
+      "last_login": "Último acceso",
+      "actions": "Acciones"
+    },
+    "status": {
+      "ACTIVO": "Activo",
+      "INACTIVO": "Inactivo",
+      "SUSPENDIDO": "Suspendido",
+      "PENDIENTE_CONFIRMACION": "Pendiente de confirmación",
+      "current": "Usuario: {email} — estado actual: {estado}",
+      "label": "Nuevo estado",
+      "motivo": "Motivo",
+      "motivo_hint": "Obligatorio: queda registrado en la auditoría",
+      "success_title": "Estado actualizado",
+      "success_body": "{email} ahora está {estado}.",
+      "title": "Cambiar estado",
+      "submit": "Guardar estado"
+    },
+    "denied": {
+      "title": "Acceso denegado",
+      "body": "No tienes permiso para gestionar usuarios."
+    },
+    "empty": {
+      "title": "Sin usuarios",
+      "message": "No hay usuarios que coincidan con los filtros."
+    },
+    "create": {
+      "title": "Nuevo usuario",
+      "submit": "Crear usuario",
+      "no_role": "Sin rol inicial",
+      "role_hint": "El rol inicial se asigna después desde la fila del usuario.",
+      "success_title": "Usuario creado",
+      "success_body": "Se ha creado {email}.",
+      "temp_title": "Contraseña temporal"
+    },
+    "fields": {
+      "email": "Correo electrónico",
+      "nombre": "Nombre",
+      "apellido": "Apellido",
+      "telefono": "Teléfono",
+      "password": "Contraseña temporal",
+      "password_hint": "Mínimo 8 caracteres, con mayúscula, minúscula y número.",
+      "role": "Rol inicial"
+    },
+    "gen_password": "Generar contraseña",
+    "edit": {
+      "title": "Editar usuario",
+      "submit": "Guardar cambios",
+      "success_title": "Usuario actualizado",
+      "success_body": "Se han guardado los cambios de {email}."
+    },
+    "reset": {
+      "title": "Restablecer contraseña",
+      "submit": "Restablecer",
+      "body": "Se generará una contraseña temporal para {email}.",
+      "warning": "Entrega la contraseña temporal al usuario; se le pedirá cambiarla en el primer acceso.",
+      "success_title": "Contraseña restablecida",
+      "success_body": "Contraseña temporal generada correctamente.",
+      "temp_title": "Contraseña temporal"
+    },
+    "temp_password": {
+      "title": "Contraseña temporal",
+      "warning": "Guarda esta contraseña ahora: no se volverá a mostrar.",
+      "label": "Contraseña temporal",
+      "copy": "Copiar",
+      "copied": "Copiada al portapapeles",
+      "copy_failed": "No se pudo copiar; selecciónala y cópiala a mano.",
+      "close": "Entendido"
+    },
+    "roles": {
+      "title": "Roles del usuario",
+      "current": "Roles asignados",
+      "none": "Este usuario no tiene roles asignados.",
+      "select_placeholder": "Selecciona un rol",
+      "assign_label": "Asignar rol",
+      "assign": "Asignar",
+      "assigned": "Rol asignado",
+      "remove": "Quitar",
+      "removed": "Rol quitado",
+      "load_error": "No se pudieron cargar los roles.",
+      "assign_error": "No se pudo asignar el rol.",
+      "remove_error": "No se pudo quitar el rol.",
+      "from_group": "Por grupo"
+    },
+    "delete": {
+      "title": "Eliminar usuario",
+      "submit": "Eliminar",
+      "body": "Vas a eliminar a {email}.",
+      "warning": "Dejará de tener acceso de inmediato. Esta acción no se puede deshacer desde la interfaz.",
+      "success_title": "Usuario eliminado",
+      "success_body": "El usuario ha sido eliminado."
+    },
+    "errors": {
+      "load": "No se pudieron cargar los usuarios.",
+      "required": "Completa los campos obligatorios",
+      "email": "Formato de correo inválido",
+      "create": "No se pudo crear el usuario",
+      "edit": "No se pudieron guardar los cambios",
+      "status": "No se pudo cambiar el estado",
+      "reset": "No se pudo restablecer la contraseña",
+      "delete": "No se pudo eliminar el usuario",
+      "restore": "No se pudo restaurar el usuario"
+    },
+    "temp": {
+      "subtitle": "Permisos otorgados con fecha de caducidad",
+      "grant": "Otorgar permiso",
+      "filtering": "Filtrando por: {usuario}",
+      "empty": {
+        "title": "Sin permisos temporales",
+        "message": "No hay permisos temporales vigentes."
+      },
+      "revoke": "Revocar",
+      "revoke_title": "Revocar permiso",
+      "revoke_body": "Se revocará el permiso {permiso} de {usuario}.",
+      "active": "Vigente",
+      "expired": "Caducado",
+      "revoked": "Revocado",
+      "load_error": "No se pudieron cargar los permisos temporales.",
+      "rate_title": "Límite alcanzado",
+      "rate_body": "Demasiadas solicitudes: espera unos minutos antes de volver a intentarlo.",
+      "columns": {
+        "user": "Usuario",
+        "permission": "Permiso",
+        "motive": "Motivo",
+        "expires": "Caduca",
+        "granted_by": "Otorgado por",
+        "state": "Estado"
+      },
+      "revoke_error": "Nao foi possivel revogar a permissao"
+    },
+    "grant": {
+      "title": "Otorgar permiso temporal",
+      "submit": "Otorgar",
+      "user": "Usuario",
+      "user_placeholder": "Selecciona un usuario",
+      "permission": "Permiso",
+      "permission_placeholder": "Selecciona un permiso",
+      "motive": "Motivo",
+      "expiry": "Caducidad",
+      "mode_hours": "Duración (horas)",
+      "mode_date": "Fecha y hora de caducidad",
+      "hours": "Horas",
+      "date": "Caduca",
+      "max_hint": "Duración máxima según la criticidad del permiso.",
+      "success_title": "Permiso otorgado",
+      "success_body": "El permiso temporal se ha otorgado correctamente.",
+      "error": "No se pudo otorgar el permiso temporal",
+      "user_search_label": "Buscar beneficiario",
+      "user_search_placeholder": "Email o nombre",
+      "user_search": "Buscar"
+    },
+    "state": {
+      "deleted": "Eliminado"
+    },
+    "restore": {
+      "title": "Restaurar usuario",
+      "body": "Se restaurará el usuario {email}: volverá al estado ACTIVO.",
+      "hint": "Se conservan la contraseña y todos los datos del usuario.",
+      "submit": "Restaurar",
+      "success_title": "Usuario restaurado",
+      "success_body": "El usuario ya figura como activo."
+    }
+  },
+  "roles": {
+    "title": "Roles",
+    "subtitle": "Roles del sistema y sus permisos",
+    "filter": {
+      "inactive": "Ver roles inactivos",
+      "deleted": "Mostrar eliminados"
+    },
+    "denied": {
+      "title": "Acceso denegado",
+      "body": "No tienes permiso para gestionar roles."
+    },
+    "type": {
+      "BUILT_IN": "Del sistema",
+      "CUSTOM": "Personalizado"
+    },
+    "state": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "deleted": "Eliminado"
+    },
+    "empty": {
+      "title": "Sin roles",
+      "message": "No hay roles que mostrar."
+    },
+    "actions": {
+      "create": "Nuevo rol",
+      "permissions": "Permisos",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "restore": "Restaurar"
+    },
+    "columns": {
+      "name": "Nombre",
+      "type": "Tipo",
+      "state": "Estado",
+      "permissions": "Permisos",
+      "actions": "Acciones"
+    },
+    "fields": {
+      "name": "Nombre",
+      "descripcion": "Descripción",
+      "activo": "Rol activo"
+    },
+    "create": {
+      "title": "Nuevo rol",
+      "submit": "Crear rol",
+      "success_title": "Rol creado",
+      "success_body": "Se ha creado el rol {nombre}."
+    },
+    "edit": {
+      "title": "Editar rol",
+      "submit": "Guardar cambios",
+      "success_title": "Rol actualizado",
+      "success_body": "Se han guardado los cambios de {nombre}."
+    },
+    "delete": {
+      "title": "Eliminar rol",
+      "submit": "Eliminar",
+      "body": "Vas a eliminar el rol {nombre}.",
+      "warning": "Los usuarios y grupos que lo usen perderán sus permisos. Esta acción no se puede deshacer desde la interfaz.",
+      "success_title": "Rol eliminado",
+      "success_body": "El rol ha sido eliminado."
+    },
+    "perms": {
+      "title": "Permisos del rol",
+      "readonly": "Los roles del sistema son de solo lectura.",
+      "empty": "No hay permisos disponibles.",
+      "mfa": "MFA",
+      "select_all": "Marcar todo",
+      "saved": "Permisos guardados ({count}).",
+      "save": "Guardar permisos",
+      "load_error": "No se pudieron cargar los permisos del rol."
+    },
+    "errors": {
+      "load": "No se pudieron cargar los roles.",
+      "catalog": "No se pudo cargar el catálogo de permisos.",
+      "required": "El nombre es obligatorio",
+      "create": "No se pudo crear el rol",
+      "edit": "No se pudieron guardar los cambios",
+      "perms": "No se pudieron guardar los permisos",
+      "delete": "No se pudo eliminar el rol",
+      "restore": "No se pudo restaurar el rol"
+    },
+    "restore": {
+      "title": "Restaurar rol",
+      "body": "Se restaurará el rol {nombre}.",
+      "hint": "El rol volverá a estar disponible para su asignación.",
+      "submit": "Restaurar",
+      "success_title": "Rol restaurado",
+      "success_body": "El rol ya figura como activo."
+    }
+  },
+  "groups": {
+    "title": "Grupos",
+    "subtitle": "Grupos de usuarios y sus roles",
+    "filter": {
+      "inactive": "Ver grupos inactivos",
+      "deleted": "Mostrar eliminados"
+    },
+    "denied": {
+      "title": "Acceso denegado",
+      "body": "No tienes permiso para gestionar grupos."
+    },
+    "state": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "deleted": "Eliminado"
+    },
+    "empty": {
+      "title": "Sin grupos",
+      "message": "No hay grupos que mostrar."
+    },
+    "actions": {
+      "create": "Nuevo grupo",
+      "detail": "Detalle",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "restore": "Restaurar"
+    },
+    "columns": {
+      "name": "Nombre",
+      "state": "Estado",
+      "members": "Miembros",
+      "actions": "Acciones"
+    },
+    "fields": {
+      "nombre": "Nombre",
+      "descripcion": "Descripción",
+      "activo": "Grupo activo"
+    },
+    "detail": {
+      "title": "Detalle del grupo"
+    },
+    "create": {
+      "title": "Nuevo grupo",
+      "submit": "Crear grupo",
+      "success_title": "Grupo creado",
+      "success_body": "Se ha creado el grupo {nombre}."
+    },
+    "edit": {
+      "title": "Editar grupo",
+      "submit": "Guardar cambios",
+      "success_title": "Grupo actualizado",
+      "success_body": "Se han guardado los cambios de {nombre}."
+    },
+    "delete": {
+      "title": "Eliminar grupo",
+      "submit": "Eliminar",
+      "body": "Vas a eliminar el grupo {nombre}.",
+      "warning": "Los miembros perderán los permisos heredados del grupo. Esta acción no se puede deshacer desde la interfaz.",
+      "success_title": "Grupo eliminado",
+      "success_body": "El grupo ha sido eliminado."
+    },
+    "members": {
+      "title": "Miembros",
+      "count": "{total} miembros",
+      "empty": "Este grupo no tiene miembros.",
+      "user": "Usuario",
+      "email": "Email",
+      "state": "Estado",
+      "since": "Añadido",
+      "actions": "Acciones",
+      "add": "Añadir miembro",
+      "add_title": "Añadir miembro",
+      "add_submit": "Añadir",
+      "add_select": "Usuario",
+      "add_placeholder": "Selecciona un usuario",
+      "add_hint": "Sólo se listan usuarios activos del tenant.",
+      "added": "Miembro añadido al grupo",
+      "remove": "Quitar",
+      "removed": "Miembro eliminado del grupo",
+      "search": "Buscar usuario",
+      "search_placeholder": "Email o nombre",
+      "search_btn": "Buscar",
+      "search_empty": "Sin resultados: usa la búsqueda para encontrar usuarios."
+    },
+    "roles": {
+      "title": "Roles",
+      "count": "{total} roles",
+      "empty": "Este grupo no tiene roles asignados.",
+      "role": "Rol",
+      "type": "Tipo",
+      "assigned_at": "Asignado",
+      "deleted_role": "Rol eliminado",
+      "assign": "Asignar rol",
+      "assign_title": "Asignar rol al grupo",
+      "assign_submit": "Asignar",
+      "select": "Rol",
+      "select_placeholder": "Selecciona un rol",
+      "all_assigned": "Todos los roles disponibles ya están asignados.",
+      "escalation_hint": "Sólo puedes asignar roles contenidos en tus propios permisos.",
+      "assigned": "Rol asignado al grupo",
+      "unassign": "Quitar",
+      "unassigned": "Rol quitado del grupo"
+    },
+    "errors": {
+      "load": "No se pudieron cargar los grupos.",
+      "detail": "No se pudo cargar el detalle del grupo.",
+      "required": "El nombre es obligatorio",
+      "create": "No se pudo crear el grupo",
+      "edit": "No se pudieron guardar los cambios",
+      "add_member": "No se pudo añadir el miembro",
+      "remove_member": "No se pudo quitar el miembro",
+      "assign_role": "No se pudo asignar el rol",
+      "unassign_role": "No se pudo quitar el rol",
+      "delete": "No se pudo eliminar el grupo",
+      "restore": "No se pudo restaurar el grupo"
+    },
+    "restore": {
+      "title": "Restaurar grupo",
+      "body": "Se restaurará el grupo {nombre}.",
+      "hint": "El grupo volverá a estar activo con sus miembros y roles.",
+      "submit": "Restaurar",
+      "success_title": "Grupo restaurado",
+      "success_body": "El grupo ya figura como activo."
+    }
+  },
+  "password": {
+    "title": "Cambiar contraseña",
+    "fields": {
+      "current": "Contraseña actual",
+      "current_placeholder": "Tu contraseña actual",
+      "new": "Nueva contraseña",
+      "new_placeholder": "Introduce la nueva contraseña",
+      "rules_hint": "Mínimo 8 caracteres, con mayúscula, minúscula y número.",
+      "confirm": "Confirmar contraseña",
+      "confirm_placeholder": "Repite la nueva contraseña"
+    },
+    "errors": {
+      "required_actual": "La contraseña actual es obligatoria",
+      "required_new": "La nueva contraseña es obligatoria",
+      "min_length": "La contraseña debe tener mínimo 8 caracteres",
+      "uppercase": "Debe contener al menos una mayúscula",
+      "lowercase": "Debe contener al menos una minúscula",
+      "digit": "Debe contener al menos un número",
+      "same_as_current": "La nueva contraseña debe ser distinta de la actual",
+      "required_confirm": "Confirma la nueva contraseña",
+      "mismatch": "Las contraseñas no coinciden",
+      "generic": "No se pudo cambiar la contraseña"
+    },
+    "forced": {
+      "notice": "Debes cambiar tu contraseña para continuar."
+    },
+    "actions": {
+      "logout": "Cerrar sesión",
+      "submit": "Guardar contraseña"
+    },
+    "success": {
+      "title": "Contraseña actualizada",
+      "body": "Tu contraseña se ha cambiado correctamente."
+    }
+  },
+  "errors": {
+    "validation": "Verifique os dados enviados; há campos inválidos.",
+    "not_found": "O recurso solicitado não existe.",
+    "conflict": "A operação entra em conflito com o estado atual.",
+    "forbidden": "Não tem permissões para realizar esta operação.",
+    "auth": "Sessão inválida ou expirada; inicie sessão novamente.",
+    "password_change_required": "Deve alterar a palavra-passe para continuar.",
+    "rate_limited": "Demasiados pedidos; aguarde alguns segundos e tente novamente.",
+    "timeout": "O pedido demorou demasiado; tente novamente.",
+    "server": "Erro interno do servidor; tente novamente mais tarde.",
+    "network": "Sem ligação ao servidor; verifique a sua rede."
+  }
+}

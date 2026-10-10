@@ -1,0 +1,1958 @@
+{
+  "shell": {
+    "guest": "Guest",
+    "logout": "Log out",
+    "change_password": "Change password",
+    "language": "Language",
+    "toggle_menu": "Toggle menu",
+    "toggle_theme": "Toggle theme",
+    "no_role": "No role",
+    "sidebar_close": "Close menu",
+    "sidebar_menu": "Main menu",
+    "session_expired": "Session expired",
+    "session_idle": "Your session has expired due to inactivity."
+  },
+  "ui": {
+    "empty_title": "No data",
+    "pagination": "Showing {shown} of {total} {label}",
+    "records": "records",
+    "close": "Close",
+    "error_generic": "Error",
+    "error_not_csv": "The response is not a CSV.",
+    "toast_invalid": "Invalid data",
+    "toast_session": "Session expired",
+    "toast_forbidden": "Access denied",
+    "toast_not_found": "Not found",
+    "toast_conflict": "Conflict",
+    "toast_rejected": "Operation rejected",
+    "toast_lang_save_title": "Language",
+    "toast_lang_save_failed": "Could not save the language on the server; it only applies to this browser."
+  },
+  "theme": {
+    "action_dark": "Light",
+    "action_light": "Dark",
+    "action_system": "Auto",
+    "title_dark": "Light mode",
+    "title_light": "Dark mode",
+    "title_system": "Auto (system)",
+    "toggle_default": "Change theme",
+    "aria": "Current theme: {preference}. Click to change.",
+    "synced_title": "Theme synced",
+    "synced_message": "Theme changed to {effective} from another tab"
+  },
+  "login": {
+    "tagline": "Multi-Tenant Inventory Management",
+    "email": "Email address",
+    "password": "Password",
+    "email_placeholder": "you@company.com",
+    "password_placeholder": "Enter your password",
+    "submit": "Sign in",
+    "submitting": "Signing in...",
+    "terms": "By signing in you accept the terms of use.",
+    "error_required_email": "Email address is required",
+    "error_invalid_email": "Invalid email format",
+    "error_required_password": "Password is required",
+    "error_short_password": "Password must be at least 8 characters",
+    "welcome": "Welcome",
+    "welcome_message": "Hello, {nombre}",
+    "error_generic": "Failed to sign in. Please try again.",
+    "error_401": "Invalid credentials. Check your email and password.",
+    "error_403": "Account not active. Contact your administrator.",
+    "error_429": "Too many attempts. Wait a few minutes.",
+    "error_408": "Request timed out. Check your connection.",
+    "error_invalid_response": "Invalid response from the server"
+  },
+  "loader": {
+    "loading_module": "Loading module...",
+    "error_title": "Error loading module",
+    "error_body": "Could not load module {modulo}.",
+    "retry": "Retry",
+    "error_unknown": "Unknown error",
+    "error_not_registered": "Module \"{modulo}\" not registered",
+    "error_no_global": "Module \"{modulo}\" did not expose \"{clave}\" on window"
+  },
+  "router": {
+    "not_found_title": "Page not found",
+    "not_found_body": "The page you are looking for does not exist.",
+    "go_dashboard": "Go to dashboard",
+    "unavailable_title": "Module not available",
+    "unavailable_body": "{titulo} is planned but not yet enabled in this version of the platform."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "locations": "Locations",
+    "receiving": "Receiving",
+    "stock": "Stock",
+    "movements": "Movements",
+    "reservations": "Reservations",
+    "picking": "Picking",
+    "shipments": "Shipments",
+    "deliveries": "Deliveries",
+    "returns": "Returns",
+    "incidents": "Incidents",
+    "counts": "Counts",
+    "users": "Users",
+    "roles": "Roles",
+    "groups": "Groups",
+    "audit": "Audit",
+    "settings": "Settings",
+    "section_principal": "Main",
+    "section_inventory": "Inventory",
+    "section_admin": "Administration",
+    "section_system": "System"
+  },
+  "routes": {
+    "login": "Sign in",
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "roles": "Roles",
+    "groups": "Groups",
+    "inventory": "Inventory",
+    "locations": "Locations",
+    "receiving": "Receiving",
+    "stock": "Stock",
+    "movements": "Movements",
+    "reservations": "Reservations",
+    "picking": "Picking",
+    "shipments": "Shipments",
+    "deliveries": "Deliveries",
+    "returns": "Returns",
+    "incidents": "Incidents",
+    "counts": "Counts",
+    "audit": "Audit",
+    "settings": "Settings"
+  },
+  "inventory": {
+    "stock": {
+      "title": "Current stock",
+      "subtitle": "Physical units with physical, reserved, in transit and available quantities",
+      "units": "units",
+      "columns": {
+        "barcode": "Barcode",
+        "producto": "Product",
+        "ubicacion": "Location",
+        "cantidad": "Quantity",
+        "estado": "Status",
+        "acciones": "Actions"
+      },
+      "summary": {
+        "unidades": "Units",
+        "fisica": "Physical",
+        "reservada": "Reserved",
+        "en_transito": "In transit",
+        "disponible": "Available"
+      },
+      "states": {
+        "disponible": "Available",
+        "reservado": "Reserved",
+        "en_preparacion": "In preparation",
+        "cargado": "Loaded",
+        "en_transito": "In transit",
+        "entregado": "Delivered",
+        "devuelto": "Returned",
+        "dannado": "Damaged",
+        "bloqueado": "Blocked",
+        "perdido": "Lost"
+      },
+      "filters": {
+        "all_products": "All products",
+        "all_locations": "All locations",
+        "all_states": "All statuses",
+        "apply": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters"
+      },
+      "empty": {
+        "title": "No stock units",
+        "message": "No units match the current filters."
+      },
+      "row": {
+        "disp": "avail {value}",
+        "res": "· res {value}",
+        "tran": "· trans {value}"
+      },
+      "actions": {
+        "move": "Move",
+        "reserve": "Reserve",
+        "block": "Block",
+        "unblock": "Unblock",
+        "history": "History"
+      },
+      "modals": {
+        "cancel": "Cancel",
+        "unit": "Unit",
+        "state": "Status",
+        "optional_placeholder": "Optional",
+        "move": {
+          "title": "Move unit",
+          "current_location": "Current location",
+          "destination_label": "Destination location",
+          "destination_hint": "Active with space, without TRANSITO type and different from the current one.",
+          "select_destination": "Select a destination location",
+          "no_destinations": "No destination locations available",
+          "no_limit": "no limit",
+          "reason_label": "Reason",
+          "reason_placeholder": "REUBICACION (default)",
+          "external_ref_label": "External reference"
+        },
+        "reserve": {
+          "title": "Reserve unit",
+          "location_label": "Location",
+          "available_label": "Available",
+          "quantity_label": "Quantity to reserve",
+          "quantity_placeholder": "Empty = unit total",
+          "quantity_hint": "Maximum {max} available.",
+          "expiration_label": "Expiration",
+          "expiration_hint": "Optional. Must be later than the reservation date.",
+          "order_ref_label": "Order reference"
+        }
+      },
+      "history": {
+        "title": "Unit history",
+        "event": "Event",
+        "movement": "Movement",
+        "correction": "Correction",
+        "cant": "qty {from} → {to}",
+        "by": "by {actor}",
+        "empty_title": "No movements",
+        "empty_message": "This unit has no events or movements yet.",
+        "footer_info": "{total} record(s) · newest first"
+      },
+      "messages": {
+        "sending": "Sending...",
+        "unit_not_found_title": "Unit not found",
+        "unit_not_found_message": "The unit no longer exists.",
+        "history_forbidden": "You need inventory.stock.view to view the history.",
+        "history_load_error": "Could not load the history",
+        "confirm_block": "Block this unit? It cannot be moved or reserved until unblocked.",
+        "confirm_unblock": "Unblock this unit? It will become available again.",
+        "blocked_title": "Unit blocked",
+        "unblocked_title": "Unit unblocked",
+        "state_with": "Status: {estado}",
+        "block_error": "Could not block the unit",
+        "unblock_error": "Could not unblock the unit",
+        "destination_required": "Select a destination location.",
+        "destination_same": "The destination location must be different from the current one.",
+        "quantity_positive": "Quantity must be greater than zero.",
+        "quantity_exceeds": "Exceeds available ({available}).",
+        "expiration_invalid": "Enter a valid date and time.",
+        "expiration_future": "The expiration must be later than the current date.",
+        "moved_title": "Unit moved",
+        "moved_message": "Destination {destino}",
+        "moved_correction": "marked as correction",
+        "warning_title": "Warning",
+        "reserved_warning": "The unit has active reservations.",
+        "move_error": "Could not move the unit",
+        "reserve_created_title": "Reservation created",
+        "reserve_created_message": "Unit {barcode}",
+        "reserve_error": "Could not create the reservation",
+        "capacity_exceeded": "Capacity exceeded",
+        "stock_load_error": "Could not load the stock"
+      }
+    },
+    "locations": {
+      "title": "Locations",
+      "subtitle": "Management of the warehouse's physical locations",
+      "pagination_label": "locations",
+      "actions": {
+        "create": "New location",
+        "units": "Units",
+        "edit": "Edit",
+        "activate": "Activate",
+        "deactivate": "Deactivate",
+        "delete": "Delete"
+      },
+      "filters": {
+        "search_placeholder": "Search code or name...",
+        "all_types": "All types",
+        "all_states": "All statuses",
+        "active": "Active",
+        "inactive": "Inactive",
+        "apply": "Filter",
+        "clear": "Clear"
+      },
+      "types": {
+        "almacenamiento": "Storage",
+        "picking": "Picking",
+        "danados": "Damaged",
+        "bloqueados": "Blocked",
+        "transito": "Transit",
+        "devolucion": "Return"
+      },
+      "columns": {
+        "code": "Code",
+        "name_hierarchy": "Name / Hierarchy",
+        "type": "Type",
+        "capacity": "Capacity",
+        "state": "Status",
+        "created": "Created",
+        "actions": "Actions",
+        "barcode": "Barcode",
+        "product": "Product",
+        "quantity": "Quantity"
+      },
+      "states": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "no_limit": "No limit",
+        "empty_title": "No locations",
+        "empty_body": "There are no locations to display. Create the first one.",
+        "units_empty_title": "Empty location",
+        "units_empty_body": "There are no physical units in this location."
+      },
+      "modals": {
+        "create_title": "New location",
+        "edit_title": "Edit location",
+        "units_title": "Units in {codigo}",
+        "cancel": "Cancel",
+        "save_changes": "Save changes",
+        "create_submit": "Create location",
+        "fields": {
+          "code": "Code",
+          "type": "Type",
+          "name": "Name",
+          "hierarchy": "Hierarchy",
+          "capacity": "Capacity"
+        },
+        "placeholders": {
+          "code": "E.g.: A-01-02-03",
+          "name": "Readable label for the location",
+          "hierarchy": "E.g.: A-01 (parent of this location)",
+          "capacity": "Leave empty = no limit"
+        },
+        "hints": {
+          "code": "Unique per tenant. Supports hierarchy with hyphens.",
+          "type": "TRANSITO (virtual) does not support capacity."
+        }
+      },
+      "messages": {
+        "load_error": "Could not load locations",
+        "load_units_error": "Could not load units",
+        "save_error": "Error saving",
+        "saved_updated": "Location updated",
+        "saved_created": "Location created",
+        "activated": "Location activated",
+        "deactivated": "Location deactivated",
+        "toggle_error": "Could not change the status",
+        "delete_confirm": "Delete this location? This action can be undone.",
+        "deleted": "Location deleted",
+        "delete_error": "Could not delete",
+        "total": "Total",
+        "units_count": "{total} unit(s)",
+        "available_short": "avail",
+        "truncated": "Only the first 100 units are shown.",
+        "capacity_no_limit": "no limit"
+      }
+    },
+    "products": {
+      "title": "Products",
+      "subtitle": "Product catalog management",
+      "pagination_label": "products",
+      "actions": {
+        "create": "+ New product",
+        "stock": "Stock",
+        "edit": "Edit",
+        "activate": "Activate",
+        "deactivate": "Deactivate",
+        "delete": "Delete"
+      },
+      "filters": {
+        "search_placeholder": "Search SKU or name...",
+        "all_units": "All units",
+        "all_states": "All statuses",
+        "active": "Active",
+        "inactive": "Inactive",
+        "apply": "Filter",
+        "clear": "Clear"
+      },
+      "columns": {
+        "sku": "SKU",
+        "nombre": "Name",
+        "unidad": "Unit",
+        "stock_total": "Total stock",
+        "estado": "Status",
+        "creado": "Created",
+        "acciones": "Actions"
+      },
+      "states": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "empty": {
+        "title": "No products",
+        "message": "There are no products to display. Create the first one."
+      },
+      "modals": {
+        "edit_title": "Edit product",
+        "create_title": "New product",
+        "labels": {
+          "sku": "SKU",
+          "nombre": "Name",
+          "unidad": "Unit of measure",
+          "categoria": "Category",
+          "descripcion": "Description",
+          "peso": "Weight (kg)",
+          "volumen": "Volume",
+          "dimensiones": "Dimensions (LxWxH)"
+        },
+        "placeholders": {
+          "sku": "E.g.: PROD-001",
+          "nombre": "Product name",
+          "categoria": "E.g.: Electronics",
+          "dimensiones": "E.g.: 100x50x30"
+        },
+        "unit_hint": "KG requires weight. M3/LT requires volume.",
+        "cancel": "Cancel",
+        "submit_edit": "Save changes",
+        "submit_create": "Create product"
+      },
+      "stock": {
+        "title": "Stock for {sku}",
+        "available": "avail {cantidad}",
+        "empty_title": "No stock recorded",
+        "empty_message": "This product has no physical units yet.",
+        "columns": {
+          "ubicacion": "Location",
+          "cantidad": "Quantity",
+          "disponible": "Available",
+          "estado": "Status"
+        },
+        "total_label": "Total",
+        "units": "{total} unit(s)",
+        "truncated": "Only the first 100 units are shown."
+      },
+      "messages": {
+        "load_error": "Could not load products",
+        "stock_load_error": "Could not load the product stock",
+        "save_error": "Error saving",
+        "toggle_error": "Could not change the status",
+        "delete_error": "Could not delete",
+        "confirm_delete": "Delete this product? This action can be undone.",
+        "created": "Product created",
+        "updated": "Product updated",
+        "activated": "Product activated",
+        "deactivated": "Product deactivated",
+        "deleted": "Product deleted"
+      }
+    },
+    "receiving": {
+      "title": "Receiving",
+      "subtitle": "Inventory intake: physical unit + ledger + event in a single transaction",
+      "card_title": "New receipt",
+      "labels": {
+        "producto": "Product",
+        "ubicacion_destino": "Destination location",
+        "cantidad_esperada": "Expected quantity",
+        "cantidad_recibida": "Received quantity",
+        "lote": "Batch",
+        "numero_serie": "Serial number",
+        "rechazo_total": "Reject the entire delivery"
+      },
+      "selects": {
+        "producto": "Select a product",
+        "ubicacion": "Select a location"
+      },
+      "placeholders": {
+        "cantidad_recibida": "Empty = same as expected",
+        "opcional": "Optional"
+      },
+      "hints": {
+        "producto": "Only active products from the catalog.",
+        "ubicacion": "Only active locations. Label: code (used / capacity).",
+        "cantidad_recibida": "Less than the expected quantity creates a partial receipt with an incident.",
+        "rechazo_total": "Nothing goes into stock: no unit or ledger is created, and a rejected delivery incident with high priority is opened. The received quantity is set to 0."
+      },
+      "buttons": {
+        "submit": "Record receipt",
+        "submitting": "Recording..."
+      },
+      "options": {
+        "sin_limite": "no limit",
+        "sin_espacio": " - no space"
+      },
+      "result": {
+        "title": "Last receipt",
+        "empty_title": "No receipts in this session",
+        "empty_hint": "The unit's barcode will appear here."
+      },
+      "states": {
+        "rechazada": "Rejected",
+        "parcial": "Partial",
+        "completa": "Complete",
+        "sin_unidad": "— no unit —"
+      },
+      "prioridad": {
+        "alta": "High",
+        "normal": "Normal"
+      },
+      "columns": {
+        "ubicacion": "Location",
+        "estado": "Status",
+        "discrepancia": "Discrepancy",
+        "codigo_barras": "Barcode",
+        "sku": "SKU",
+        "esperada": "Expected",
+        "recibida": "Received"
+      },
+      "messages": {
+        "catalog_error": "Could not load products and locations",
+        "error_producto_required": "Select a product.",
+        "error_ubicacion_required": "Select a destination location.",
+        "error_cantidad_esperada": "The expected quantity must be greater than zero.",
+        "error_cantidad_recibida": "The received quantity must be greater than zero.",
+        "error_cantidad_recibida_max": "It cannot be greater than the expected quantity.",
+        "submit_error": "Could not record the receipt",
+        "rechazo_titulo": "Delivery rejected.",
+        "rechazo_fallback": "No stock was recorded; a rejected delivery incident was opened.",
+        "parcial_titulo": "Partial receipt.",
+        "parcial_fallback": "A quantity discrepancy incident was recorded.",
+        "evento": "Event {tipo}",
+        "evento_hash": "· hash {hash}...",
+        "toast_rechazo_titulo": "Delivery rejected",
+        "toast_rechazo_fallback": "No stock; a high priority incident was opened.",
+        "toast_registrada_titulo": "Receipt recorded",
+        "toast_registrada_mensaje": "{codigo} in {ubicacion}",
+        "error_401_form": "Session expired. Sign in again; the idempotency key is preserved.",
+        "error_401_toast": "Sign in again to continue",
+        "error_409_form": "The idempotency key had already been used with different data. A new key was generated: check the stock before retrying.",
+        "error_409_toast_titulo": "Idempotency",
+        "error_409_toast": "Key reused with different data; a new one was generated",
+        "toast_capacidad": "Capacity exceeded"
+      }
+    },
+    "movements": {
+      "title": "Movements",
+      "subtitle": "History of internal inventory movements (CU-002 / R3)",
+      "pagination_label": "movements",
+      "summary": {
+        "correcciones": "Corrections",
+        "en_pantalla": "On screen"
+      },
+      "filters": {
+        "unit": "Unit",
+        "unit_placeholder": "Stock unit ID",
+        "origin": "Origin",
+        "destination": "Destination",
+        "reason": "Reason",
+        "reason_placeholder": "REUBICACION, ...",
+        "correction": "Correction",
+        "all": "All",
+        "only_corrections": "Corrections only",
+        "no_correction": "No correction",
+        "date_from": "From date",
+        "date_to": "To date",
+        "apply": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters"
+      },
+      "columns": {
+        "movimiento": "Movement",
+        "fecha": "Date",
+        "unidad": "Unit",
+        "ruta": "Route",
+        "motivo": "Reason",
+        "actor": "Actor",
+        "correccion": "Correction"
+      },
+      "empty": {
+        "title": "No movements",
+        "message": "No movements match the current filters."
+      },
+      "permission": {
+        "title": "Permission required",
+        "body": "You need <code>{permiso}</code> to view the movements."
+      },
+      "messages": {
+        "forbidden_view": "You need {permiso} to view the movements.",
+        "load_error": "Could not load the movements"
+      }
+    },
+    "reservations": {
+      "title": "Reservations",
+      "subtitle": "Reservations for inventory units (CU-003)",
+      "pagination_label": "reservations",
+      "summary": {
+        "total": "Reservations",
+        "activas": "Active",
+        "con_vencimiento": "With expiration"
+      },
+      "states": {
+        "activa": "ACTIVE",
+        "cancelada": "CANCELLED"
+      },
+      "columns": {
+        "barcode": "Barcode",
+        "producto": "Product",
+        "reservada": "Reserved",
+        "estado": "Status",
+        "vencimiento": "Expiration",
+        "acciones": "Actions"
+      },
+      "actions": {
+        "release": "Release"
+      },
+      "empty": {
+        "title": "No reservations",
+        "message": "There are no registered reservations."
+      },
+      "permission": {
+        "title": "Permission required",
+        "body": "You need <code>{permiso}</code> to view this screen."
+      },
+      "messages": {
+        "load_error": "Could not load the reservations",
+        "forbidden_view": "You need {permiso} to view the reservations.",
+        "forbidden_release": "You need {permiso} to release reservations.",
+        "confirm_release": "Release this reservation? The unit will become available again.",
+        "released_title": "Reservation released",
+        "released_message": "The unit is available again.",
+        "not_found_title": "Reservation not found",
+        "not_found_message": "The reservation no longer exists.",
+        "release_conflict_title": "Could not release",
+        "release_conflict_message": "The reservation is no longer active.",
+        "release_error": "Could not release the reservation"
+      }
+    },
+    "deliveries": {
+      "title": "Deliveries",
+      "subtitle": "Delivery confirmation and failures (CU-007 / CU-008)",
+      "pagination_label": "deliveries",
+      "sections": {
+        "en_ruta": "Shipments out for delivery",
+        "history": "Delivery history"
+      },
+      "actions": {
+        "reload": "Refresh",
+        "filter": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters",
+        "confirm": "Confirm delivery",
+        "failed": "Record failure",
+        "mark_all": "Mark all",
+        "unmark_all": "Unmark all",
+        "view_signature": "View signature"
+      },
+      "filters": {
+        "estado": "Status",
+        "all_states": "All statuses",
+        "shipment": "Shipment (id or reference)",
+        "date_from": "From date",
+        "date_to": "To date"
+      },
+      "columns": {
+        "envio": "Shipment",
+        "referencia": "Reference",
+        "destinatario": "Recipient",
+        "conductor": "Driver",
+        "items": "Items",
+        "creado": "Created",
+        "acciones": "Actions",
+        "entrega": "Delivery",
+        "barcode": "Barcode",
+        "cantidad": "Quantity",
+        "estado": "Status",
+        "firma": "Signature",
+        "entregado": "Delivered",
+        "producto": "Product",
+        "firma_url": "Signature (http/https URL)",
+        "observaciones": "Notes",
+        "destinatario_real": "Actual recipient"
+      },
+      "states": {
+        "pendiente": "Pending",
+        "entregada": "Delivered",
+        "rechazada": "Rejected",
+        "parcial": "Partial"
+      },
+      "reasons": {
+        "no_disponible": "Not available",
+        "rechazo": "Rejection",
+        "acceso_denegado": "Access denied",
+        "otro": "Other"
+      },
+      "summary": {
+        "entregas": "Deliveries",
+        "entregadas": "Delivered",
+        "rechazadas": "Rejected",
+        "pendientes": "Pending"
+      },
+      "empty": {
+        "en_ruta_title": "No shipments out for delivery",
+        "en_ruta_message": "There are no shipments with status EN_RUTA awaiting delivery.",
+        "history_title": "No deliveries",
+        "history_message": "No deliveries match the current filters.",
+        "units_title": "No pending units",
+        "confirm_message": "This shipment has no units pending delivery.",
+        "failed_message": "This shipment has no pending units to return."
+      },
+      "permission": {
+        "title": "No permission",
+        "body": "You need <code>{permiso}</code> to view this screen.",
+        "en_ruta_title": "No access to shipments",
+        "en_ruta_body": "You need <code>{permiso}</code> to list the EN_RUTA shipments; the deliveries screen does not include its own endpoint."
+      },
+      "modals": {
+        "open_error": "Could not open the shipment",
+        "confirm_title": "Confirm delivery",
+        "failed_title": "Record delivery failure",
+        "cancel": "Cancel",
+        "sending": "Sending...",
+        "context_destinatario": "Recipient",
+        "context_destino": "Destination",
+        "context_salida": "Departure",
+        "units_count": "Shipment units ({count})"
+      },
+      "placeholders": {
+        "optional": "Optional",
+        "signature": "https://firma.ejemplo/acta"
+      },
+      "form": {
+        "motivo": "Reason",
+        "select_motivo": "Select a reason",
+        "observaciones": "Notes",
+        "motivo_fallo": "Failure reason for the unmarked units",
+        "hint_unmarked": "Unmarked units are processed as a delivery failure (CU-008) within the same operation.",
+        "hint_no_units": "If you do not mark any unit, the failure applies to all undelivered units in the shipment.",
+        "affected": "Affected units ({marcadas} of {total})"
+      },
+      "messages": {
+        "load_shipment_error": "Could not load the shipment",
+        "load_en_ruta_error": "Could not load the shipments out for delivery",
+        "load_history_error": "Could not load the history",
+        "forbidden_view": "You need {permiso} to view the history.",
+        "confirm_partial": "You are about to confirm {marcadas} of {total} unit(s). The {sin_marcar} unmarked units will be processed as a delivery failure. Continue?",
+        "confirmed_title": "Delivery confirmed",
+        "failed_title": "Failure recorded",
+        "shipment_ref": "Shipment {id}",
+        "units_delivered": "{count} unit(s) delivered",
+        "shipment_failed": "The shipment ended up in FALLO_ENTREGA",
+        "confirm_error": "Could not confirm the delivery",
+        "failed_error": "Could not record the failure",
+        "notice_all_marked": "The {marcadas} unit(s) are marked as delivered.",
+        "notice_partial": "{marcadas} marked as delivered and {sin_marcar} will be processed as a delivery failure with reason {motivo}."
+      },
+      "validations": {
+        "unit_required": "Mark at least one unit as delivered.",
+        "signature_url": "The signature must be an http:// or https:// URL",
+        "reason_required": "Select the failure reason."
+      }
+    },
+    "picking": {
+      "title": "Picking",
+      "subtitle": "Selection of reserved units (CU-004)",
+      "operations_title": "Picking operations",
+      "pagination_label": "operations",
+      "states": {
+        "pendiente": "Pending",
+        "en_curso": "In progress",
+        "completada": "Completed",
+        "verificada": "Verified"
+      },
+      "summary": {
+        "operaciones": "Operations",
+        "en_curso": "In progress",
+        "completadas": "Completed",
+        "verificadas": "Verified"
+      },
+      "filters": {
+        "all_states": "All statuses",
+        "search_placeholder": "Search by batch",
+        "apply": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters"
+      },
+      "columns": {
+        "barcode": "Barcode",
+        "producto": "Product",
+        "reservada": "Reserved",
+        "vencimiento": "Expiration",
+        "lote": "Batch",
+        "unidades": "Units",
+        "estado": "Status",
+        "referencia": "Reference",
+        "selector": "Picker",
+        "supervisor": "Supervisor",
+        "creado": "Created",
+        "acciones": "Actions"
+      },
+      "actions": {
+        "expand": "Units",
+        "collapse": "Hide",
+        "complete": "Complete",
+        "verify": "Verify"
+      },
+      "empty": {
+        "reservations_title": "No pending reservations",
+        "reservations_message": "There are no active reservations to prepare.",
+        "title": "No picking operations",
+        "message": "No batch has been started yet that matches the filters."
+      },
+      "start": {
+        "title": "New picking batch",
+        "lote_label": "Batch",
+        "generate": "Generate",
+        "generate_title": "Generate a new batch",
+        "lote_hint": "Must be unique within the tenant.",
+        "location_label": "Preparation location",
+        "location_loading": "Loading PICKING locations...",
+        "location_hint": "Active zones of type PICKING.",
+        "location_select": "Select a location",
+        "location_empty": "No active PICKING locations",
+        "location_no_limit": "no limit",
+        "order_label": "Order reference",
+        "order_placeholder": "Optional",
+        "scan_label": "Scan barcode",
+        "scan_placeholder": "Scan or type a barcode and press Enter",
+        "scan_hint": "Select the pending reservation that matches the barcode.",
+        "selection_count": "unit(s) selected",
+        "select_all": "Select all",
+        "clear_selection": "Clear selection",
+        "submit": "Start picking",
+        "sending": "Sending..."
+      },
+      "permission": {
+        "title": "No permission",
+        "body": "You need <code>{permiso}</code> to view this screen."
+      },
+      "detail": {
+        "route": "origin {origen} → preparation {destino}"
+      },
+      "messages": {
+        "forbidden_locations": "You need {permiso} to list the preparation zones.",
+        "forbidden_reservations": "You need {permiso} to view the reservations.",
+        "forbidden_view": "You need {permiso} to view the operations.",
+        "reservations_load_error": "Could not load the reservations",
+        "pickings_load_error": "Could not load the picking operations",
+        "error_lote_required": "Enter the batch identifier.",
+        "error_location_required": "Select a preparation location.",
+        "error_units_required": "Select at least one pending reservation.",
+        "started_title": "Picking started",
+        "started_message": "Batch {lote} with {unidades} unit(s).",
+        "start_error": "Could not start the picking",
+        "completed_title": "Batch completed",
+        "verified_title": "Batch verified",
+        "lote_message": "Batch {lote}",
+        "complete_error": "Could not complete the batch",
+        "verify_error": "Could not verify the batch",
+        "scan_not_found": "There are no pending reservations with barcode \"{codigo}\".",
+        "barcode_not_found_title": "Barcode not found",
+        "barcode_not_found_message": "Check the code or refresh the list.",
+        "unit_selected_title": "Unit selected",
+        "unit_selected_message": "{barcode} · {producto}"
+      }
+    },
+    "returns": {
+      "title": "Returns",
+      "subtitle": "Log of unit returns (CU-009)",
+      "pagination_label": "returns",
+      "actions": {
+        "register": "Register return",
+        "cancel": "Cancel",
+        "sending": "Sending..."
+      },
+      "filters": {
+        "estado": "Status on return",
+        "motivo": "Reason",
+        "shipment": "Shipment (id or reference)",
+        "fecha_desde": "From date",
+        "fecha_hasta": "To date",
+        "all": "All",
+        "apply": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters"
+      },
+      "placeholders": {
+        "opcional": "Optional",
+        "unit_search": "Barcode, product, sku, lot or location"
+      },
+      "columns": {
+        "devolucion": "Return",
+        "envio": "Shipment",
+        "barcode": "Barcode",
+        "cantidad": "Quantity",
+        "motivo": "Reason",
+        "estado": "Status on return",
+        "destino": "Destination",
+        "detalle": "Detail",
+        "fecha": "Date"
+      },
+      "summary": {
+        "devoluciones": "Returns",
+        "ok": "OK",
+        "danadas": "Damaged",
+        "deterioradas": "Deteriorated",
+        "perdidas": "Lost"
+      },
+      "empty": {
+        "title": "No returns",
+        "message": "There are no returns matching the current filters."
+      },
+      "permission": {
+        "title": "Permission denied",
+        "body": "You need <code>{permiso}</code> to view this screen."
+      },
+      "states": {
+        "ok": "OK",
+        "danado": "Damaged",
+        "deteriorado": "Deteriorated",
+        "perdido": "Lost"
+      },
+      "reasons": {
+        "cambio_cliente": "Customer exchange",
+        "dano": "Damage",
+        "fallo_entrega": "Delivery failed",
+        "no_aplica": "Not applicable",
+        "otro": "Other"
+      },
+      "modal": {
+        "title": "Register return",
+        "estado_unidad": "Unit status",
+        "estado_unidad_hint": "The backend only accepts units in ENTREGADO or DEVUELTO.",
+        "buscar_unidad": "Search unit",
+        "unidad": "Unit",
+        "loading_units": "Loading units...",
+        "units_available": "{count} unit(s) available.",
+        "motivo": "Reason",
+        "select_motivo": "Select a reason",
+        "estado": "Status on return",
+        "select_estado": "Select a status",
+        "ubicacion_destino": "Destination location",
+        "select_unit": "Select a unit",
+        "no_destination": "No destination",
+        "destination_required_hint": "Required when the status is OK.",
+        "destination_optional_hint": "Ignored: DAÑADO/DETERIORADO go to the DAÑADOS zone and PERDIDO does not store a location.",
+        "observaciones": "Notes"
+      },
+      "validation": {
+        "unidad": "Select the unit to return.",
+        "motivo": "Select the return reason.",
+        "estado": "Select the status on return.",
+        "destino": "Select the destination location."
+      },
+      "messages": {
+        "stock_load_error": "Could not load the stock",
+        "locations_load_error": "Could not load the locations",
+        "load_error": "Could not load the returns",
+        "forbidden_view": "You need {permiso} to view this list.",
+        "registered_title": "Return registered",
+        "register_error": "Could not register the return"
+      }
+    },
+    "shipments": {
+      "title": "Shipments",
+      "subtitle": "Loading and departure authorization (CU-005 / CU-006)",
+      "list_title": "Shipment list",
+      "pagination_label": "shipments",
+      "states": {
+        "preparacion": "In preparation",
+        "en_ruta": "Out for delivery",
+        "entregado": "Delivered",
+        "fallo_entrega": "Delivery failed",
+        "devuelto": "Returned"
+      },
+      "summary": {
+        "envios": "Shipments",
+        "en_preparacion": "In preparation",
+        "en_ruta": "Out for delivery",
+        "entregados": "Delivered"
+      },
+      "filters": {
+        "all_states": "All statuses",
+        "apply": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters"
+      },
+      "columns": {
+        "envio": "Shipment",
+        "destinatario": "Recipient",
+        "tipo": "Type",
+        "conductor": "Driver",
+        "items": "Items",
+        "estado": "Status",
+        "creado": "Created",
+        "acciones": "Actions",
+        "barcode": "Barcode",
+        "producto": "Product",
+        "zona": "Zone",
+        "cantidad": "Quantity"
+      },
+      "labels": {
+        "tipo": "Type",
+        "origen": "Origin",
+        "referencia_externa": "External reference",
+        "destino_direccion": "Destination / address",
+        "destinatario": "Recipient",
+        "destinatario_contacto": "Recipient contact",
+        "entrega_esperada": "Expected delivery",
+        "conductor": "Driver",
+        "conductor_contacto": "Driver contact",
+        "vehiculo": "Vehicle",
+        "observaciones": "Notes",
+        "estado": "Status",
+        "destino": "Destination",
+        "salida": "Departure"
+      },
+      "load": {
+        "title": "New shipment",
+        "units_title": "Units to load",
+        "submit": "Load units",
+        "sending": "Sending...",
+        "select_all": "Select all",
+        "clear_selection": "Clear selection",
+        "selection_count": "unit(s) selected",
+        "modes": {
+          "lote": "By batch",
+          "unidades": "Manual selection"
+        },
+        "selects": {
+          "sin_origen": "No origin"
+        },
+        "placeholders": {
+          "opcional": "Optional",
+          "destino_direccion": "Delivery address",
+          "destinatario_nombre": "Name or company name",
+          "contacto": "Phone or email",
+          "conductor_nombre": "Driver name",
+          "vehiculo_referencia": "License plate or reference"
+        },
+        "hints": {
+          "destinatario": "Required to authorize departure."
+        },
+        "lote": {
+          "label": "Picking batch",
+          "select": "Select a batch",
+          "hint": "Only batches with picking COMPLETADA or VERIFICADA and units in preparation.",
+          "ready_count": "({listas}/{total} ready)",
+          "empty_title": "No batches ready to load",
+          "empty_message": "There are no picking batches with status COMPLETADA or VERIFICADA.",
+          "empty_selection": "Choose a batch to see its units.",
+          "no_units": "No unit in the batch is in preparation."
+        },
+        "units": {
+          "empty_title": "No units in preparation",
+          "empty_message": "There are no EN_PREPARACION units ready to load."
+        }
+      },
+      "actions": {
+        "detail": "Details",
+        "authorize": "Authorize departure"
+      },
+      "empty": {
+        "title": "No shipments",
+        "message": "No shipments match the current filters."
+      },
+      "detail": {
+        "title": "Shipment {id}",
+        "items_count": "Items ({count})",
+        "items_empty": "This shipment has no items yet."
+      },
+      "permission": {
+        "title": "No permission",
+        "body": "You need <code>{permiso}</code> to view this screen.",
+        "dashboard": "Go to dashboard"
+      },
+      "messages": {
+        "catalog_forbidden": "You need inventory.stock.view, inventory.picking.view and inventory.location.view to build the load.",
+        "catalog_load_error": "Could not load the load data",
+        "list_forbidden": "You need inventory.shipping.view to view the shipments.",
+        "list_load_error": "Could not load the shipments",
+        "detail_load_error": "Could not load the shipment",
+        "error_tipo_required": "Select the shipment type.",
+        "error_destinatario_required": "Enter the recipient.",
+        "error_unidades_required": "Select at least one unit to load.",
+        "loaded_title": "Units loaded",
+        "loaded_message": "{unidades} unit(s) · shipment {id}",
+        "loaded_fallback_id": "created",
+        "load_error": "Could not load the units",
+        "authorize_confirm": "Authorize the departure of shipment {id}? The units will move to EN_TRANSITO in the transit location.",
+        "authorized_title": "Departure authorized",
+        "authorized_transit": "Units in transit ({codigo}).",
+        "authorized_en_ruta": "The shipment moved to EN_RUTA.",
+        "authorize_error": "Could not authorize the departure"
+      }
+    },
+    "counts": {
+      "title": "Physical counts",
+      "subtitle": "Physical count of units and discrepancy reconciliation (CU-011)",
+      "pagination_label": "counts",
+      "summary": {
+        "conteos": "Counts",
+        "pendientes": "Pending",
+        "en_curso": "In progress",
+        "completados": "Completed",
+        "reconciliados": "Reconciled"
+      },
+      "filters": {
+        "estado": "Status",
+        "all_states": "All",
+        "ubicacion": "Location",
+        "all_locations": "All",
+        "ubicacion_id": "Location (id)",
+        "ubicacion_placeholder": "Location ID",
+        "fecha_desde": "From date",
+        "fecha_hasta": "To date",
+        "apply": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters"
+      },
+      "columns": {
+        "conteo": "Count",
+        "ubicacion": "Location",
+        "estado": "Status",
+        "fecha": "Date",
+        "discrepancias": "Discrepancies",
+        "reconciliado": "Reconciled",
+        "acciones": "Actions",
+        "unidad": "Unit",
+        "barcode": "Barcode",
+        "esperada": "Expected",
+        "contada": "Counted",
+        "notas": "Notes",
+        "encontrada": "Found",
+        "diferencia": "Difference",
+        "accion": "Action",
+        "justificacion": "Justification",
+        "cantidad": "Quantity",
+        "incidencia": "Incident",
+        "autoriza": "Authorized by"
+      },
+      "states": {
+        "pendiente": "Pending",
+        "en_curso": "In progress",
+        "completado": "Completed",
+        "reconciliado": "Reconciled"
+      },
+      "actions": {
+        "start": "Start count",
+        "view": "View",
+        "count": "Count",
+        "reconcile": "Reconcile",
+        "download_sheet": "Download sheet",
+        "submit_results": "Submit results",
+        "complete": "Complete",
+        "ajustar": "Adjust",
+        "justificar": "Justify"
+      },
+      "badges": {
+        "si": "Yes",
+        "no": "No",
+        "resuelta": "Resolved"
+      },
+      "empty": {
+        "title": "No counts",
+        "message": "No counts match the current filters."
+      },
+      "permission": {
+        "title": "Permission required",
+        "body": "You need <code>inventory.count.view</code> to view this screen."
+      },
+      "detail": {
+        "info_title": "Count",
+        "coverage_title": "Coverage",
+        "field_id": "ID",
+        "field_estado": "Status",
+        "field_fecha": "Date",
+        "field_responsable": "Responsible",
+        "field_ubicacion": "Location",
+        "field_unidades_contadas": "Units counted",
+        "field_discrepancias": "Discrepancies",
+        "field_pendientes": "Pending",
+        "all_tenant": "Entire tenant",
+        "sheet_title": "Expected sheet ({count} units)",
+        "sheet_hint": "Enter the counted quantity for each unit and submit the results.",
+        "sheet_empty_title": "Empty sheet",
+        "sheet_empty_message": "This count has no units in the expected list.",
+        "notes_placeholder": "Notes",
+        "discrepancies_title": "Discrepancies ({count})",
+        "select_action": "Select...",
+        "justification_placeholder": "Required to Justify",
+        "reconcile_hint": "Adjust updates the quantity to the found value; Justify leaves the difference without touching stock.",
+        "adjustments_title": "Applied adjustments ({count})"
+      },
+      "modals": {
+        "cancel": "Cancel",
+        "start": {
+          "title": "Start physical count",
+          "submit": "Start",
+          "ubicacion_label": "Location",
+          "ubicacion_hint": "If set, only units in that location are counted.",
+          "fecha_label": "Count date",
+          "fecha_hint": "Optional; defaults to the current date.",
+          "all_tenant": "Entire tenant (no location)"
+        },
+        "detail": {
+          "title": "Physical count"
+        }
+      },
+      "messages": {
+        "forbidden_view": "You need inventory.count.view to view the counts.",
+        "load_error": "Could not load the counts",
+        "detail_load_error": "Could not load the count",
+        "sending": "Sending...",
+        "start_error": "Could not start the count",
+        "started_title": "Count started",
+        "started_units": "Units on the list: {count}.",
+        "started_pending": "The count is now in Pending status.",
+        "error_invalid_quantity": "Invalid quantity: it must be a non-negative number.",
+        "error_results_required": "Enter at least one quantity to submit the results.",
+        "results_registered_title": "Results submitted",
+        "results_registered_message": "Pending: {count}.",
+        "results_error": "Could not submit the results",
+        "missing_unit_row": "This unit is missing a result.",
+        "confirm_complete": "Complete the count? Discrepancies will be calculated against the expected sheet.",
+        "completed_title": "Count completed",
+        "completed_message": "Discrepancies: {count}.",
+        "complete_error": "Could not complete the count",
+        "stale_field_error": "Justify the difference or start a new count.",
+        "stale_title": "Expected sheet out of date",
+        "stale_message": "Unit {unidad}: expected {esperada}, actual {actual}. Move the row to Justify or start a new count.",
+        "adjustment_state_field_error": "Register the Justify action with its justification.",
+        "justification_required": "The Justify action requires a justification.",
+        "error_actions_required": "Choose Adjust or Justify on at least one pending discrepancy.",
+        "reconciled_title": "Discrepancies reconciled",
+        "reconciled_message": "Actions applied: {acciones}.",
+        "reconciled_message_incidents": "Actions applied: {acciones}. Incidents generated: {incidencias}.",
+        "reconcile_error": "Could not reconcile the discrepancies",
+        "download_error": "Could not download the sheet"
+      }
+    },
+    "incidents": {
+      "title": "Incidents",
+      "subtitle": "Incident reporting and investigation (CU-010)",
+      "pagination_label": "incidents",
+      "actions": {
+        "report": "Report incident",
+        "view": "View",
+        "investigate": "Investigate",
+        "resolve": "Resolve"
+      },
+      "states": {
+        "abierta": "Open",
+        "investigacion": "Under investigation",
+        "resuelta": "Resolved",
+        "no_resuelto": "Not resolved"
+      },
+      "types": {
+        "dano": "Damage",
+        "perdida": "Loss",
+        "discrepancia_cantidad": "Quantity discrepancy",
+        "ubicacion_desconocida": "Unknown location",
+        "entrega_rechazada": "Delivery rejected",
+        "transporte_fallido": "Failed transport",
+        "inventario_desaparecido": "Missing inventory",
+        "otro": "Other"
+      },
+      "results": {
+        "encontrada": "Found",
+        "no_encontrada": "Not found"
+      },
+      "priorities": {
+        "alta": "High",
+        "normal": "Normal"
+      },
+      "summary": {
+        "incidencias": "Incidents",
+        "abiertas": "Open",
+        "investigacion": "Under investigation",
+        "resueltas": "Resolved",
+        "no_resueltas": "Not resolved"
+      },
+      "filters": {
+        "estado": "Status",
+        "tipo": "Type",
+        "unidad": "Unit",
+        "unidad_id": "Unit (id)",
+        "fecha_desde": "From date",
+        "fecha_hasta": "To date",
+        "all": "All",
+        "all_units": "All",
+        "apply": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters",
+        "unit_placeholder": "Physical unit ID"
+      },
+      "columns": {
+        "incidencia": "Incident",
+        "tipo": "Type",
+        "descripcion": "Description",
+        "unidad": "Unit",
+        "ubicacion": "Location",
+        "estado": "Status",
+        "prioridad": "Priority",
+        "deteccion": "Detection",
+        "acciones": "Actions"
+      },
+      "empty": {
+        "title": "No incidents",
+        "message": "There are no incidents matching the current filters."
+      },
+      "permission": {
+        "title": "Permission denied",
+        "body": "You need <code>{permiso}</code> to view this screen."
+      },
+      "messages": {
+        "forbidden_view": "You need inventory.incident.view to view the incidents.",
+        "load_error": "Could not load the incidents",
+        "stock_load_error": "Could not load the stock",
+        "locations_load_error": "Could not load the locations",
+        "incident_load_error": "Could not load the incident",
+        "report_error": "Could not report the incident",
+        "resolve_error": "Could not resolve the incident",
+        "investigate_error": "Could not start the investigation",
+        "reported_title": "Incident reported",
+        "reported_message": "The incident is now in the Open state.",
+        "resolved_title": "Incident closed",
+        "resolved_message": "The resolution has been recorded.",
+        "investigating_title": "Incident under investigation",
+        "investigating_message": "The status changed to Under investigation.",
+        "confirm_investigate": "Start the investigation of this incident?",
+        "sending": "Sending..."
+      },
+      "validation": {
+        "tipo_required": "Select the incident type.",
+        "descripcion_required": "Describe the incident.",
+        "text_max": "The description cannot exceed {max} characters.",
+        "observaciones_max": "The notes cannot exceed {max} characters.",
+        "ubicacion_required": "Choose the affected location (or a unit that has a location).",
+        "estado_required": "Choose the final status (Resolved or Not resolved).",
+        "resultado_required": "Indicate whether the unit was found or not.",
+        "resolucion_descripcion_required": "Describe the resolution.",
+        "acciones_required": "Indicate the actions taken.",
+        "acciones_max": "The actions cannot exceed {max} characters.",
+        "compensacion_max": "The compensation cannot exceed {max} characters."
+      },
+      "detail": {
+        "resolution_section": "Resolution",
+        "final_state": "Final status",
+        "resultado": "Result",
+        "ubicacion_destino": "Destination location",
+        "descripcion": "Description",
+        "acciones_tomadas": "Actions taken",
+        "compensacion": "Compensation",
+        "resuelta_por": "Resolved by",
+        "fecha": "Date",
+        "incident_section": "Incident",
+        "id": "ID",
+        "tipo": "Type",
+        "estado": "Status",
+        "prioridad": "Priority",
+        "deteccion": "Detection",
+        "creada": "Created",
+        "actualizada": "Updated",
+        "context_section": "Context",
+        "unidad": "Unit",
+        "ubicacion": "Location",
+        "reportada_por": "Reported by",
+        "conteo_vinculado": "Linked count",
+        "observaciones": "Notes"
+      },
+      "modals": {
+        "cancel": "Cancel",
+        "report": {
+          "title": "Report incident",
+          "submit": "Report",
+          "tipo_label": "Incident type",
+          "select_tipo": "Select a type",
+          "tipo_hint": "DAÑO marks the unit as DAÑADO; PERDIDA releases it; DISCREPANCIA_CANTIDAD creates a count.",
+          "unit_label": "Physical unit",
+          "unit_search_placeholder": "Search by barcode, product, sku or location",
+          "no_unit_option": "No unit (location only)",
+          "loading_units": "Loading units...",
+          "units_available": "{count} unit(s) available.",
+          "location_label": "Location",
+          "no_location": "No location",
+          "loading_locations": "Loading locations...",
+          "location_hint": "Required for DISCREPANCIA_CANTIDAD if the unit has no location.",
+          "descripcion_label": "Description",
+          "descripcion_placeholder": "What happened and in which unit or location",
+          "observaciones_label": "Notes",
+          "observaciones_placeholder": "Additional information (optional)"
+        },
+        "detail": {
+          "title": "Incident detail"
+        },
+        "resolve": {
+          "title": "Resolve incident",
+          "submit": "Save resolution",
+          "context_label": "Incident",
+          "requires_result": "Requires an inventory result",
+          "estado_label": "Final status",
+          "estado_hint": "Resolved closes the incident; Not resolved leaves it closed without a solution.",
+          "resultado_label": "Inventory result",
+          "select_resultado": "Select a result",
+          "resultado_hint": "Found returns the unit to DISPONIBLE; Not found marks it as PERDIDA.",
+          "ubicacion_destino_label": "Destination location",
+          "previous_location": "The previous location",
+          "loading_locations": "Loading locations...",
+          "ubicacion_destino_hint": "Optional: fill in if the unit reappeared in another location.",
+          "compensacion_label": "Compensation",
+          "compensacion_placeholder": "Financial adjustment, replacement, etc. (optional)",
+          "descripcion_label": "Resolution description",
+          "acciones_label": "Actions taken"
+        }
+      }
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Summary of your operation",
+    "greeting": "Hello, {name}",
+    "cards": {
+      "active_users": "Active users",
+      "stock_units": "Units in stock",
+      "quick_access": "Quick access",
+      "stock_summary": "Stock summary",
+      "operation": "Operation"
+    },
+    "quick": {
+      "products_title": "View products",
+      "products_desc": "Manage the product catalog",
+      "locations_desc": "Manage warehouse locations",
+      "users_desc": "Manage tenant users"
+    },
+    "stock": {
+      "columns": {
+        "product": "Product",
+        "units": "Units",
+        "quantity": "Quantity"
+      },
+      "empty": "There are no active products in the catalog.",
+      "counts": {
+        "products_without_stock": "Products without stock",
+        "critical_locations": "Critical locations",
+        "units_in_stock": "Units in stock"
+      }
+    },
+    "metrics": {
+      "locations_available": "Available locations",
+      "active_reservations": "Active reservations",
+      "in_transit": "In transit",
+      "open_incidents": "Open incidents"
+    },
+    "messages": {
+      "error_title": "Error loading data",
+      "retry": "Retry",
+      "http_unavailable": "HttpClient not available",
+      "stats_load_error": "Could not load the statistics"
+    }
+  },
+  "audit": {
+    "title": "Audit",
+    "subtitle": "Platform event log (read only)",
+    "permission": {
+      "title": "Permission denied",
+      "body": "You need the <code>audit.log.view</code> permission to view the audit log."
+    },
+    "filters": {
+      "fecha_desde": "From date",
+      "fecha_hasta": "To date",
+      "usuario": "User (id)",
+      "usuario_placeholder": "Actor UUID",
+      "accion": "Action",
+      "accion_placeholder": "product.create or POST /api/inventory/products",
+      "entidad": "Entity",
+      "resultado": "Result",
+      "apply": "Filter",
+      "clear": "Clear"
+    },
+    "results": {
+      "all": "All",
+      "success": "Success",
+      "failure": "Failure",
+      "failure_badge": "Fail"
+    },
+    "summary": {
+      "total": "Records (active filter)",
+      "success": "Successful",
+      "failure": "Failed"
+    },
+    "empty": {
+      "title": "No records",
+      "message": "No events match the current filters."
+    },
+    "columns": {
+      "date": "Date",
+      "user": "User",
+      "action": "Action",
+      "entity": "Entity",
+      "result": "Result",
+      "detail": "Detail"
+    },
+    "pagination": {
+      "per_page": "per page"
+    },
+    "detail": {
+      "title": "Event detail",
+      "module_resource": "Module / resource",
+      "entity_id": "Entity (id)",
+      "change_type": "Change type",
+      "ip_duration": "IP / duration",
+      "values_before": "Values before",
+      "values_after": "Values after",
+      "extra_details": "Additional details",
+      "no_changes": "— no changes —"
+    },
+    "messages": {
+      "load_error": "Could not load the audit log"
+    }
+  },
+  "users": {
+    "title": "Users",
+    "subtitle": "Manage your organization users",
+    "records": "users",
+    "tabs": {
+      "users": "Users",
+      "temp": "Temporary permissions"
+    },
+    "actions": {
+      "create": "New user",
+      "edit": "Edit",
+      "status": "Change status",
+      "reset": "Reset password",
+      "roles": "Roles",
+      "temp_view": "View temporary permissions",
+      "delete": "Delete",
+      "restore": "Restore"
+    },
+    "filters": {
+      "estado": "Status",
+      "all": "All statuses",
+      "search": "Search",
+      "search_placeholder": "Email or name",
+      "apply": "Apply",
+      "clear": "Clear",
+      "deleted": "Show deleted"
+    },
+    "columns": {
+      "email": "Email",
+      "name": "Name",
+      "status": "Status",
+      "roles": "Roles",
+      "last_login": "Last login",
+      "actions": "Actions"
+    },
+    "status": {
+      "ACTIVO": "Active",
+      "INACTIVO": "Inactive",
+      "SUSPENDIDO": "Suspended",
+      "PENDIENTE_CONFIRMACION": "Pending confirmation",
+      "current": "User: {email} — current status: {estado}",
+      "label": "New status",
+      "motivo": "Reason",
+      "motivo_hint": "Required: it is recorded in the audit log",
+      "success_title": "Status updated",
+      "success_body": "{email} is now {estado}.",
+      "title": "Change status",
+      "submit": "Save status"
+    },
+    "denied": {
+      "title": "Access denied",
+      "body": "You do not have permission to manage users."
+    },
+    "empty": {
+      "title": "No users",
+      "message": "No users match the current filters."
+    },
+    "create": {
+      "title": "New user",
+      "submit": "Create user",
+      "no_role": "No initial role",
+      "role_hint": "The initial role can be assigned later from the user row.",
+      "success_title": "User created",
+      "success_body": "{email} has been created.",
+      "temp_title": "Temporary password"
+    },
+    "fields": {
+      "email": "Email",
+      "nombre": "First name",
+      "apellido": "Last name",
+      "telefono": "Phone",
+      "password": "Temporary password",
+      "password_hint": "At least 8 characters, with an uppercase letter, a lowercase letter and a number.",
+      "role": "Initial role"
+    },
+    "gen_password": "Generate password",
+    "edit": {
+      "title": "Edit user",
+      "submit": "Save changes",
+      "success_title": "User updated",
+      "success_body": "Changes for {email} have been saved."
+    },
+    "reset": {
+      "title": "Reset password",
+      "submit": "Reset",
+      "body": "A temporary password will be generated for {email}.",
+      "warning": "Give the temporary password to the user; they will be asked to change it on first sign-in.",
+      "success_title": "Password reset",
+      "success_body": "Temporary password generated successfully.",
+      "temp_title": "Temporary password"
+    },
+    "temp_password": {
+      "title": "Temporary password",
+      "warning": "Save this password now: it will not be shown again.",
+      "label": "Temporary password",
+      "copy": "Copy",
+      "copied": "Copied to clipboard",
+      "copy_failed": "Could not copy; select it and copy it manually.",
+      "close": "Got it"
+    },
+    "roles": {
+      "title": "User roles",
+      "current": "Assigned roles",
+      "none": "This user has no assigned roles.",
+      "select_placeholder": "Select a role",
+      "assign_label": "Assign role",
+      "assign": "Assign",
+      "assigned": "Role assigned",
+      "remove": "Remove",
+      "removed": "Role removed",
+      "load_error": "Roles could not be loaded.",
+      "assign_error": "The role could not be assigned.",
+      "remove_error": "The role could not be removed.",
+      "from_group": "From group"
+    },
+    "delete": {
+      "title": "Delete user",
+      "submit": "Delete",
+      "body": "You are about to delete {email}.",
+      "warning": "They will lose access immediately. This action cannot be undone from the interface.",
+      "success_title": "User deleted",
+      "success_body": "The user has been deleted."
+    },
+    "errors": {
+      "load": "Users could not be loaded.",
+      "required": "Fill in the required fields",
+      "email": "Invalid email format",
+      "create": "The user could not be created",
+      "edit": "Changes could not be saved",
+      "status": "The status could not be changed",
+      "reset": "The password could not be reset",
+      "delete": "The user could not be deleted",
+      "restore": "Could not restore the user"
+    },
+    "temp": {
+      "subtitle": "Permissions granted with an expiry date",
+      "grant": "Grant permission",
+      "filtering": "Filtering by: {usuario}",
+      "empty": {
+        "title": "No temporary permissions",
+        "message": "There are no active temporary permissions."
+      },
+      "revoke": "Revoke",
+      "revoke_title": "Revoke permission",
+      "revoke_body": "The permission {permiso} will be revoked from {usuario}.",
+      "active": "Active",
+      "expired": "Expired",
+      "revoked": "Revoked",
+      "load_error": "Temporary permissions could not be loaded.",
+      "rate_title": "Limit reached",
+      "rate_body": "Too many requests: wait a few minutes before trying again.",
+      "columns": {
+        "user": "User",
+        "permission": "Permission",
+        "motive": "Reason",
+        "expires": "Expires",
+        "granted_by": "Granted by",
+        "state": "Status"
+      },
+      "revoke_error": "The permission could not be revoked"
+    },
+    "grant": {
+      "title": "Grant temporary permission",
+      "submit": "Grant",
+      "user": "User",
+      "user_placeholder": "Select a user",
+      "permission": "Permission",
+      "permission_placeholder": "Select a permission",
+      "motive": "Reason",
+      "expiry": "Expiry",
+      "mode_hours": "Duration (hours)",
+      "mode_date": "Expiry date and time",
+      "hours": "Hours",
+      "date": "Expires",
+      "max_hint": "Maximum duration depends on the permission criticality.",
+      "success_title": "Permission granted",
+      "success_body": "The temporary permission has been granted successfully.",
+      "error": "The temporary permission could not be granted",
+      "user_search_label": "Search beneficiary",
+      "user_search_placeholder": "Email or name",
+      "user_search": "Search"
+    },
+    "state": {
+      "deleted": "Deleted"
+    },
+    "restore": {
+      "title": "Restore user",
+      "body": "The user {email} will be restored to ACTIVE status.",
+      "hint": "The password and all user data are kept.",
+      "submit": "Restore",
+      "success_title": "User restored",
+      "success_body": "The user is now listed as active."
+    }
+  },
+  "roles": {
+    "title": "Roles",
+    "subtitle": "System roles and their permissions",
+    "filter": {
+      "inactive": "Show inactive roles",
+      "deleted": "Show deleted"
+    },
+    "denied": {
+      "title": "Access denied",
+      "body": "You do not have permission to manage roles."
+    },
+    "type": {
+      "BUILT_IN": "Built-in",
+      "CUSTOM": "Custom"
+    },
+    "state": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "deleted": "Deleted"
+    },
+    "empty": {
+      "title": "No roles",
+      "message": "There are no roles to show."
+    },
+    "actions": {
+      "create": "New role",
+      "permissions": "Permissions",
+      "edit": "Edit",
+      "delete": "Delete",
+      "restore": "Restore"
+    },
+    "columns": {
+      "name": "Name",
+      "type": "Type",
+      "state": "Status",
+      "permissions": "Permissions",
+      "actions": "Actions"
+    },
+    "fields": {
+      "name": "Name",
+      "descripcion": "Description",
+      "activo": "Active role"
+    },
+    "create": {
+      "title": "New role",
+      "submit": "Create role",
+      "success_title": "Role created",
+      "success_body": "The role {nombre} has been created."
+    },
+    "edit": {
+      "title": "Edit role",
+      "submit": "Save changes",
+      "success_title": "Role updated",
+      "success_body": "Changes for {nombre} have been saved."
+    },
+    "delete": {
+      "title": "Delete role",
+      "submit": "Delete",
+      "body": "You are about to delete the role {nombre}.",
+      "warning": "Users and groups relying on it will lose its permissions. This action cannot be undone from the interface.",
+      "success_title": "Role deleted",
+      "success_body": "The role has been deleted."
+    },
+    "perms": {
+      "title": "Role permissions",
+      "readonly": "Built-in roles are read-only.",
+      "empty": "There are no permissions available.",
+      "mfa": "MFA",
+      "select_all": "Select all",
+      "saved": "Permissions saved ({count}).",
+      "save": "Save permissions",
+      "load_error": "Role permissions could not be loaded."
+    },
+    "errors": {
+      "load": "Roles could not be loaded.",
+      "catalog": "The permission catalog could not be loaded.",
+      "required": "The name is required",
+      "create": "The role could not be created",
+      "edit": "Changes could not be saved",
+      "perms": "Permissions could not be saved",
+      "delete": "The role could not be deleted",
+      "restore": "Could not restore the role"
+    },
+    "restore": {
+      "title": "Restore role",
+      "body": "The role {nombre} will be restored.",
+      "hint": "The role will be available for assignment again.",
+      "submit": "Restore",
+      "success_title": "Role restored",
+      "success_body": "The role is now listed as active."
+    }
+  },
+  "groups": {
+    "title": "Groups",
+    "subtitle": "User groups and their roles",
+    "filter": {
+      "inactive": "Show inactive groups",
+      "deleted": "Show deleted"
+    },
+    "denied": {
+      "title": "Access denied",
+      "body": "You do not have permission to manage groups."
+    },
+    "state": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "deleted": "Deleted"
+    },
+    "empty": {
+      "title": "No groups",
+      "message": "There are no groups to show."
+    },
+    "actions": {
+      "create": "New group",
+      "detail": "Details",
+      "edit": "Edit",
+      "delete": "Delete",
+      "restore": "Restore"
+    },
+    "columns": {
+      "name": "Name",
+      "state": "Status",
+      "members": "Members",
+      "actions": "Actions"
+    },
+    "fields": {
+      "nombre": "Name",
+      "descripcion": "Description",
+      "activo": "Active group"
+    },
+    "detail": {
+      "title": "Group details"
+    },
+    "create": {
+      "title": "New group",
+      "submit": "Create group",
+      "success_title": "Group created",
+      "success_body": "The group {nombre} has been created."
+    },
+    "edit": {
+      "title": "Edit group",
+      "submit": "Save changes",
+      "success_title": "Group updated",
+      "success_body": "Changes for {nombre} have been saved."
+    },
+    "delete": {
+      "title": "Delete group",
+      "submit": "Delete",
+      "body": "You are about to delete the group {nombre}.",
+      "warning": "Members will lose the permissions inherited from the group. This action cannot be undone from the interface.",
+      "success_title": "Group deleted",
+      "success_body": "The group has been deleted."
+    },
+    "members": {
+      "title": "Members",
+      "count": "{total} members",
+      "empty": "This group has no members.",
+      "user": "User",
+      "email": "Email",
+      "state": "Status",
+      "since": "Added",
+      "actions": "Actions",
+      "add": "Add member",
+      "add_title": "Add member",
+      "add_submit": "Add",
+      "add_select": "User",
+      "add_placeholder": "Select a user",
+      "add_hint": "Only active users of the tenant are listed.",
+      "added": "Member added to the group",
+      "remove": "Remove",
+      "removed": "Member removed from the group",
+      "search": "Search user",
+      "search_placeholder": "Email or name",
+      "search_btn": "Search",
+      "search_empty": "No results: use the search to find users."
+    },
+    "roles": {
+      "title": "Roles",
+      "count": "{total} roles",
+      "empty": "This group has no assigned roles.",
+      "role": "Role",
+      "type": "Type",
+      "assigned_at": "Assigned",
+      "deleted_role": "Deleted role",
+      "assign": "Assign role",
+      "assign_title": "Assign role to group",
+      "assign_submit": "Assign",
+      "select": "Role",
+      "select_placeholder": "Select a role",
+      "all_assigned": "All available roles are already assigned.",
+      "escalation_hint": "You can only assign roles contained in your own permissions.",
+      "assigned": "Role assigned to the group",
+      "unassign": "Remove",
+      "unassigned": "Role removed from the group"
+    },
+    "errors": {
+      "load": "Groups could not be loaded.",
+      "detail": "Group details could not be loaded.",
+      "required": "The name is required",
+      "create": "The group could not be created",
+      "edit": "Changes could not be saved",
+      "add_member": "The member could not be added",
+      "remove_member": "The member could not be removed",
+      "assign_role": "The role could not be assigned",
+      "unassign_role": "The role could not be removed",
+      "delete": "The group could not be deleted",
+      "restore": "Could not restore the group"
+    },
+    "restore": {
+      "title": "Restore group",
+      "body": "The group {nombre} will be restored.",
+      "hint": "The group will be active again with its members and roles.",
+      "submit": "Restore",
+      "success_title": "Group restored",
+      "success_body": "The group is now listed as active."
+    }
+  },
+  "password": {
+    "title": "Change password",
+    "fields": {
+      "current": "Current password",
+      "current_placeholder": "Your current password",
+      "new": "New password",
+      "new_placeholder": "Enter the new password",
+      "rules_hint": "At least 8 characters, with an uppercase letter, a lowercase letter and a number.",
+      "confirm": "Confirm password",
+      "confirm_placeholder": "Repeat the new password"
+    },
+    "errors": {
+      "required_actual": "The current password is required",
+      "required_new": "The new password is required",
+      "min_length": "The password must be at least 8 characters",
+      "uppercase": "It must contain at least one uppercase letter",
+      "lowercase": "It must contain at least one lowercase letter",
+      "digit": "It must contain at least one number",
+      "same_as_current": "The new password must differ from the current one",
+      "required_confirm": "Confirm the new password",
+      "mismatch": "The passwords do not match",
+      "generic": "The password could not be changed"
+    },
+    "forced": {
+      "notice": "You must change your password to continue."
+    },
+    "actions": {
+      "logout": "Sign out",
+      "submit": "Save password"
+    },
+    "success": {
+      "title": "Password updated",
+      "body": "Your password has been changed successfully."
+    }
+  },
+  "errors": {
+    "validation": "Check the submitted data; some fields are invalid.",
+    "not_found": "The requested resource does not exist.",
+    "conflict": "The operation conflicts with the current state.",
+    "forbidden": "You do not have permission to perform this operation.",
+    "auth": "Invalid or expired session; please sign in again.",
+    "password_change_required": "You must change your password to continue.",
+    "rate_limited": "Too many requests; wait a few seconds and try again.",
+    "timeout": "The request took too long; try again.",
+    "server": "Internal server error; please try again later.",
+    "network": "No connection to the server; check your network."
+  }
+}

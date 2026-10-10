@@ -1,0 +1,24 @@
+/vendor
+/backups
+/.phpunit.cache
+node_modules/
+
+script2.ps1
+script.ps1
+CHANGELOG.md
+.env
+
+# /database se versiona (schema.sql, create_tables.ps1 y seeders): sólo se
+# ignoran los volcados con datos y las copias de seguridad (v1.8.3).
+# Ojo: /database/*.sql sólo afecta a ficheros sueltos en la raíz de
+# database/, nunca a database/schema/schema.sql.
+/database/backups/
+/database/dumps/
+/database/*.sql
+/database/*.sql.gz
+*.dump
+
+# Servidor PHP embebido de los E2E (v1.8.3): PID y log del ultimo arranque.
+/tools/e2e/.e2e-server.pid
+/tools/e2e/.e2e-server.log
+/tools/e2e/.e2e-server.log.err

@@ -1,0 +1,365 @@
+{
+  "inventory": {
+    "picking": {
+      "title": "Picking",
+      "subtitle": "Selection of reserved units (CU-004)",
+      "operations_title": "Picking operations",
+      "pagination_label": "operations",
+      "states": {
+        "pendiente": "Pending",
+        "en_curso": "In progress",
+        "completada": "Completed",
+        "verificada": "Verified"
+      },
+      "summary": {
+        "operaciones": "Operations",
+        "en_curso": "In progress",
+        "completadas": "Completed",
+        "verificadas": "Verified"
+      },
+      "filters": {
+        "all_states": "All statuses",
+        "search_placeholder": "Search by batch",
+        "apply": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters"
+      },
+      "columns": {
+        "barcode": "Barcode",
+        "producto": "Product",
+        "reservada": "Reserved",
+        "vencimiento": "Expiration",
+        "lote": "Batch",
+        "unidades": "Units",
+        "estado": "Status",
+        "referencia": "Reference",
+        "selector": "Picker",
+        "supervisor": "Supervisor",
+        "creado": "Created",
+        "acciones": "Actions"
+      },
+      "actions": {
+        "expand": "Units",
+        "collapse": "Hide",
+        "complete": "Complete",
+        "verify": "Verify"
+      },
+      "empty": {
+        "reservations_title": "No pending reservations",
+        "reservations_message": "There are no active reservations to prepare.",
+        "title": "No picking operations",
+        "message": "No batch has been started yet that matches the filters."
+      },
+      "start": {
+        "title": "New picking batch",
+        "lote_label": "Batch",
+        "generate": "Generate",
+        "generate_title": "Generate a new batch",
+        "lote_hint": "Must be unique within the tenant.",
+        "location_label": "Preparation location",
+        "location_loading": "Loading PICKING locations...",
+        "location_hint": "Active zones of type PICKING.",
+        "location_select": "Select a location",
+        "location_empty": "No active PICKING locations",
+        "location_no_limit": "no limit",
+        "order_label": "Order reference",
+        "order_placeholder": "Optional",
+        "scan_label": "Scan barcode",
+        "scan_placeholder": "Scan or type a barcode and press Enter",
+        "scan_hint": "Select the pending reservation that matches the barcode.",
+        "selection_count": "unit(s) selected",
+        "select_all": "Select all",
+        "clear_selection": "Clear selection",
+        "submit": "Start picking",
+        "sending": "Sending..."
+      },
+      "permission": {
+        "title": "No permission",
+        "body": "You need <code>{permiso}</code> to view this screen."
+      },
+      "detail": {
+        "route": "origin {origen} → preparation {destino}"
+      },
+      "messages": {
+        "forbidden_locations": "You need {permiso} to list the preparation zones.",
+        "forbidden_reservations": "You need {permiso} to view the reservations.",
+        "forbidden_view": "You need {permiso} to view the operations.",
+        "reservations_load_error": "Could not load the reservations",
+        "pickings_load_error": "Could not load the picking operations",
+        "error_lote_required": "Enter the batch identifier.",
+        "error_location_required": "Select a preparation location.",
+        "error_units_required": "Select at least one pending reservation.",
+        "started_title": "Picking started",
+        "started_message": "Batch {lote} with {unidades} unit(s).",
+        "start_error": "Could not start the picking",
+        "completed_title": "Batch completed",
+        "verified_title": "Batch verified",
+        "lote_message": "Batch {lote}",
+        "complete_error": "Could not complete the batch",
+        "verify_error": "Could not verify the batch",
+        "scan_not_found": "There are no pending reservations with barcode \"{codigo}\".",
+        "barcode_not_found_title": "Barcode not found",
+        "barcode_not_found_message": "Check the code or refresh the list.",
+        "unit_selected_title": "Unit selected",
+        "unit_selected_message": "{barcode} · {producto}"
+      }
+    },
+    "shipments": {
+      "title": "Shipments",
+      "subtitle": "Loading and departure authorization (CU-005 / CU-006)",
+      "list_title": "Shipment list",
+      "pagination_label": "shipments",
+      "states": {
+        "preparacion": "In preparation",
+        "en_ruta": "Out for delivery",
+        "entregado": "Delivered",
+        "fallo_entrega": "Delivery failed",
+        "devuelto": "Returned"
+      },
+      "summary": {
+        "envios": "Shipments",
+        "en_preparacion": "In preparation",
+        "en_ruta": "Out for delivery",
+        "entregados": "Delivered"
+      },
+      "filters": {
+        "all_states": "All statuses",
+        "apply": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters"
+      },
+      "columns": {
+        "envio": "Shipment",
+        "destinatario": "Recipient",
+        "tipo": "Type",
+        "conductor": "Driver",
+        "items": "Items",
+        "estado": "Status",
+        "creado": "Created",
+        "acciones": "Actions",
+        "barcode": "Barcode",
+        "producto": "Product",
+        "zona": "Zone",
+        "cantidad": "Quantity"
+      },
+      "labels": {
+        "tipo": "Type",
+        "origen": "Origin",
+        "referencia_externa": "External reference",
+        "destino_direccion": "Destination / address",
+        "destinatario": "Recipient",
+        "destinatario_contacto": "Recipient contact",
+        "entrega_esperada": "Expected delivery",
+        "conductor": "Driver",
+        "conductor_contacto": "Driver contact",
+        "vehiculo": "Vehicle",
+        "observaciones": "Notes",
+        "estado": "Status",
+        "destino": "Destination",
+        "salida": "Departure"
+      },
+      "load": {
+        "title": "New shipment",
+        "units_title": "Units to load",
+        "submit": "Load units",
+        "sending": "Sending...",
+        "select_all": "Select all",
+        "clear_selection": "Clear selection",
+        "selection_count": "unit(s) selected",
+        "modes": {
+          "lote": "By batch",
+          "unidades": "Manual selection"
+        },
+        "selects": {
+          "sin_origen": "No origin"
+        },
+        "placeholders": {
+          "opcional": "Optional",
+          "destino_direccion": "Delivery address",
+          "destinatario_nombre": "Name or company name",
+          "contacto": "Phone or email",
+          "conductor_nombre": "Driver name",
+          "vehiculo_referencia": "License plate or reference"
+        },
+        "hints": {
+          "destinatario": "Required to authorize departure."
+        },
+        "lote": {
+          "label": "Picking batch",
+          "select": "Select a batch",
+          "hint": "Only batches with picking COMPLETADA or VERIFICADA and units in preparation.",
+          "ready_count": "({listas}/{total} ready)",
+          "empty_title": "No batches ready to load",
+          "empty_message": "There are no picking batches with status COMPLETADA or VERIFICADA.",
+          "empty_selection": "Choose a batch to see its units.",
+          "no_units": "No unit in the batch is in preparation."
+        },
+        "units": {
+          "empty_title": "No units in preparation",
+          "empty_message": "There are no EN_PREPARACION units ready to load."
+        }
+      },
+      "actions": {
+        "detail": "Details",
+        "authorize": "Authorize departure"
+      },
+      "empty": {
+        "title": "No shipments",
+        "message": "No shipments match the current filters."
+      },
+      "detail": {
+        "title": "Shipment {id}",
+        "items_count": "Items ({count})",
+        "items_empty": "This shipment has no items yet."
+      },
+      "permission": {
+        "title": "No permission",
+        "body": "You need <code>{permiso}</code> to view this screen.",
+        "dashboard": "Go to dashboard"
+      },
+      "messages": {
+        "catalog_forbidden": "You need inventory.stock.view, inventory.picking.view and inventory.location.view to build the load.",
+        "catalog_load_error": "Could not load the load data",
+        "list_forbidden": "You need inventory.shipping.view to view the shipments.",
+        "list_load_error": "Could not load the shipments",
+        "detail_load_error": "Could not load the shipment",
+        "error_tipo_required": "Select the shipment type.",
+        "error_destinatario_required": "Enter the recipient.",
+        "error_unidades_required": "Select at least one unit to load.",
+        "loaded_title": "Units loaded",
+        "loaded_message": "{unidades} unit(s) · shipment {id}",
+        "loaded_fallback_id": "created",
+        "load_error": "Could not load the units",
+        "authorize_confirm": "Authorize the departure of shipment {id}? The units will move to EN_TRANSITO in the transit location.",
+        "authorized_title": "Departure authorized",
+        "authorized_transit": "Units in transit ({codigo}).",
+        "authorized_en_ruta": "The shipment moved to EN_RUTA.",
+        "authorize_error": "Could not authorize the departure"
+      }
+    },
+    "deliveries": {
+      "title": "Deliveries",
+      "subtitle": "Delivery confirmation and failures (CU-007 / CU-008)",
+      "pagination_label": "deliveries",
+      "sections": {
+        "en_ruta": "Shipments out for delivery",
+        "history": "Delivery history"
+      },
+      "actions": {
+        "reload": "Refresh",
+        "filter": "Filter",
+        "clear": "Clear",
+        "clear_title": "Clear filters",
+        "confirm": "Confirm delivery",
+        "failed": "Record failure",
+        "mark_all": "Mark all",
+        "unmark_all": "Unmark all",
+        "view_signature": "View signature"
+      },
+      "filters": {
+        "estado": "Status",
+        "all_states": "All statuses",
+        "shipment": "Shipment (id or reference)",
+        "date_from": "From date",
+        "date_to": "To date"
+      },
+      "columns": {
+        "envio": "Shipment",
+        "referencia": "Reference",
+        "destinatario": "Recipient",
+        "conductor": "Driver",
+        "items": "Items",
+        "creado": "Created",
+        "acciones": "Actions",
+        "entrega": "Delivery",
+        "barcode": "Barcode",
+        "cantidad": "Quantity",
+        "estado": "Status",
+        "firma": "Signature",
+        "entregado": "Delivered",
+        "producto": "Product",
+        "firma_url": "Signature (http/https URL)",
+        "observaciones": "Notes",
+        "destinatario_real": "Actual recipient"
+      },
+      "states": {
+        "pendiente": "Pending",
+        "entregada": "Delivered",
+        "rechazada": "Rejected",
+        "parcial": "Partial"
+      },
+      "reasons": {
+        "no_disponible": "Not available",
+        "rechazo": "Rejection",
+        "acceso_denegado": "Access denied",
+        "otro": "Other"
+      },
+      "summary": {
+        "entregas": "Deliveries",
+        "entregadas": "Delivered",
+        "rechazadas": "Rejected",
+        "pendientes": "Pending"
+      },
+      "empty": {
+        "en_ruta_title": "No shipments out for delivery",
+        "en_ruta_message": "There are no shipments with status EN_RUTA awaiting delivery.",
+        "history_title": "No deliveries",
+        "history_message": "No deliveries match the current filters.",
+        "units_title": "No pending units",
+        "confirm_message": "This shipment has no units pending delivery.",
+        "failed_message": "This shipment has no pending units to return."
+      },
+      "permission": {
+        "title": "No permission",
+        "body": "You need <code>{permiso}</code> to view this screen.",
+        "en_ruta_title": "No access to shipments",
+        "en_ruta_body": "You need <code>{permiso}</code> to list the EN_RUTA shipments; the deliveries screen does not include its own endpoint."
+      },
+      "modals": {
+        "open_error": "Could not open the shipment",
+        "confirm_title": "Confirm delivery",
+        "failed_title": "Record delivery failure",
+        "cancel": "Cancel",
+        "sending": "Sending...",
+        "context_destinatario": "Recipient",
+        "context_destino": "Destination",
+        "context_salida": "Departure",
+        "units_count": "Shipment units ({count})"
+      },
+      "placeholders": {
+        "optional": "Optional",
+        "signature": "https://firma.ejemplo/acta"
+      },
+      "form": {
+        "motivo": "Reason",
+        "select_motivo": "Select a reason",
+        "observaciones": "Notes",
+        "motivo_fallo": "Failure reason for the unmarked units",
+        "hint_unmarked": "Unmarked units are processed as a delivery failure (CU-008) within the same operation.",
+        "hint_no_units": "If you do not mark any unit, the failure applies to all undelivered units in the shipment.",
+        "affected": "Affected units ({marcadas} of {total})"
+      },
+      "messages": {
+        "load_shipment_error": "Could not load the shipment",
+        "load_en_ruta_error": "Could not load the shipments out for delivery",
+        "load_history_error": "Could not load the history",
+        "forbidden_view": "You need {permiso} to view the history.",
+        "confirm_partial": "You are about to confirm {marcadas} of {total} unit(s). The {sin_marcar} unmarked units will be processed as a delivery failure. Continue?",
+        "confirmed_title": "Delivery confirmed",
+        "failed_title": "Failure recorded",
+        "shipment_ref": "Shipment {id}",
+        "units_delivered": "{count} unit(s) delivered",
+        "shipment_failed": "The shipment ended up in FALLO_ENTREGA",
+        "confirm_error": "Could not confirm the delivery",
+        "failed_error": "Could not record the failure",
+        "notice_all_marked": "The {marcadas} unit(s) are marked as delivered.",
+        "notice_partial": "{marcadas} marked as delivered and {sin_marcar} will be processed as a delivery failure with reason {motivo}."
+      },
+      "validations": {
+        "unit_required": "Mark at least one unit as delivered.",
+        "signature_url": "The signature must be an http:// or https:// URL",
+        "reason_required": "Select the failure reason."
+      }
+    }
+  }
+}

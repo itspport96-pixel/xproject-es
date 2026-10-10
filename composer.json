@@ -1,0 +1,59 @@
+{
+    "name": "xp/platform",
+    "description": "SaaS Multi-tenant Platform - Core",
+    "type": "project",
+    "license": "proprietary",
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require": {
+        "php": ">=8.4",
+        "ext-pdo": "*",
+        "ext-json": "*",
+        "ext-openssl": "*",
+        "ext-mbstring": "*",
+        "ext-redis": "*",
+        "firebase/php-jwt": "^6.10",
+        "vlucas/phpdotenv": "^5.6",
+        "predis/predis": "^2.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\Core\\Authentication\\": "src/Core/Authentication/",
+            "App\\Core\\Authorization\\": "src/Core/Authorization/",
+            "App\\Core\\Groups\\": "src/Core/Groups/",
+            "App\\Core\\Users\\": "src/Core/Users/",
+            "App\\Core\\Tenants\\": "src/Core/Tenants/",
+            "App\\Core\\Security\\": "src/Core/Security/",
+            "App\\Core\\Audit\\": "src/Core/Audit/",
+            "App\\Modules\\Inventory\\": "src/Modules/Inventory/",
+            "App\\Shared\\": "src/Shared/"
+        },
+        "files": [
+            "src/Shared/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit --configuration phpunit.xml",
+        "cache:clear": "rm -rf storage/cache/*"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "platform": {
+            "php": "8.4"
+        },
+        "policy": {
+            "advisories": {
+                "block": false
+            }
+        }
+    }
+}

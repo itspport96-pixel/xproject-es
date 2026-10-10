@@ -1,0 +1,59 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Directorio base
+    RewriteBase /xp/public/
+
+    # No reescribir archivos ni directorios existentes
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Redirigir todo a index.php
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+# Seguridad: ocultar archivos sensibles
+<FilesMatch "\.(env|md|sql|log|yaml|yml|json|lock)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>
+
+
+RewriteEngine On
+
+# Pasar el header Authorization a PHP (CRÍTICO para JWT en XAMPP)
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+# Redirigir todo al index.php (SPA Router)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# ============================================
+# HEADERS DE SEGURIDAD
+# ============================================
+# NOTA: Los headers de seguridad (X-Content-Type-Options, X-Frame-Options,
+# X-XSS-Protection, Referrer-Policy, CSP, HSTS, Permissions-Policy, COOP, CORP)
+# ahora son aplicados dinámicamente por SecurityHeadersMiddleware desde PHP.
+#
+# Esto permite:
+# - Configuración vía .env (SECURITY_CSP_DIRECTIVES, etc.)
+# - Control granular por entorno (dev/prod)
+# - CSP dinámico según necesidades
+# - HSTS solo cuando la request es HTTPS
+#
+# NO duplicar aquí para evitar conflictos o headers redundantes.
+# ============================================
+
+# Cache estáticos
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
+
+# Deshabilitar listado de directorios
+Options -Indexes
