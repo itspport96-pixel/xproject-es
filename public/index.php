@@ -349,7 +349,7 @@ function renderSpaLayout(): void
                         </button>
                         <div id="lang-dropdown" class="hidden absolute right-0 mt-2 w-40 py-1 bg-surface border border-default rounded-lg shadow-lg z-50" role="menu" aria-label="Idioma" data-i18n-aria="shell.language"></div>
                     </div>
-                    <div id="user-menu" x-data="{ open: false }" class="relative">
+                    <div id="user-menu" x-data="{ open: false }" @keydown.escape.window="open = false" class="relative">
                         <button @click="open = !open" class="btn btn-ghost header-icon-btn" aria-haspopup="true"
                                 aria-expanded="false" :aria-expanded="open.toString()" aria-controls="user-dropdown"
                                 aria-label="Cuenta" data-i18n-aria="shell.account" title="">
