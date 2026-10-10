@@ -35,7 +35,8 @@
     alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     clipboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
     exchange: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
-    chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'
+    chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+    logOut: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>'
   };
 
   // ============================================
@@ -159,6 +160,8 @@
             <div class="sidebar-user-name">${escapeHtml(getUserName())}</div>
             <div class="sidebar-user-role">${escapeHtml(getUserRole())}</div>
           </div>
+          <button type="button" class="sidebar-logout" id="sidebar-logout-btn"
+                  aria-label="${escapeHtml(t('shell.logout'))}" title="${escapeHtml(t('shell.logout'))}">${ICONS.logOut}</button>
         </div>
       </div>
     `;
@@ -294,6 +297,17 @@
     const closeBtn = container.querySelector('.sidebar-toggle-mobile');
     if (closeBtn) {
       closeBtn.addEventListener('click', closeMobile);
+    }
+
+    // Logout del pie: mismo handler que #logout-btn del header (state.js):
+    // preventDefault + AuthState.logout(). Se re-bindea en cada render porque
+    // el innerHTML del sidebar se reemplaza (i18n, auth:user-updated).
+    const logoutBtn = container.querySelector('#sidebar-logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (global.AuthState) global.AuthState.logout();
+      });
     }
   }
 
