@@ -328,6 +328,13 @@
 
         mountMenuButton: mountMenuButton,
 
+        // v1.13.7: apertura del modal desde el modulo de perfil (seccion
+        // "Cambiar contrasena"). Reutiliza el mismo modal/endpoint/validacion
+        // que el flujo del menu y el modo obligatorio; no duplica logica.
+        openModal() {
+            open(false);
+        },
+
         isForced() {
             return forced;
         },

@@ -7,6 +7,7 @@
     "toggle_menu": "Alternar menú",
     "toggle_theme": "Alternar tema",
     "toggle_language": "Selecionar idioma",
+    "account": "Conta",
     "no_role": "Sin rol",
     "sidebar_close": "Cerrar menú",
     "sidebar_menu": "Menú principal",
@@ -101,6 +102,7 @@
     "groups": "Grupos",
     "audit": "Auditoría",
     "settings": "Configuración",
+    "profile": "Perfil",
     "section_principal": "Principal",
     "section_inventory": "Inventario",
     "section_admin": "Administración",
@@ -125,7 +127,16 @@
     "incidents": "Incidencias",
     "counts": "Conteos",
     "audit": "Auditoría",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "profile": "Perfil"
+  },
+  "profile": {
+    "title": "Perfil",
+    "subtitle": "Ajustes da sua conta",
+    "section_password": "Alterar palavra-passe",
+    "password_body": "Atualize a sua palavra-passe. Aplicam-se as mesmas regras de segurança do resto da aplicação.",
+    "section_language": "Idioma",
+    "language_body": "O idioma aplica-se a toda a interface e é guardado no seu perfil."
   },
   "inventory": {
     "stock": {

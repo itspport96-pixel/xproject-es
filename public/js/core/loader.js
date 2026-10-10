@@ -332,7 +332,11 @@
     'users/users': { path: 'users/users.js' },
     'roles/roles': { path: 'roles/roles.js' },
     'groups/groups': { path: 'groups/groups.js' },
-    'auth/password': { path: 'auth/password.js' }
+    'auth/password': { path: 'auth/password.js' },
+
+    // CICLO 5 (v1.13.7): perfil de usuario (ruta publica autenticada,
+    // sin permiso especifico; no forma parte de settings/settings)
+    'profile/profile': { path: 'profile/profile.js' }
   });
 
   global.ModuleLoader = ModuleLoader;

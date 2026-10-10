@@ -7,6 +7,7 @@
     "toggle_menu": "Alternar menú",
     "toggle_theme": "Alternar tema",
     "toggle_language": "Seleccionar idioma",
+    "account": "Cuenta",
     "no_role": "Sin rol",
     "sidebar_close": "Cerrar menú",
     "sidebar_menu": "Menú principal",
@@ -101,6 +102,7 @@
     "groups": "Grupos",
     "audit": "Auditoría",
     "settings": "Configuración",
+    "profile": "Perfil",
     "section_principal": "Principal",
     "section_inventory": "Inventario",
     "section_admin": "Administración",
@@ -125,7 +127,16 @@
     "incidents": "Incidencias",
     "counts": "Conteos",
     "audit": "Auditoría",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "profile": "Perfil"
+  },
+  "profile": {
+    "title": "Perfil",
+    "subtitle": "Ajustes de tu cuenta",
+    "section_password": "Cambiar contraseña",
+    "password_body": "Actualiza tu contraseña. Se aplican las mismas reglas de seguridad que en el resto de la aplicación.",
+    "section_language": "Idioma",
+    "language_body": "El idioma se aplica a toda la interfaz y se guarda en tu perfil."
   },
   "inventory": {
     "stock": {

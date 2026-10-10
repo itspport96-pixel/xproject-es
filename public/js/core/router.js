@@ -26,6 +26,13 @@
       titleKey: 'routes.dashboard',
       title: 'Dashboard'
     },
+    'profile': {
+      module: 'profile/profile',
+      container: 'module-container',
+      public: false,
+      titleKey: 'routes.profile',
+      title: 'Profile'
+    },
     'users': {
       module: 'users/users',
       container: 'module-container',

@@ -133,6 +133,54 @@
     gap: 0.25rem;
 }
 
+/* Alpine: evita el flash del drop de cuenta antes de que inicialice. */
+[x-cloak] {
+    display: none !important;
+}
+
+/* Items del drop de cuenta (v1.13.7): pintados por ui/account-menu.js */
+.account-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    color: rgb(var(--color-text));
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+.account-item:hover {
+    background-color: rgb(var(--color-surface-alt));
+}
+
+.account-item:focus-visible {
+    outline: 2px solid rgb(var(--color-primary));
+    outline-offset: -2px;
+}
+
+.account-item.is-active {
+    color: rgb(var(--color-primary));
+    font-weight: 500;
+}
+
+.account-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+}
+
+.account-item-icon svg {
+    width: 1rem;
+    height: 1rem;
+}
+
 /* Button group */
 .btn-group {
     display: inline-flex;

@@ -7,6 +7,7 @@
     "toggle_menu": "Toggle menu",
     "toggle_theme": "Toggle theme",
     "toggle_language": "Select language",
+    "account": "Account",
     "no_role": "No role",
     "sidebar_close": "Close menu",
     "sidebar_menu": "Main menu",
@@ -101,6 +102,7 @@
     "groups": "Groups",
     "audit": "Audit",
     "settings": "Settings",
+    "profile": "Profile",
     "section_principal": "Main",
     "section_inventory": "Inventory",
     "section_admin": "Administration",
@@ -125,7 +127,16 @@
     "incidents": "Incidents",
     "counts": "Counts",
     "audit": "Audit",
-    "settings": "Settings"
+    "settings": "Settings",
+    "profile": "Profile"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Your account settings",
+    "section_password": "Change password",
+    "password_body": "Update your password. The same security rules as the rest of the application apply.",
+    "section_language": "Language",
+    "language_body": "The language applies to the whole interface and is saved to your profile."
   },
   "inventory": {
     "stock": {

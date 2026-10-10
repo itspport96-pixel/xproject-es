@@ -350,13 +350,15 @@ function renderSpaLayout(): void
                         <div id="lang-dropdown" class="hidden absolute right-0 mt-2 w-40 py-1 bg-surface border border-default rounded-lg shadow-lg z-50" role="menu" aria-label="Idioma" data-i18n-aria="shell.language"></div>
                     </div>
                     <div id="user-menu" x-data="{ open: false }" class="relative">
-                        <button @click="open = !open" class="flex items-center gap-2 px-3 py-1.5 rounded bg-surface-alt" aria-haspopup="true" :aria-expanded="open.toString()">
-                            <span id="user-name" data-i18n="shell.guest">Invitado</span>
-                            <span aria-hidden="true">&#9662;</span>
+                        <button @click="open = !open" class="btn btn-ghost header-icon-btn" aria-haspopup="true"
+                                aria-expanded="false" :aria-expanded="open.toString()" aria-controls="user-dropdown"
+                                aria-label="Cuenta" data-i18n-aria="shell.account" title="">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            <span class="account-label hidden md:inline text-xs font-medium" data-i18n="shell.account">Cuenta</span>
                         </button>
-                        <div x-show="open" @click.away="open = false"
-                             class="absolute right-0 mt-2 w-48 bg-surface border border-default rounded-lg shadow-lg z-50">
-                            <a href="#" id="logout-btn" class="block px-4 py-2 hover:bg-surface-alt text-danger" data-i18n="shell.logout">Cerrar sesion</a>
+                        <div id="user-dropdown" x-show="open" x-cloak @click.away="open = false" @click="open = false"
+                             class="absolute right-0 mt-2 w-48 py-1 bg-surface border border-default rounded-lg shadow-lg z-50">
+                            <!-- Items pintados por ui/account-menu.js desde ACCOUNT_ITEMS -->
                         </div>
                     </div>
                 </div>
@@ -386,6 +388,7 @@ function renderSpaLayout(): void
     <script src="{$baseUrlHtml}/js/ui/render.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/ui/modal.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/ui/actions.js?v={$assetsVersion}"></script>
+    <script src="{$baseUrlHtml}/js/ui/account-menu.js?v={$assetsVersion}"></script>
 
     <!-- Dashboard / App Shell Scripts -->
     <script src="{$baseUrlHtml}/js/modules/dashboard/sidebar.js?v={$assetsVersion}"></script>
@@ -405,6 +408,7 @@ function renderSpaLayout(): void
                 if (window.ThemeManager) ThemeManager.init();
                 if (window.AppSidebar) AppSidebar.init();
                 if (window.AppRouter) AppRouter.init();
+                if (window.AccountMenu) AccountMenu.init();
 
                 // Mobile sidebar toggle logic
                 const toggleBtn = document.getElementById('sidebar-toggle');
