@@ -253,7 +253,8 @@ foreach ($f in $filas) {
         $resultados += @{ unidad_fisica_id = $f.unidad_fisica_id; cantidad_encontrada = $e }
     }
 }
-$esperadaTexto = ('{0:f4}' -f $esperadaC)
+# Cultura invariante: el backend escribe siempre con punto (%.4f, PHP 8+).
+$esperadaTexto = $esperadaC.ToString('f4', [cultureinfo]::InvariantCulture)
 
 $rsBody = (@{ resultados = $resultados } | ConvertTo-Json -Depth 6)
 $r = Invoke-Post ("/inventory/counts/" + $cntId + "/results") $rsBody '' $tokenA

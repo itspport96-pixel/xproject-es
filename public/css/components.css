@@ -1029,12 +1029,60 @@ margin-bottom: 1rem;
 }
 
 .sidebar-section-title {
-padding: 0.5rem 0.75rem;
-font-size: 0.6875rem;
-font-weight: 600;
-text-transform: uppercase;
-letter-spacing: 0.05em;
-color: rgb(var(--color-text-subtle));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgb(var(--color-text-subtle));
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--radius-md);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.sidebar-section-title:hover {
+  color: rgb(var(--color-text-muted));
+  background-color: rgb(var(--color-surface-alt));
+}
+
+.sidebar-section-title:focus-visible {
+  outline: 2px solid rgb(var(--color-primary));
+  outline-offset: -2px;
+}
+
+.sidebar-section-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.sidebar-section-chevron svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.sidebar-section-title[aria-expanded="true"] .sidebar-section-chevron {
+  transform: rotate(180deg);
+}
+
+.sidebar-section-items {
+  margin: 0;
+}
+
+.sidebar-section.is-collapsed .sidebar-section-items {
+  display: none;
 }
 
 .sidebar-item {
@@ -1163,6 +1211,12 @@ justify-content: center;
 .app-layout.sidebar-collapsed .sidebar-item {
 padding-left: 0.625rem;
 padding-right: 0.625rem;
+}
+
+/* Modo icono: los títulos de sección están ocultos, así que el colapso por
+   sección se desactiva y los items se muestran siempre (sólo iconos). */
+.app-layout.sidebar-collapsed .sidebar-section.is-collapsed .sidebar-section-items {
+display: block;
 }
 
 /* Cierre del panel lateral (solo mobile) */

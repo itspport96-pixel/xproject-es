@@ -34,7 +34,8 @@
     close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
     alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     clipboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
-    exchange: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>'
+    exchange: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
+    chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'
   };
 
   // ============================================
@@ -94,6 +95,20 @@
   let initialized = false;
   let userRoles = [];
 
+  // Secciones colapsables: clave = sectionKey. Por defecto sólo se expande la
+  // de la ruta activa (así el sidebar no desborda y no aparece scroll).
+  let expandedSections = Object.create(null);
+
+  function isSectionExpanded(sectionKey, items) {
+    if (Object.prototype.hasOwnProperty.call(expandedSections, sectionKey)) {
+      return expandedSections[sectionKey];
+    }
+    return (items || []).some(item =>
+      item.route === currentRoute ||
+      (currentRoute && currentRoute.startsWith(item.route + '/'))
+    );
+  }
+
   // ============================================
   // RENDER
   // ============================================
@@ -127,13 +142,22 @@
   }
 
   function renderSections(menu) {
-    return menu.map(section => {
+    return menu.map((section, idx) => {
       if (section.items.length === 0) return '';
       const title = section.sectionKey ? t(section.sectionKey) : section.section;
+      const sectionKey = section.sectionKey || `section_${idx}`;
+      const panelId = `sidebar-section-${idx}`;
+      const expanded = isSectionExpanded(sectionKey, section.items);
       return `
-        <div class="sidebar-section">
-          <div class="sidebar-section-title">${escapeHtml(title)}</div>
-          ${renderItems(section.items)}
+        <div class="sidebar-section${expanded ? '' : ' is-collapsed'}">
+          <button type="button" class="sidebar-section-title" data-section="${escapeHtml(sectionKey)}"
+                  aria-expanded="${expanded}" aria-controls="${panelId}">
+            <span class="sidebar-section-label">${escapeHtml(title)}</span>
+            <span class="sidebar-section-chevron" aria-hidden="true">${ICONS.chevron}</span>
+          </button>
+          <div class="sidebar-section-items" id="${panelId}"${expanded ? '' : ' hidden'}>
+            ${renderItems(section.items)}
+          </div>
         </div>
       `;
     }).join('');
@@ -198,6 +222,13 @@
   // ============================================
 
   function handleNavClick(e) {
+    // Clic en el título de una sección: colapsa/expande sin navegar.
+    const sectionTitle = e.target.closest('.sidebar-section-title');
+    if (sectionTitle) {
+      toggleSection(sectionTitle);
+      return;
+    }
+
     const item = e.target.closest('.sidebar-item');
     if (!item) return;
     const route = item.dataset.route;
@@ -205,6 +236,27 @@
       global.AppRouter.navigate(route);
       closeMobile();
     }
+  }
+
+  function toggleSection(sectionTitle) {
+    const sectionKey = sectionTitle.dataset.section;
+    const section = sectionTitle.closest('.sidebar-section');
+    const panel = sectionTitle.getAttribute('aria-controls')
+      ? document.getElementById(sectionTitle.getAttribute('aria-controls'))
+      : null;
+    if (!section || !panel) return;
+
+    const expanded = sectionTitle.getAttribute('aria-expanded') === 'true';
+    const next = !expanded;
+
+    sectionTitle.setAttribute('aria-expanded', String(next));
+    section.classList.toggle('is-collapsed', !next);
+    if (next) {
+      panel.removeAttribute('hidden');
+    } else {
+      panel.setAttribute('hidden', '');
+    }
+    expandedSections[sectionKey] = next;
   }
 
   // Se bindea por render SOLO el botón de cierre (elemento nuevo cada render).
@@ -302,6 +354,21 @@
         item.removeAttribute('aria-current');
       }
     });
+
+    // El item activo nunca debe quedar dentro de una sección colapsada:
+    // al navegar se expande la sección que lo contiene.
+    const activeItem = exact || prefix;
+    if (activeItem) {
+      const section = activeItem.closest('.sidebar-section');
+      const sectionTitle = section && section.querySelector('.sidebar-section-title');
+      if (sectionTitle && sectionTitle.getAttribute('aria-expanded') !== 'true') {
+        const panel = section.querySelector('.sidebar-section-items');
+        sectionTitle.setAttribute('aria-expanded', 'true');
+        section.classList.remove('is-collapsed');
+        if (panel) panel.removeAttribute('hidden');
+        expandedSections[sectionTitle.dataset.section] = true;
+      }
+    }
   }
 
   function isMobile() {
