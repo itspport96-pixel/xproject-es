@@ -9,8 +9,15 @@
        especificidad a las reglas de clase de components.css/style.css.
      - El preflight de Tailwind (.hidden, h1-h6 { font-size: inherit },
        p { margin: 0 }, a { color: inherit }) gana a las reglas de elemento
-       de aqui. Las reglas h1-h6/p/a de este fichero quedan como fallback
-       si el CDN no carga; NO son la fuente de verdad visual.
+       de aqui. Las propiedades anuladas se eliminaron en el Ciclo 3 tras
+       medirlo con Chrome headless sobre este mismo orden de <head>:
+       h1-h6 font-size/font-weight, p margin-bottom, a color y
+       code/pre font-family/font-size ya no existen (sin CDN no hay
+       fallback de esas propiedades; el CDN es requisito de la app).
+       Se conservan las que sí tienen efecto: color de headings y de p,
+       line-height de headings, text-decoration/transition de a y
+       a:hover (hover de enlaces con clase sin regla propia, p.ej. el
+       logout del shell).
      - Para que una regla local pise una utilidad hace falta especificidad
        propia (p.ej. .card.p-0, .form-grid > .form-group, .hidden !important).
    ============================================ */
@@ -54,7 +61,6 @@ button {
 }
 
 a {
-    color: rgb(var(--color-primary));
     text-decoration: none;
     transition: color 0.15s ease;
 }
@@ -69,25 +75,11 @@ ul, ol {
 
 h1, h2, h3, h4, h5, h6 {
     line-height: 1.25;
-    font-weight: 600;
     color: rgb(var(--color-text));
 }
 
-h1 { font-size: 1.875rem; }
-h2 { font-size: 1.5rem; }
-h3 { font-size: 1.25rem; }
-h4 { font-size: 1.125rem; }
-h5 { font-size: 1rem; }
-h6 { font-size: 0.875rem; }
-
 p {
-    margin-bottom: 0.75rem;
     color: rgb(var(--color-text-muted));
-}
-
-code, pre {
-    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
-    font-size: 0.875em;
 }
 
 code {

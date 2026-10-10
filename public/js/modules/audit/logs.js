@@ -277,7 +277,7 @@
         return `
             <div>
                 <div class="text-xs text-muted mb-1">${label}</div>
-                <pre class="text-xs bg-dark p-2 rounded" style="white-space: pre-wrap; word-break: break-word;">${escapeHtml(json)}</pre>
+                <pre class="text-xs p-2 rounded" style="white-space: pre-wrap; word-break: break-word;">${escapeHtml(json)}</pre>
             </div>`;
     }
 
