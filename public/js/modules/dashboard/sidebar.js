@@ -95,18 +95,44 @@
   let initialized = false;
   let userRoles = [];
 
-  // Secciones colapsables: clave = sectionKey. Por defecto sólo se expande la
-  // de la ruta activa (así el sidebar no desborda y no aparece scroll).
-  let expandedSections = Object.create(null);
+  // Estado de colapso de los grupos: se guarda tras cada clic del usuario
+  // mediante el wrapper Storage (namespace xp.) sobre localStorage. Lectura y
+  // escritura con try/catch: si no hay storage disponible (modo privado,
+  // cuota llenada, entorno sin Storage) el sidebar sigue funcionando y el
+  // fallback de lectura es cerrado.
+  const SECTION_STORAGE_PREFIX = 'sidebar.section.';
 
-  function isSectionExpanded(sectionKey, items) {
-    if (Object.prototype.hasOwnProperty.call(expandedSections, sectionKey)) {
-      return expandedSections[sectionKey];
+  function readSectionExpanded(sectionKey) {
+    try {
+      if (global.Storage && typeof global.Storage.get === 'function') {
+        return global.Storage.get(SECTION_STORAGE_PREFIX + sectionKey, false) === true;
+      }
+    } catch (e) {
+      // Sin storage legible: fallback a cerrado.
     }
-    return (items || []).some(item =>
+    return false;
+  }
+
+  function writeSectionExpanded(sectionKey, expanded) {
+    try {
+      if (global.Storage && typeof global.Storage.set === 'function') {
+        global.Storage.set(SECTION_STORAGE_PREFIX + sectionKey, expanded === true);
+      }
+    } catch (e) {
+      // Sin storage escribible: la sesion actual sigue con su estado en el DOM.
+    }
+  }
+
+  // Precedencia: la ruta activa dentro del grupo lo abre siempre; si no,
+  // el estado guardado por el usuario; si no hay valor (o la lectura
+  // falló), cerrado.
+  function isSectionExpanded(sectionKey, items) {
+    const activeInside = (items || []).some(item =>
       item.route === currentRoute ||
       (currentRoute && currentRoute.startsWith(item.route + '/'))
     );
+    if (activeInside) return true;
+    return readSectionExpanded(sectionKey);
   }
 
   // ============================================
@@ -256,7 +282,7 @@
     } else {
       panel.setAttribute('hidden', '');
     }
-    expandedSections[sectionKey] = next;
+    writeSectionExpanded(sectionKey, next);
   }
 
   // Se bindea por render SOLO el botón de cierre (elemento nuevo cada render).
@@ -356,7 +382,9 @@
     });
 
     // El item activo nunca debe quedar dentro de una sección colapsada:
-    // al navegar se expande la sección que lo contiene.
+    // al navegar se expande la sección que lo contiene. No se persiste:
+    // la apertura por ruta activa se recalcula en cada render (precedencia
+    // ruta > estado guardado) y no es una acción del usuario.
     const activeItem = exact || prefix;
     if (activeItem) {
       const section = activeItem.closest('.sidebar-section');
@@ -366,7 +394,6 @@
         sectionTitle.setAttribute('aria-expanded', 'true');
         section.classList.remove('is-collapsed');
         if (panel) panel.removeAttribute('hidden');
-        expandedSections[sectionTitle.dataset.section] = true;
       }
     }
   }
