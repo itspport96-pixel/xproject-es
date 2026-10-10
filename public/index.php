@@ -339,23 +339,23 @@ function renderSpaLayout(): void
                     </button>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button id="theme-toggle" class="btn btn-ghost btn-sm" aria-label="Toggle theme" data-i18n-aria="shell.toggle_theme">
+                    <button id="theme-toggle" class="btn btn-ghost header-icon-btn" aria-label="Toggle theme" data-i18n-aria="shell.toggle_theme" title="">
                         <span>...</span>
                     </button>
+                    <div id="lang-menu" class="relative">
+                        <button id="lang-toggle" class="btn btn-ghost header-icon-btn" aria-haspopup="true" aria-expanded="false" aria-controls="lang-dropdown" aria-label="Seleccionar idioma" data-i18n-aria="shell.toggle_language" title="">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            <span id="lang-code" class="text-xs font-medium" aria-hidden="true">ES</span>
+                        </button>
+                        <div id="lang-dropdown" class="hidden absolute right-0 mt-2 w-40 py-1 bg-surface border border-default rounded-lg shadow-lg z-50" role="menu" aria-label="Idioma" data-i18n-aria="shell.language"></div>
+                    </div>
                     <div id="user-menu" x-data="{ open: false }" class="relative">
-                        <button @click="open = !open" class="flex items-center gap-2 px-3 py-1.5 rounded bg-surface-alt">
+                        <button @click="open = !open" class="flex items-center gap-2 px-3 py-1.5 rounded bg-surface-alt" aria-haspopup="true" :aria-expanded="open.toString()">
                             <span id="user-name" data-i18n="shell.guest">Invitado</span>
                             <span aria-hidden="true">&#9662;</span>
                         </button>
                         <div x-show="open" @click.away="open = false"
                              class="absolute right-0 mt-2 w-48 bg-surface border border-default rounded-lg shadow-lg z-50">
-                            <label class="block px-4 pt-2 pb-1 text-xs text-muted" data-i18n="shell.language">Idioma</label>
-                            <select id="lang-select" class="block w-full px-4 py-2 mb-1 bg-surface border-0 text-sm cursor-pointer">
-                                <option value="es">Español</option>
-                                <option value="en">English</option>
-                                <option value="pt">Português</option>
-                                <option value="fr">Français</option>
-                            </select>
                             <a href="#" id="logout-btn" class="block px-4 py-2 hover:bg-surface-alt text-danger" data-i18n="shell.logout">Cerrar sesion</a>
                         </div>
                     </div>

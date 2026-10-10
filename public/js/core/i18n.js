@@ -38,7 +38,8 @@
       logout: 'Cerrar sesion',
       language: 'Idioma',
       toggle_menu: 'Alternar menú',
-      toggle_theme: 'Toggle theme',
+      toggle_theme: 'Alternar tema',
+      toggle_language: 'Seleccionar idioma',
       no_role: 'Sin rol',
       sidebar_close: 'Cerrar menú',
       sidebar_menu: 'Menú principal',
@@ -68,6 +69,9 @@
       title_dark: 'Modo claro',
       title_light: 'Modo oscuro',
       title_system: 'Auto (sistema)',
+      current_dark: 'Modo oscuro',
+      current_light: 'Modo claro',
+      current_system: 'Modo sistema',
       toggle_default: 'Cambiar tema',
       aria: 'Tema actual: {preference}. Click para cambiar.',
       synced_title: 'Tema sincronizado',
@@ -310,6 +314,9 @@
 
     const select = doc.getElementById('lang-select');
     if (select) select.value = current;
+
+    const codeEl = doc.getElementById('lang-code');
+    if (codeEl) codeEl.textContent = current.toUpperCase();
   }
 
   function emitChanged() {
@@ -327,6 +334,115 @@
     select.addEventListener('change', function() {
       setLocale(select.value);
     });
+  }
+
+  // ====================================================================
+  // Selector de idioma del header (v1.13.7): boton icono con el codigo
+  // del idioma + menu pequeño. Reutiliza setLocale() sin modificarlo.
+  // ====================================================================
+
+  const LANG_NAMES = {
+    es: 'Español',
+    en: 'English',
+    pt: 'Português',
+    fr: 'Français'
+  };
+
+  const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="20 6 9 17 4 12"/></svg>';
+
+  let langToggle = null;
+  let langDropdown = null;
+  let langBound = false;
+
+  function renderLangToggle() {
+    if (!langToggle) return;
+    const codeEl = langToggle.querySelector('#lang-code');
+    if (codeEl) codeEl.textContent = current.toUpperCase();
+    langToggle.setAttribute('title', t('shell.toggle_language'));
+    langToggle.setAttribute('aria-label', t('shell.toggle_language'));
+  }
+
+  function renderLangMenu() {
+    if (!langDropdown) return;
+    langDropdown.innerHTML = '';
+    SUPPORTED.forEach(function(locale) {
+      const btn = global.document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('role', 'menuitem');
+      btn.className = 'flex items-center justify-between w-full text-left px-4 py-2 text-sm cursor-pointer hover:bg-surface-alt';
+      if (locale === current) {
+        btn.className += ' text-primary font-medium';
+        btn.setAttribute('aria-current', 'true');
+      }
+      const label = global.document.createElement('span');
+      label.textContent = LANG_NAMES[locale] || locale;
+      btn.appendChild(label);
+      if (locale === current) {
+        const check = global.document.createElement('span');
+        check.setAttribute('aria-hidden', 'true');
+        check.innerHTML = CHECK_ICON;
+        btn.appendChild(check);
+      }
+      btn.addEventListener('click', function() {
+        closeLangMenu();
+        if (locale !== current) setLocale(locale);
+      });
+      langDropdown.appendChild(btn);
+    });
+  }
+
+  function openLangMenu() {
+    if (!langDropdown || !langToggle) return;
+    renderLangMenu();
+    langDropdown.classList.remove('hidden');
+    langToggle.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeLangMenu() {
+    if (!langDropdown || !langToggle) return;
+    langDropdown.classList.add('hidden');
+    langToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  function bindLangToggle() {
+    if (!global.document) return;
+    if (langBound) {
+      renderLangToggle();
+      return;
+    }
+    langToggle = global.document.getElementById('lang-toggle');
+    langDropdown = global.document.getElementById('lang-dropdown');
+    if (!langToggle || !langDropdown) return;
+    langBound = true;
+
+    renderLangToggle();
+
+    langToggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const isOpen = langToggle.getAttribute('aria-expanded') === 'true';
+      if (isOpen) closeLangMenu(); else openLangMenu();
+    });
+
+    global.document.addEventListener('click', function(e) {
+      if (langDropdown.classList.contains('hidden')) return;
+      if (langDropdown.contains(e.target) || langToggle.contains(e.target)) return;
+      closeLangMenu();
+    });
+
+    global.document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Escape') return;
+      if (langDropdown.classList.contains('hidden')) return;
+      closeLangMenu();
+      langToggle.focus();
+    });
+
+    // Menu abierto: re-pinta las opciones marcando el nuevo idioma.
+    if (global.EventBus && typeof global.EventBus.on === 'function') {
+      global.EventBus.on('i18n:changed', function() {
+        renderLangToggle();
+        if (!langDropdown.classList.contains('hidden')) renderLangMenu();
+      });
+    }
   }
 
   /**
@@ -462,10 +578,12 @@
             global.document.addEventListener('DOMContentLoaded', function() {
               applyDom();
               bindSelector();
+              bindLangToggle();
             }, { once: true });
           } else {
             applyDom();
             bindSelector();
+            bindLangToggle();
           }
         }
         return current;
