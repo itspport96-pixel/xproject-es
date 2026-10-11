@@ -795,10 +795,23 @@
    ============================================ */
 .tabs {
     display: flex;
+    flex-wrap: nowrap;
     gap: 0.25rem;
     border-bottom: 1px solid rgb(var(--color-border));
     margin-bottom: 1rem;
     overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* Windows/Chrome puede pintar la barra vertical de overflow-x aunque
+   no haya overflow real; se ocultan ambas barras cuando todo cabe. */
+.tabs::-webkit-scrollbar {
+    height: 0;
+    width: 0;
+}
+
+.tabs {
+    scrollbar-width: none;
 }
 
 .tab {

@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.15] - 2026-10-11
+
+BLOQUE 4: la barra de pestañas ya no muestra scroll vertical innecesario. Corregido en el componente compartido CSS (afecta a todas las vistas con pestañas).
+
+### Fixed
+
+- **`.tabs` en `public/css/components.css`**: `overflow-y: hidden` + `flex-wrap: nowrap` + scrollbar oculta cuando todo cabe. Antes `overflow-x: auto` solo dejaba el eje Y en `visible` (computa como `auto` en CSS), de modo que el `margin-bottom: -1px` de `.tab` generaba 1px de overflow y Windows/Chrome pintaba barra vertical en Picking, Shipments, Deliveries, Users, etc.
+
+### Added
+
+- **`tools/smoke/verify-tabs-scroll.mjs`**: verificación Playwright de `.tabs` en Picking, Shipments, Deliveries y Users a 1920px y 768px (`verticalScroll=false` en 8/8). Capturas en `tools/smoke/capturas-tabs/`.
+
+### Notes
+
+- Otros contenedores revisados sin scroll innecesario: `.table-wrapper` (overflow-x sólo si la tabla desborda, legítimo), `.modal-body` y `.sidebar-nav` (overflow-y sólo si el contenido desborda la altura fija, legítimo). No se tocan.
+
 ## [1.13.14] - 2026-10-11
 
 BLOQUE 3: los subtítulos de las vistas de inventario ya no muestran los códigos internos de spec (CU-xxx / R3); sólo la descripción funcional. Sólo frontend + i18n.
