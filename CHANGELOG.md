@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.16] - 2026-10-11
+
+CIERRE del bloque de mantenimiento (BLOQUES 1–4): verificación completa sin cambios de código.
+
+### Verification
+
+- `composer test`: 941 tests, 6800 assertions, OK (2 deprecations PHPUnit preexistentes).
+- Smokes: `smoke-bloque2-permisos` 20/20; `verify-tabs-scroll` 8/8; `smoke-v162` 89 OK; `smoke-v171` 105 OK.
+- E2E `tools/e2e/e2e-v191.ps1`: TODO OK (BD de trabajo sin escrituras del E2E).
+- BD viva: `GET /api/inventory/counts` → 200; `check-schema-drift.php` → SIN DRIFT; `check-data-integrity.php` no re-ejecutado (sin cambios de datos en el bloque).
+- `check-i18n.php`: claves es/en/pt/fr alineadas (1481); 2 errores preexistentes en `profile.js` (literal "Español" y consola en español fuera de `t()`), fuera del alcance.
+
 ## [1.13.15] - 2026-10-11
 
 BLOQUE 4: la barra de pestañas ya no muestra scroll vertical innecesario. Corregido en el componente compartido CSS (afecta a todas las vistas con pestañas).
