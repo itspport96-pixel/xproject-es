@@ -53,24 +53,8 @@ final class RoleController
         $claims = $this->requireAuthenticated($request);
 
         $soloActivos = ($request['query']['include_inactive'] ?? 'false') !== 'true';
-        // v1.13.0: include_deleted=true lista también los borrados (sin
-        // filtrar activo) para que la UI pueda restaurarlos.
-        $includeDeleted = ($request['query']['include_deleted'] ?? 'false') === 'true';
 
-        // v1.13.0: listar borrados exige el mismo permiso que borrar.
-        if ($includeDeleted) {
-            $denegado = !$this->auth->hasPermission(
-                (string) $claims['user_id'],
-                (string) $claims['tenant_id'],
-                'roles.role.delete',
-                false
-            );
-            if ($denegado) {
-                throw new HttpException('Se requiere el permiso roles.role.delete para listar roles eliminados', 403);
-            }
-        }
-
-        $roles = $this->roles->findAll($soloActivos, (string) $claims['tenant_id'], $includeDeleted);
+        $roles = $this->roles->findAll($soloActivos, (string) $claims['tenant_id']);
 
         return $this->json(200, [
             'roles' => array_map(fn(Role $r) => $r->toArray(), $roles),
@@ -302,39 +286,14 @@ final class RoleController
 
         // v1.13.1: auditoría de dominio del borrado con los permisos previos
         // del rol (antes sólo quedaba la fila genérica de la ruta).
+        $after = $this->roles->findRawIncludingDeleted((string) $id);
         $this->auditEvent('role.delete', 'DELETE', $request, $claims, [
             'entidad_id' => (string) $id,
             'valores_anteriores' => $role->toArray(),
+            'detalles_adicionales' => ['valores_despues' => $after],
         ]);
 
         return $this->json(200, ['message' => 'Rol eliminado correctamente']);
-    }
-
-    /**
-     * POST /api/roles/{id}/restore
-     * Restaura un rol previamente eliminado.
-     */
-    public function restore(array $request, array $params): array
-    {
-        $claims = $this->requireAdmin($request);
-        $id = $params['id'] ?? null;
-
-        if (!$id) {
-            throw new HttpException('ID de rol requerido', 400);
-        }
-
-        $this->roles->restore($id, (string) $claims['tenant_id']);
-
-        $this->auth->invalidateCacheForRole((string) $id, (string) $claims['tenant_id']);
-
-        // v1.13.0: al hacerse alcanzable desde la UI se audita el restore.
-        $role = $this->roles->findById($id, (string) $claims['tenant_id']);
-        $this->auditEvent('role.restore', 'EXECUTE', $request, $claims, [
-            'entidad_id' => $id,
-            'valores_nuevos' => $role?->toArray(),
-        ]);
-
-        return $this->json(200, ['message' => 'Rol restaurado correctamente']);
     }
 
     // ========================================================================

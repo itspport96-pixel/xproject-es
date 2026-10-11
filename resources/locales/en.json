@@ -1527,8 +1527,7 @@
       "reset": "Reset password",
       "roles": "Roles",
       "temp_view": "View temporary permissions",
-      "delete": "Delete",
-      "restore": "Restore"
+      "delete": "Delete"
     },
     "filters": {
       "estado": "Status",
@@ -1536,8 +1535,7 @@
       "search": "Search",
       "search_placeholder": "Email or name",
       "apply": "Apply",
-      "clear": "Clear",
-      "deleted": "Show deleted"
+      "clear": "Clear"
     },
     "columns": {
       "email": "Email",
@@ -1643,8 +1641,7 @@
       "edit": "Changes could not be saved",
       "status": "The status could not be changed",
       "reset": "The password could not be reset",
-      "delete": "The user could not be deleted",
-      "restore": "Could not restore the user"
+      "delete": "The user could not be deleted"
     },
     "temp": {
       "subtitle": "Permissions granted with an expiry date",
@@ -1693,25 +1690,13 @@
       "user_search_label": "Search beneficiary",
       "user_search_placeholder": "Email or name",
       "user_search": "Search"
-    },
-    "state": {
-      "deleted": "Deleted"
-    },
-    "restore": {
-      "title": "Restore user",
-      "body": "The user {email} will be restored to ACTIVE status.",
-      "hint": "The password and all user data are kept.",
-      "submit": "Restore",
-      "success_title": "User restored",
-      "success_body": "The user is now listed as active."
     }
   },
   "roles": {
     "title": "Roles",
     "subtitle": "System roles and their permissions",
     "filter": {
-      "inactive": "Show inactive roles",
-      "deleted": "Show deleted"
+      "inactive": "Show inactive roles"
     },
     "denied": {
       "title": "Access denied",
@@ -1723,8 +1708,7 @@
     },
     "state": {
       "active": "Active",
-      "inactive": "Inactive",
-      "deleted": "Deleted"
+      "inactive": "Inactive"
     },
     "empty": {
       "title": "No roles",
@@ -1734,8 +1718,7 @@
       "create": "New role",
       "permissions": "Permissions",
       "edit": "Edit",
-      "delete": "Delete",
-      "restore": "Restore"
+      "delete": "Delete"
     },
     "columns": {
       "name": "Name",
@@ -1786,24 +1769,14 @@
       "create": "The role could not be created",
       "edit": "Changes could not be saved",
       "perms": "Permissions could not be saved",
-      "delete": "The role could not be deleted",
-      "restore": "Could not restore the role"
-    },
-    "restore": {
-      "title": "Restore role",
-      "body": "The role {nombre} will be restored.",
-      "hint": "The role will be available for assignment again.",
-      "submit": "Restore",
-      "success_title": "Role restored",
-      "success_body": "The role is now listed as active."
+      "delete": "The role could not be deleted"
     }
   },
   "groups": {
     "title": "Groups",
     "subtitle": "User groups and their roles",
     "filter": {
-      "inactive": "Show inactive groups",
-      "deleted": "Show deleted"
+      "inactive": "Show inactive groups"
     },
     "denied": {
       "title": "Access denied",
@@ -1811,8 +1784,7 @@
     },
     "state": {
       "active": "Active",
-      "inactive": "Inactive",
-      "deleted": "Deleted"
+      "inactive": "Inactive"
     },
     "empty": {
       "title": "No groups",
@@ -1822,8 +1794,7 @@
       "create": "New group",
       "detail": "Details",
       "edit": "Edit",
-      "delete": "Delete",
-      "restore": "Restore"
+      "delete": "Delete"
     },
     "columns": {
       "name": "Name",
@@ -1911,16 +1882,7 @@
       "remove_member": "The member could not be removed",
       "assign_role": "The role could not be assigned",
       "unassign_role": "The role could not be removed",
-      "delete": "The group could not be deleted",
-      "restore": "Could not restore the group"
-    },
-    "restore": {
-      "title": "Restore group",
-      "body": "The group {nombre} will be restored.",
-      "hint": "The group will be active again with its members and roles.",
-      "submit": "Restore",
-      "success_title": "Group restored",
-      "success_body": "The group is now listed as active."
+      "delete": "The group could not be deleted"
     }
   },
   "password": {

@@ -347,13 +347,22 @@ $r = Invoke-Delete "/roles/$customId" $ta
 if ($r.Status -eq 200) { Ok 'ROL custom baja' '200' }
 else { Bad 'ROL custom baja' "status=$($r.Status) $($r.Content)" }
 
+# Politica de borrado (v1.13.9): el endpoint de restauracion ya no existe.
 $r = Invoke-Post "/roles/$customId/restore" '{}' $null $ta
-if ($r.Status -eq 200) { Ok 'ROL custom restore' '200' }
-else { Bad 'ROL custom restore' "status=$($r.Status) $($r.Content)" }
+if ($r.Status -eq 404) { Ok 'ROL restore eliminado' '404 (ruta inexistente)' }
+else { Bad 'ROL restore eliminado' "status=$($r.Status) $($r.Content)" }
 
-$r = Invoke-Delete "/roles/$customId" $ta
-if ($r.Status -eq 200) { Ok 'ROL custom baja final' '200' }
-else { Bad 'ROL custom baja final' "status=$($r.Status) $($r.Content)" }
+# El nombre del rol borrado queda libre y puede reutilizarse (id nuevo).
+$r = Invoke-Post '/roles' (@{ nombre = $customNombre; descripcion = 'rol recreado tras borrado' } | ConvertTo-Json) $null $ta
+$c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
+$recreadoId = if ($c.data.role.id) { $c.data.role.id } else { $null }
+if ($r.Status -eq 201 -and $recreadoId -and $recreadoId -ne $customId) {
+    Ok 'ROL recrear mismo nombre' "201 id-nuevo=$recreadoId"
+} else { Bad 'ROL recrear mismo nombre' "status=$($r.Status) $($r.Content)" }
+
+$r = Invoke-Delete "/roles/$recreadoId" $ta
+if ($r.Status -eq 200) { Ok 'ROL recreado baja final' '200' }
+else { Bad 'ROL recreado baja final' "status=$($r.Status) $($r.Content)" }
 
 $customCount = Scalar "SELECT COUNT(*) FROM roles WHERE id = '$customId' AND deleted_at IS NOT NULL"
 if ("$customCount" -eq '1') { Ok 'ROL custom soft delete en BD' 'deleted_at fijado' }

@@ -33,7 +33,11 @@ interface ProductRepositoryInterface
 
     public function softDelete(string $id): void;
 
-    public function restore(string $id): void;
+    /**
+     * Fila cruda del producto incluyendo los borrados lógicos
+     * (para auditoría del borrado: estado posterior al soft delete).
+     */
+    public function findRawIncludingDeleted(string $id): ?array;
 
     public function existsBySku(string $sku): bool;
 

@@ -196,14 +196,13 @@ final class ProductService
         return true;
     }
 
-    public function restore(string $id): bool
+    /**
+     * Fila cruda incluyendo el borrado lógico, para auditoría del delete
+     * (estado posterior al soft delete; el registro permanece en BD).
+     */
+    public function findIncludingDeleted(string $id): ?array
     {
-        if (!$this->repository->existsById($id)) {
-            throw InventoryException::productNotFound($id);
-        }
-
-        $this->repository->restore($id);
-        return true;
+        return $this->repository->findRawIncludingDeleted($id);
     }
 
     // ====================================================================

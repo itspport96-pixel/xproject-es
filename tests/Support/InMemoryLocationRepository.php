@@ -204,16 +204,21 @@ final class InMemoryLocationRepository implements LocationRepositoryInterface
         $this->deleted[$id] = true;
     }
 
-    public function restore(string $id): void
+    public function findRawIncludingDeleted(string $id): ?array
     {
         $location = $this->items[$id] ?? null;
 
-        if ($location === null || !$this->belongsToCurrentTenant($location) || !isset($this->deleted[$id])) {
-            return;
+        if ($location === null || !$this->belongsToCurrentTenant($location)) {
+            return null;
         }
 
-        unset($this->deleted[$id]);
-        $location->activate();
+        return [
+            'id'         => $location->id(),
+            'tenant_id'  => $location->tenantId(),
+            'codigo'     => $location->codigo()->value(),
+            'deleted'    => isset($this->deleted[$id]),
+            'deleted_at' => isset($this->deleted[$id]) ? 'simulado' : null,
+        ];
     }
 
     public function existsByCodigo(string $codigo): bool

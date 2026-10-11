@@ -163,7 +163,6 @@ final class UserService
      *   - search (string, busca en email/nombre/apellido)
      *   - page (int, default 1)
      *   - per_page (int, default 20, max 100)
-     *   - include_deleted (bool, v1.13.0: lista también los soft-deleteados)
      *
      * @return array{data: array, pagination: array}
      */
@@ -172,9 +171,6 @@ final class UserService
         $page = max(1, (int) ($filters['page'] ?? 1));
         $perPage = min(100, max(1, (int) ($filters['per_page'] ?? 20)));
         $offset = ($page - 1) * $perPage;
-
-        $includeDeleted = !empty($filters['include_deleted']);
-        $deletedClause = $includeDeleted ? '' : ' AND u.deleted_at IS NULL';
 
         $where = ['u.tenant_id = :tenant_id'];
         $params = ['tenant_id' => $tenantId];
@@ -195,8 +191,8 @@ final class UserService
 
         $whereClause = implode(' AND ', $where);
 
-        // Contar total
-        $countSql = "SELECT COUNT(*) FROM users u WHERE {$whereClause}{$deletedClause}";
+        // Contar total (los borrados lógicos nunca se listan)
+        $countSql = "SELECT COUNT(*) FROM users u WHERE {$whereClause} AND u.deleted_at IS NULL";
         $countStmt = $this->db->getConnection()->prepare($countSql);
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
@@ -206,7 +202,7 @@ final class UserService
                        u.telefono, u.avatar_url, u.ultimo_login, u.mfa_habilitado,
                        u.created_at, u.updated_at, u.deleted_at
                 FROM users u
-                WHERE {$whereClause}{$deletedClause}
+                WHERE {$whereClause} AND u.deleted_at IS NULL
                 ORDER BY u.created_at DESC
                 LIMIT :limit OFFSET :offset";
 
@@ -498,37 +494,16 @@ final class UserService
     }
 
     /**
-     * Restaura un usuario soft-deleteado (v1.13.0, hueco de restauración):
-     * inverso exacto del delete — vuelve a estado ACTIVO y deleted_at NULL.
-     *
-     * @throws UserException 404 si no existe, 409 si no estaba eliminado
+     * Fila cruda del usuario incluyendo el borrado lógico, para auditoría
+     * del delete (estado posterior al soft delete).
      */
-    public function restore(string $id, string $tenantId): bool
+    public function findIncludingDeleted(string $id, string $tenantId): ?array
     {
-        $existsSql = "SELECT COUNT(*) FROM users WHERE id = :id AND tenant_id = :tenant_id";
-        $existsStmt = $this->db->getConnection()->prepare($existsSql);
-        $existsStmt->execute(['id' => $id, 'tenant_id' => $tenantId]);
-        if ((int) $existsStmt->fetchColumn() === 0) {
-            throw UserException::userNotFound($id);
-        }
-
-        $sql = "UPDATE users
-                SET estado = 'ACTIVO', deleted_at = NULL, updated_at = NOW()
-                WHERE id = :id AND tenant_id = :tenant_id AND deleted_at IS NOT NULL";
+        $sql = "SELECT * FROM users WHERE id = :id AND tenant_id = :tenant_id";
         $stmt = $this->db->getConnection()->prepare($sql);
         $stmt->execute(['id' => $id, 'tenant_id' => $tenantId]);
-
-        if ($stmt->rowCount() === 0) {
-            throw new UserException(
-                'El usuario no está eliminado.',
-                409,
-                null,
-                null,
-                UserException::CATEGORY_VALIDATION
-            );
-        }
-
-        return true;
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
     }
 
     // ========================================================================

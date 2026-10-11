@@ -10,8 +10,8 @@
  *    de solo lectura (el backend protege ADMIN y el renombrado).
  *  - CUSTOM: alta, edicion de nombre/descripcion/activo y borrado.
  *
- * v1.13.0: GET /roles?include_deleted=true devuelve tambien los borrados
- * (mismo permiso que borrar) y la fila borrada ofrece POST /roles/{id}/restore.
+ * v1.13.9 (politica de borrado): no hay restauracion; los borrados no se
+ * listan y un nombre borrado puede reutilizarse en un rol nuevo.
  */
 (function(global) {
     'use strict';
@@ -22,7 +22,6 @@
         items: [],
         loading: false,
         includeInactive: false,
-        includeDeleted: false,
         catalog: [],
         grouped: {},
         modal: null,
@@ -67,11 +66,6 @@
                         <input type="checkbox" data-role-filter="inactive"${state.includeInactive ? ' checked' : ''}>
                         ${t('roles.filter.inactive')}
                     </label>
-                    ${canDelete() ? `
-                    <label class="flex items-center gap-2 text-sm">
-                        <input type="checkbox" data-role-filter="deleted"${state.includeDeleted ? ' checked' : ''}>
-                        ${t('roles.filter.deleted')}
-                    </label>` : ''}
                 </div>
 
                 <div class="card p-0">
@@ -114,10 +108,6 @@
             : `<span class="badge badge-warning">${t('roles.state.inactive')}</span>`;
     }
 
-    function estadoBorradoBadge() {
-        return `<span class="badge badge-danger">${t('roles.state.deleted')}</span>`;
-    }
-
     function criticidadBadge(valor) {
         const color = valor === 'CRITICAL' ? 'danger'
             : valor === 'HIGH' ? 'warning'
@@ -144,18 +134,13 @@
         }
 
         const rows = state.items.map(r => {
-            const esBorrado = !!r.deleted_at;
             const esBuiltIn = r.tipo === 'BUILT_IN';
             const permisos = Array.isArray(r.permisos) ? r.permisos.length : 0;
             const acciones = [];
 
-            if (esBorrado) {
-                if (canDelete()) acciones.push(actionBtn('open-restore', r.id, t('roles.actions.restore')));
-            } else {
-                if (canView()) acciones.push(actionBtn('open-permissions', r.id, t('roles.actions.permissions')));
-                if (canEdit() && !esBuiltIn) acciones.push(actionBtn('open-edit', r.id, t('roles.actions.edit')));
-                if (canDelete() && !esBuiltIn) acciones.push(actionBtn('open-delete', r.id, t('roles.actions.delete'), 'btn-danger'));
-            }
+            if (canView()) acciones.push(actionBtn('open-permissions', r.id, t('roles.actions.permissions')));
+            if (canEdit() && !esBuiltIn) acciones.push(actionBtn('open-edit', r.id, t('roles.actions.edit')));
+            if (canDelete() && !esBuiltIn) acciones.push(actionBtn('open-delete', r.id, t('roles.actions.delete'), 'btn-danger'));
 
             return `
                 <tr>
@@ -164,7 +149,7 @@
                         ${r.descripcion ? `<div class="text-xs text-muted">${UI.escapeHtml(r.descripcion)}</div>` : ''}
                     </td>
                     <td>${typeBadge(r.tipo)}</td>
-                    <td>${esBorrado ? estadoBorradoBadge() : estadoBadge(!!r.activo)}</td>
+                    <td>${estadoBadge(!!r.activo)}</td>
                     <td class="text-right">${UI.formatNumber(permisos)}</td>
                     <td class="table-actions col-actions">${acciones.join('')}</td>
                 </tr>`;
@@ -195,7 +180,6 @@
         try {
             const params = {};
             if (state.includeInactive) params.include_inactive = 'true';
-            if (state.includeDeleted) params.include_deleted = 'true';
             const response = await global.HttpClient.get('/roles', { params });
             const payload = response && response.data ? response.data : response;
             state.items = (payload && payload.roles) || [];
@@ -614,46 +598,6 @@
         }
     }
 
-    // ----------------------------------------------------------- Restauración
-
-    function openRestore(id) {
-        if (!canDelete()) return;
-        const role = state.items.find(r => r.id === id);
-        if (!role || !role.deleted_at) return;
-        state.modal = { mode: 'restore', id, role, errors: {}, formError: '' };
-        renderModal();
-    }
-
-    function restoreBody(modal) {
-        return `
-            <div class="form-error hidden mb-3" data-form-error></div>
-            <p>${t('roles.restore.body', { nombre: UI.escapeHtml(modal.role.nombre || '') })}</p>
-            <div class="alert alert-info mt-3">${t('roles.restore.hint')}</div>
-        `;
-    }
-
-    async function submitRestore() {
-        if (state.sending) return;
-        const modal = state.modal;
-        setSending(true);
-
-        try {
-            await global.HttpClient.post('/roles/' + encodeURIComponent(modal.id) + '/restore');
-            UI.toast('success', t('roles.restore.success_title'), t('roles.restore.success_body'));
-            closeModal();
-            loadRoles();
-        } catch (err) {
-            UI.handleActionError(err, {
-                fallbackMessage: t('roles.errors.restore'),
-                root: getModalRoot(),
-                inline: true,
-                tag: 'Roles'
-            });
-        } finally {
-            setSending(false);
-        }
-    }
-
     // ====================================================================
     // RENDER DEL MODAL
     // ====================================================================
@@ -706,14 +650,6 @@
                     <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>
                     <button class="btn btn-danger" data-action="submit-delete" data-modal-send${state.sending ? ' disabled' : ''}>${t('roles.delete.submit')}</button>`;
                 break;
-            case 'restore':
-                title = t('roles.restore.title');
-                size = 'sm';
-                body = restoreBody(modal);
-                footer = `
-                    <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>
-                    <button class="btn btn-primary" data-action="submit-restore" data-modal-send${state.sending ? ' disabled' : ''}>${t('roles.restore.submit')}</button>`;
-                break;
         }
 
         UI.mountModal(root, UI.modalShell({ title, size, bodyHtml: body, footerHtml: footer }));
@@ -758,9 +694,6 @@
             case 'open-delete':
                 openDelete(id);
                 break;
-            case 'open-restore':
-                openRestore(id);
-                break;
             case 'close-modal':
                 closeModal();
                 break;
@@ -776,9 +709,6 @@
             case 'submit-delete':
                 submitDelete();
                 break;
-            case 'submit-restore':
-                submitRestore();
-                break;
             case 'perm-all':
                 break;
             case 'perm-all-toggle':
@@ -792,12 +722,6 @@
 
         if (el.matches('[data-role-filter="inactive"]')) {
             state.includeInactive = !!el.checked;
-            loadRoles();
-            return;
-        }
-
-        if (el.matches('[data-role-filter="deleted"]')) {
-            state.includeDeleted = !!el.checked;
             loadRoles();
             return;
         }
@@ -852,7 +776,6 @@
                 items: [],
                 loading: false,
                 includeInactive: false,
-                includeDeleted: false,
                 catalog: [],
                 grouped: {},
                 modal: null,

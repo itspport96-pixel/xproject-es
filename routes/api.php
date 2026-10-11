@@ -167,15 +167,6 @@ $router->delete('/api/users/{id}', [UserController::class, 'destroy'], [
     RateLimitMiddleware::class . ':api',
 ]);
 
-// POST /api/users/{id}/restore (v1.13.0, hueco de restauración)
-$router->post('/api/users/{id}/restore', [UserController::class, 'restore'], [
-    AuditMiddleware::class,
-    AuthenticationMiddleware::class,
-    TenantMiddleware::class,
-    PermissionMiddleware::class . ':users.user.delete',
-    RateLimitMiddleware::class . ':api',
-]);
-
 // GET /api/users/{id}/roles
 $router->get('/api/users/{id}/roles', [UserController::class, 'getRoles'], [
     AuthenticationMiddleware::class,
@@ -267,15 +258,6 @@ $router->patch('/api/roles/{id}/permissions', [RoleController::class, 'updatePer
     RateLimitMiddleware::class . ':api',
 ]);
 
-// POST /api/roles/{id}/restore
-$router->post('/api/roles/{id}/restore', [RoleController::class, 'restore'], [
-    AuditMiddleware::class,
-    AuthenticationMiddleware::class,
-    TenantMiddleware::class,
-    PermissionMiddleware::class . ':roles.role.edit',
-    RateLimitMiddleware::class . ':api',
-]);
-
 // ============================================
 // PERMISSIONS - Catálogo de permisos (v1.11.0)
 // ============================================
@@ -358,15 +340,6 @@ $router->patch('/api/groups/{id}', [GroupController::class, 'update'], [
 
 // DELETE /api/groups/{id}
 $router->delete('/api/groups/{id}', [GroupController::class, 'destroy'], [
-    AuditMiddleware::class,
-    AuthenticationMiddleware::class,
-    TenantMiddleware::class,
-    PermissionMiddleware::class . ':groups.group.delete',
-    RateLimitMiddleware::class . ':api',
-]);
-
-// POST /api/groups/{id}/restore (v1.13.0, hueco de restauración)
-$router->post('/api/groups/{id}/restore', [GroupController::class, 'restore'], [
     AuditMiddleware::class,
     AuthenticationMiddleware::class,
     TenantMiddleware::class,

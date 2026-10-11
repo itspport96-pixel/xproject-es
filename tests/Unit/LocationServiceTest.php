@@ -371,7 +371,7 @@ final class LocationServiceTest extends TestCase
         $this->assertFalse($this->repository->isSoftDeleted($id));
     }
 
-    public function testDeleteHidesLocationAndRestoreBringsItBack(): void
+    public function testDeleteHidesLocationAndSameCodigoCanBeRecreated(): void
     {
         $id = $this->seedLocation(['codigo' => 'LIFE-1']);
 
@@ -381,18 +381,26 @@ final class LocationServiceTest extends TestCase
         $this->assertNull($this->service->findByCodigo('LIFE-1'));
         $this->assertSame(0, $this->service->count());
 
-        $this->assertTrue($this->repository->existsById($id));
-        $this->assertTrue($this->service->restore($id));
-
-        $restored = $this->service->findById($id);
-        $this->assertNotNull($restored);
-        $this->assertTrue($restored['activa']);
+        // Politica de borrado: no hay restore; el codigo de la ubicacion
+        // borrada queda libre y una ubicacion nueva puede reutilizarlo.
+        $nuevo = $this->service->create($this->validData(['codigo' => 'LIFE-1']));
+        $this->assertNotSame($id, $nuevo['id']);
+        $this->assertNotNull($this->service->findById((string) $nuevo['id']));
+        $this->assertNotNull($this->service->findByCodigo('LIFE-1'));
+        $this->assertTrue($this->repository->isSoftDeleted($id));
         $this->assertSame(1, $this->service->count());
     }
 
-    public function testRestoreRejectsUnknownId(): void
+    public function testFindIncludingDeletedReturnsSoftDeletedRow(): void
     {
-        $this->assertInventoryError(fn() => $this->service->restore('no-existe'), 404, null);
+        $id = $this->seedLocation();
+
+        $this->service->delete($id);
+
+        $raw = $this->service->findIncludingDeleted($id);
+        $this->assertIsArray($raw);
+        $this->assertSame($id, $raw['id']);
+        $this->assertNotNull($raw['deleted_at']);
     }
 
     public function testCapacityUsageIsIncrementedAndBoundedByCapacity(): void

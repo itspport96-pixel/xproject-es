@@ -253,7 +253,7 @@ final class LocationControllerTest extends TestCase
 
     public function testStateActionsRejectMissingId(): void
     {
-        foreach (['activate', 'deactivate', 'restore'] as $accion) {
+        foreach (['activate', 'deactivate'] as $accion) {
             try {
                 $this->controller->{$accion}($this->request(), []);
                 $this->fail("{$accion} debió exigir id");
@@ -263,18 +263,23 @@ final class LocationControllerTest extends TestCase
         }
     }
 
-    public function testRestoreBringsDeletedLocationBack(): void
+    public function testDestroyHidesLocationAndAuditsAfterState(): void
     {
         $id = $this->seedLocation(['codigo' => 'LIFE-1']);
         $this->controller->destroy($this->request(), ['id' => $id]);
         $this->assertTrue($this->repository->isSoftDeleted($id));
 
-        $result = $this->controller->restore($this->request(), ['id' => $id]);
+        // Sin endpoint de restauracion: la ubicacion borrada no se ve.
+        try {
+            $this->controller->show($this->request(), ['id' => $id]);
+            $this->fail('La ubicacion borrada no debe ser visible');
+        } catch (HttpException $e) {
+            $this->assertSame(404, $e->getCode());
+        }
 
-        $this->assertSame(200, $result['status']);
-        $this->assertTrue(
-            $this->controller->show($this->request(), ['id' => $id])['data']['location']['activa']
-        );
+        $after = $this->repository->findRawIncludingDeleted($id);
+        $this->assertIsArray($after);
+        $this->assertNotNull($after['deleted_at']);
     }
 
     // ==================================================================

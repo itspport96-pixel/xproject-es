@@ -342,12 +342,6 @@ final class User
         $this->touch();
     }
 
-    public function restore(): void
-    {
-        $this->deletedAt = null;
-        $this->touch();
-    }
-
     // ========================================================================
     // QUERIES (Preguntas sobre el estado, no modifican)
     // ========================================================================

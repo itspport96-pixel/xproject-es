@@ -97,7 +97,6 @@ final class AuditRoutesTest extends TestCase
             ['PATCH', '/api/roles/{id}'],
             ['DELETE', '/api/roles/{id}'],
             ['PATCH', '/api/roles/{id}/permissions'],
-            ['POST', '/api/roles/{id}/restore'],
             ['PATCH', '/api/tenant'],
             ['POST', '/api/tenant/activate'],
         ];

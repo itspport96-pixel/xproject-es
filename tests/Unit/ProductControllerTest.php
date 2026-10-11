@@ -254,7 +254,7 @@ final class ProductControllerTest extends TestCase
 
     public function testStateActionsRejectMissingId(): void
     {
-        foreach (['activate', 'deactivate', 'restore'] as $accion) {
+        foreach (['activate', 'deactivate'] as $accion) {
             try {
                 $this->controller->{$accion}($this->request(), []);
                 $this->fail("{$accion} debió exigir id");
@@ -264,16 +264,24 @@ final class ProductControllerTest extends TestCase
         }
     }
 
-    public function testRestoreBringsDeletedProductBack(): void
+    public function testDestroyAuditsBeforeAndAfterAndSkuIsRecreatable(): void
     {
         $id = $this->seedProduct(['sku' => 'SKU-R']);
         $this->controller->destroy($this->request(), ['id' => $id]);
         $this->assertTrue($this->repository->isSoftDeleted($id));
 
-        $result = $this->controller->restore($this->request(), ['id' => $id]);
+        // Sin endpoint de restauracion: el show del borrado sigue oculto.
+        try {
+            $this->controller->show($this->request(), ['id' => $id]);
+            $this->fail('El producto borrado no debe ser visible');
+        } catch (HttpException $e) {
+            $this->assertSame(404, $e->getCode());
+        }
 
-        $this->assertSame(200, $result['status']);
-        $this->assertTrue($this->controller->show($this->request(), ['id' => $id])['data']['product']['activo']);
+        // Auditoria del delete: la fila cruda conserva el soft delete.
+        $after = $this->repository->findRawIncludingDeleted($id);
+        $this->assertIsArray($after);
+        $this->assertNotNull($after['deleted_at']);
     }
 
     // ==================================================================

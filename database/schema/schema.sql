@@ -50,8 +50,9 @@ CREATE TABLE `roles` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `nombre_activo` varchar(100) GENERATED ALWAYS AS (if(`deleted_at` is null,`nombre`,NULL)) STORED,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_roles_tenant_nombre` (`tenant_id`,`nombre`)
+  UNIQUE KEY `uq_roles_tenant_nombre_activo` (`tenant_id`,`nombre_activo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `users`;
@@ -76,8 +77,9 @@ CREATE TABLE `users` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `email_activo` varchar(255) GENERATED ALWAYS AS (if(`deleted_at` is null,`email`,NULL)) STORED,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `uq_users_tenant_email_activo` (`tenant_id`,`email_activo`),
   KEY `idx_tenant_email` (`tenant_id`,`email`),
   KEY `idx_tenant_estado` (`tenant_id`,`estado`),
   KEY `idx_created` (`created_at`)
@@ -210,9 +212,9 @@ CREATE TABLE `locations` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `codigo_activo` varchar(100) GENERATED ALWAYS AS (if(`deleted_at` is null,`codigo`,NULL)) STORED,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `codigo` (`codigo`),
-  UNIQUE KEY `unique_codigo` (`tenant_id`,`codigo`),
+  UNIQUE KEY `uq_locations_tenant_codigo_activo` (`tenant_id`,`codigo_activo`),
   KEY `idx_tenant_tipo` (`tenant_id`,`tipo`),
   KEY `idx_tenant_activa` (`tenant_id`,`activa`),
   CONSTRAINT `locations_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`)
@@ -308,9 +310,9 @@ CREATE TABLE `products` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `sku_activo` varchar(100) GENERATED ALWAYS AS (if(`deleted_at` is null,`sku`,NULL)) STORED,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `sku` (`sku`),
-  UNIQUE KEY `unique_sku` (`tenant_id`,`sku`),
+  UNIQUE KEY `uq_products_tenant_sku_activo` (`tenant_id`,`sku_activo`),
   KEY `idx_tenant_activo` (`tenant_id`,`activo`),
   KEY `idx_tenant_categoria` (`tenant_id`,`categoria`),
   CONSTRAINT `products_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`)

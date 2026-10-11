@@ -68,22 +68,8 @@ final class GroupController
     {
         $claims = $this->requireAuthenticated($request);
         $soloActivos = (($request['query']['include_inactive'] ?? 'false') !== 'true');
-        $includeDeleted = (($request['query']['include_deleted'] ?? 'false') === 'true');
 
-        // v1.13.0: listar borrados exige el mismo permiso que borrar.
-        if ($includeDeleted) {
-            $denegado = !$this->authz->hasPermission(
-                (string) $claims['user_id'],
-                (string) $claims['tenant_id'],
-                'groups.group.delete',
-                false
-            );
-            if ($denegado) {
-                throw new HttpException('Se requiere el permiso groups.group.delete para listar grupos eliminados', 403);
-            }
-        }
-
-        $groups = $this->groups->findAll((string) $claims['tenant_id'], $soloActivos, $includeDeleted);
+        $groups = $this->groups->findAll((string) $claims['tenant_id'], $soloActivos);
 
         // v1.13.0: conteo de miembros en la misma consulta (fin del N+1).
         $counts = $this->groups->memberCounts((string) $claims['tenant_id']);
@@ -280,45 +266,14 @@ final class GroupController
         $this->groups->softDelete($group->id());
         $this->authz->invalidateCacheForGroup($group->id(), $tenantId);
 
+        $after = $this->groups->findRawIncludingDeleted($group->id());
         $this->auditEvent('group.delete', 'DELETE', $request, $claims, [
             'entidad_id' => $group->id(),
             'valores_anteriores' => $group->toArray(),
+            'detalles_adicionales' => ['valores_despues' => $after],
         ]);
 
         return $this->json(200, ['message' => 'Grupo eliminado correctamente']);
-    }
-
-    /**
-     * POST /api/groups/{id}/restore (v1.13.0, hueco de restauración)
-     */
-    public function restore(array $request, array $params): array
-    {
-        $claims = $this->requireAuthenticated($request);
-        $tenantId = (string) $claims['tenant_id'];
-
-        $id = (string) ($params['id'] ?? '');
-        if ($id === '') {
-            throw GroupException::invalidField('id', 'ID de grupo requerido');
-        }
-
-        $group = $this->groups->findById($id, $tenantId);
-        if ($group === null) {
-            throw GroupException::groupNotFound($id);
-        }
-        if (!$group->isDeleted()) {
-            throw new HttpException('El grupo no está eliminado', 409);
-        }
-
-        $this->groups->restore($group->id());
-        $this->authz->invalidateCacheForGroup($group->id(), $tenantId);
-
-        $restored = $this->groups->findById($group->id(), $tenantId);
-        $this->auditEvent('group.restore', 'EXECUTE', $request, $claims, [
-            'entidad_id' => $group->id(),
-            'valores_nuevos' => $restored?->toArray(),
-        ]);
-
-        return $this->json(200, ['message' => 'Grupo restaurado correctamente']);
     }
 
     /**

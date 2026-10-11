@@ -274,7 +274,19 @@ try {
                 continue;
             }
 
-            $pdo->exec("INSERT INTO `{$target}`.`{$tabla}` SELECT * FROM `{$source}`.`{$tabla}`");
+            // Sin SELECT *: las columnas generadas STORED (p. ej.
+            // users.email_activo) no admiten INSERT y romperian la copia.
+            $colsRow = scalar(
+                $pdo,
+                "SELECT GROUP_CONCAT(CONCAT('`', COLUMN_NAME, '`') ORDER BY ORDINAL_POSITION)
+                 FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = '{$source}' AND TABLE_NAME = '{$tabla}'
+                   AND EXTRA NOT LIKE '%GENERATED%'"
+            );
+            if (!is_string($colsRow) || $colsRow === '') {
+                fail("No se pudieron listar las columnas de {$source}.{$tabla}");
+            }
+            $pdo->exec("INSERT INTO `{$target}`.`{$tabla}` ({$colsRow}) SELECT {$colsRow} FROM `{$source}`.`{$tabla}`");
             $nuevo = (int) scalar($pdo, "SELECT COUNT(*) FROM `{$target}`.`{$tabla}`");
             $copiadas[] = "{$tabla}={$nuevo}";
         }

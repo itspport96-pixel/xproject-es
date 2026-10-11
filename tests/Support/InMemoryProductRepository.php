@@ -185,16 +185,21 @@ final class InMemoryProductRepository implements ProductRepositoryInterface
         $this->deleted[$id] = true;
     }
 
-    public function restore(string $id): void
+    public function findRawIncludingDeleted(string $id): ?array
     {
         $product = $this->items[$id] ?? null;
 
-        if ($product === null || !$this->belongsToCurrentTenant($product) || !isset($this->deleted[$id])) {
-            return;
+        if ($product === null || !$this->belongsToCurrentTenant($product)) {
+            return null;
         }
 
-        unset($this->deleted[$id]);
-        $product->activate();
+        return [
+            'id'         => $product->id(),
+            'tenant_id'  => $product->tenantId(),
+            'sku'        => $product->sku()->value(),
+            'deleted'    => isset($this->deleted[$id]),
+            'deleted_at' => isset($this->deleted[$id]) ? 'simulado' : null,
+        ];
     }
 
     public function existsBySku(string $sku): bool

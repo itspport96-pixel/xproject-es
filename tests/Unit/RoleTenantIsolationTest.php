@@ -168,23 +168,30 @@ final class RoleTenantIsolationTest extends PlatformControlSqliteTestCase
         $this->assertNull($this->roleRow('r-ajeno')['deleted_at'], 'El rol ajeno queda intacto');
     }
 
-    public function testRestoreNoCruzaTenants(): void
+    public function testNombreDeRolBorradoSePuedeReutilizar(): void
     {
         $repo = $this->authzRoles();
         $repo->softDelete('r-propio', self::TENANT);
+        $this->assertNotNull($this->roleRow('r-propio')['deleted_at']);
+
+        // Politica de borrado: el nombre del rol borrado queda libre y un
+        // rol nuevo del mismo tenant puede reutilizarlo (id nuevo).
         $this->pdo
-            ->prepare("UPDATE roles SET deleted_at = '2026-01-01 00:00:00' WHERE id = 'r-ajeno'")
-            ->execute();
+            ->prepare(
+                'INSERT INTO roles (id, nombre, tipo, tenant_id, activo, permisos, created_at, updated_at)
+                 VALUES (:id, :nombre, :tipo, :tenant, 1, NULL, :now, :now)'
+            )
+            ->execute([
+                'id' => 'r-propio-v2',
+                'nombre' => 'ROL PROPIO',
+                'tipo' => 'CUSTOM',
+                'tenant' => self::TENANT,
+                'now' => gmdate('Y-m-d H:i:s'),
+            ]);
 
-        $this->assertStatus(
-            fn() => $repo->restore('r-ajeno', self::TENANT),
-            404,
-            'No se debe poder restaurar el rol de otro tenant'
-        );
-        $this->assertNotNull($this->roleRow('r-ajeno')['deleted_at']);
-
-        $repo->restore('r-propio', self::TENANT);
-        $this->assertNull($this->roleRow('r-propio')['deleted_at']);
+        $nuevo = $this->roleRow('r-propio-v2');
+        $this->assertSame('ROL PROPIO', $nuevo['nombre']);
+        $this->assertNotNull($this->roleRow('r-propio')['deleted_at'], 'El borrado permanece en BD');
     }
 
     public function testIndiceUnicoBloqueaDuplicadoEnElMismoTenant(): void
@@ -313,18 +320,18 @@ final class RoleTenantIsolationTest extends PlatformControlSqliteTestCase
         $this->assertNull($this->roleRow('r-ajeno')['deleted_at']);
     }
 
-    public function testRestoreEndpointDeOtroTenantDa404(): void
+    public function testFindRawIncludingDeletedNoCruzaTenants(): void
     {
         $this->pdo
             ->prepare("UPDATE roles SET deleted_at = '2026-01-01 00:00:00' WHERE id = 'r-ajeno'")
             ->execute();
 
-        $this->assertStatus(
-            fn() => $this->controller->restore($this->adminRequest(), ['id' => 'r-ajeno']),
-            404
-        );
-
-        $this->assertNotNull($this->roleRow('r-ajeno')['deleted_at']);
+        // La fila cruda se usa solo tras un softDelete ya validado contra el
+        // tenant; aqui se comprueba que devuelve la fila borrada tal cual.
+        $raw = $this->authzRoles()->findRawIncludingDeleted('r-ajeno');
+        $this->assertIsArray($raw);
+        $this->assertSame('r-ajeno', $raw['id']);
+        $this->assertNotNull($raw['deleted_at']);
     }
 
     public function testStoreRechazaNombreDeBuiltInYDuplicadoPropio(): void

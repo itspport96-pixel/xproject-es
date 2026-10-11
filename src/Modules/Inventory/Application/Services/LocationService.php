@@ -203,14 +203,12 @@ final class LocationService
         return true;
     }
 
-    public function restore(string $id): bool
+    /**
+     * Fila cruda incluyendo el borrado lógico, para auditoría del delete.
+     */
+    public function findIncludingDeleted(string $id): ?array
     {
-        if (!$this->repository->existsById($id)) {
-            throw InventoryException::locationNotFound($id);
-        }
-
-        $this->repository->restore($id);
-        return true;
+        return $this->repository->findRawIncludingDeleted($id);
     }
 
     // ====================================================================

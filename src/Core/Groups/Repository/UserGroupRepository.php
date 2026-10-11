@@ -14,12 +14,11 @@ final class UserGroupRepository implements UserGroupRepositoryInterface
     {
     }
 
-    public function findAll(string $tenantId, bool $soloActivos = true, bool $includeDeleted = false): array
+    public function findAll(string $tenantId, bool $soloActivos = true): array
     {
         $sql = "SELECT * FROM user_groups
-                WHERE tenant_id = :tid"
-            . ($includeDeleted ? "" : " AND deleted_at IS NULL")
-            . (!$includeDeleted && $soloActivos ? " AND activo = 1" : "")
+                WHERE tenant_id = :tid AND deleted_at IS NULL"
+            . ($soloActivos ? " AND activo = 1" : "")
             . " ORDER BY nombre ASC";
 
         $rows = $this->db->fetchAll($sql, ['tid' => $tenantId]);
@@ -99,13 +98,12 @@ final class UserGroupRepository implements UserGroupRepositoryInterface
         $this->db->query($sql, ['id' => $id]);
     }
 
-    public function restore(string $id): bool
+    public function findRawIncludingDeleted(string $id): ?array
     {
-        $sql = "UPDATE user_groups
-                SET deleted_at = NULL, activo = 1, updated_at = NOW()
-                WHERE id = :id AND deleted_at IS NOT NULL";
+        $sql = "SELECT * FROM user_groups WHERE id = :id LIMIT 1";
+        $row = $this->db->fetch($sql, ['id' => $id]);
 
-        return $this->db->query($sql, ['id' => $id])->rowCount() > 0;
+        return $row !== null && $row !== false ? $row : null;
     }
 
     // ---------------------------------------------------------------- miembros

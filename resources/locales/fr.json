@@ -1527,8 +1527,7 @@
       "reset": "Restablecer contraseña",
       "roles": "Roles",
       "temp_view": "Ver permisos temporales",
-      "delete": "Eliminar",
-      "restore": "Restaurar"
+      "delete": "Eliminar"
     },
     "filters": {
       "estado": "Estado",
@@ -1536,8 +1535,7 @@
       "search": "Búsqueda",
       "search_placeholder": "Email o nombre",
       "apply": "Aplicar",
-      "clear": "Limpiar",
-      "deleted": "Mostrar eliminados"
+      "clear": "Limpiar"
     },
     "columns": {
       "email": "Email",
@@ -1643,8 +1641,7 @@
       "edit": "No se pudieron guardar los cambios",
       "status": "No se pudo cambiar el estado",
       "reset": "No se pudo restablecer la contraseña",
-      "delete": "No se pudo eliminar el usuario",
-      "restore": "No se pudo restaurar el usuario"
+      "delete": "No se pudo eliminar el usuario"
     },
     "temp": {
       "subtitle": "Permisos otorgados con fecha de caducidad",
@@ -1693,25 +1690,13 @@
       "user_search_label": "Buscar beneficiario",
       "user_search_placeholder": "Email o nombre",
       "user_search": "Buscar"
-    },
-    "state": {
-      "deleted": "Eliminado"
-    },
-    "restore": {
-      "title": "Restaurar usuario",
-      "body": "Se restaurará el usuario {email}: volverá al estado ACTIVO.",
-      "hint": "Se conservan la contraseña y todos los datos del usuario.",
-      "submit": "Restaurar",
-      "success_title": "Usuario restaurado",
-      "success_body": "El usuario ya figura como activo."
     }
   },
   "roles": {
     "title": "Roles",
     "subtitle": "Roles del sistema y sus permisos",
     "filter": {
-      "inactive": "Ver roles inactivos",
-      "deleted": "Mostrar eliminados"
+      "inactive": "Ver roles inactivos"
     },
     "denied": {
       "title": "Acceso denegado",
@@ -1723,8 +1708,7 @@
     },
     "state": {
       "active": "Activo",
-      "inactive": "Inactivo",
-      "deleted": "Eliminado"
+      "inactive": "Inactivo"
     },
     "empty": {
       "title": "Sin roles",
@@ -1734,8 +1718,7 @@
       "create": "Nuevo rol",
       "permissions": "Permisos",
       "edit": "Editar",
-      "delete": "Eliminar",
-      "restore": "Restaurar"
+      "delete": "Eliminar"
     },
     "columns": {
       "name": "Nombre",
@@ -1786,24 +1769,14 @@
       "create": "No se pudo crear el rol",
       "edit": "No se pudieron guardar los cambios",
       "perms": "No se pudieron guardar los permisos",
-      "delete": "No se pudo eliminar el rol",
-      "restore": "No se pudo restaurar el rol"
-    },
-    "restore": {
-      "title": "Restaurar rol",
-      "body": "Se restaurará el rol {nombre}.",
-      "hint": "El rol volverá a estar disponible para su asignación.",
-      "submit": "Restaurar",
-      "success_title": "Rol restaurado",
-      "success_body": "El rol ya figura como activo."
+      "delete": "No se pudo eliminar el rol"
     }
   },
   "groups": {
     "title": "Grupos",
     "subtitle": "Grupos de usuarios y sus roles",
     "filter": {
-      "inactive": "Ver grupos inactivos",
-      "deleted": "Mostrar eliminados"
+      "inactive": "Ver grupos inactivos"
     },
     "denied": {
       "title": "Acceso denegado",
@@ -1811,8 +1784,7 @@
     },
     "state": {
       "active": "Activo",
-      "inactive": "Inactivo",
-      "deleted": "Eliminado"
+      "inactive": "Inactivo"
     },
     "empty": {
       "title": "Sin grupos",
@@ -1822,8 +1794,7 @@
       "create": "Nuevo grupo",
       "detail": "Detalle",
       "edit": "Editar",
-      "delete": "Eliminar",
-      "restore": "Restaurar"
+      "delete": "Eliminar"
     },
     "columns": {
       "name": "Nombre",
@@ -1911,16 +1882,7 @@
       "remove_member": "No se pudo quitar el miembro",
       "assign_role": "No se pudo asignar el rol",
       "unassign_role": "No se pudo quitar el rol",
-      "delete": "No se pudo eliminar el grupo",
-      "restore": "No se pudo restaurar el grupo"
-    },
-    "restore": {
-      "title": "Restaurar grupo",
-      "body": "Se restaurará el grupo {nombre}.",
-      "hint": "El grupo volverá a estar activo con sus miembros y roles.",
-      "submit": "Restaurar",
-      "success_title": "Grupo restaurado",
-      "success_body": "El grupo ya figura como activo."
+      "delete": "No se pudo eliminar el grupo"
     }
   },
   "password": {

@@ -340,7 +340,8 @@ abstract class PlatformControlSqliteTestCase extends TestCase
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 deleted_at TEXT,
-                UNIQUE (tenant_id, nombre)
+                nombre_activo TEXT GENERATED ALWAYS AS (CASE WHEN deleted_at IS NULL THEN nombre ELSE NULL END) STORED,
+                UNIQUE (tenant_id, nombre_activo)
             )',
             'CREATE TABLE users (
                 id TEXT PRIMARY KEY,
@@ -360,7 +361,9 @@ abstract class PlatformControlSqliteTestCase extends TestCase
                 preferencias TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                deleted_at TEXT
+                deleted_at TEXT,
+                email_activo TEXT GENERATED ALWAYS AS (CASE WHEN deleted_at IS NULL THEN email ELSE NULL END) STORED,
+                UNIQUE (tenant_id, email_activo)
             )',
             'CREATE TABLE temporary_permissions (
                 id TEXT PRIMARY KEY,

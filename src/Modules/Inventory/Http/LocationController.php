@@ -23,11 +23,10 @@ use App\Shared\Exceptions\HttpException;
  *  - DELETE /api/inventory/locations/{id}                 → destroy
  *  - POST   /api/inventory/locations/{id}/activate        → activate
  *  - POST   /api/inventory/locations/{id}/deactivate      → deactivate
- *  - POST   /api/inventory/locations/{id}/restore         → restore
  *
  * Permisos requeridos (aplicados via PermissionMiddleware en routes):
  *  - inventory.location.view    → index, show, findByCodigo, withCapacity, children
- *  - inventory.location.manage  → store, update, destroy, activate, deactivate, restore
+ *  - inventory.location.manage  → store, update, destroy, activate, deactivate
  */
 final class LocationController
 {
@@ -230,10 +229,12 @@ final class LocationController
 
         $before = $this->service->findById($id);
         $this->service->delete($id);
+        $after = $this->service->findIncludingDeleted($id);
 
         $this->auditEvent('location.delete', 'DELETE', $request, $claims, [
             'entidad_id' => (string) $id,
             'valores_anteriores' => $before,
+            'detalles_adicionales' => ['valores_despues' => $after],
         ]);
 
         return $this->json(200, ['message' => 'Ubicación eliminada correctamente']);
@@ -287,28 +288,6 @@ final class LocationController
         ]);
 
         return $this->json(200, ['location' => $location]);
-    }
-
-    /**
-     * POST /api/inventory/locations/{id}/restore
-     * Restaura una ubicación previamente eliminada.
-     */
-    public function restore(array $request, array $params): array
-    {
-        $claims = $this->requireAuthenticated($request);
-
-        $id = $params['id'] ?? '';
-        if ($id === '') {
-            throw new HttpException('ID de ubicación requerido', 400);
-        }
-
-        $this->service->restore($id);
-
-        $this->auditEvent('location.restore', 'UPDATE', $request, $claims, [
-            'entidad_id' => (string) $id,
-        ]);
-
-        return $this->json(200, ['message' => 'Ubicación restaurada correctamente']);
     }
 
     // ====================================================================

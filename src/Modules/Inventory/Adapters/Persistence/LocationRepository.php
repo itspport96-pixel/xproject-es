@@ -217,12 +217,14 @@ final class LocationRepository implements LocationRepositoryInterface
         $stmt->execute(['id' => $id, 'tenant_id' => $tenantId]);
     }
 
-    public function restore(string $id): void
+    public function findRawIncludingDeleted(string $id): ?array
     {
         $tenantId = $this->getCurrentTenantId();
-        $sql = "UPDATE locations SET deleted_at = NULL, activa = 1, updated_at = NOW() WHERE id = :id AND tenant_id = :tenant_id AND deleted_at IS NOT NULL";
+        $sql = "SELECT * FROM locations WHERE id = :id AND tenant_id = :tenant_id";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['id' => $id, 'tenant_id' => $tenantId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
     }
 
     private function translateDuplicateKey(PDOException $e, string $codigo): InventoryException

@@ -175,7 +175,6 @@ final class PlatformControlRoutesTest extends TestCase
             'POST store' => ['POST', '/api/groups', 'store', 'groups.group.create', true],
             'PATCH update' => ['PATCH', '/api/groups/{id}', 'update', 'groups.group.edit', true],
             'DELETE destroy' => ['DELETE', '/api/groups/{id}', 'destroy', 'groups.group.delete', true],
-            'POST restore' => ['POST', '/api/groups/{id}/restore', 'restore', 'groups.group.delete', true],
             'POST addMember' => ['POST', '/api/groups/{id}/members', 'addMember', 'groups.group.manage_members', true],
             'DELETE removeMember' => ['DELETE', '/api/groups/{id}/members/{userId}', 'removeMember', 'groups.group.manage_members', true],
             'POST assignRole' => ['POST', '/api/groups/{id}/roles', 'assignRole', 'groups.group.manage_roles', true],
@@ -192,7 +191,7 @@ final class PlatformControlRoutesTest extends TestCase
             }
         }
 
-        $this->assertSame(12, $count, 'El bloque GROUPS de routes/api.php debe tener 12 rutas');
+        $this->assertSame(11, $count, 'El bloque GROUPS de routes/api.php debe tener 11 rutas');
     }
 
     // ====================================================================

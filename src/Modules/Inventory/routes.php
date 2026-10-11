@@ -168,13 +168,6 @@ $router->group('/api/inventory', function ($router) {
         RateLimitMiddleware::class . ':api',
     ]);
 
-    // POST /api/inventory/products/{id}/restore
-    // Restaura un producto previamente eliminado
-    $router->post('/products/{id}/restore', [ProductController::class, 'restore'], [
-        PermissionMiddleware::class . ':inventory.item.delete',
-        RateLimitMiddleware::class . ':api',
-    ]);
-
     // ================================================================
     // LOCATIONS
     // ================================================================
@@ -245,13 +238,6 @@ $router->group('/api/inventory', function ($router) {
     // POST /api/inventory/locations/{id}/deactivate
     // Desactiva una ubicación
     $router->post('/locations/{id}/deactivate', [LocationController::class, 'deactivate'], [
-        PermissionMiddleware::class . ':inventory.location.manage',
-        RateLimitMiddleware::class . ':api',
-    ]);
-
-    // POST /api/inventory/locations/{id}/restore
-    // Restaura una ubicación previamente eliminada
-    $router->post('/locations/{id}/restore', [LocationController::class, 'restore'], [
         PermissionMiddleware::class . ':inventory.location.manage',
         RateLimitMiddleware::class . ':api',
     ]);

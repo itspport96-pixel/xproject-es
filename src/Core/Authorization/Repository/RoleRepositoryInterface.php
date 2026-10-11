@@ -38,7 +38,7 @@ interface RoleRepositoryInterface
      * @param string|null $tenantId Si se indica, sólo BUILT_IN + CUSTOM de ese tenant.
      * @return array<int, Role>
      */
-    public function findAll(bool $soloActivos = true, ?string $tenantId = null, bool $includeDeleted = false): array;
+    public function findAll(bool $soloActivos = true, ?string $tenantId = null): array;
 
     /**
      * Lista roles filtrados por tipo (BUILT_IN | CUSTOM).
@@ -85,11 +85,10 @@ interface RoleRepositoryInterface
     public function softDelete(string $id, ?string $tenantId = null): void;
 
     /**
-     * Restaura un rol previamente eliminado.
-     *
-     * @param string|null $tenantId Si se indica, sólo aplica a roles visibles desde ese tenant.
+     * Fila cruda del rol incluyendo los borrados lógicos
+     * (para auditoría del borrado: estado posterior al soft delete).
      */
-    public function restore(string $id, ?string $tenantId = null): void;
+    public function findRawIncludingDeleted(string $id): ?array;
 
     /**
      * Verifica si ya existe un rol con el nombre dado.

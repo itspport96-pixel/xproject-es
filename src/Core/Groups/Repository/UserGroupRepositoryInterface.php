@@ -15,14 +15,11 @@ use App\Core\Groups\Entity\UserGroup;
 interface UserGroupRepositoryInterface
 {
     /**
-     * Lista los grupos del tenant.
-     *
-     * @param bool $includeDeleted Si true (v1.13.0, hueco de restauración),
-     *   incluye también los borrados y omite el filtro de activo.
+     * Lista los grupos del tenant (los borrados lógicos nunca se listan).
      *
      * @return array<int, UserGroup>
      */
-    public function findAll(string $tenantId, bool $soloActivos = true, bool $includeDeleted = false): array;
+    public function findAll(string $tenantId, bool $soloActivos = true): array;
 
     /**
      * Busca un grupo por id dentro del tenant (sin filtrar borrados).
@@ -41,12 +38,10 @@ interface UserGroupRepositoryInterface
     public function softDelete(string $id): void;
 
     /**
-     * Restaura un grupo soft-deleteado (v1.13.0): inverso del softDelete
-     * (deleted_at NULL y activo=1).
-     *
-     * @return bool true si había una fila borrada que restaurar
+     * Fila cruda del grupo incluyendo los borrados lógicos
+     * (para auditoría del borrado: estado posterior al soft delete).
      */
-    public function restore(string $id): bool;
+    public function findRawIncludingDeleted(string $id): ?array;
 
     // ---------------------------------------------------------------- miembros
 

@@ -21,13 +21,12 @@ use App\Shared\Exceptions\HttpException;
  *  - DELETE /api/inventory/products/{id}         → destroy
  *  - POST   /api/inventory/products/{id}/activate   → activate
  *  - POST   /api/inventory/products/{id}/deactivate → deactivate
- *  - POST   /api/inventory/products/{id}/restore    → restore
  *
  * Permisos requeridos (aplicados via PermissionMiddleware en routes):
  *  - inventory.item.view    → index, show, findBySku
  *  - inventory.item.create  → store
  *  - inventory.item.edit    → update, activate, deactivate
- *  - inventory.item.delete  → destroy, restore
+ *  - inventory.item.delete  → destroy
  */
 final class ProductController
 {
@@ -205,10 +204,12 @@ final class ProductController
 
         $before = $this->service->findById($id);
         $this->service->delete($id);
+        $after = $this->service->findIncludingDeleted($id);
 
         $this->auditEvent('product.delete', 'DELETE', $request, $claims, [
             'entidad_id' => (string) $id,
             'valores_anteriores' => $before,
+            'detalles_adicionales' => ['valores_despues' => $after],
         ]);
 
         return $this->json(200, ['message' => 'Producto eliminado correctamente']);
@@ -262,28 +263,6 @@ final class ProductController
         ]);
 
         return $this->json(200, ['product' => $product]);
-    }
-
-    /**
-     * POST /api/inventory/products/{id}/restore
-     * Restaura un producto previamente eliminado.
-     */
-    public function restore(array $request, array $params): array
-    {
-        $claims = $this->requireAuthenticated($request);
-
-        $id = $params['id'] ?? '';
-        if ($id === '') {
-            throw new HttpException('ID de producto requerido', 400);
-        }
-
-        $this->service->restore($id);
-
-        $this->auditEvent('product.restore', 'UPDATE', $request, $claims, [
-            'entidad_id' => (string) $id,
-        ]);
-
-        return $this->json(200, ['message' => 'Producto restaurado correctamente']);
     }
 
     // ====================================================================

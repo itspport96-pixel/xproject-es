@@ -207,12 +207,14 @@ final class ProductRepository implements ProductRepositoryInterface
         $stmt->execute(['id' => $id, 'tenant_id' => $tenantId]);
     }
 
-    public function restore(string $id): void
+    public function findRawIncludingDeleted(string $id): ?array
     {
         $tenantId = $this->getCurrentTenantId();
-        $sql = "UPDATE products SET deleted_at = NULL, activo = 1, updated_at = NOW() WHERE id = :id AND tenant_id = :tenant_id AND deleted_at IS NOT NULL";
+        $sql = "SELECT * FROM products WHERE id = :id AND tenant_id = :tenant_id";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['id' => $id, 'tenant_id' => $tenantId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
     }
 
     public function existsBySku(string $sku): bool

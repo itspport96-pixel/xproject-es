@@ -199,13 +199,6 @@ final class Role
         $this->touch();
     }
 
-    public function restore(): void
-    {
-        $this->deletedAt = null;
-        $this->activo = true;
-        $this->touch();
-    }
-
     // QUERIES
     public function hasPermission(string $permissionId): bool
     {

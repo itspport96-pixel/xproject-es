@@ -6,9 +6,8 @@
  *
  * Convencion ModuleLoader: window.GroupsGroupsModule (ruta groups/groups).
  *
- * v1.13.0 (huecos resueltos):
- *  - POST /groups/{id}/restore restaura el borrado logico; GET /groups
- *    acepta include_deleted=true (mismo permiso que borrar).
+ * v1.13.9 (politica de borrado): no hay restauracion; los borrados no se
+ * listan y un nombre borrado puede reutilizarse en un grupo nuevo.
  *  - GET /groups devuelve ya el conteo de miembros en `miembros`
  *    (se mantiene el N+1 solo como fallback para respuestas sin la clave).
  */
@@ -21,7 +20,6 @@
         items: [],
         loading: false,
         includeInactive: false,
-        includeDeleted: false,
         memberCounts: {},
         roles: [],
         users: [],
@@ -70,11 +68,6 @@
                         <input type="checkbox" data-group-filter="inactive"${state.includeInactive ? ' checked' : ''}>
                         ${t('groups.filter.inactive')}
                     </label>
-                    ${canDelete() ? `
-                    <label class="flex items-center gap-2 text-sm">
-                        <input type="checkbox" data-group-filter="deleted"${state.includeDeleted ? ' checked' : ''}>
-                        ${t('groups.filter.deleted')}
-                    </label>` : ''}
                 </div>
 
                 <div class="card p-0">
@@ -111,10 +104,6 @@
             : `<span class="badge badge-warning">${t('groups.state.inactive')}</span>`;
     }
 
-    function estadoBorradoBadge() {
-        return `<span class="badge badge-danger">${t('groups.state.deleted')}</span>`;
-    }
-
     function estadoUsuarioBadge(estado) {
         const color = estado === 'ACTIVO' ? 'success'
             : estado === 'SUSPENDIDO' ? 'danger'
@@ -141,20 +130,15 @@
         }
 
         const rows = state.items.map(g => {
-            const esBorrado = !!g.deleted_at;
             const count = typeof g.miembros === 'number' ? g.miembros : state.memberCounts[g.id];
             const miembros = typeof count === 'number'
                 ? UI.formatNumber(count)
                 : '<span class="text-muted">…</span>';
 
             const acciones = [];
-            if (esBorrado) {
-                if (canDelete()) acciones.push(actionBtn('open-restore', g.id, t('groups.actions.restore')));
-            } else {
-                acciones.push(actionBtn('open-detail', g.id, t('groups.actions.detail')));
-                if (canEdit()) acciones.push(actionBtn('open-edit', g.id, t('groups.actions.edit')));
-                if (canDelete()) acciones.push(actionBtn('open-delete', g.id, t('groups.actions.delete'), 'btn-danger'));
-            }
+            acciones.push(actionBtn('open-detail', g.id, t('groups.actions.detail')));
+            if (canEdit()) acciones.push(actionBtn('open-edit', g.id, t('groups.actions.edit')));
+            if (canDelete()) acciones.push(actionBtn('open-delete', g.id, t('groups.actions.delete'), 'btn-danger'));
 
             return `
                 <tr>
@@ -162,7 +146,7 @@
                         <div class="font-medium">${UI.escapeHtml(g.nombre || '')}</div>
                         ${g.descripcion ? `<div class="text-xs text-muted">${UI.escapeHtml(g.descripcion)}</div>` : ''}
                     </td>
-                    <td>${esBorrado ? estadoBorradoBadge() : estadoBadge(!!g.activo)}</td>
+                    <td>${estadoBadge(!!g.activo)}</td>
                     <td class="text-right">${miembros}</td>
                     <td class="table-actions col-actions">${acciones.join('')}</td>
                 </tr>`;
@@ -192,7 +176,6 @@
         try {
             const params = {};
             if (state.includeInactive) params.include_inactive = 'true';
-            if (state.includeDeleted) params.include_deleted = 'true';
             const response = await global.HttpClient.get('/groups', { params });
             const payload = response && response.data ? response.data : response;
             state.items = (payload && payload.groups) || [];
@@ -783,45 +766,6 @@
         }
     }
 
-    // ----------------------------------------------------------- Restauración
-
-    function openRestore(id) {
-        if (!canDelete()) return;
-        const group = state.items.find(g => g.id === id);
-        if (!group || !group.deleted_at) return;
-        state.modal = { mode: 'restore', id, group, errors: {}, formError: '' };
-        renderModal();
-    }
-
-    function restoreBody(modal) {
-        return `
-            <div class="form-error hidden mb-3" data-form-error></div>
-            <p>${t('groups.restore.body', { nombre: UI.escapeHtml(modal.group.nombre || '') })}</p>
-            <div class="alert alert-info mt-3">${t('groups.restore.hint')}</div>`;
-    }
-
-    async function submitRestore() {
-        if (state.sending) return;
-        const modal = state.modal;
-        setSending(true);
-
-        try {
-            await global.HttpClient.post('/groups/' + encodeURIComponent(modal.id) + '/restore');
-            UI.toast('success', t('groups.restore.success_title'), t('groups.restore.success_body'));
-            closeModal();
-            loadGroups();
-        } catch (err) {
-            UI.handleActionError(err, {
-                fallbackMessage: t('groups.errors.restore'),
-                root: getModalRoot(),
-                inline: true,
-                tag: 'Groups'
-            });
-        } finally {
-            setSending(false);
-        }
-    }
-
     // ====================================================================
     // RENDER DEL MODAL
     // ====================================================================
@@ -889,14 +833,6 @@
                     <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>
                     <button class="btn btn-danger" data-action="submit-delete" data-modal-send${state.sending ? ' disabled' : ''}>${t('groups.delete.submit')}</button>`;
                 break;
-            case 'restore':
-                title = t('groups.restore.title');
-                size = 'sm';
-                body = restoreBody(modal);
-                footer = `
-                    <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>
-                    <button class="btn btn-primary" data-action="submit-restore" data-modal-send${state.sending ? ' disabled' : ''}>${t('groups.restore.submit')}</button>`;
-                break;
         }
 
         UI.mountModal(root, UI.modalShell({ title, size, bodyHtml: body, footerHtml: footer }));
@@ -936,9 +872,6 @@
                 break;
             case 'open-delete':
                 openDelete(id);
-                break;
-            case 'open-restore':
-                openRestore(id);
                 break;
             case 'open-detail':
                 openDetail(id);
@@ -989,9 +922,6 @@
             case 'submit-delete':
                 submitDelete();
                 break;
-            case 'submit-restore':
-                submitRestore();
-                break;
         }
     }
 
@@ -999,11 +929,6 @@
         const el = e.target;
         if (el.matches('[data-group-filter="inactive"]')) {
             state.includeInactive = !!el.checked;
-            loadGroups();
-            return;
-        }
-        if (el.matches('[data-group-filter="deleted"]')) {
-            state.includeDeleted = !!el.checked;
             loadGroups();
         }
     }
@@ -1053,7 +978,6 @@
                 items: [],
                 loading: false,
                 includeInactive: false,
-                includeDeleted: false,
                 memberCounts: {},
                 roles: [],
                 users: [],

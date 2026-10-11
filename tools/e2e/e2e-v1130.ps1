@@ -94,7 +94,7 @@ else { Bad 'CATALOGO users.user.view' 'no encontrado'; exit 1 }
 
 $fakeId = '00000000-0000-4000-8000-000000000000'
 
-# ================================================== 1) USUARIO: delete+restore
+# ============================================ 1) USUARIO: delete + sin restore
 $u1 = New-ActivatedUser $ta 'u'
 if (-not $u1) { Bad 'ALTA u1' 'no se pudo crear/activar'; exit 1 }
 Ok 'ALTA u1' "id=$($u1.Id)"
@@ -110,35 +110,42 @@ $d = ($r.Content | ConvertFrom-Json).data.data
 if ($r.Status -eq 200 -and @($d).Count -eq 0) { Ok 'LISTADO sin borrado' '0 resultados tras DELETE' }
 else { Bad 'LISTADO sin borrado' "status=$($r.Status) n=$(@($d).Count)" }
 
+# include_deleted ya no existe: el parametro se ignora y el borrado nunca se lista.
 $r = Invoke-Get "/users?search=$email1&per_page=50&include_deleted=true" $ta
 $d = ($r.Content | ConvertFrom-Json).data.data
-if ($r.Status -eq 200 -and @($d).Count -eq 1 -and $d[0].deleted_at) {
-    Ok 'LISTADO include_deleted' "1 resultado deleted_at=$($d[0].deleted_at)"
-} else { Bad 'LISTADO include_deleted' "status=$($r.Status) n=$(@($d).Count) item=$($d | ConvertTo-Json -Compress)" }
+if ($r.Status -eq 200 -and @($d).Count -eq 0) { Ok 'LISTADO include_deleted ignorado' '0 resultados (parametro eliminado)' }
+else { Bad 'LISTADO include_deleted ignorado' "status=$($r.Status) n=$(@($d).Count) item=$($d | ConvertTo-Json -Compress)" }
 
-$r = Invoke-Post "/users/$fakeId/restore" '{}' $null $ta
-if ($r.Status -eq 404) { Ok 'RESTORE usuario inexistente' '404' }
-else { Bad 'RESTORE usuario inexistente' "status=$($r.Status) $($r.Content)" }
-
+# Politica de borrado: el endpoint de restauracion ya no existe.
 $r = Invoke-Post "/users/$($u1.Id)/restore" '{}' $null $ta
-if ($r.Status -eq 200) { Ok 'RESTORE /users/{id}/restore' '200' }
-else { Bad 'RESTORE /users/{id}/restore' "status=$($r.Status) $($r.Content)" }
+if ($r.Status -eq 404) { Ok 'RESTORE usuario eliminado' '404 (ruta inexistente)' }
+else { Bad 'RESTORE usuario eliminado' "status=$($r.Status) $($r.Content)" }
+
+# El email del usuario borrado queda libre: alta con el mismo email = id nuevo.
+$r = Invoke-Post '/users' (@{ email = $email1; nombre = 'V1130'; apellido = 'u-recreado' } | ConvertTo-Json) "v1130-recrea-$($script:runId)" $ta
+$cu = $null; try { $cu = $r.Content | ConvertFrom-Json } catch {}
+$nuevoUid = if ($cu.data.user.id) { $cu.data.user.id } else { $null }
+if ($r.Status -eq 201 -and $nuevoUid -and $nuevoUid -ne $u1.Id) {
+    Ok 'USER recrear mismo email' "201 id-nuevo=$nuevoUid"
+} else { Bad 'USER recrear mismo email' "status=$($r.Status) $($r.Content)" }
+
+$filaVieja = Scalar "SELECT COUNT(*) FROM users WHERE id = '$($u1.Id)' AND deleted_at IS NOT NULL"
+$filaNueva = Scalar "SELECT COUNT(*) FROM users WHERE id = '$nuevoUid' AND deleted_at IS NULL"
+if ("$filaVieja" -eq '1' -and "$filaNueva" -eq '1') {
+    Ok 'USER borrado persiste + nuevo activo' "viejo deleted_at fijado, nuevo activo"
+} else { Bad 'USER borrado persiste + nuevo activo' "viejo=$filaVieja nuevo=$filaNueva" }
 
 $r = Invoke-Get "/users?search=$email1&per_page=50" $ta
 $d = ($r.Content | ConvertFrom-Json).data.data
-if ($r.Status -eq 200 -and @($d).Count -eq 1 -and $d[0].estado -eq 'ACTIVO' -and -not $d[0].deleted_at) {
-    Ok 'LISTADO tras restore' 'presente, estado=ACTIVO, deleted_at=NULL'
-} else { Bad 'LISTADO tras restore' "n=$(@($d).Count) item=$($d | ConvertTo-Json -Compress)" }
+if ($r.Status -eq 200 -and @($d).Count -eq 1 -and $d[0].id -eq $nuevoUid) {
+    Ok 'LISTADO tras recrear' '1 resultado con el id nuevo'
+} else { Bad 'LISTADO tras recrear' "n=$(@($d).Count) item=$($d | ConvertTo-Json -Compress)" }
 
-$r = Invoke-Post "/users/$($u1.Id)/restore" '{}' $null $ta
-if ($r.Status -eq 409) { Ok 'RESTURE repetido' '409' }
-else { Bad 'RESTURE repetido' "status=$($r.Status) $($r.Content)" }
+$aud = Scalar "SELECT COUNT(*) FROM audit_logs WHERE operacion = 'user.delete' AND entidad_id = '$($u1.Id)' AND detalles_adicionales LIKE '%valores_despues%'"
+if ([int]$aud -ge 1) { Ok 'AUDIT user.delete valores_despues' "$aud fila(s)" }
+else { Bad 'AUDIT user.delete valores_despues' "count=$aud" }
 
-$aud = Scalar "SELECT COUNT(*) FROM audit_logs WHERE operacion = 'user.restore' AND entidad_id = '$($u1.Id)'"
-if ([int]$aud -ge 1) { Ok 'AUDIT user.restore' "$aud fila(s)" }
-else { Bad 'AUDIT user.restore' "count=$aud" }
-
-# ================================== 2) include_deleted exige permiso de borrado
+# ================================ 2) PERMISOS: sin restore ni include_deleted
 $r = Invoke-Post '/roles' (@{ nombre = "V1130 VIEW $($script:runId)"; descripcion = 'e2e v1.13.0'; permisos = @('users.user.view', 'roles.role.view', 'groups.group.view') } | ConvertTo-Json) $null $ta
 if ($r.Status -eq 201) { $viewRoleId = ($r.Content | ConvertFrom-Json).data.role.id; Ok 'ALTA rol vista' "id=$viewRoleId" }
 else { Bad 'ALTA rol vista' "status=$($r.Status) $($r.Content)"; exit 1 }
@@ -158,39 +165,28 @@ $r = Invoke-Get '/users' $tv
 if ($r.Status -eq 200) { Ok 'uv GET /users (control)' '200' }
 else { Bad 'uv GET /users (control)' "status=$($r.Status)" }
 
-$r = Invoke-Get '/users?include_deleted=true' $tv
-if ($r.Status -eq 403) { Ok 'uv GET /users include_deleted' '403' }
-else { Bad 'uv GET /users include_deleted' "status=$($r.Status) $($r.Content)" }
-
 $r = Invoke-Get '/roles' $tv
 if ($r.Status -eq 200) { Ok 'uv GET /roles (control)' '200' }
 else { Bad 'uv GET /roles (control)' "status=$($r.Status)" }
-
-$r = Invoke-Get '/roles?include_deleted=true' $tv
-if ($r.Status -eq 403) { Ok 'uv GET /roles include_deleted' '403' }
-else { Bad 'uv GET /roles include_deleted' "status=$($r.Status) $($r.Content)" }
 
 $r = Invoke-Get '/groups' $tv
 if ($r.Status -eq 200) { Ok 'uv GET /groups (control)' '200' }
 else { Bad 'uv GET /groups (control)' "status=$($r.Status)" }
 
-$r = Invoke-Get '/groups?include_deleted=true' $tv
-if ($r.Status -eq 403) { Ok 'uv GET /groups include_deleted' '403' }
-else { Bad 'uv GET /groups include_deleted' "status=$($r.Status) $($r.Content)" }
-
+# Rutas de restauracion eliminadas: sin ruta no hay permiso que valga (404).
 $r = Invoke-Post "/users/$($u1.Id)/restore" '{}' $null $tv
-if ($r.Status -eq 403) { Ok 'uv POST /users/{id}/restore' '403 (middleware)' }
+if ($r.Status -eq 404) { Ok 'uv POST /users/{id}/restore' '404 (ruta inexistente)' }
 else { Bad 'uv POST /users/{id}/restore' "status=$($r.Status) $($r.Content)" }
 
 $r = Invoke-Post "/groups/$fakeId/restore" '{}' $null $tv
-if ($r.Status -eq 403) { Ok 'uv POST /groups/{id}/restore' '403 (middleware)' }
+if ($r.Status -eq 404) { Ok 'uv POST /groups/{id}/restore' '404 (ruta inexistente)' }
 else { Bad 'uv POST /groups/{id}/restore' "status=$($r.Status) $($r.Content)" }
 
 $r = Invoke-Post "/roles/$fakeId/restore" '{}' $null $tv
-if ($r.Status -eq 403) { Ok 'uv POST /roles/{id}/restore' '403 (middleware)' }
+if ($r.Status -eq 404) { Ok 'uv POST /roles/{id}/restore' '404 (ruta inexistente)' }
 else { Bad 'uv POST /roles/{id}/restore' "status=$($r.Status) $($r.Content)" }
 
-# ================================================ 3) GRUPO: miembros + restore
+# ============================================ 3) GRUPO: miembros + sin restore
 $r = Invoke-Post '/groups' (@{ nombre = "V1130 G $($script:runId)"; descripcion = 'e2e v1.13.0' } | ConvertTo-Json) $null $ta
 if ($r.Status -eq 201) { $gid = ($r.Content | ConvertFrom-Json).data.group.id; Ok 'ALTA grupo' "id=$gid" }
 else { Bad 'ALTA grupo' "status=$($r.Status) $($r.Content)"; exit 1 }
@@ -222,37 +218,41 @@ $presente = @($gs | Where-Object { $_.id -eq $gid }).Count
 if ($presente -eq 0) { Ok 'LISTADO grupos sin borrado' 'grupo ausente tras DELETE' }
 else { Bad 'LISTADO grupos sin borrado' 'el grupo borrado sigue listado' }
 
+# include_deleted ya no existe: el grupo borrado no aparece ni con el parametro.
 $r = Invoke-Get '/groups?include_deleted=true' $ta
 $gs = ($r.Content | ConvertFrom-Json).data.groups
 $gdel = @($gs | Where-Object { $_.id -eq $gid })
-if ($gdel.Count -eq 1 -and $gdel[0].deleted_at -and ("$($gdel[0].miembros)" -match '^\d+$')) {
-    Ok 'LISTADO grupos include_deleted' "deleted_at=$($gdel[0].deleted_at) miembros=$($gdel[0].miembros)"
-} else { Bad 'LISTADO grupos include_deleted' "item=$($gdel | ConvertTo-Json -Compress)" }
+if ($r.Status -eq 200 -and $gdel.Count -eq 0) { Ok 'LISTADO grupos include_deleted ignorado' 'grupo ausente' }
+else { Bad 'LISTADO grupos include_deleted ignorado' "item=$($gdel | ConvertTo-Json -Compress)" }
 
 $r = Invoke-Post "/groups/$fakeId/restore" '{}' $null $ta
-if ($r.Status -eq 404) { Ok 'RESTORE grupo inexistente' '404' }
+if ($r.Status -eq 404) { Ok 'RESTORE grupo inexistente' '404 (ruta inexistente)' }
 else { Bad 'RESTORE grupo inexistente' "status=$($r.Status) $($r.Content)" }
 
-$r = Invoke-Post "/groups/$gid/restore" '{}' $null $ta
-if ($r.Status -eq 200) { Ok 'RESTORE /groups/{id}/restore' '200' }
-else { Bad 'RESTORE /groups/{id}/restore' "status=$($r.Status) $($r.Content)" }
+# El nombre del grupo borrado queda libre: alta con el mismo nombre = id nuevo.
+$r = Invoke-Post '/groups' (@{ nombre = "V1130 G $($script:runId)"; descripcion = 'recreado tras borrado' } | ConvertTo-Json) $null $ta
+$cg = $null; try { $cg = $r.Content | ConvertFrom-Json } catch {}
+$nuevoGid = if ($cg.data.group.id) { $cg.data.group.id } else { $null }
+if ($r.Status -eq 201 -and $nuevoGid -and $nuevoGid -ne $gid) {
+    Ok 'GRUPO recrear mismo nombre' "201 id-nuevo=$nuevoGid miembros=$($cg.data.group.miembros)"
+} else { Bad 'GRUPO recrear mismo nombre' "status=$($r.Status) $($r.Content)" }
 
 $r = Invoke-Get '/groups' $ta
 $gs = ($r.Content | ConvertFrom-Json).data.groups
-$gok = @($gs | Where-Object { $_.id -eq $gid })
-if ($gok.Count -eq 1 -and -not $gok[0].deleted_at -and $gok[0].activo -eq $true -and $gok[0].miembros -eq 1) {
-    Ok 'LISTADO grupo tras restore' 'activo, deleted_at=NULL, miembros=1'
-} else { Bad 'LISTADO grupo tras restore' "item=$($gok | ConvertTo-Json -Compress)" }
+$gok = @($gs | Where-Object { $_.id -eq $nuevoGid })
+if ($gok.Count -eq 1 -and -not $gok[0].deleted_at -and $gok[0].activo -eq $true -and $gok[0].miembros -eq 0) {
+    Ok 'LISTADO grupo recreado' 'activo, sin miembros (los del borrado permanecen con el viejo)'
+} else { Bad 'LISTADO grupo recreado' "item=$($gok | ConvertTo-Json -Compress)" }
 
-$r = Invoke-Post "/groups/$gid/restore" '{}' $null $ta
-if ($r.Status -eq 409) { Ok 'RESTORE grupo repetido' '409' }
-else { Bad 'RESTORE grupo repetido' "status=$($r.Status) $($r.Content)" }
+$filaViejaG = Scalar "SELECT COUNT(*) FROM user_groups WHERE id = '$gid' AND deleted_at IS NOT NULL"
+if ("$filaViejaG" -eq '1') { Ok 'GRUPO borrado persiste en BD' 'deleted_at fijado' }
+else { Bad 'GRUPO borrado persiste en BD' "filas=$filaViejaG" }
 
-$aud = Scalar "SELECT COUNT(*) FROM audit_logs WHERE operacion = 'group.restore' AND entidad_id = '$gid'"
-if ([int]$aud -ge 1) { Ok 'AUDIT group.restore' "$aud fila(s)" }
-else { Bad 'AUDIT group.restore' "count=$aud" }
+$aud = Scalar "SELECT COUNT(*) FROM audit_logs WHERE operacion = 'group.delete' AND entidad_id = '$gid' AND detalles_adicionales LIKE '%valores_despues%'"
+if ([int]$aud -ge 1) { Ok 'AUDIT group.delete valores_despues' "$aud fila(s)" }
+else { Bad 'AUDIT group.delete valores_despues' "count=$aud" }
 
-# ==================================================== 4) ROL: incluir + restore
+# ================================================ 4) ROL: sin restore
 $r = Invoke-Post '/roles' (@{ nombre = "V1130 R $($script:runId)"; descripcion = 'e2e v1.13.0'; permisos = @('users.user.view') } | ConvertTo-Json) $null $ta
 if ($r.Status -eq 201) { $rid = ($r.Content | ConvertFrom-Json).data.role.id; Ok 'ALTA rol' "id=$rid" }
 else { Bad 'ALTA rol' "status=$($r.Status) $($r.Content)"; exit 1 }
@@ -269,33 +269,28 @@ else { Bad 'LISTADO roles sin borrado' 'el rol borrado sigue listado' }
 $r = Invoke-Get '/roles?include_deleted=true' $ta
 $rs = ($r.Content | ConvertFrom-Json).data.roles
 $rdel = @($rs | Where-Object { $_.id -eq $rid })
-if ($rdel.Count -eq 1 -and $rdel[0].deleted_at) {
-    Ok 'LISTADO roles include_deleted' "deleted_at=$($rdel[0].deleted_at)"
-} else { Bad 'LISTADO roles include_deleted' "item=$($rdel | ConvertTo-Json -Compress)" }
-
-$r = Invoke-Post "/roles/$fakeId/restore" '{}' $null $ta
-if ($r.Status -eq 404) { Ok 'RESTORE rol inexistente' '404' }
-else { Bad 'RESTORE rol inexistente' "status=$($r.Status) $($r.Content)" }
+if ($r.Status -eq 200 -and $rdel.Count -eq 0) { Ok 'LISTADO roles include_deleted ignorado' 'rol ausente' }
+else { Bad 'LISTADO roles include_deleted ignorado' "item=$($rdel | ConvertTo-Json -Compress)" }
 
 $r = Invoke-Post "/roles/$rid/restore" '{}' $null $ta
-if ($r.Status -eq 200) { Ok 'RESTORE /roles/{id}/restore' '200' }
-else { Bad 'RESTORE /roles/{id}/restore' "status=$($r.Status) $($r.Content)" }
+if ($r.Status -eq 404) { Ok 'RESTORE rol eliminado' '404 (ruta inexistente)' }
+else { Bad 'RESTORE rol eliminado' "status=$($r.Status) $($r.Content)" }
 
-$r = Invoke-Get '/roles' $ta
-$rs = ($r.Content | ConvertFrom-Json).data.roles
-$rok = @($rs | Where-Object { $_.id -eq $rid })
-if ($rok.Count -eq 1 -and -not $rok[0].deleted_at) { Ok 'LISTADO rol tras restore' 'presente, deleted_at=NULL' }
-else { Bad 'LISTADO rol tras restore' "item=$($rok | ConvertTo-Json -Compress)" }
+# El nombre del rol borrado queda libre: alta con el mismo nombre = id nuevo.
+$r = Invoke-Post '/roles' (@{ nombre = "V1130 R $($script:runId)"; descripcion = 'recreado tras borrado'; permisos = @('users.user.view') } | ConvertTo-Json) $null $ta
+$cr = $null; try { $cr = $r.Content | ConvertFrom-Json } catch {}
+$nuevoRid = if ($cr.data.role.id) { $cr.data.role.id } else { $null }
+if ($r.Status -eq 201 -and $nuevoRid -and $nuevoRid -ne $rid) {
+    Ok 'ROL recrear mismo nombre' "201 id-nuevo=$nuevoRid"
+} else { Bad 'ROL recrear mismo nombre' "status=$($r.Status) $($r.Content)" }
 
-# Contrato actual del repo de roles: restore sobre un rol no borrado da 404
-# (rowCount=0), no 409 como usuarios/grupos. Se documenta en CHANGELOG.
-$r = Invoke-Post "/roles/$rid/restore" '{}' $null $ta
-if ($r.Status -eq 404) { Ok 'RESTORE rol repetido' '404 (contrato de roles)' }
-else { Bad 'RESTORE rol repetido' "status=$($r.Status) $($r.Content)" }
+$filaViejaR = Scalar "SELECT COUNT(*) FROM roles WHERE id = '$rid' AND deleted_at IS NOT NULL"
+if ("$filaViejaR" -eq '1') { Ok 'ROL borrado persiste en BD' 'deleted_at fijado' }
+else { Bad 'ROL borrado persiste en BD' "filas=$filaViejaR" }
 
-$aud = Scalar "SELECT COUNT(*) FROM audit_logs WHERE operacion = 'role.restore' AND entidad_id = '$rid'"
-if ([int]$aud -ge 1) { Ok 'AUDIT role.restore' "$aud fila(s)" }
-else { Bad 'AUDIT role.restore' "count=$aud" }
+$aud = Scalar "SELECT COUNT(*) FROM audit_logs WHERE operacion = 'role.delete' AND entidad_id = '$rid' AND detalles_adicionales LIKE '%valores_despues%'"
+if ([int]$aud -ge 1) { Ok 'AUDIT role.delete valores_despues' "$aud fila(s)" }
+else { Bad 'AUDIT role.delete valores_despues' "count=$aud" }
 
 # ============ 5) CACHE DE PERMISOS: expiracion de temporal surte efecto
 $u5 = New-ActivatedUser $ta 'expira'
@@ -335,21 +330,21 @@ if (($me5.permisos -is [array]) -and -not ($me5.permisos -contains 'users.user.v
 } else { Bad 'ME u5 tras caducidad' "permisos=$($me5.permisos | ConvertTo-Json -Compress)" }
 
 # ================================================================ 6) CONTRATO UI
-$r = Invoke-Get '/users?include_deleted=true&per_page=50' $ta
+$r = Invoke-Get '/users?per_page=50' $ta
 $us = ($r.Content | ConvertFrom-Json).data.data
 $camposOk = $true
 foreach ($u in $us) { if (-not ($u.PSObject.Properties.Name -contains 'deleted_at')) { $camposOk = $false } }
 if ($camposOk) { Ok 'UI /users items con deleted_at' "n=$($us.Count)" }
 else { Bad 'UI /users items con deleted_at' 'falta la clave en algun item' }
 
-$r = Invoke-Get '/groups?include_deleted=true' $ta
+$r = Invoke-Get '/groups' $ta
 $gs = ($r.Content | ConvertFrom-Json).data.groups
 $camposOk = $true
 foreach ($g in $gs) { if (-not ("$($g.miembros)" -match '^\d+$') -or -not ($g.PSObject.Properties.Name -contains 'deleted_at')) { $camposOk = $false } }
 if ($camposOk) { Ok 'UI /groups items con {miembros, deleted_at}' "n=$($gs.Count)" }
 else { Bad 'UI /groups items con {miembros, deleted_at}' 'faltan claves en algun item' }
 
-$r = Invoke-Get '/roles?include_deleted=true' $ta
+$r = Invoke-Get '/roles' $ta
 $rs = ($r.Content | ConvertFrom-Json).data.roles
 $camposOk = $true
 foreach ($x in $rs) { if (-not ($x.PSObject.Properties.Name -contains 'deleted_at')) { $camposOk = $false } }

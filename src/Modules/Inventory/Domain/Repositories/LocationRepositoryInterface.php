@@ -106,11 +106,10 @@ interface LocationRepositoryInterface
     public function softDelete(string $id): void;
 
     /**
-     * Restaura una ubicación previamente eliminada.
-     *
-     * @throws \App\Modules\Inventory\Domain\Exceptions\InventoryException Si no existe
+     * Fila cruda de la ubicación incluyendo los borrados lógicos
+     * (para auditoría del borrado: estado posterior al soft delete).
      */
-    public function restore(string $id): void;
+    public function findRawIncludingDeleted(string $id): ?array;
 
     // ====================================================================
     // CONSULTAS

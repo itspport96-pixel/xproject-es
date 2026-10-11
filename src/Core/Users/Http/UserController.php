@@ -54,26 +54,8 @@ final class UserController
         $claims = $this->requireAuthenticated();
         $tenantId = $claims['tenant_id'];
 
-        $allowedFilters = ['page', 'per_page', 'estado', 'search', 'include_deleted'];
+        $allowedFilters = ['page', 'per_page', 'estado', 'search'];
         $filters = array_intersect_key($_GET, array_flip($allowedFilters));
-
-        // Normalizar a booleano ('false' no debe activar el modo borrados).
-        $includeDeleted = isset($filters['include_deleted'])
-            && in_array(strtolower((string) $filters['include_deleted']), ['1', 'true'], true);
-        $filters['include_deleted'] = $includeDeleted;
-
-        // v1.13.0: listar borrados exige el mismo permiso que borrar.
-        if ($includeDeleted) {
-            $denegado = !$this->authz->hasPermission(
-                (string) $claims['user_id'],
-                (string) $tenantId,
-                'users.user.delete',
-                false
-            );
-            if ($denegado) {
-                throw new HttpException('Se requiere el permiso users.user.delete para listar usuarios eliminados', 403);
-            }
-        }
 
         $result = $this->userService->findAll($tenantId, $filters);
 
@@ -332,43 +314,16 @@ final class UserController
         $this->authz->invalidateCache($userId, $tenantId);
 
         // v1.13.1: auditoría de dominio del borrado (antes sólo quedaba la
-        // fila genérica de la ruta en AuditMiddleware); valores previos.
+        // fila genérica de la ruta en AuditMiddleware); valores previos y
+        // estado posterior al soft delete (el registro permanece en BD).
+        $after = $this->userService->findIncludingDeleted($userId, $tenantId);
         $this->auditEvent('user.delete', 'DELETE', $request, $claims, [
             'entidad_id' => $userId,
             'valores_anteriores' => $target,
+            'detalles_adicionales' => ['valores_despues' => $after],
         ]);
 
         return ['status' => 204, 'data' => null];
-    }
-
-    // ========================================================================
-    // POST /api/users/{id}/restore  (v1.13.0, hueco de restauración)
-    // ========================================================================
-
-    public function restore(array $params, array $request = []): array
-    {
-        $claims = $this->requireAuthenticated();
-        $tenantId = (string) $claims['tenant_id'];
-        $actorId = (string) $claims['user_id'];
-        $userId = (string) ($params['id'] ?? '');
-
-        if ($userId === '') {
-            throw new HttpException('ID de usuario requerido', 400);
-        }
-
-        $this->authz->assertCanActOnUser($actorId, $tenantId, $userId);
-
-        $this->userService->restore($userId, $tenantId);
-
-        // El usuario restaurado vuelve a tener permisos efectivos: su cache
-        // puede estar vacío o obsoleto, se invalida por seguridad.
-        $this->authz->invalidateCache($userId, $tenantId);
-
-        $this->auditEvent('user.restore', 'EXECUTE', $request, $claims, [
-            'entidad_id' => $userId,
-        ]);
-
-        return ['status' => 200, 'data' => ['message' => 'Usuario restaurado correctamente']];
     }
 
     // ========================================================================

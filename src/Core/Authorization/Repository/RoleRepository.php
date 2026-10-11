@@ -67,16 +67,11 @@ final class RoleRepository implements RoleRepositoryInterface
 
     /**
      * @param bool $soloActivos Si true, excluye roles con activo=0.
-     * @param bool $includeDeleted Si true (v1.13.0, hueco de restauración),
-     *   devuelve también los borrados y omite el filtro de activo, para que
-     *   la UI pueda listarlos y restaurarlos.
      */
-    public function findAll(bool $soloActivos = true, ?string $tenantId = null, bool $includeDeleted = false): array
+    public function findAll(bool $soloActivos = true, ?string $tenantId = null): array
     {
         $sql = "SELECT * FROM roles WHERE";
-        if ($includeDeleted) {
-            $sql .= " 1 = 1";
-        } elseif ($soloActivos) {
+        if ($soloActivos) {
             $sql .= " activo = 1 AND deleted_at IS NULL";
         } else {
             $sql .= " deleted_at IS NULL";
@@ -212,26 +207,13 @@ final class RoleRepository implements RoleRepositoryInterface
         $stmt->execute(['id' => $id]);
     }
 
-    public function restore(string $id, ?string $tenantId = null): void
+    public function findRawIncludingDeleted(string $id): ?array
     {
-        $sql = "UPDATE roles
-                SET activo = 1,
-                    deleted_at = NULL,
-                    updated_at = NOW()
-                WHERE id = :id AND deleted_at IS NOT NULL";
-        $params = ['id' => $id];
-
-        if ($tenantId !== null) {
-            $sql .= " AND (tenant_id IS NULL OR tenant_id = :tid)";
-            $params['tid'] = $tenantId;
-        }
-
+        $sql = "SELECT * FROM roles WHERE id = :id";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-
-        if ($stmt->rowCount() === 0) {
-            throw AuthorizationException::roleNotFound($id);
-        }
+        $stmt->execute(['id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
     }
 
     // ========================================================================

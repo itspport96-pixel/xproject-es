@@ -6,10 +6,9 @@
  *
  * Convencion ModuleLoader: window.UsersUsersModule (ruta users/users).
  *
- * v1.13.0 (huecos resueltos): POST /users/{id}/restore restaura el borrado
- * logico (estado ACTIVO y deleted_at NULL) y GET /users acepta
- * include_deleted=true (mismo permiso que borrar). El selector de
- * beneficiario de permisos temporales busca por texto contra el directorio.
+ * Politica de borrado (v1.13.9): no hay restauracion; el borrado lógico
+ * deja el registro en BD (auditoria) pero no se lista nunca. Un email
+ * borrado puede volver a usarse en un usuario nuevo.
  */
 (function(global) {
     'use strict';
@@ -20,7 +19,7 @@
         tab: 'users',
         items: [],
         pagination: { page: 1, per_page: 20, total: 0, has_next: false },
-        filters: { estado: '', search: '', deleted: false },
+        filters: { estado: '', search: '' },
         loading: false,
         roles: [],
         users: [],
@@ -122,11 +121,6 @@
                             <div class="flex items-center gap-4 mt-3 flex-wrap">
                                 <button type="button" class="btn btn-secondary" data-action="apply-filters">${t('users.filters.apply')}</button>
                                 <button type="button" class="btn btn-ghost" data-action="clear-filters">${t('users.filters.clear')}</button>
-                                ${canDelete() ? `
-                                <label class="flex items-center gap-2 text-sm">
-                                    <input type="checkbox" data-filter="deleted"${state.filters.deleted ? ' checked' : ''}>
-                                    ${t('users.filters.deleted')}
-                                </label>` : ''}
                             </div>
                         </form>
                     </div>
@@ -211,22 +205,15 @@
 
         const catalogo = estadoCatalogo();
         const rows = state.items.map(u => {
-            const esBorrado = !!u.deleted_at;
             const acciones = [];
-            if (esBorrado) {
-                if (canDelete()) acciones.push(actionBtn('open-restore', u.id, t('users.actions.restore')));
-            } else {
-                if (canEdit()) acciones.push(actionBtn('open-edit', u.id, t('users.actions.edit')));
-                if (canStatus()) acciones.push(actionBtn('open-status', u.id, t('users.actions.status')));
-                if (canReset()) acciones.push(actionBtn('open-reset', u.id, t('users.actions.reset')));
-                if (canView()) acciones.push(actionBtn('open-roles', u.id, t('users.actions.roles')));
-                if (canViewTemp()) acciones.push(actionBtn('open-temp-user', u.id, t('users.actions.temp_view')));
-                if (canDelete()) acciones.push(actionBtn('open-delete', u.id, t('users.actions.delete'), 'btn-danger'));
-            }
+            if (canEdit()) acciones.push(actionBtn('open-edit', u.id, t('users.actions.edit')));
+            if (canStatus()) acciones.push(actionBtn('open-status', u.id, t('users.actions.status')));
+            if (canReset()) acciones.push(actionBtn('open-reset', u.id, t('users.actions.reset')));
+            if (canView()) acciones.push(actionBtn('open-roles', u.id, t('users.actions.roles')));
+            if (canViewTemp()) acciones.push(actionBtn('open-temp-user', u.id, t('users.actions.temp_view')));
+            if (canDelete()) acciones.push(actionBtn('open-delete', u.id, t('users.actions.delete'), 'btn-danger'));
 
-            const estado = esBorrado
-                ? `<span class="badge badge-danger">${t('users.state.deleted')}</span>`
-                : UI.estadoBadge(u.estado, catalogo);
+            const estado = UI.estadoBadge(u.estado, catalogo);
 
             return `
                 <tr>
@@ -371,7 +358,6 @@
             const params = { page, per_page: state.pagination.per_page };
             if (state.filters.estado) params.estado = state.filters.estado;
             if (state.filters.search) params.search = state.filters.search;
-            if (state.filters.deleted) params.include_deleted = 'true';
 
             const response = await global.HttpClient.get('/users', { params });
             const payload = response && response.data ? response.data : response;
@@ -1109,46 +1095,6 @@
         }
     }
 
-    // -------------------------------------------------------- Restauración
-
-    function openRestore(id) {
-        if (!canDelete()) return;
-        const user = state.items.find(u => u.id === id);
-        if (!user || !user.deleted_at) return;
-        state.modal = { mode: 'restore', id, user, errors: {}, formError: '' };
-        renderModal();
-    }
-
-    function restoreBody(modal) {
-        return `
-            <div class="form-error hidden mb-3" data-form-error></div>
-            <p>${t('users.restore.body', { email: UI.escapeHtml(modal.user.email || '') })}</p>
-            <div class="alert alert-info mt-3">${t('users.restore.hint')}</div>
-        `;
-    }
-
-    async function submitRestore() {
-        if (state.sending) return;
-        const modal = state.modal;
-        setSending(true);
-
-        try {
-            await global.HttpClient.post('/users/' + encodeURIComponent(modal.id) + '/restore');
-            UI.toast('success', t('users.restore.success_title'), t('users.restore.success_body'));
-            closeModal();
-            await loadUsers(state.pagination.page || 1);
-        } catch (err) {
-            UI.handleActionError(err, {
-                fallbackMessage: t('users.errors.restore'),
-                root: getModalRoot(),
-                inline: true,
-                tag: 'Users'
-            });
-        } finally {
-            setSending(false);
-        }
-    }
-
     // ------------------------------------------------ Permiso temporal
 
     function openGrant() {
@@ -1426,14 +1372,6 @@
                     <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>
                     <button class="btn btn-danger" data-action="submit-delete" data-modal-send${state.sending ? ' disabled' : ''}>${t('users.delete.submit')}</button>`;
                 break;
-            case 'restore':
-                title = t('users.restore.title');
-                size = 'sm';
-                body = restoreBody(modal);
-                footer = `
-                    <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>
-                    <button class="btn btn-primary" data-action="submit-restore" data-modal-send${state.sending ? ' disabled' : ''}>${t('users.restore.submit')}</button>`;
-                break;
             case 'grant':
                 title = t('users.grant.title');
                 body = grantBody(modal);
@@ -1531,9 +1469,6 @@
             case 'open-delete':
                 openDelete(id);
                 break;
-            case 'open-restore':
-                openRestore(id);
-                break;
             case 'open-temp-user':
                 openTempUser(id);
                 break;
@@ -1565,9 +1500,6 @@
                 break;
             case 'submit-delete':
                 submitDelete();
-                break;
-            case 'submit-restore':
-                submitRestore();
                 break;
             case 'grant-search':
                 grantUserSearch();
@@ -1642,7 +1574,7 @@
     }
 
     function clearFilters() {
-        state.filters = { estado: '', search: '', deleted: false };
+        state.filters = { estado: '', search: '' };
         container.querySelectorAll('[data-filter]').forEach(el => {
             if (el.type === 'checkbox') el.checked = false;
             else el.value = '';
@@ -1703,7 +1635,7 @@
                 tab: 'users',
                 items: [],
                 pagination: { page: 1, per_page: 20, total: 0, has_next: false },
-                filters: { estado: '', search: '', deleted: false },
+        filters: { estado: '', search: '' },
                 loading: false,
                 roles: [],
                 users: [],

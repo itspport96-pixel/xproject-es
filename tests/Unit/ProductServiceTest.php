@@ -345,7 +345,7 @@ final class ProductServiceTest extends TestCase
         $this->assertNotNull($this->service->findById($id));
     }
 
-    public function testDeleteHidesProductAndRestoreBringsItBack(): void
+    public function testDeleteHidesProductAndSameSkuCanBeRecreated(): void
     {
         $id = $this->seedProduct(['sku' => 'LIFE-1']);
 
@@ -355,19 +355,26 @@ final class ProductServiceTest extends TestCase
         $this->assertNull($this->service->findBySku('LIFE-1'));
         $this->assertSame(0, $this->service->count());
 
-        // restore sigue funcionando porque existsById contempla borrados
-        $this->assertTrue($this->repository->existsById($id));
-        $this->assertTrue($this->service->restore($id));
-
-        $restored = $this->service->findById($id);
-        $this->assertNotNull($restored);
-        $this->assertTrue($restored['activo']);
+        // Politica de borrado: no hay restore; el SKU del producto borrado
+        // queda libre y un producto nuevo puede reutilizarlo (id nuevo).
+        $nuevo = $this->service->create($this->validData(['sku' => 'LIFE-1']));
+        $this->assertNotSame($id, $nuevo['id']);
+        $this->assertNotNull($this->service->findById((string) $nuevo['id']));
+        $this->assertNotNull($this->service->findBySku('LIFE-1'));
+        $this->assertTrue($this->repository->isSoftDeleted($id));
         $this->assertSame(1, $this->service->count());
     }
 
-    public function testRestoreRejectsUnknownId(): void
+    public function testFindIncludingDeletedReturnsSoftDeletedRow(): void
     {
-        $this->assertInventoryError(fn() => $this->service->restore('no-existe'), 404, null);
+        $id = $this->seedProduct();
+
+        $this->service->delete($id);
+
+        $raw = $this->service->findIncludingDeleted($id);
+        $this->assertIsArray($raw);
+        $this->assertSame($id, $raw['id']);
+        $this->assertNotNull($raw['deleted_at']);
     }
 
     // ==================================================================

@@ -608,7 +608,8 @@ abstract class InventorySqliteTestCase extends TestCase
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 deleted_at TEXT,
-                UNIQUE (tenant_id, sku)
+                sku_activo TEXT GENERATED ALWAYS AS (CASE WHEN deleted_at IS NULL THEN sku ELSE NULL END) STORED,
+                UNIQUE (tenant_id, sku_activo)
             )',
             'CREATE TABLE locations (
                 id TEXT PRIMARY KEY,
@@ -624,7 +625,8 @@ abstract class InventorySqliteTestCase extends TestCase
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 deleted_at TEXT,
-                UNIQUE (tenant_id, codigo)
+                codigo_activo TEXT GENERATED ALWAYS AS (CASE WHEN deleted_at IS NULL THEN codigo ELSE NULL END) STORED,
+                UNIQUE (tenant_id, codigo_activo)
             )',
             'CREATE TABLE stock_units (
                 id TEXT PRIMARY KEY,
