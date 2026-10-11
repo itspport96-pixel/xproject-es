@@ -33,6 +33,32 @@
         result: null
     };
 
+    // ====================================================================
+    // PERMISOS
+    // ====================================================================
+
+    function can(permission, fallbackRoles) {
+        if (global.UI && typeof global.UI.can === 'function') {
+            return global.UI.can(permission, fallbackRoles);
+        }
+        return false;
+    }
+
+    const canView = () => can('inventory.receiving.create', ['ADMIN', 'MANAGER', 'USER']);
+
+    const DENIED_TEMPLATE = `
+        <div class="card max-w-md mx-auto mt-8">
+            <div class="card-header">
+                <h3 class="card-title">${t('inventory.receiving.permission.title')}</h3>
+            </div>
+            <div class="card-body">
+                <p>${t('inventory.receiving.permission.body', { permiso: 'inventory.receiving.create' })}</p>
+                <div class="mt-4">
+                    <a href="#/dashboard" class="btn btn-secondary">${t('router.go_dashboard')}</a>
+                </div>
+            </div>
+        </div>`;
+
     function buildTemplate() {
         return `
         <div class="max-w-7xl mx-auto">
@@ -595,6 +621,11 @@
             container = targetContainer;
             if (!container) return;
 
+            if (!canView()) {
+                container.innerHTML = DENIED_TEMPLATE;
+                return;
+            }
+
             state.idempotencyKey = newIdempotencyKey();
             container.innerHTML = buildTemplate();
             bindEvents();
@@ -604,6 +635,13 @@
         },
 
         onActivate() {
+            if (!container) return;
+
+            if (!canView()) {
+                container.innerHTML = DENIED_TEMPLATE;
+                return;
+            }
+
             if (container && !container.querySelector('[data-receive-form]')) {
                 container.innerHTML = buildTemplate();
                 bindEvents();

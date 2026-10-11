@@ -50,6 +50,7 @@
     }
 
     const canCreate = () => can('inventory.item.create', ['ADMIN', 'MANAGER']);
+    const canView = () => can('inventory.item.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
 
     // ====================================================================
     // PLANTILLA
@@ -147,7 +148,9 @@
                 <td>${p.activo ? `<span class="badge badge-success">${t('inventory.products.states.active')}</span>` : `<span class="badge badge-neutral">${t('inventory.products.states.inactive')}</span>`}</td>
                 <td class="text-xs text-muted">${formatDate(p.created_at)}</td>
                 <td class="table-actions col-actions">
-                    <button class="btn btn-ghost btn-sm" data-action="stock" data-id="${p.id}">${t('inventory.products.actions.stock')}</button>
+                    ${can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])
+                        ? `<button class="btn btn-ghost btn-sm" data-action="stock" data-id="${p.id}">${t('inventory.products.actions.stock')}</button>`
+                        : ''}
                     <button class="btn btn-ghost btn-sm" data-action="edit" data-id="${p.id}">${t('inventory.products.actions.edit')}</button>
                     ${p.activo
                         ? `<button class="btn btn-ghost btn-sm" data-action="deactivate" data-id="${p.id}">${t('inventory.products.actions.deactivate')}</button>`
@@ -320,7 +323,9 @@
             state.pagination = data.pagination || state.pagination;
             state.pagination.page = page;
 
-            loadStockTotals(state.items);
+            if (can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])) {
+              loadStockTotals(state.items);
+            }
         } catch (err) {
             console.error('[Products] load error:', err);
             showToast('danger', t('ui.error_generic'), err.message || t('inventory.products.messages.load_error'));
@@ -376,6 +381,12 @@
     }
 
     async function openStockModal(product) {
+        if (!can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])) {
+            showToast('warning', t('inventory.products.permission.title'),
+                t('inventory.stock.permission.body', { permiso: 'inventory.stock.view' }));
+            return;
+        }
+
         const root = container.querySelector('[data-modal-root]');
         root.innerHTML = `
             <div class="modal-overlay" data-modal>
@@ -676,16 +687,42 @@
     // PUBLIC API
     // ====================================================================
 
+    const DENIED_TEMPLATE = `
+        <div class="card max-w-md mx-auto mt-8">
+            <div class="card-header">
+                <h3 class="card-title">${t('inventory.products.permission.title')}</h3>
+            </div>
+            <div class="card-body">
+                <p>${t('inventory.products.permission.body', { permiso: 'inventory.item.view' })}</p>
+                <div class="mt-4">
+                    <a href="#/dashboard" class="btn btn-secondary">${t('router.go_dashboard')}</a>
+                </div>
+            </div>
+        </div>`;
+
     const InventoryProductsModule = {
         init(params, targetContainer) {
             container = targetContainer;
             if (!container) return;
+
+            if (!canView()) {
+                container.innerHTML = DENIED_TEMPLATE;
+                return;
+            }
+
             container.innerHTML = buildTemplate();
             bindEvents();
             loadProducts(1);
         },
 
         onActivate(params) {
+            if (!container) return;
+
+            if (!canView()) {
+                container.innerHTML = DENIED_TEMPLATE;
+                return;
+            }
+
             if (container && !container.querySelector('[data-products-table]')) {
                 container.innerHTML = buildTemplate();
                 bindEvents();

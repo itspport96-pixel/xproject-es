@@ -266,6 +266,10 @@
         "reserve_error": "No se pudo crear la reserva",
         "capacity_exceeded": "Capacidad excedida",
         "stock_load_error": "No se pudo cargar el stock"
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
       }
     },
     "locations": {
@@ -360,6 +364,10 @@
         "available_short": "disp",
         "truncated": "Sólo se muestran las primeras 100 unidades.",
         "capacity_no_limit": "sin límite"
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
       }
     },
     "products": {
@@ -451,6 +459,10 @@
         "activated": "Producto activado",
         "deactivated": "Producto desactivado",
         "deleted": "Producto eliminado"
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
       }
     },
     "receiving": {
@@ -536,6 +548,10 @@
         "error_409_toast_titulo": "Idempotencia",
         "error_409_toast": "Clave reutilizada con datos distintos; se generó una nueva",
         "toast_capacidad": "Capacidad excedida"
+      },
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
       }
     },
     "movements": {

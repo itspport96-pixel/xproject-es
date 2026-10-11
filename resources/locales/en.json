@@ -266,6 +266,10 @@
         "reserve_error": "Could not create the reservation",
         "capacity_exceeded": "Capacity exceeded",
         "stock_load_error": "Could not load the stock"
+      },
+      "permission": {
+        "title": "No permission",
+        "body": "You need <code>{permiso}</code> to view this screen."
       }
     },
     "locations": {
@@ -360,6 +364,10 @@
         "available_short": "avail",
         "truncated": "Only the first 100 units are shown.",
         "capacity_no_limit": "no limit"
+      },
+      "permission": {
+        "title": "No permission",
+        "body": "You need <code>{permiso}</code> to view this screen."
       }
     },
     "products": {
@@ -451,6 +459,10 @@
         "activated": "Product activated",
         "deactivated": "Product deactivated",
         "deleted": "Product deleted"
+      },
+      "permission": {
+        "title": "No permission",
+        "body": "You need <code>{permiso}</code> to view this screen."
       }
     },
     "receiving": {
@@ -536,6 +548,10 @@
         "error_409_toast_titulo": "Idempotency",
         "error_409_toast": "Key reused with different data; a new one was generated",
         "toast_capacidad": "Capacity exceeded"
+      },
+      "permission": {
+        "title": "No permission",
+        "body": "You need <code>{permiso}</code> to view this screen."
       }
     },
     "movements": {

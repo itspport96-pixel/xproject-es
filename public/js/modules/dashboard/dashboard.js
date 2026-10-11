@@ -116,23 +116,27 @@
 
     const stats = state.stats || {};
     const tenantScope = state.scope === 'tenant';
+    const inventoryScope = state.scope === 'inventory';
 
-    const statCards = [
-      renderStatCard(t('nav.products'), stats.productos || 0, ICONS.box, 'inventory'),
-      renderStatCard(t('nav.locations'), stats.ubicaciones || 0, ICONS.mapPin, 'inventory/locations')
-    ];
+    const statCards = [];
+    if (canItemView()) {
+      statCards.push(renderStatCard(t('nav.products'), stats.productos || 0, ICONS.box, 'inventory'));
+    }
+    if (canLocationView()) {
+      statCards.push(renderStatCard(t('nav.locations'), stats.ubicaciones || 0, ICONS.mapPin, 'inventory/locations'));
+    }
     if (tenantScope) {
       statCards.push(renderStatCard(t('dashboard.cards.active_users'), stats.usuarios_activos || 0, ICONS.users,
-        isRouteAvailable('users') ? 'users' : null));
+        isRouteAvailable('users') && canView('users.user.view', ['ADMIN', 'MANAGER']) ? 'users' : null));
       statCards.push(renderStatCard(t('dashboard.cards.stock_units'), stats.unidades_fisicas || 0, ICONS.package, null));
     }
     const gridClass = statCards.length > 2 ? 'lg:grid-cols-4' : 'lg:grid-cols-2';
 
     const quickAccess = [
-      { title: t('dashboard.quick.products_title'), route: 'inventory', description: t('dashboard.quick.products_desc') },
-      { title: t('nav.locations'), route: 'inventory/locations', description: t('dashboard.quick.locations_desc') },
-      { title: t('nav.users'), route: 'users', description: t('dashboard.quick.users_desc') }
-    ].filter(item => isRouteAvailable(item.route));
+      { title: t('dashboard.quick.products_title'), route: 'inventory', description: t('dashboard.quick.products_desc'), permission: 'inventory.item.view' },
+      { title: t('nav.locations'), route: 'inventory/locations', description: t('dashboard.quick.locations_desc'), permission: 'inventory.location.view' },
+      { title: t('nav.users'), route: 'users', description: t('dashboard.quick.users_desc'), permission: 'users.user.view' }
+    ].filter(item => isRouteAvailable(item.route) && canView(item.permission, item.permission === 'users.user.view' ? ['ADMIN', 'MANAGER'] : ['ADMIN', 'MANAGER', 'USER', 'VIEWER']));
 
     content.innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 ${gridClass} gap-4 mb-6">
@@ -283,14 +287,28 @@
   // DATA
   // ============================================
 
+  function canView(permission, fallbackRoles) {
+    if (global.UI && typeof global.UI.can === 'function') {
+      return global.UI.can(permission, fallbackRoles);
+    }
+    return false;
+  }
+
+  const canTenantStats = () => canView('tenants.tenant.view', ['ADMIN']);
+  const canStockLayers = () => canView('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
+  const canItemView = () => canView('inventory.item.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
+  const canLocationView = () => canView('inventory.location.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
+
   async function loadStats() {
     state.loading = true;
     state.error = null;
     render();
 
     // Capas del dashboard (spec §9): fuera del camino crítico de las stats.
-    // Cada una degrada por su cuenta si el endpoint no responde.
-    loadDashboardLayers();
+    // Sólo se piden si el usuario tiene inventory.stock.view (evita 403).
+    if (canStockLayers()) {
+      loadDashboardLayers();
+    }
 
     if (!global.HttpClient) {
       state.loading = false;
@@ -300,33 +318,49 @@
     }
 
     // 1) Resumen del tenant (GET /tenant/stats requiere tenants.tenant.view)
-    try {
-      const response = await global.HttpClient.get('/tenant/stats');
-      state.stats = (response && response.data && response.data.stats) || response.stats || {};
-      state.scope = 'tenant';
-      state.loading = false;
-      render();
-      return;
-    } catch (err) {
-      if (err.status !== 403) {
-        console.error('[Dashboard] loadStats error:', err);
+    if (canTenantStats()) {
+      try {
+        const response = await global.HttpClient.get('/tenant/stats');
+        state.stats = (response && response.data && response.data.stats) || response.stats || {};
+        state.scope = 'tenant';
         state.loading = false;
-        state.error = err.message || t('dashboard.messages.stats_load_error');
         render();
         return;
+      } catch (err) {
+        if (err.status !== 403) {
+          console.error('[Dashboard] loadStats error:', err);
+          state.loading = false;
+          state.error = err.message || t('dashboard.messages.stats_load_error');
+          render();
+          return;
+        }
       }
     }
 
-    // 2) Sin permiso de tenant → resumen de inventario (lectura básica de todos los roles)
+    // 2) Sin permiso de tenant → resumen de inventario (sólo si hay view)
+    const wantsItems = canItemView();
+    const wantsLocations = canLocationView();
+    if (!wantsItems && !wantsLocations) {
+      state.stats = null;
+      state.scope = 'none';
+      state.loading = false;
+      render();
+      return;
+    }
+
     try {
-      const [products, locations] = await Promise.all([
-        global.HttpClient.get('/inventory/products', { params: { page: 1, per_page: 1 } }),
-        global.HttpClient.get('/inventory/locations', { params: { page: 1, per_page: 1 } })
-      ]);
+      const requests = [];
+      if (wantsItems) {
+        requests.push(global.HttpClient.get('/inventory/products', { params: { page: 1, per_page: 1 } }));
+      }
+      if (wantsLocations) {
+        requests.push(global.HttpClient.get('/inventory/locations', { params: { page: 1, per_page: 1 } }));
+      }
+      const results = await Promise.all(requests);
 
       state.stats = {
-        productos: totalOf(products),
-        ubicaciones: totalOf(locations)
+        productos: wantsItems ? totalOf(results[0]) : 0,
+        ubicaciones: wantsLocations ? totalOf(results[wantsItems ? 1 : 0]) : 0
       };
       state.scope = 'inventory';
       state.loading = false;

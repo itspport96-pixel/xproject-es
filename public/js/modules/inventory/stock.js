@@ -102,6 +102,7 @@
     const canMove = () => can('inventory.movement.create', ['ADMIN', 'MANAGER', 'USER']);
     const canReserve = () => can('inventory.reservation.create', ['ADMIN', 'MANAGER', 'USER']);
     const canBlock = () => can('inventory.stock.block', ['ADMIN', 'MANAGER']);
+    const canView = () => can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
 
     // Estados desde los que la matriz admite el paso a BLOQUEADO
     // (StateTransitionService §4; ENTREGADO/DEVUELTO/PERDIDO no).
@@ -111,6 +112,19 @@
 
     const canBlockUnit = (u) => BLOCKABLE_STATES.includes(u.estado);
     const canUnblockUnit = (u) => u.estado === 'BLOQUEADO';
+
+    const DENIED_TEMPLATE = `
+        <div class="card max-w-md mx-auto mt-8">
+            <div class="card-header">
+                <h3 class="card-title">${t('inventory.stock.permission.title')}</h3>
+            </div>
+            <div class="card-body">
+                <p>${t('inventory.stock.permission.body', { permiso: 'inventory.stock.view' })}</p>
+                <div class="mt-4">
+                    <a href="#/dashboard" class="btn btn-secondary">${t('router.go_dashboard')}</a>
+                </div>
+            </div>
+        </div>`;
 
     const TEMPLATE = `
         <div class="max-w-7xl mx-auto">
@@ -1130,6 +1144,12 @@
         init(params, targetContainer) {
             container = targetContainer;
             if (!container) return;
+
+            if (!canView()) {
+                container.innerHTML = DENIED_TEMPLATE;
+                return;
+            }
+
             container.innerHTML = TEMPLATE;
             bindEvents();
             renderSummary();
@@ -1139,6 +1159,13 @@
         },
 
         onActivate() {
+            if (!container) return;
+
+            if (!canView()) {
+                container.innerHTML = DENIED_TEMPLATE;
+                return;
+            }
+
             if (container && !container.querySelector('[data-stock-table]')) {
                 container.innerHTML = TEMPLATE;
                 bindEvents();

@@ -69,6 +69,7 @@
     }
 
     const canCreate = () => can('inventory.location.manage', ['ADMIN']);
+    const canView = () => can('inventory.location.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
 
     // ====================================================================
     // PLANTILLA
@@ -183,7 +184,9 @@
                 <td>${l.activa ? `<span class="badge badge-success">${t('inventory.locations.states.active')}</span>` : `<span class="badge badge-neutral">${t('inventory.locations.states.inactive')}</span>`}</td>
                 <td class="text-xs text-muted">${formatDate(l.created_at)}</td>
                 <td class="table-actions col-actions">
-                    <button class="btn btn-ghost btn-sm" data-action="units" data-id="${l.id}">${t('inventory.locations.actions.units')}</button>
+                    ${can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])
+                        ? `<button class="btn btn-ghost btn-sm" data-action="units" data-id="${l.id}">${t('inventory.locations.actions.units')}</button>`
+                        : ''}
                     <button class="btn btn-ghost btn-sm" data-action="edit" data-id="${l.id}">${t('inventory.locations.actions.edit')}</button>
                     ${l.activa
                         ? `<button class="btn btn-ghost btn-sm" data-action="deactivate" data-id="${l.id}">${t('inventory.locations.actions.deactivate')}</button>`
@@ -311,6 +314,12 @@
     // ====================================================================
 
     async function openUnitsModal(location) {
+        if (!can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])) {
+            showToast('warning', t('inventory.locations.permission.title'),
+                t('inventory.stock.permission.body', { permiso: 'inventory.stock.view' }));
+            return;
+        }
+
         const root = container.querySelector('[data-modal-root]');
         root.innerHTML = `
             <div class="modal-overlay" data-modal>
@@ -623,16 +632,42 @@
     // PUBLIC API
     // ====================================================================
 
+    const DENIED_TEMPLATE = `
+        <div class="card max-w-md mx-auto mt-8">
+            <div class="card-header">
+                <h3 class="card-title">${t('inventory.locations.permission.title')}</h3>
+            </div>
+            <div class="card-body">
+                <p>${t('inventory.locations.permission.body', { permiso: 'inventory.location.view' })}</p>
+                <div class="mt-4">
+                    <a href="#/dashboard" class="btn btn-secondary">${t('router.go_dashboard')}</a>
+                </div>
+            </div>
+        </div>`;
+
     const InventoryLocationsModule = {
         init(params, targetContainer) {
             container = targetContainer;
             if (!container) return;
+
+            if (!canView()) {
+                container.innerHTML = DENIED_TEMPLATE;
+                return;
+            }
+
             container.innerHTML = buildTemplate();
             bindEvents();
             loadLocations(1);
         },
 
         onActivate(params) {
+            if (!container) return;
+
+            if (!canView()) {
+                container.innerHTML = DENIED_TEMPLATE;
+                return;
+            }
+
             if (container && !container.querySelector('[data-locations-table]')) {
                 container.innerHTML = buildTemplate();
                 bindEvents();
