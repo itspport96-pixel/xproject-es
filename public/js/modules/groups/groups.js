@@ -22,7 +22,11 @@
         includeInactive: false,
         memberCounts: {},
         roles: [],
+        rolesLoaded: false,
+        rolesError: false,
         users: [],
+        usersLoaded: false,
+        usersError: false,
         detail: null,
         modal: null,
         sending: false
@@ -43,7 +47,7 @@
     const canCreate = () => can('groups.group.create', ['ADMIN']);
     const canEdit = () => can('groups.group.edit', ['ADMIN']);
     const canDelete = () => can('groups.group.delete', ['ADMIN']);
-    const canManageMembers = () => can('groups.group.manage_members', ['ADMIN']);
+    const canManageMembers = () => can('groups.group.manage_members', ['ADMIN', 'MANAGER']);
     const canManageRoles = () => can('groups.group.manage_roles', ['ADMIN', 'MANAGER']);
 
     // ====================================================================
@@ -212,7 +216,8 @@
     }
 
     async function loadRolesCatalog() {
-        if (state.roles.length > 0) return state.roles;
+        if (state.rolesLoaded) return state.roles;
+        state.rolesError = false;
         try {
             const response = await global.HttpClient.get('/roles');
             const payload = response && response.data ? response.data : response;
@@ -220,11 +225,14 @@
         } catch (err) {
             console.error('[Groups] roles catalog error:', err);
             state.roles = [];
+            state.rolesError = true;
         }
+        state.rolesLoaded = true;
         return state.roles;
     }
 
     async function searchUsers(search) {
+        state.usersError = false;
         try {
             const params = { per_page: 50, estado: 'ACTIVO' };
             if (search) params.search = search;
@@ -234,7 +242,9 @@
         } catch (err) {
             console.error('[Groups] users search error:', err);
             state.users = [];
+            state.usersError = true;
         }
+        state.usersLoaded = true;
         return state.users;
     }
 
@@ -542,6 +552,8 @@
     function openAddMember() {
         if (!canManageMembers() || !state.detail) return;
         state.users = [];
+        state.usersLoaded = false;
+        state.usersError = false;
         state.modal = { mode: 'add-member', errors: {}, formError: '' };
         renderModal();
         searchUsers('').then(() => {
@@ -555,15 +567,22 @@
             label: (u.nombre || '') + ' ' + (u.apellido || '') + ' (' + (u.email || '') + ')'
         }));
 
-        const cuerpo = state.users.length > 0
-            ? UI.field({
+        let cuerpo;
+        if (state.usersError) {
+            cuerpo = `<p class="text-sm text-danger">${t('groups.members.search_error')}</p>`;
+        } else if (!state.usersLoaded) {
+            cuerpo = UI.loadingState();
+        } else if (state.users.length > 0) {
+            cuerpo = UI.field({
                 label: t('groups.members.add_select'),
                 name: 'user_id',
                 type: 'select',
                 required: true,
                 options: [{ value: '', label: t('groups.members.add_placeholder') }].concat(opciones)
-            })
-            : `<p class="text-muted text-sm">${t('groups.members.search_empty')}</p>`;
+            });
+        } else {
+            cuerpo = `<p class="text-muted text-sm">${t('groups.members.search_empty')}</p>`;
+        }
 
         return `
             <div class="form-error hidden mb-3" data-form-error></div>
@@ -640,6 +659,9 @@
 
     function openAssignRole() {
         if (!canManageRoles() || !state.detail) return;
+        state.roles = [];
+        state.rolesLoaded = false;
+        state.rolesError = false;
         state.modal = { mode: 'assign-role', errors: {}, formError: '' };
         renderModal();
 
@@ -652,10 +674,14 @@
         const detail = state.detail;
         if (!detail) return '';
 
+        if (state.rolesError) {
+            return `<p class="text-sm text-danger">${t('groups.roles.catalog_error')}</p>`;
+        }
+
+        if (!state.rolesLoaded) return UI.loadingState();
+
         const asignados = (detail.roles || []).map(r => r.role_id);
         const disponibles = state.roles.filter(r => r.activo && asignados.indexOf(r.id) === -1);
-
-        if (state.roles.length === 0) return UI.loadingState();
 
         if (disponibles.length === 0) {
             return `<p class="text-muted text-sm">${t('groups.roles.all_assigned')}</p>`;
@@ -821,7 +847,7 @@
                 body = assignRoleBody(modal);
                 footer = `
                     <button class="btn btn-secondary" data-action="back-detail">${t('ui.close')}</button>
-                    ${(state.roles.length > 0)
+                    ${(state.rolesLoaded && !state.rolesError && state.roles.length > 0)
                         ? `<button class="btn btn-primary" data-action="submit-assign-role" data-modal-send${state.sending ? ' disabled' : ''}>${t('groups.roles.assign_submit')}</button>`
                         : ''}`;
                 break;
@@ -980,7 +1006,11 @@
                 includeInactive: false,
                 memberCounts: {},
                 roles: [],
+                rolesLoaded: false,
+                rolesError: false,
                 users: [],
+                usersLoaded: false,
+                usersError: false,
                 detail: null,
                 modal: null,
                 sending: false

@@ -1883,7 +1883,8 @@
       "search": "Buscar usuario",
       "search_placeholder": "Email o nombre",
       "search_btn": "Buscar",
-      "search_empty": "Sin resultados: usa la búsqueda para encontrar usuarios."
+      "search_empty": "Sin resultados: usa la búsqueda para encontrar usuarios.",
+      "search_error": "Nao foi possivel carregar os usuarios. Verifique sua permissao e tente novamente."
     },
     "roles": {
       "title": "Roles",
@@ -1902,7 +1903,8 @@
       "escalation_hint": "Sólo puedes asignar roles contenidos en tus propios permisos.",
       "assigned": "Rol asignado al grupo",
       "unassign": "Quitar",
-      "unassigned": "Rol quitado del grupo"
+      "unassigned": "Rol quitado del grupo",
+      "catalog_error": "Nao foi possivel carregar o catalogo de papeis. Verifique sua permissao e tente novamente."
     },
     "errors": {
       "load": "No se pudieron cargar los grupos.",

@@ -1883,7 +1883,8 @@
       "search": "Search user",
       "search_placeholder": "Email or name",
       "search_btn": "Search",
-      "search_empty": "No results: use the search to find users."
+      "search_empty": "No results: use the search to find users.",
+      "search_error": "Could not load users. Check your permission and try again."
     },
     "roles": {
       "title": "Roles",
@@ -1902,7 +1903,8 @@
       "escalation_hint": "You can only assign roles contained in your own permissions.",
       "assigned": "Role assigned to the group",
       "unassign": "Remove",
-      "unassigned": "Role removed from the group"
+      "unassigned": "Role removed from the group",
+      "catalog_error": "Could not load the role catalog. Check your permission and try again."
     },
     "errors": {
       "load": "Groups could not be loaded.",

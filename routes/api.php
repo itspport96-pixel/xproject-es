@@ -88,10 +88,12 @@ $router->post('/api/auth/change-password', [AuthController::class, 'changePasswo
 // Convención: ver/listar → view, crear → create, editar/roles → edit, eliminar → delete.
 
 // GET /api/users
+// OR: users.user.view (pantalla Usuarios) o groups.group.manage_members
+// (el modal de alta de miembro de grupos necesita buscar usuarios).
 $router->get('/api/users', [UserController::class, 'index'], [
     AuthenticationMiddleware::class,
     TenantMiddleware::class,
-    PermissionMiddleware::class . ':users.user.view',
+    PermissionMiddleware::class . ':users.user.view,groups.group.manage_members',
     RateLimitMiddleware::class . ':api',
 ]);
 
@@ -199,10 +201,12 @@ $router->delete('/api/users/{id}/roles/{roleId}', [UserController::class, 'remov
 // Permisos (seeded en BD): roles.role.view/create/edit/delete
 
 // GET /api/roles
+// OR: roles.role.view (pantalla Roles) o groups.group.manage_roles
+// (el modal de asignar rol de grupos necesita el catalogo de roles).
 $router->get('/api/roles', [RoleController::class, 'index'], [
     AuthenticationMiddleware::class,
     TenantMiddleware::class,
-    PermissionMiddleware::class . ':roles.role.view',
+    PermissionMiddleware::class . ':roles.role.view,groups.group.manage_roles',
     RateLimitMiddleware::class . ':api',
 ]);
 
