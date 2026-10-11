@@ -17,7 +17,7 @@
             <div class="login-card">
                 <div class="login-logo">
                     <h1 data-app-name>XP Platform</h1>
-                    <p>${t('login.tagline')}</p>
+                    <p>${global.AppConfig?.appTagline || t('login.tagline')}</p>
                 </div>
 
                 <form id="login-form" novalidate>

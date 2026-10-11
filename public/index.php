@@ -248,6 +248,7 @@ function renderSpaLayout(): void
     $baseUrlRaw = rtrim(appUrl(), '/');
     $baseUrlHtml = htmlspecialchars($baseUrlRaw, ENT_QUOTES, 'UTF-8');
     $appNameJs = json_encode($_ENV['APP_NAME'] ?? 'XP Platform');
+    $appTaglineJs = json_encode($_ENV['APP_TAGLINE'] ?? 'Gestión de Inventario Multi-Tenant');
     $baseUrlJs = json_encode($baseUrlRaw);
     $apiBaseJs = json_encode($baseUrlRaw . '/api');
     $sessionTimeoutJs = (int) ($_ENV['SESSION_TIMEOUT'] ?? 1800);
@@ -398,6 +399,7 @@ function renderSpaLayout(): void
             baseUrl: {$baseUrlJs},
             apiBase: {$apiBaseJs},
             appName: {$appNameJs},
+            appTagline: {$appTaglineJs},
             sessionTimeout: {$sessionTimeoutJs},
             assetsVersion: {$assetsVersionJs}
         };
