@@ -157,7 +157,16 @@ class DatabaseService
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES => false,
-                    PDO::ATTR_PERSISTENT => false
+                    PDO::ATTR_PERSISTENT => false,
+                    // v1.13.10: el modo estricto hace que MariaDB RECHACE
+                    // inserciones invalidas (ENUM fuera de miembro, fecha cero,
+                    // truncado) en vez de guardarlas silenciosamente como '' o
+                    // NULL. Sin esto, una carga manual con encoding erroneo
+                    // corrompia datos y la hidratacion del dominio fallaba (ver
+                    // CHANGELOG 1.13.10). Se fija aqui ademas del GLOBAL para
+                    // que la app siga estricta aunque se relaje el servidor.
+                    PDO::MYSQL_ATTR_INIT_COMMAND =>
+                        "SET sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION'",
                 ]
             );
         } catch (PDOException $e) {

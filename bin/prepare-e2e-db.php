@@ -365,6 +365,22 @@ try {
         fail('El sembrador no dejo TRANSITO/DANADOS activos');
     }
 
+    // ------------------------------------------------ 5) integridad de datos
+    // v1.13.10: tras sembrar se valida que el dataset de partida no contenga
+    // datos que rompan la hidratacion del dominio (ENUMs en indice 0, fechas
+    // cero, JSON invalido, claves foraneas huerfanas). Si el seed o la copia
+    // dejaran algo corrupto, el preparado falla aqui y no en mitad de un E2E.
+    [$exit, $salida] = runPhp($baseDir . '/bin/check-data-integrity.php', $target);
+    if ($exit !== 0) {
+        fail("check-data-integrity.php detecto problemas en {$target}: {$salida}");
+    }
+
+    foreach (explode("\n", $salida) as $linea) {
+        if (str_starts_with(trim($linea), 'RESULTADO:')) {
+            echo "  integridad: {$linea}\n";
+        }
+    }
+
     echo ($nacida ? "BD {$target} creada y lista\n" : "BD {$target} lista\n");
     exit(0);
 } catch (PDOException $e) {

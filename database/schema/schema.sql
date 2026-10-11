@@ -373,7 +373,7 @@ CREATE TABLE `refresh_tokens` (
   `family_id` char(36) NOT NULL,
   `used` tinyint(1) NOT NULL DEFAULT 0,
   `revoked` tinyint(1) NOT NULL DEFAULT 0,
-  `revoked_reason` enum('rotated','logout','reuse','inactivity','expired') DEFAULT NULL,
+  `revoked_reason` enum('rotated','logout','reuse','inactivity','expired','password_change','admin_reset') DEFAULT NULL,
   `expires_at` datetime NOT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
   `user_agent` varchar(255) DEFAULT NULL,
