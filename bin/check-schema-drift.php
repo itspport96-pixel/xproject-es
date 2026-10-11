@@ -14,7 +14,11 @@ declare(strict_types=1);
  *      tablas (existencia, motor, colacion), columnas (tipo, nulabilidad,
  *      default, extra, juego de caracteres), indices (unicidad y columnas),
  *      enums y claves foraneas.
- *   3. Elimina la BD temporal y sale con 0 si no hay drift, 1 si lo hay.
+ *   3. Abre cada tabla de las dos BD con CHECK TABLE. information_schema se
+ *      sirve del .frm y del diccionario interno, por lo que una tabla con el
+ *      .ibd inutilizable sigue listando sus columnas: sin esta pasada el
+ *      script daria SIN DRIFT con la tabla irreparable.
+ *   4. Elimina la BD temporal y sale con 0 si no hay drift, 1 si lo hay.
  *
  * La BD viva es la fuente de verdad: si hay drift, regenera el fichero con
  *   php bin/regenerate-schema.php
@@ -161,6 +165,64 @@ function readStructure(PDO $pdo, string $db): array
 }
 
 /**
+ * Abre de verdad cada tabla de una BD (CHECK TABLE).
+ *
+ * information_schema se sirve del .frm y del diccionario interno, de modo que
+ * una tabla cuyo .ibd no se puede abrir sigue listando sus columnas e indices
+ * con normalidad: el drift saldria SIN DRIFT con la tabla inutilizable. CHECK
+ * TABLE obliga a abrir el indice agrupado (y con el, el arranque de metadatos
+ * de instant ADD COLUMN), que es el camino que falla con 1932/1933.
+ *
+ * @param array<int, string> $tables
+ * @return list<string>
+ */
+function openAllTables(PDO $pdo, string $db, array $tables, string $source): array
+{
+    $db = identifier($db, 'bd');
+    $problems = [];
+
+    foreach ($tables as $table) {
+        $table = (string) $table;
+        $quoted = '`' . str_replace('`', '``', $table) . '`';
+
+        try {
+            $rows = $pdo->query("CHECK TABLE {$db}.{$quoted}")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            $problems[] = "[NO LEGIBLE] {$source} {$db}.{$table}: {$e->getMessage()}";
+            continue;
+        }
+
+        foreach ($rows as $row) {
+            $type = (string) ($row['Msg_type'] ?? '');
+            $text = (string) ($row['Msg_text'] ?? '');
+
+            if ($type === 'error' || stripos($text, 'corrupt') !== false || stripos($text, "doesn't exist") !== false) {
+                $problems[] = "[NO LEGIBLE] {$source} {$db}.{$table}: {$text}";
+            }
+        }
+    }
+
+    return $problems;
+}
+
+/**
+ * @return array<int, string>
+ */
+function listTables(PDO $pdo, string $db): array
+{
+    $db = identifier($db, 'bd');
+    $stmt = $pdo->prepare(
+        'SELECT TABLE_NAME
+           FROM information_schema.TABLES
+          WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = "BASE TABLE"
+          ORDER BY TABLE_NAME'
+    );
+    $stmt->execute([$db]);
+
+    return array_map('strval', array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'TABLE_NAME'));
+}
+
+/**
  * @param array<string, string> $expected
  * @param array<string, string> $actual
  * @return list<string>
@@ -248,6 +310,7 @@ $admin->exec("DROP DATABASE IF EXISTS `{$tempDb}`");
 $admin->exec("CREATE DATABASE `{$tempDb}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
 $counts = [];
+$opened = 'no comprobado';
 
 try {
     $options = $serverOptions;
@@ -275,7 +338,21 @@ try {
     $expected = readStructure($temp, $tempDb);
     $actual = readStructure($live, $liveDb);
 
-    $problems = [];
+    $liveTables = listTables($live, $liveDb);
+    $tempTables = listTables($temp, $tempDb);
+
+    $liveBroken = openAllTables($live, $liveDb, $liveTables, 'viva');
+    $tempBroken = openAllTables($temp, $tempDb, $tempTables, 'fichero');
+
+    $opened = sprintf(
+        'viva %d/%d, fichero %d/%d',
+        count($liveTables) - count($liveBroken),
+        count($liveTables),
+        count($tempTables) - count($tempBroken),
+        count($tempTables)
+    );
+
+    $problems = array_merge($liveBroken, $tempBroken);
 
     foreach ($expected as $label => $structure) {
         $problems = array_merge($problems, diff($label, $structure, $actual[$label], 'fichero', 'viva'));
@@ -294,6 +371,8 @@ printf("\n");
 foreach ($counts as $label => $count) {
     printf("  %-16s %d\n", $label, $count);
 }
+
+printf("  %-16s %s\n", 'tablas abiertas', $opened);
 
 printf("\n");
 
