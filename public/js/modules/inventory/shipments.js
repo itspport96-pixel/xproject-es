@@ -31,11 +31,13 @@
     let container = null;
 
     let state = {
+        tab: 'load',
         items: [],
         summary: { total: 0, en_preparacion: 0, en_ruta: 0, entregados: 0 },
         pagination: { total: 0, page: 1, per_page: 20, has_next: false },
         filters: { estado: '' },
         listLoading: false,
+        listError: false,
         prepared: [],
         preparedLoading: false,
         lotes: [],
@@ -60,6 +62,26 @@
     ];
 
     const TIPOS_ENVIO = ['PROPIO', 'VEHICULO', 'MENSAJERIA', 'TERCERO'];
+
+    const TIPO_KEYS = {
+        PROPIO: 'inventory.shipments.types.propio',
+        VEHICULO: 'inventory.shipments.types.vehiculo',
+        MENSAJERIA: 'inventory.shipments.types.mensajeria',
+        TERCERO: 'inventory.shipments.types.tercero'
+    };
+
+    const tipoLabel = (v) => TIPO_KEYS[v] ? t(TIPO_KEYS[v]) : (v || '—');
+
+    const ITEM_ESTADO_KEYS = {
+        PREPARADA: 'inventory.shipments.item_states.preparada',
+        CARGADA: 'inventory.shipments.item_states.cargada',
+        EN_TRANSITO: 'inventory.shipments.item_states.en_transito',
+        ENTREGADA: 'inventory.shipments.item_states.entregada',
+        RECHAZADA: 'inventory.shipments.item_states.rechazada',
+        DEVUELTA: 'inventory.shipments.item_states.devuelta'
+    };
+
+    const itemEstadoLabel = (v) => ITEM_ESTADO_KEYS[v] ? t(ITEM_ESTADO_KEYS[v]) : (v || '—');
 
     const estadoColor = (v) => {
         const e = ESTADOS_ENVIO.find(x => x.value === v);
@@ -90,56 +112,64 @@
     const canLoad = () => can('inventory.shipping.create', ['ADMIN', 'MANAGER', 'USER']);
     const canAuthorize = () => can('inventory.shipping.confirm', ['ADMIN', 'MANAGER']);
 
-    const TEMPLATE = `
-        <div class="max-w-7xl mx-auto">
-            ${UI.pageHeader({
-                title: t('inventory.shipments.title'),
-                subtitle: t('inventory.shipments.subtitle')
-            })}
+    // Pestañas de la vista: "Nuevo envío" sólo con inventory.shipping.create
+    // (si no queda una sola, no se pinta barra y la vista es monolítica).
+    const TABS_SHIPMENTS = ['load', 'list'];
 
-            <div data-load-section></div>
+    function buildTemplate() {
+        const panels = [];
 
-            <div class="flex items-center justify-between mt-6 mb-3">
-                <h3 class="text-lg font-bold">${t('inventory.shipments.list_title')}</h3>
-            </div>
+        if (canLoad()) {
+            panels.push({ id: 'load', html: '<div data-load-section></div>' });
+        }
 
+        panels.push({
+            id: 'list',
+            html: `
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" data-ship-summary></div>
 
-            <div class="card mb-4">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <div class="form-group mb-0">
-                        <select class="select" data-filter="estado">
-                            <option value="">${t('inventory.shipments.filters.all_states')}</option>
-                            ${ESTADOS_ENVIO.map(e => `<option value="${e.value}">${t(e.labelKey)}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group mb-0 flex gap-2 md:col-span-3">
-                        <button class="btn btn-secondary flex-1" data-action="apply-filters">${t('inventory.shipments.filters.apply')}</button>
-                        <button class="btn btn-ghost" data-action="clear-filters" title="${t('inventory.shipments.filters.clear_title')}">${t('inventory.shipments.filters.clear')}</button>
-                    </div>
-                </div>
-            </div>
+            ${UI.filtersCard(`
+                <div class="form-group mb-0">
+                    <select class="select" data-filter="estado">
+                        <option value="">${t('inventory.shipments.filters.all_states')}</option>
+                        ${ESTADOS_ENVIO.map(e => `<option value="${e.value}">${t(e.labelKey)}</option>`).join('')}
+                    </select>
+                </div>`, {
+                cols: 4,
+                applyLabel: t('inventory.shipments.filters.apply'),
+                clearLabel: t('inventory.shipments.filters.clear'),
+                clearTitle: t('inventory.shipments.filters.clear_title')
+            })}
 
             <div class="card p-0">
                 <div class="table-wrapper" data-ship-table></div>
                 <div data-ship-pagination class="pagination"></div>
-            </div>
-        </div>
+            </div>`
+        });
+
+        return UI.viewShell({
+            title: t('inventory.shipments.title'),
+            subtitle: t('inventory.shipments.subtitle'),
+            tabs: [
+                { id: 'load', label: t('inventory.shipments.load.title'), show: canLoad() },
+                { id: 'list', label: t('inventory.shipments.list_title') }
+            ],
+            activeTab: state.tab,
+            panels: panels
+        }) + `
 
         <div data-modal-root></div>
     `;
+    }
 
     const LOAD_TEMPLATE = `
         <div class="card mb-4">
-            <div class="card-header">
-                <h3 class="card-title">${t('inventory.shipments.load.title')}</h3>
-            </div>
             <form data-load-form novalidate>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="form-group">
                         <label class="form-label">${t('inventory.shipments.labels.tipo')} <span class="required">*</span></label>
                         <select class="select" name="tipo" required>
-                            ${TIPOS_ENVIO.map(t => `<option value="${t}" ${t === 'PROPIO' ? 'selected' : ''}>${t}</option>`).join('')}
+                            ${TIPOS_ENVIO.map(tipo => `<option value="${tipo}" ${tipo === 'PROPIO' ? 'selected' : ''}>${tipoLabel(tipo)}</option>`).join('')}
                         </select>
                         <span class="form-error hidden" data-error="tipo"></span>
                     </div>
@@ -237,27 +267,34 @@
 
                 <div data-form-error class="alert alert-danger hidden mt-4"></div>
 
-                <div class="flex items-center justify-between mt-4">
-                    <div class="text-xs text-muted" data-key-hint></div>
-                    <button type="submit" class="btn btn-primary" data-action="submit-load">${t('inventory.shipments.load.submit')}</button>
-                </div>
+                ${UI.formFooter({
+                    submitLabel: t('inventory.shipments.load.submit'),
+                    submitAction: 'submit-load'
+                })}
             </form>
         </div>
     `;
 
-    const DENIED_TEMPLATE = `
-        <div class="card max-w-md mx-auto mt-8">
-            <div class="card-header">
-                <h3 class="card-title">${t('inventory.shipments.permission.title')}</h3>
-            </div>
-            <div class="card-body">
-                <p>${t('inventory.shipments.permission.body', { permiso: 'inventory.shipping.view' })}</p>
-                <div class="mt-4">
-                    <a href="#/dashboard" class="btn btn-secondary">${t('inventory.shipments.permission.dashboard')}</a>
-                </div>
-            </div>
-        </div>
-    `;
+    // ====================================================================
+    // PESTAÑAS
+    // ====================================================================
+
+    /** Aplica la pestaña al DOM, a state y a la URL (sin recargar datos). */
+    function applyTab(tab) {
+        state.tab = tab;
+        UI.applyTabState(container, tab);
+        UI.syncTabParam(tab);
+    }
+
+    /** Cambio de pestaña: aplica y refresca los datos del panel destino. */
+    function switchTab(tab) {
+        if (TABS_SHIPMENTS.indexOf(tab) === -1) return;
+        if (tab === 'load' && !canLoad()) return;
+
+        applyTab(tab);
+        if (tab === 'load') loadCatalogs();
+        else loadShipments(state.pagination.page || 1);
+    }
 
     // ====================================================================
     // IDEMPOTENCY KEY
@@ -329,10 +366,7 @@
         });
 
         if (state.preparedLoading) {
-            root.innerHTML = `
-                <div class="flex items-center justify-center py-6">
-                    <div class="spinner"></div>
-                </div>`;
+            root.innerHTML = UI.loadingState();
             return;
         }
 
@@ -346,11 +380,10 @@
 
     function renderLotePanel() {
         if (state.lotes.length === 0) {
-            return `
-                <div class="empty-state">
-                    <div class="empty-state-title">${t('inventory.shipments.load.lote.empty_title')}</div>
-                    <p class="text-muted">${t('inventory.shipments.load.lote.empty_message')}</p>
-                </div>`;
+            return UI.emptyState({
+                title: t('inventory.shipments.load.lote.empty_title'),
+                message: t('inventory.shipments.load.lote.empty_message')
+            });
         }
 
         const opciones = state.lotes.map(l => {
@@ -402,11 +435,10 @@
 
     function renderUnitsPanel() {
         if (state.prepared.length === 0) {
-            return `
-                <div class="empty-state">
-                    <div class="empty-state-title">${t('inventory.shipments.load.units.empty_title')}</div>
-                    <p class="text-muted">${t('inventory.shipments.load.units.empty_message')}</p>
-                </div>`;
+            return UI.emptyState({
+                title: t('inventory.shipments.load.units.empty_title'),
+                message: t('inventory.shipments.load.units.empty_message')
+            });
         }
 
         const rows = state.prepared.map(u => `
@@ -467,19 +499,12 @@
         if (!root) return;
 
         const s = state.summary;
-        const cards = [
+        UI.summaryCards(root, [
             { label: t('inventory.shipments.summary.envios'), value: s.total },
             { label: t('inventory.shipments.summary.en_preparacion'), value: s.en_preparacion },
             { label: t('inventory.shipments.summary.en_ruta'), value: s.en_ruta },
             { label: t('inventory.shipments.summary.entregados'), value: s.entregados }
-        ];
-
-        root.innerHTML = cards.map(c => `
-            <div class="card p-3">
-                <div class="text-xs text-muted">${c.label}</div>
-                <div class="text-xl font-bold">${formatNumber(c.value)}</div>
-            </div>
-        `).join('');
+        ]);
     }
 
     function renderTable() {
@@ -487,19 +512,24 @@
         if (!root) return;
 
         if (state.listLoading) {
-            root.innerHTML = `
-                <div class="flex items-center justify-center py-12">
-                    <div class="spinner"></div>
-                </div>`;
+            root.innerHTML = UI.loadingState();
+            return;
+        }
+
+        if (state.listError) {
+            root.innerHTML = UI.errorState({
+                message: t('inventory.shipments.messages.list_load_error'),
+                retryAction: 'retry-ship-list',
+                retryLabel: t('ui.retry')
+            });
             return;
         }
 
         if (state.items.length === 0) {
-            root.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-title">${t('inventory.shipments.empty.title')}</div>
-                    <p class="text-muted">${t('inventory.shipments.empty.message')}</p>
-                </div>`;
+            root.innerHTML = UI.emptyState({
+                title: t('inventory.shipments.empty.title'),
+                message: t('inventory.shipments.empty.message')
+            });
             return;
         }
 
@@ -510,7 +540,7 @@
                     <div class="font-medium">${escapeHtml(s.destinatario_nombre || '—')}</div>
                     <div class="text-xs text-muted">${escapeHtml(s.destino_direccion || s.ubicacion_origen || '—')}</div>
                 </td>
-                <td>${escapeHtml(s.tipo || '—')}</td>
+                <td>${escapeHtml(tipoLabel(s.tipo))}</td>
                 <td class="text-xs">${escapeHtml(s.conductor_nombre || '—')}</td>
                 <td class="text-right">${formatNumber(s.total_items)}</td>
                 <td><span class="badge badge-${estadoColor(s.estado)}">${escapeHtml(estadoLabel(s.estado))}</span></td>
@@ -554,19 +584,11 @@
         const root = container.querySelector('[data-ship-pagination]');
         if (!root) return;
 
-        const { total, page, per_page, has_next } = state.pagination;
-        const totalPages = Math.max(1, Math.ceil(total / per_page));
-
-        root.innerHTML = `
-            <div class="pagination-info">
-                ${t('ui.pagination', { shown: state.items.length, total: total, label: t('inventory.shipments.pagination_label') })}
-            </div>
-            <div class="pagination-controls">
-                <button class="page-btn" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>‹</button>
-                <span class="page-btn is-active">${page} / ${totalPages}</span>
-                <button class="page-btn" data-page="${page + 1}" ${!has_next ? 'disabled' : ''}>›</button>
-            </div>
-        `;
+        UI.renderPagination(root, {
+            pagination: state.pagination,
+            shown: state.items.length,
+            label: t('inventory.shipments.pagination_label')
+        });
     }
 
     function renderAll() {
@@ -611,7 +633,7 @@
                 <div class="modal-overlay" data-modal>
                     <div class="modal">
                         <div class="modal-body">
-                            <div class="flex items-center justify-center py-8"><div class="spinner"></div></div>
+                            ${UI.loadingState()}
                         </div>
                     </div>
                 </div>`;
@@ -629,7 +651,7 @@
                 <td class="font-mono text-xs">${escapeHtml(i.barcode)}</td>
                 <td>${escapeHtml(i.producto)}</td>
                 <td class="text-right font-medium">${formatNumber(i.cantidad)}</td>
-                <td><span class="badge badge-${estadoColor(i.estado)}">${escapeHtml(i.estado)}</span></td>
+                <td><span class="badge badge-${estadoColor(i.estado)}">${escapeHtml(itemEstadoLabel(i.estado))}</span></td>
             </tr>
         `).join('');
 
@@ -650,7 +672,7 @@
                             </div>
                             <div class="form-group">
                                 <label class="form-label">${t('inventory.shipments.labels.tipo')}</label>
-                                <div class="font-medium">${escapeHtml(s.tipo || '—')}</div>
+                                <div class="font-medium">${escapeHtml(tipoLabel(s.tipo))}</div>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">${t('inventory.shipments.labels.destinatario')}</label>
@@ -827,9 +849,11 @@
             state.summary = payload.summary || state.summary;
             state.pagination = payload.pagination || state.pagination;
             state.pagination.page = page;
+            state.listError = false;
         } catch (err) {
             console.error('[Shipments] load error:', err);
             state.items = [];
+            state.listError = true;
             if (err && err.status === 403) {
                 showToast('danger', t('inventory.shipments.permission.title'), t('inventory.shipments.messages.list_forbidden'));
             } else {
@@ -915,6 +939,9 @@
             renderSelectionCount();
             renderModePanel();
 
+            // El envío ya existe: la pestaña de listado gana el foco y la
+            // recarga de ambos paneles ocurre en el Promise.all de abajo.
+            applyTab('list');
             await Promise.all([loadShipments(1), loadCatalogs()]);
         } catch (err) {
             handleActionError(err, t('inventory.shipments.messages.load_error'), () => {
@@ -1130,6 +1157,12 @@
         const page = btn.dataset.page;
 
         switch (action) {
+            case 'tab':
+                switchTab(btn.dataset.tab);
+                break;
+            case 'retry-ship-list':
+                loadShipments(state.pagination.page || 1);
+                break;
             case 'apply-filters':
                 readFilters();
                 loadShipments(1);
@@ -1212,42 +1245,55 @@
     // PUBLIC API
     // ====================================================================
 
+    function renderPermissionDenied() {
+        container.innerHTML = UI.deniedState({
+            title: t('inventory.shipments.permission.title'),
+            message: t('inventory.shipments.permission.body', { permiso: 'inventory.shipping.view' }),
+            ctaLabel: t('inventory.shipments.permission.dashboard')
+        });
+    }
+
     const InventoryShipmentsModule = {
         init(params, targetContainer) {
             container = targetContainer;
             if (!container) return;
 
             if (!canView()) {
-                container.innerHTML = DENIED_TEMPLATE;
+                renderPermissionDenied();
                 return;
             }
 
-            container.innerHTML = TEMPLATE;
+            state.tab = UI.tabFromParams(params, TABS_SHIPMENTS, canLoad() ? 'load' : 'list');
+            container.innerHTML = buildTemplate();
             bindEvents();
             state.loadKey = newIdempotencyKey();
 
             renderLoadSection();
             renderAll();
 
-            loadCatalogs();
+            if (canLoad()) loadCatalogs();
             loadShipments(1);
         },
 
-        onActivate() {
+        onActivate(params) {
             if (!container) return;
 
             if (!canView()) {
-                container.innerHTML = DENIED_TEMPLATE;
+                renderPermissionDenied();
                 return;
             }
 
             if (!container.querySelector('[data-ship-table]')) {
-                container.innerHTML = TEMPLATE;
+                container.innerHTML = buildTemplate();
                 bindEvents();
                 state.loadKey = newIdempotencyKey();
                 renderLoadSection();
             }
-            loadCatalogs();
+
+            const tab = UI.tabFromParams(params, TABS_SHIPMENTS, state.tab);
+            if (tab !== state.tab) applyTab(tab);
+
+            if (canLoad()) loadCatalogs();
             loadShipments(state.pagination.page || 1);
         },
 
@@ -1260,11 +1306,13 @@
             }
             container = null;
             state = {
+                tab: 'load',
                 items: [],
                 summary: { total: 0, en_preparacion: 0, en_ruta: 0, entregados: 0 },
                 pagination: { total: 0, page: 1, per_page: 20, has_next: false },
                 filters: { estado: '' },
                 listLoading: false,
+                listError: false,
                 prepared: [],
                 preparedLoading: false,
                 lotes: [],

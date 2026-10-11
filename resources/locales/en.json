@@ -16,6 +16,8 @@
   },
   "ui": {
     "empty_title": "No data",
+    "error_title": "Load error",
+    "retry": "Retry",
     "pagination": "Showing {shown} of {total} {label}",
     "records": "records",
     "close": "Close",
@@ -965,6 +967,20 @@
         "entregado": "Delivered",
         "fallo_entrega": "Delivery failed",
         "devuelto": "Returned"
+      },
+      "types": {
+        "propio": "Own",
+        "vehiculo": "Vehicle",
+        "mensajeria": "Courier",
+        "tercero": "Third party"
+      },
+      "item_states": {
+        "preparada": "Prepared",
+        "cargada": "Loaded",
+        "en_transito": "In transit",
+        "entregada": "Delivered",
+        "rechazada": "Rejected",
+        "devuelta": "Returned"
       },
       "summary": {
         "envios": "Shipments",

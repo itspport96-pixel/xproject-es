@@ -387,6 +387,7 @@ function renderSpaLayout(): void
     <!-- Shared UI components (v1.9.3): deben ir antes de los modulos -->
     <script src="{$baseUrlHtml}/js/ui/dom.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/ui/render.js?v={$assetsVersion}"></script>
+    <script src="{$baseUrlHtml}/js/ui/view.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/ui/modal.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/ui/actions.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/ui/account-menu.js?v={$assetsVersion}"></script>

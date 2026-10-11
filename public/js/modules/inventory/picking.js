@@ -30,6 +30,7 @@
     let container = null;
 
     let state = {
+        tab: 'list',
         reservations: [],
         reservationSummary: { total: 0, activas: 0, con_expiracion: 0 },
         reservationPagination: { total: 0, page: 1, per_page: 100, has_next: false },
@@ -39,6 +40,7 @@
         pickingPagination: { total: 0, page: 1, per_page: 20, has_next: false },
         pickingFilters: { estado: '', id_lote_picking: '' },
         pickingLoading: false,
+        listError: false,
         locations: [],
         selected: new Set(),
         expanded: new Set(),
@@ -84,48 +86,59 @@
     const canConfirm = () => can('inventory.picking.confirm', ['ADMIN', 'MANAGER', 'USER']);
     const canVerify = () => can('inventory.picking.verify', ['ADMIN', 'MANAGER']);
 
-    const TEMPLATE = `
-        <div class="max-w-7xl mx-auto">
-            ${UI.pageHeader({
-                title: t('inventory.picking.title'),
-                subtitle: t('inventory.picking.subtitle')
-            })}
+    // Pestañas de la vista: "Nuevo lote" sólo con inventory.picking.create
+    // (si no queda una sola, no se pinta barra y la vista es monolítica).
+    const TABS_PICKING = ['start', 'list'];
 
-            <div data-start-section></div>
+    function buildTemplate() {
+        const panels = [];
 
-            <div class="flex items-center justify-between mt-6 mb-3">
-                <h3 class="text-lg font-bold">${t('inventory.picking.operations_title')}</h3>
-            </div>
+        if (canCreate()) {
+            panels.push({ id: 'start', html: '<div data-start-section></div>' });
+        }
 
+        panels.push({
+            id: 'list',
+            html: `
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" data-picking-summary></div>
 
-            <div class="card mb-4">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <div class="form-group mb-0">
-                        <select class="select" data-picking-filter="estado">
-                            <option value="">${t('inventory.picking.filters.all_states')}</option>
-                            ${ESTADOS_PICKING.map(e => `<option value="${e.value}">${t(e.labelKey)}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group mb-0">
-                        <input type="text" class="input" data-picking-filter="id_lote_picking"
-                               placeholder="${t('inventory.picking.filters.search_placeholder')}">
-                    </div>
-                    <div class="form-group mb-0 flex gap-2 md:col-span-2">
-                        <button class="btn btn-secondary flex-1" data-action="apply-picking-filters">${t('inventory.picking.filters.apply')}</button>
-                        <button class="btn btn-ghost" data-action="clear-picking-filters" title="${t('inventory.picking.filters.clear_title')}">${t('inventory.picking.filters.clear')}</button>
-                    </div>
+            ${UI.filtersCard(`
+                <div class="form-group mb-0">
+                    <select class="select" data-filter="estado">
+                        <option value="">${t('inventory.picking.filters.all_states')}</option>
+                        ${ESTADOS_PICKING.map(e => `<option value="${e.value}">${t(e.labelKey)}</option>`).join('')}
+                    </select>
                 </div>
-            </div>
+                <div class="form-group mb-0">
+                    <input type="text" class="input" data-filter="id_lote_picking"
+                           placeholder="${t('inventory.picking.filters.search_placeholder')}">
+                </div>`, {
+                cols: 4,
+                applyLabel: t('inventory.picking.filters.apply'),
+                clearLabel: t('inventory.picking.filters.clear'),
+                clearTitle: t('inventory.picking.filters.clear_title')
+            })}
 
             <div class="card p-0">
                 <div class="table-wrapper" data-picking-table></div>
                 <div data-picking-pagination class="pagination"></div>
-            </div>
-        </div>
+            </div>`
+        });
+
+        return UI.viewShell({
+            title: t('inventory.picking.title'),
+            subtitle: t('inventory.picking.subtitle'),
+            tabs: [
+                { id: 'start', label: t('inventory.picking.start.title'), show: canCreate() },
+                { id: 'list', label: t('inventory.picking.operations_title') }
+            ],
+            activeTab: state.tab,
+            panels: panels
+        }) + `
 
         <div data-modal-root></div>
     `;
+    }
 
     const START_TEMPLATE = `
         <div class="card mb-4">
@@ -182,25 +195,11 @@
 
                 <div data-form-error class="alert alert-danger hidden mt-4"></div>
 
-                <div class="flex items-center justify-between mt-4">
-                    <div class="text-xs text-muted" data-key-hint></div>
-                    <button type="submit" class="btn btn-primary" data-action="submit-start">${t('inventory.picking.start.submit')}</button>
-                </div>
+                ${UI.formFooter({
+                    submitLabel: t('inventory.picking.start.submit'),
+                    submitAction: 'submit-start'
+                })}
             </form>
-        </div>
-    `;
-
-    const DENIED_TEMPLATE = `
-        <div class="card max-w-md mx-auto mt-8">
-            <div class="card-header">
-                <h3 class="card-title">${t('inventory.picking.permission.title')}</h3>
-            </div>
-            <div class="card-body">
-                <p>${t('inventory.picking.permission.body', { permiso: 'inventory.picking.view' })}</p>
-                <div class="mt-4">
-                    <a href="#/dashboard" class="btn btn-secondary">${t('router.go_dashboard')}</a>
-                </div>
-            </div>
         </div>
     `;
 
@@ -237,11 +236,35 @@
     }
 
     // ====================================================================
+    // PESTAÑAS
+    // ====================================================================
+
+    /** Aplica la pestaña al DOM, a state y a la URL (sin recargar datos). */
+    function applyTab(tab) {
+        state.tab = tab;
+        UI.applyTabState(container, tab);
+        UI.syncTabParam(tab);
+    }
+
+    /** Cambio de pestaña: aplica y refresca los datos del panel destino. */
+    function switchTab(tab) {
+        if (TABS_PICKING.indexOf(tab) === -1) return;
+        if (tab === 'start' && !canCreate()) return;
+
+        applyTab(tab);
+        if (tab === 'start') loadReservations();
+        else loadPickings(state.pickingPagination.page || 1);
+    }
+
+    // ====================================================================
     // RENDER - SECCIÓN DE ARRANQUE
     // ====================================================================
 
     function renderPermissionDenied() {
-        container.innerHTML = DENIED_TEMPLATE;
+        container.innerHTML = UI.deniedState({
+            title: t('inventory.picking.permission.title'),
+            message: t('inventory.picking.permission.body', { permiso: 'inventory.picking.view' })
+        });
     }
 
     function renderStartSection() {
@@ -294,19 +317,15 @@
         if (!root) return;
 
         if (state.reservationsLoading) {
-            root.innerHTML = `
-                <div class="flex items-center justify-center py-8">
-                    <div class="spinner"></div>
-                </div>`;
+            root.innerHTML = UI.loadingState();
             return;
         }
 
         if (state.reservations.length === 0) {
-            root.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-title">${t('inventory.picking.empty.reservations_title')}</div>
-                    <p class="text-muted">${t('inventory.picking.empty.reservations_message')}</p>
-                </div>`;
+            root.innerHTML = UI.emptyState({
+                title: t('inventory.picking.empty.reservations_title'),
+                message: t('inventory.picking.empty.reservations_message')
+            });
             renderSelectionCount();
             return;
         }
@@ -365,19 +384,12 @@
         if (!root) return;
 
         const s = state.pickingSummary;
-        const cards = [
+        UI.summaryCards(root, [
             { label: t('inventory.picking.summary.operaciones'), value: s.total },
             { label: t('inventory.picking.summary.en_curso'), value: s.en_curso },
             { label: t('inventory.picking.summary.completadas'), value: s.completadas },
             { label: t('inventory.picking.summary.verificadas'), value: s.verificadas }
-        ];
-
-        root.innerHTML = cards.map(c => `
-            <div class="card p-3">
-                <div class="text-xs text-muted">${c.label}</div>
-                <div class="text-xl font-bold">${formatNumber(c.value)}</div>
-            </div>
-        `).join('');
+        ]);
     }
 
     function groupByLote(rows) {
@@ -429,19 +441,24 @@
         if (!root) return;
 
         if (state.pickingLoading) {
-            root.innerHTML = `
-                <div class="flex items-center justify-center py-12">
-                    <div class="spinner"></div>
-                </div>`;
+            root.innerHTML = UI.loadingState();
+            return;
+        }
+
+        if (state.listError) {
+            root.innerHTML = UI.errorState({
+                message: t('inventory.picking.messages.pickings_load_error'),
+                retryAction: 'retry-picking-list',
+                retryLabel: t('ui.retry')
+            });
             return;
         }
 
         if (state.pickings.length === 0) {
-            root.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-title">${t('inventory.picking.empty.title')}</div>
-                    <p class="text-muted">${t('inventory.picking.empty.message')}</p>
-                </div>`;
+            root.innerHTML = UI.emptyState({
+                title: t('inventory.picking.empty.title'),
+                message: t('inventory.picking.empty.message')
+            });
             return;
         }
 
@@ -524,19 +541,11 @@
         const root = container.querySelector('[data-picking-pagination]');
         if (!root) return;
 
-        const { total, page, per_page, has_next } = state.pickingPagination;
-        const totalPages = Math.max(1, Math.ceil(total / per_page));
-
-        root.innerHTML = `
-            <div class="pagination-info">
-                ${t('ui.pagination', { shown: state.pickings.length, total: total, label: t('inventory.picking.pagination_label') })}
-            </div>
-            <div class="pagination-controls">
-                <button class="page-btn" data-page-picking="${page - 1}" ${page <= 1 ? 'disabled' : ''}>‹</button>
-                <span class="page-btn is-active">${page} / ${totalPages}</span>
-                <button class="page-btn" data-page-picking="${page + 1}" ${!has_next ? 'disabled' : ''}>›</button>
-            </div>
-        `;
+        UI.renderPagination(root, {
+            pagination: state.pickingPagination,
+            shown: state.pickings.length,
+            label: t('inventory.picking.pagination_label')
+        });
     }
 
     function renderAll() {
@@ -617,9 +626,11 @@
             state.pickingSummary = payload.summary || state.pickingSummary;
             state.pickingPagination = payload.pagination || state.pickingPagination;
             state.pickingPagination.page = page;
+            state.listError = false;
         } catch (err) {
             console.error('[Picking] load error:', err);
             state.pickings = [];
+            state.listError = true;
             if (err && err.status === 403) {
                 showToast('danger', t('inventory.picking.permission.title'), t('inventory.picking.messages.forbidden_view', { permiso: 'inventory.picking.view' }));
             } else {
@@ -698,6 +709,9 @@
 
             form.reset();
             renderKeyHint(container.querySelector('[data-start-section]'));
+            // El lote ya existe: la pestaña de operaciones gana el foco y la
+            // recarga de ambos paneles ocurre en el Promise.all de abajo.
+            applyTab('list');
             await Promise.all([loadReservations(), loadPickings(1)]);
         } catch (err) {
             handleActionError(err, t('inventory.picking.messages.start_error'), () => {
@@ -899,14 +913,16 @@
     // ====================================================================
 
     function readPickingFilters() {
-        container.querySelectorAll('[data-picking-filter]').forEach(el => {
-            state.pickingFilters[el.dataset.pickingFilter] = el.value.trim();
+        const filters = {};
+        container.querySelectorAll('[data-filter]').forEach(el => {
+            filters[el.dataset.filter] = el.value.trim();
         });
+        state.pickingFilters = filters;
     }
 
     function clearPickingFilters() {
         state.pickingFilters = { estado: '', id_lote_picking: '' };
-        container.querySelectorAll('[data-picking-filter]').forEach(el => { el.value = ''; });
+        container.querySelectorAll('[data-filter]').forEach(el => { el.value = ''; });
         loadPickings(1);
     }
 
@@ -929,19 +945,25 @@
     }
 
     function handleClick(e) {
-        const btn = e.target.closest('[data-action], [data-page-picking]');
+        const btn = e.target.closest('[data-action], [data-page]');
         if (!btn) return;
 
         const action = btn.dataset.action;
         const lote = btn.dataset.lote;
-        const page = btn.dataset.pagePicking;
+        const page = btn.dataset.page;
 
         switch (action) {
-            case 'apply-picking-filters':
+            case 'tab':
+                switchTab(btn.dataset.tab);
+                break;
+            case 'retry-picking-list':
+                loadPickings(state.pickingPagination.page || 1);
+                break;
+            case 'apply-filters':
                 readPickingFilters();
                 loadPickings(1);
                 break;
-            case 'clear-picking-filters':
+            case 'clear-filters':
                 clearPickingFilters();
                 break;
             case 'regenerate-lote': {
@@ -1034,19 +1056,22 @@
                 return;
             }
 
-            container.innerHTML = TEMPLATE;
+            state.tab = UI.tabFromParams(params, TABS_PICKING, canCreate() ? 'start' : 'list');
+            container.innerHTML = buildTemplate();
             bindEvents();
             state.startKey = newIdempotencyKey();
 
             renderStartSection();
             renderAll();
 
-            if (canCreate()) loadCatalogs();
-            loadReservations();
+            if (canCreate()) {
+                loadCatalogs();
+                loadReservations();
+            }
             loadPickings(1);
         },
 
-        onActivate() {
+        onActivate(params) {
             if (!container) return;
 
             if (!canView()) {
@@ -1055,13 +1080,17 @@
             }
 
             if (!container.querySelector('[data-picking-table]')) {
-                container.innerHTML = TEMPLATE;
+                container.innerHTML = buildTemplate();
                 bindEvents();
                 state.startKey = newIdempotencyKey();
                 renderStartSection();
                 if (canCreate()) loadCatalogs();
             }
-            loadReservations();
+
+            const tab = UI.tabFromParams(params, TABS_PICKING, state.tab);
+            if (tab !== state.tab) applyTab(tab);
+
+            if (canCreate()) loadReservations();
             loadPickings(state.pickingPagination.page || 1);
         },
 
@@ -1075,6 +1104,7 @@
             }
             container = null;
             state = {
+                tab: 'list',
                 reservations: [],
                 reservationSummary: { total: 0, activas: 0, con_expiracion: 0 },
                 reservationPagination: { total: 0, page: 1, per_page: 100, has_next: false },
@@ -1084,6 +1114,7 @@
                 pickingPagination: { total: 0, page: 1, per_page: 20, has_next: false },
                 pickingFilters: { estado: '', id_lote_picking: '' },
                 pickingLoading: false,
+                listError: false,
                 locations: [],
                 selected: new Set(),
                 expanded: new Set(),

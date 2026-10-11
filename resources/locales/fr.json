@@ -16,6 +16,8 @@
   },
   "ui": {
     "empty_title": "Sin datos",
+    "error_title": "Erreur de chargement",
+    "retry": "Réessayer",
     "pagination": "Mostrando {shown} de {total} {label}",
     "records": "registros",
     "close": "Cerrar",
@@ -664,7 +666,7 @@
         "creado": "Creado",
         "acciones": "Acciones",
         "entrega": "Entrega",
-        "barcode": "Barcode",
+        "barcode": "Code-barres",
         "cantidad": "Cantidad",
         "estado": "Estado",
         "firma": "Firma",
@@ -778,7 +780,7 @@
         "clear_title": "Limpiar filtros"
       },
       "columns": {
-        "barcode": "Barcode",
+        "barcode": "Code-barres",
         "producto": "Producto",
         "reservada": "Reservada",
         "vencimiento": "Vencimiento",
@@ -966,6 +968,20 @@
         "fallo_entrega": "Fallo de entrega",
         "devuelto": "Devuelto"
       },
+      "types": {
+        "propio": "Propre",
+        "vehiculo": "Véhicule",
+        "mensajeria": "Messagerie",
+        "tercero": "Tiers"
+      },
+      "item_states": {
+        "preparada": "Préparée",
+        "cargada": "Chargée",
+        "en_transito": "En transit",
+        "entregada": "Livrée",
+        "rechazada": "Rejetée",
+        "devuelta": "Retournée"
+      },
       "summary": {
         "envios": "Envíos",
         "en_preparacion": "En preparación",
@@ -987,7 +1003,7 @@
         "estado": "Estado",
         "creado": "Creado",
         "acciones": "Acciones",
-        "barcode": "Barcode",
+        "barcode": "Code-barres",
         "producto": "Producto",
         "zona": "Zona",
         "cantidad": "Cantidad"

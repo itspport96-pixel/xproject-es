@@ -42,14 +42,17 @@
     let container = null;
 
     let state = {
+        tab: 'en_ruta',
         items: [],
         summary: { total: 0, entregadas: 0, rechazadas: 0, pendientes: 0, parciales: 0 },
         pagination: { total: 0, page: 1, per_page: 20, has_next: false },
         filters: { estado: '', fecha_desde: '', fecha_hasta: '', shipment_id: '' },
         listLoading: false,
+        listError: false,
         enRuta: [],
         enRutaLoading: false,
         enRutaDenied: false,
+        enRutaError: false,
         modal: null,
         sending: false
     };
@@ -108,78 +111,94 @@
     // Unidad pendiente de entregar en un envío EN_RUTA.
     const isPendingItem = (estado) => estado === 'CARGADA' || estado === 'EN_TRANSITO';
 
-    const TEMPLATE = `
-        <div class="max-w-7xl mx-auto">
-            ${UI.pageHeader({
-                title: t('inventory.deliveries.title'),
-                subtitle: t('inventory.deliveries.subtitle')
-            })}
+    // Pestañas de la vista: "En ruta" (repartos abiertos) e "Historial".
+    const TABS_DELIVERIES = ['en_ruta', 'history'];
 
-            <div class="flex items-center justify-between mt-2 mb-3">
-                <h3 class="text-lg font-bold">${t('inventory.deliveries.sections.en_ruta')}</h3>
+    function buildTemplate() {
+        const panels = [
+            {
+                id: 'en_ruta',
+                html: `
+            <div class="flex items-center justify-end mb-3">
                 <button class="btn btn-ghost btn-sm" data-action="reload-en-ruta">${t('inventory.deliveries.actions.reload')}</button>
             </div>
             <div class="card mb-6">
                 <div data-en-ruta-table></div>
-            </div>
-
-            <div class="flex items-center justify-between mt-6 mb-3">
-                <h3 class="text-lg font-bold">${t('inventory.deliveries.sections.history')}</h3>
-            </div>
-
+            </div>`
+            },
+            {
+                id: 'history',
+                html: `
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" data-del-summary></div>
 
-            <div class="card mb-4">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <div class="form-group mb-0">
-                        <label class="form-label">${t('inventory.deliveries.filters.estado')}</label>
-                        <select class="select" data-filter="estado">
-                            <option value="">${t('inventory.deliveries.filters.all_states')}</option>
-                            ${ESTADOS_ENTREGA.map(e => `<option value="${e.value}">${t(ESTADO_KEYS[e.value])}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group mb-0">
-                        <label class="form-label">${t('inventory.deliveries.filters.shipment')}</label>
-                        <input type="text" class="input" data-filter="shipment_id" maxlength="36"
-                               placeholder="${t('inventory.deliveries.placeholders.optional')}" autocomplete="off">
-                    </div>
-                    <div class="form-group mb-0">
-                        <label class="form-label">${t('inventory.deliveries.filters.date_from')}</label>
-                        <input type="date" class="input" data-filter="fecha_desde">
-                    </div>
-                    <div class="form-group mb-0">
-                        <label class="form-label">${t('inventory.deliveries.filters.date_to')}</label>
-                        <input type="date" class="input" data-filter="fecha_hasta">
-                    </div>
-                    <div class="form-group mb-0 md:col-span-4 flex gap-2">
-                        <button class="btn btn-secondary flex-1" data-action="apply-filters">${t('inventory.deliveries.actions.filter')}</button>
-                        <button class="btn btn-ghost" data-action="clear-filters" title="${t('inventory.deliveries.actions.clear_title')}">${t('inventory.deliveries.actions.clear')}</button>
-                    </div>
+            ${UI.filtersCard(`
+                <div class="form-group mb-0">
+                    <label class="form-label">${t('inventory.deliveries.filters.estado')}</label>
+                    <select class="select" data-filter="estado">
+                        <option value="">${t('inventory.deliveries.filters.all_states')}</option>
+                        ${ESTADOS_ENTREGA.map(e => `<option value="${e.value}">${t(ESTADO_KEYS[e.value])}</option>`).join('')}
+                    </select>
                 </div>
-            </div>
+                <div class="form-group mb-0">
+                    <label class="form-label">${t('inventory.deliveries.filters.shipment')}</label>
+                    <input type="text" class="input" data-filter="shipment_id" maxlength="36"
+                           placeholder="${t('inventory.deliveries.placeholders.optional')}" autocomplete="off">
+                </div>
+                <div class="form-group mb-0">
+                    <label class="form-label">${t('inventory.deliveries.filters.date_from')}</label>
+                    <input type="date" class="input" data-filter="fecha_desde">
+                </div>
+                <div class="form-group mb-0">
+                    <label class="form-label">${t('inventory.deliveries.filters.date_to')}</label>
+                    <input type="date" class="input" data-filter="fecha_hasta">
+                </div>`, {
+                cols: 4,
+                applyLabel: t('inventory.deliveries.actions.filter'),
+                clearLabel: t('inventory.deliveries.actions.clear'),
+                clearTitle: t('inventory.deliveries.actions.clear_title')
+            })}
 
             <div class="card p-0">
                 <div class="table-wrapper" data-del-table></div>
                 <div data-del-pagination class="pagination"></div>
-            </div>
-        </div>
+            </div>`
+            }
+        ];
+
+        return UI.viewShell({
+            title: t('inventory.deliveries.title'),
+            subtitle: t('inventory.deliveries.subtitle'),
+            tabs: [
+                { id: 'en_ruta', label: t('inventory.deliveries.sections.en_ruta') },
+                { id: 'history', label: t('inventory.deliveries.sections.history') }
+            ],
+            activeTab: state.tab,
+            panels: panels
+        }) + `
 
         <div data-modal-root></div>
     `;
+    }
 
-    const DENIED_TEMPLATE = `
-        <div class="card max-w-md mx-auto mt-8">
-            <div class="card-header">
-                <h3 class="card-title">${t('inventory.deliveries.permission.title')}</h3>
-            </div>
-            <div class="card-body">
-                <p>${t('inventory.deliveries.permission.body', { permiso: 'inventory.delivery.view' })}</p>
-                <div class="mt-4">
-                    <a href="#/dashboard" class="btn btn-secondary">${t('router.go_dashboard')}</a>
-                </div>
-            </div>
-        </div>
-    `;
+    // ====================================================================
+    // PESTAÑAS
+    // ====================================================================
+
+    /** Aplica la pestaña al DOM, a state y a la URL (sin recargar datos). */
+    function applyTab(tab) {
+        state.tab = tab;
+        UI.applyTabState(container, tab);
+        UI.syncTabParam(tab);
+    }
+
+    /** Cambio de pestaña: aplica y refresca los datos del panel destino. */
+    function switchTab(tab) {
+        if (TABS_DELIVERIES.indexOf(tab) === -1) return;
+
+        applyTab(tab);
+        if (tab === 'en_ruta') loadEnRuta();
+        else loadHistory(state.pagination.page || 1);
+    }
 
     // ====================================================================
     // IDEMPOTENCY KEY
@@ -210,14 +229,14 @@
         if (!root) return;
 
         if (state.enRutaLoading) {
-            root.innerHTML = `
-                <div class="flex items-center justify-center py-8">
-                    <div class="spinner"></div>
-                </div>`;
+            root.innerHTML = UI.loadingState();
             return;
         }
 
         if (state.enRutaDenied) {
+            // Este aviso se inserta a mano (no pasa por emptyState): la
+            // traducción lleva <code>{permiso}</code> y el smoke lo exige
+            // en crudo dentro de [data-en-ruta-table].
             root.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-state-title">${t('inventory.deliveries.permission.en_ruta_title')}</div>
@@ -226,12 +245,20 @@
             return;
         }
 
+        if (state.enRutaError) {
+            root.innerHTML = UI.errorState({
+                message: t('inventory.deliveries.messages.load_en_ruta_error'),
+                retryAction: 'retry-en-ruta',
+                retryLabel: t('ui.retry')
+            });
+            return;
+        }
+
         if (state.enRuta.length === 0) {
-            root.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-title">${t('inventory.deliveries.empty.en_ruta_title')}</div>
-                    <p class="text-muted">${t('inventory.deliveries.empty.en_ruta_message')}</p>
-                </div>`;
+            root.innerHTML = UI.emptyState({
+                title: t('inventory.deliveries.empty.en_ruta_title'),
+                message: t('inventory.deliveries.empty.en_ruta_message')
+            });
             return;
         }
 
@@ -291,19 +318,12 @@
         if (!root) return;
 
         const s = state.summary;
-        const cards = [
+        UI.summaryCards(root, [
             { label: t('inventory.deliveries.summary.entregas'), value: s.total },
             { label: t('inventory.deliveries.summary.entregadas'), value: s.entregadas },
             { label: t('inventory.deliveries.summary.rechazadas'), value: s.rechazadas },
             { label: t('inventory.deliveries.summary.pendientes'), value: s.pendientes }
-        ];
-
-        root.innerHTML = cards.map(c => `
-            <div class="card p-3">
-                <div class="text-xs text-muted">${c.label}</div>
-                <div class="text-xl font-bold">${formatNumber(c.value)}</div>
-            </div>
-        `).join('');
+        ]);
     }
 
     function renderTable() {
@@ -311,19 +331,24 @@
         if (!root) return;
 
         if (state.listLoading) {
-            root.innerHTML = `
-                <div class="flex items-center justify-center py-12">
-                    <div class="spinner"></div>
-                </div>`;
+            root.innerHTML = UI.loadingState();
+            return;
+        }
+
+        if (state.listError) {
+            root.innerHTML = UI.errorState({
+                message: t('inventory.deliveries.messages.load_history_error'),
+                retryAction: 'retry-history',
+                retryLabel: t('ui.retry')
+            });
             return;
         }
 
         if (state.items.length === 0) {
-            root.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-title">${t('inventory.deliveries.empty.history_title')}</div>
-                    <p class="text-muted">${t('inventory.deliveries.empty.history_message')}</p>
-                </div>`;
+            root.innerHTML = UI.emptyState({
+                title: t('inventory.deliveries.empty.history_title'),
+                message: t('inventory.deliveries.empty.history_message')
+            });
             return;
         }
 
@@ -365,19 +390,11 @@
         const root = container.querySelector('[data-del-pagination]');
         if (!root) return;
 
-        const { total, page, per_page, has_next } = state.pagination;
-        const totalPages = Math.max(1, Math.ceil(total / per_page));
-
-        root.innerHTML = `
-            <div class="pagination-info">
-                ${t('ui.pagination', { shown: state.items.length, total: total, label: t('inventory.deliveries.pagination_label') })}
-            </div>
-            <div class="pagination-controls">
-                <button class="page-btn" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>‹</button>
-                <span class="page-btn is-active">${page} / ${totalPages}</span>
-                <button class="page-btn" data-page="${page + 1}" ${!has_next ? 'disabled' : ''}>›</button>
-            </div>
-        `;
+        UI.renderPagination(root, {
+            pagination: state.pagination,
+            shown: state.items.length,
+            label: t('inventory.deliveries.pagination_label')
+        });
     }
 
     function renderAll() {
@@ -460,7 +477,7 @@
                 <div class="modal-overlay" data-modal>
                     <div class="modal">
                         <div class="modal-body">
-                            <div class="flex items-center justify-center py-8"><div class="spinner"></div></div>
+                            ${UI.loadingState()}
                         </div>
                     </div>
                 </div>`;
@@ -541,11 +558,10 @@
         const modal = state.modal;
 
         if (modal.items.length === 0) {
-            return `
-                <div class="empty-state">
-                    <div class="empty-state-title">${t('inventory.deliveries.empty.units_title')}</div>
-                    <p class="text-muted">${t('inventory.deliveries.empty.confirm_message')}</p>
-                </div>`;
+            return UI.emptyState({
+                title: t('inventory.deliveries.empty.units_title'),
+                message: t('inventory.deliveries.empty.confirm_message')
+            });
         }
 
         const rows = modal.items.map(i => {
@@ -644,11 +660,10 @@
         const modal = state.modal;
 
         if (modal.items.length === 0) {
-            return `
-                <div class="empty-state">
-                    <div class="empty-state-title">${t('inventory.deliveries.empty.units_title')}</div>
-                    <p class="text-muted">${t('inventory.deliveries.empty.failed_message')}</p>
-                </div>`;
+            return UI.emptyState({
+                title: t('inventory.deliveries.empty.units_title'),
+                message: t('inventory.deliveries.empty.failed_message')
+            });
         }
 
         const rows = modal.items.map(i => {
@@ -710,6 +725,7 @@
     async function loadEnRuta() {
         state.enRutaLoading = true;
         state.enRutaDenied = false;
+        state.enRutaError = false;
         renderEnRuta();
 
         try {
@@ -724,6 +740,7 @@
                 state.enRutaDenied = true;
             } else {
                 console.error('[Deliveries] en-ruta load error:', err);
+                state.enRutaError = true;
                 showToast('danger', t('ui.error_generic'), (err && err.message) || t('inventory.deliveries.messages.load_en_ruta_error'));
             }
         } finally {
@@ -734,6 +751,7 @@
 
     async function loadHistory(page = 1) {
         state.listLoading = true;
+        state.listError = false;
         renderTable();
 
         try {
@@ -749,9 +767,11 @@
             state.summary = payload.summary || state.summary;
             state.pagination = payload.pagination || state.pagination;
             state.pagination.page = page;
+            state.listError = false;
         } catch (err) {
             console.error('[Deliveries] history load error:', err);
             state.items = [];
+            state.listError = true;
             if (err && err.status === 403) {
                 showToast('danger', t('inventory.deliveries.permission.title'), t('inventory.deliveries.messages.forbidden_view', { permiso: 'inventory.delivery.view' }));
             } else {
@@ -1066,8 +1086,15 @@
         const page = btn.dataset.page;
 
         switch (action) {
+            case 'tab':
+                switchTab(btn.dataset.tab);
+                break;
             case 'reload-en-ruta':
+            case 'retry-en-ruta':
                 loadEnRuta();
+                break;
+            case 'retry-history':
+                loadHistory(state.pagination.page || 1);
                 break;
             case 'apply-filters':
                 readFilters();
@@ -1187,17 +1214,25 @@
     // PUBLIC API
     // ====================================================================
 
+    function renderPermissionDenied() {
+        container.innerHTML = UI.deniedState({
+            title: t('inventory.deliveries.permission.title'),
+            message: t('inventory.deliveries.permission.body', { permiso: 'inventory.delivery.view' })
+        });
+    }
+
     const InventoryDeliveriesModule = {
         init(params, targetContainer) {
             container = targetContainer;
             if (!container) return;
 
             if (!canView()) {
-                container.innerHTML = DENIED_TEMPLATE;
+                renderPermissionDenied();
                 return;
             }
 
-            container.innerHTML = TEMPLATE;
+            state.tab = UI.tabFromParams(params, TABS_DELIVERIES, 'en_ruta');
+            container.innerHTML = buildTemplate();
             bindEvents();
 
             renderEnRuta();
@@ -1207,18 +1242,22 @@
             loadHistory(1);
         },
 
-        onActivate() {
+        onActivate(params) {
             if (!container) return;
 
             if (!canView()) {
-                container.innerHTML = DENIED_TEMPLATE;
+                renderPermissionDenied();
                 return;
             }
 
             if (!container.querySelector('[data-del-table]')) {
-                container.innerHTML = TEMPLATE;
+                container.innerHTML = buildTemplate();
                 bindEvents();
             }
+
+            const tab = UI.tabFromParams(params, TABS_DELIVERIES, state.tab);
+            if (tab !== state.tab) applyTab(tab);
+
             loadEnRuta();
             loadHistory(state.pagination.page || 1);
         },
@@ -1232,6 +1271,7 @@
                 container.innerHTML = '';
             }
             container = null;
+            state.tab = 'en_ruta';
             state.modal = null;
             state.sending = false;
         }
