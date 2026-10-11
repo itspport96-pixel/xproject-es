@@ -556,7 +556,7 @@
     },
     "movements": {
       "title": "Movimientos",
-      "subtitle": "Historial de movimientos internos de inventario (CU-002 / R3)",
+      "subtitle": "Historial de movimientos internos de inventario",
       "pagination_label": "movimientos",
       "summary": {
         "correcciones": "Correcciones",
@@ -603,7 +603,7 @@
     },
     "reservations": {
       "title": "Reservas",
-      "subtitle": "Reservas de unidades de inventario (CU-003)",
+      "subtitle": "Reservas de unidades de inventario",
       "pagination_label": "reservas",
       "summary": {
         "total": "Reservas",
@@ -649,7 +649,7 @@
     },
     "deliveries": {
       "title": "Entregas",
-      "subtitle": "Confirmación de entrega y fallos (CU-007 / CU-008)",
+      "subtitle": "Confirmación de entrega y fallos",
       "pagination_label": "entregas",
       "sections": {
         "en_ruta": "Envíos en ruta",
@@ -745,7 +745,7 @@
         "select_motivo": "Seleccione un motivo",
         "observaciones": "Observaciones",
         "motivo_fallo": "Motivo de fallo para las unidades no marcadas",
-        "hint_unmarked": "Las unidades sin marcar se procesan como fallo de entrega (CU-008) dentro de la misma operación.",
+        "hint_unmarked": "Las unidades sin marcar se procesan como fallo de entrega dentro de la misma operación.",
         "hint_no_units": "Si no marca ninguna unidad, el fallo se aplica a todas las no entregadas del envío.",
         "affected": "Unidades afectadas ({marcadas} de {total})"
       },
@@ -773,7 +773,7 @@
     },
     "picking": {
       "title": "Picking",
-      "subtitle": "Selección de unidades reservadas (CU-004)",
+      "subtitle": "Selección de unidades reservadas",
       "operations_title": "Operaciones de picking",
       "pagination_label": "operaciones",
       "states": {
@@ -877,7 +877,7 @@
     },
     "returns": {
       "title": "Devoluciones",
-      "subtitle": "Registro de devoluciones de unidades (CU-009)",
+      "subtitle": "Registro de devoluciones de unidades",
       "pagination_label": "devoluciones",
       "actions": {
         "register": "Registrar devolución",
@@ -974,7 +974,7 @@
     },
     "shipments": {
       "title": "Envíos",
-      "subtitle": "Carga y autorización de salida (CU-005 / CU-006)",
+      "subtitle": "Carga y autorización de salida",
       "list_title": "Listado de envíos",
       "pagination_label": "envíos",
       "states": {
@@ -1121,7 +1121,7 @@
     },
     "counts": {
       "title": "Conteos físicos",
-      "subtitle": "Conteo físico de unidades y reconciliación de discrepancias (CU-011)",
+      "subtitle": "Conteo físico de unidades y reconciliación de discrepancias",
       "pagination_label": "conteos",
       "summary": {
         "conteos": "Conteos",
@@ -1266,7 +1266,7 @@
     },
     "incidents": {
       "title": "Incidencias",
-      "subtitle": "Reporte e investigación de incidencias (CU-010)",
+      "subtitle": "Reporte e investigación de incidencias",
       "pagination_label": "incidencias",
       "actions": {
         "report": "Reportar incidencia",

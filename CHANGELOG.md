@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.14] - 2026-10-11
+
+BLOQUE 3: los subtítulos de las vistas de inventario ya no muestran los códigos internos de spec (CU-xxx / R3); sólo la descripción funcional. Sólo frontend + i18n.
+
+### Fixed
+
+- **Subtítulos con códigos de spec** en las 4 locales (es/en/pt/fr): movimientos (`CU-002 / R3`), reservas (`CU-003`), picking (`CU-004`), envíos (`CU-005 / CU-006`), entregas (`CU-007 / CU-008`), devoluciones (`CU-009`), incidencias (`CU-010`), conteos (`CU-011`) y el hint de unidades sin marcar en entregas (`CU-008`). Los códigos permanecen en comentarios de los módulos JS y en la spec; no en la UI.
+
 ## [1.13.13] - 2026-10-11
 
 BLOQUE 2: si el usuario no tiene un permiso, la interfaz no muestra el elemento ni dispara la petición a la API (evita los "Acceso denegado" del log de Apache). Sólo frontend.

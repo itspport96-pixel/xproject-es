@@ -556,7 +556,7 @@
     },
     "movements": {
       "title": "Movements",
-      "subtitle": "History of internal inventory movements (CU-002 / R3)",
+      "subtitle": "History of internal inventory movements",
       "pagination_label": "movements",
       "summary": {
         "correcciones": "Corrections",
@@ -603,7 +603,7 @@
     },
     "reservations": {
       "title": "Reservations",
-      "subtitle": "Reservations for inventory units (CU-003)",
+      "subtitle": "Reservations for inventory units",
       "pagination_label": "reservations",
       "summary": {
         "total": "Reservations",
@@ -649,7 +649,7 @@
     },
     "deliveries": {
       "title": "Deliveries",
-      "subtitle": "Delivery confirmation and failures (CU-007 / CU-008)",
+      "subtitle": "Delivery confirmation and failures",
       "pagination_label": "deliveries",
       "sections": {
         "en_ruta": "Shipments out for delivery",
@@ -745,7 +745,7 @@
         "select_motivo": "Select a reason",
         "observaciones": "Notes",
         "motivo_fallo": "Failure reason for the unmarked units",
-        "hint_unmarked": "Unmarked units are processed as a delivery failure (CU-008) within the same operation.",
+        "hint_unmarked": "Unmarked units are processed as a delivery failure within the same operation.",
         "hint_no_units": "If you do not mark any unit, the failure applies to all undelivered units in the shipment.",
         "affected": "Affected units ({marcadas} of {total})"
       },
@@ -773,7 +773,7 @@
     },
     "picking": {
       "title": "Picking",
-      "subtitle": "Selection of reserved units (CU-004)",
+      "subtitle": "Selection of reserved units",
       "operations_title": "Picking operations",
       "pagination_label": "operations",
       "states": {
@@ -877,7 +877,7 @@
     },
     "returns": {
       "title": "Returns",
-      "subtitle": "Log of unit returns (CU-009)",
+      "subtitle": "Log of unit returns",
       "pagination_label": "returns",
       "actions": {
         "register": "Register return",
@@ -974,7 +974,7 @@
     },
     "shipments": {
       "title": "Shipments",
-      "subtitle": "Loading and departure authorization (CU-005 / CU-006)",
+      "subtitle": "Loading and departure authorization",
       "list_title": "Shipment list",
       "pagination_label": "shipments",
       "states": {
@@ -1121,7 +1121,7 @@
     },
     "counts": {
       "title": "Physical counts",
-      "subtitle": "Physical count of units and discrepancy reconciliation (CU-011)",
+      "subtitle": "Physical count of units and discrepancy reconciliation",
       "pagination_label": "counts",
       "summary": {
         "conteos": "Counts",
@@ -1266,7 +1266,7 @@
     },
     "incidents": {
       "title": "Incidents",
-      "subtitle": "Incident reporting and investigation (CU-010)",
+      "subtitle": "Incident reporting and investigation",
       "pagination_label": "incidents",
       "actions": {
         "report": "Report incident",
