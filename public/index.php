@@ -393,6 +393,7 @@ function renderSpaLayout(): void
     <script src="{$baseUrlHtml}/js/ui/view.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/ui/modal.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/ui/actions.js?v={$assetsVersion}"></script>
+    <script src="{$baseUrlHtml}/js/ui/permission-picker.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/ui/account-menu.js?v={$assetsVersion}"></script>
 
     <!-- Dashboard / App Shell Scripts -->

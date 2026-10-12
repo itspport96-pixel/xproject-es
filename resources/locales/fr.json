@@ -32,7 +32,29 @@
     "toast_rejected": "Operación rechazada",
     "toast_lang_save_title": "Langue",
     "toast_lang_save_failed": "Impossible d enregistrer la langue sur le serveur; elle ne s applique qu a ce navigateur.",
-    "row_actions": "Actions"
+    "row_actions": "Actions",
+    "picker": {
+      "base": "Baser sur",
+      "base_none": "Aucun modele",
+      "readonly_action": "Lecture seule",
+      "clear": "Effacer",
+      "search_placeholder": "Rechercher une permission par code ou description",
+      "only_selected": "Selections uniquement",
+      "risk": "Risque",
+      "risk_ALL": "Tous les risques",
+      "risk_CRITICAL": "CRITICAL",
+      "risk_HIGH": "HIGH",
+      "risk_MEDIUM": "MEDIUM",
+      "risk_LOW": "LOW",
+      "select_module_all": "Tout selectionner dans le groupe",
+      "modules": "Modules",
+      "module_select": "Module",
+      "panel": "Permissions du module",
+      "no_results": "Aucune permission ne correspond au filtre.",
+      "empty": "Il n y a pas de permissions disponibles.",
+      "escalation": "Vous ne pouvez pas accorder une permission que vous ne detenez pas.",
+      "note_view": "{code} a ete ajoute pour que la permission puisse etre utilisee."
+    }
   },
   "theme": {
     "action_dark": "Claro",
@@ -1807,7 +1829,9 @@
       "select_all": "Marcar todo",
       "saved": "Permisos guardados ({count}).",
       "save": "Guardar permisos",
-      "load_error": "No se pudieron cargar los permisos del rol."
+      "load_error": "No se pudieron cargar los permisos del rol.",
+      "summary": "{count} permissions selectionnees ({critical} critiques)",
+      "critical_alert": "Vous etes sur le point d enregistrer {count} permissions CRITICAL : revoyez-les avant de confirmer."
     },
     "errors": {
       "load": "No se pudieron cargar los roles.",

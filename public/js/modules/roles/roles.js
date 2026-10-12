@@ -1,7 +1,8 @@
 /**
- * Roles Module (pantalla de control de roles) - v1.12.0.
+ * Roles Module (pantalla de control de roles) - v1.13.25.
  * GET/POST/PATCH/DELETE /api/roles, PATCH /roles/{id}/permissions y el
- * catalogo GET /api/permissions para la matriz agrupada modulo/recurso.
+ * catalogo GET /api/permissions para el selector maestro-detalle
+ * (UI.permissionPicker).
  *
  * Convencion ModuleLoader: window.RolesRolesModule (ruta roles/roles).
  *
@@ -12,6 +13,11 @@
  *
  * v1.13.9 (politica de borrado): no hay restauracion; los borrados no se
  * listan y un nombre borrado puede reutilizarse en un rol nuevo.
+ *
+ * v1.13.25 (BLOQUE F): el modal de crear/editar/ver usa UI.permissionPicker
+ * (maestro-detalle con buscador, escalada, basar-en). La descripcion va
+ * sola en su propia fila (nunca al par de otro campo) con textarea que
+ * crece con el contenido, sin scrollbars propios.
  */
 (function(global) {
     'use strict';
@@ -23,7 +29,6 @@
         loading: false,
         includeInactive: false,
         catalog: [],
-        grouped: {},
         modal: null,
         sending: false
     };
@@ -43,6 +48,16 @@
     const canCreate = () => can('roles.role.create', ['ADMIN']);
     const canEdit = () => can('roles.role.edit', ['ADMIN']);
     const canDelete = () => can('roles.role.delete', ['ADMIN']);
+
+    function grantedPermissions() {
+        try {
+            if (global.AuthState && typeof global.AuthState.getPermissions === 'function') {
+                const perms = global.AuthState.getPermissions();
+                return Array.isArray(perms) && perms.length ? perms : null;
+            }
+        } catch (err) { /* sin escalada */ }
+        return null;
+    }
 
     // ====================================================================
     // PLANTILLA
@@ -106,14 +121,6 @@
         return activo
             ? `<span class="badge badge-success">${t('roles.state.active')}</span>`
             : `<span class="badge badge-warning">${t('roles.state.inactive')}</span>`;
-    }
-
-    function criticidadBadge(valor) {
-        const color = valor === 'CRITICAL' ? 'danger'
-            : valor === 'HIGH' ? 'warning'
-            : valor === 'MEDIUM' ? 'info'
-            : 'neutral';
-        return `<span class="badge badge-${color}">${UI.escapeHtml(valor || '—')}</span>`;
     }
 
     function renderTable() {
@@ -202,84 +209,124 @@
             });
             const payload = response && response.data ? response.data : response;
             state.catalog = (payload && payload.permissions) || [];
-            state.grouped = groupCatalog(state.catalog);
         } catch (err) {
             console.error('[Roles] catalog error:', err);
             UI.toast('danger', t('ui.error_generic'), err.message || t('roles.errors.catalog'));
             state.catalog = [];
-            state.grouped = {};
         }
         return state.catalog;
     }
 
-    function groupCatalog(permisos) {
-        const grouped = {};
-        permisos.forEach(p => {
-            const modulo = p.modulo || 'otros';
-            const recurso = p.recurso || 'general';
-            if (!grouped[modulo]) grouped[modulo] = {};
-            if (!grouped[modulo][recurso]) grouped[modulo][recurso] = [];
-            grouped[modulo][recurso].push(p);
+    async function loadRolePermissionCodes(id) {
+        const response = await global.HttpClient.get('/roles/' + encodeURIComponent(id) + '/permissions');
+        const payload = response && response.data ? response.data : response;
+        return (payload && payload.permisos) || [];
+    }
+
+    async function loadRolePermissions(id) {
+        const modal = state.modal;
+        if (!modal || modal.mode !== 'permissions') return;
+
+        try {
+            modal.permisos = await loadRolePermissionCodes(id);
+        } catch (err) {
+            UI.handleActionError(err, {
+                fallbackMessage: t('roles.perms.load_error'),
+                tag: 'Roles'
+            });
+            modal.permisos = [];
+        }
+    }
+
+    // ====================================================================
+    // PICKER (selector maestro-detalle)
+    // ====================================================================
+
+    function pickerReadonly(modal) {
+        if (modal.mode === 'permissions') {
+            return modal.role.tipo === 'BUILT_IN' || !canEdit();
+        }
+        return false;
+    }
+
+    function countCritical(codes) {
+        const byCode = new Map(state.catalog.map(p => [p.identificador, p]));
+        let n = 0;
+        (codes || []).forEach(c => {
+            const p = byCode.get(c);
+            if (p && p.criticidad === 'CRITICAL') n++;
         });
-        return grouped;
+        return n;
     }
 
-    // ====================================================================
-    // MATRIZ DE PERMISOS
-    // ====================================================================
+    function updatePickerSummary(codes) {
+        const root = getModalRoot();
+        if (!root) return;
+        const lista = Array.isArray(codes) ? codes : [];
+        const criticos = countCritical(lista);
 
-    function checkboxPermisos(p, marcados, soloLectura) {
-        const checked = marcados.includes(p.identificador) ? ' checked' : '';
-        const disabled = soloLectura ? ' disabled' : '';
-        const mfa = p.requiere_mfa
-            ? ` <span class="badge badge-warning">${t('roles.perms.mfa')}</span>`
-            : '';
-        return `
-            <label class="flex items-start gap-2 text-sm py-0.5">
-                <input type="checkbox" data-perm-check value="${UI.escapeHtml(p.identificador)}"${checked}${disabled}>
-                <span class="flex-1">
-                    <span class="font-mono text-xs">${UI.escapeHtml(p.identificador)}</span>${mfa}
-                    <div class="text-xs text-muted">${UI.escapeHtml(p.nombre || '')} · ${criticidadBadge(p.criticidad)}</div>
-                </span>
-            </label>`;
-    }
-
-    function renderMatrix(marcados, soloLectura) {
-        const modulos = Object.keys(state.grouped).sort();
-        if (modulos.length === 0) {
-            return `<p class="text-muted text-sm">${t('roles.perms.empty')}</p>`;
+        const summary = root.querySelector('[data-pp-summary]');
+        if (summary) {
+            summary.textContent = t('roles.perms.summary', {
+                count: UI.formatNumber(lista.length),
+                critical: UI.formatNumber(criticos)
+            });
         }
 
-        return `
-            ${soloLectura ? `<div class="alert alert-info mb-3">${t('roles.perms.readonly')}</div>` : ''}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" data-perm-matrix>
-                ${modulos.map(modulo => {
-                    const recursos = Object.keys(state.grouped[modulo]).sort();
-                    return `
-                        <div class="card p-3">
-                            <label class="flex items-center gap-2 font-semibold text-sm mb-2">
-                                <input type="checkbox" data-perm-all data-modulo="${UI.escapeHtml(modulo)}"${soloLectura ? ' disabled' : ''}>
-                                ${UI.escapeHtml(modulo)}
-                            </label>
-                            ${recursos.map(recurso => `
-                                <div class="mb-2">
-                                    <div class="text-xs uppercase text-muted mb-1">${UI.escapeHtml(recurso)}</div>
-                                    ${state.grouped[modulo][recurso].map(p => checkboxPermisos(p, marcados, soloLectura)).join('')}
-                                </div>
-                            `).join('')}
-                        </div>`;
-                }).join('')}
-            </div>`;
+        const alertEl = root.querySelector('[data-pp-critical]');
+        if (alertEl) {
+            if (criticos > 0) {
+                alertEl.textContent = t('roles.perms.critical_alert', { count: UI.formatNumber(criticos) });
+                alertEl.classList.remove('hidden');
+            } else {
+                alertEl.classList.add('hidden');
+            }
+        }
     }
 
-    function leerMatriz() {
-        const root = getModalRoot();
-        if (!root) return [];
-        const valores = [];
-        root.querySelectorAll('[data-perm-check]:checked').forEach(el => {
-            if (el.value) valores.push(el.value);
+    function bindAutogrow(root) {
+        root.querySelectorAll('.textarea-autogrow').forEach(el => {
+            const fit = () => {
+                el.style.height = 'auto';
+                el.style.height = el.scrollHeight + 'px';
+            };
+            el.addEventListener('input', fit);
+            fit();
         });
-        return valores;
+    }
+
+    function postMountPicker() {
+        const root = getModalRoot();
+        const modal = state.modal;
+        if (!root || !modal) return;
+        if (modal.mode !== 'create' && modal.mode !== 'edit' && modal.mode !== 'permissions') return;
+        if (modal.loading || (modal.mode === 'permissions' && modal.permisos === null)) return;
+
+        const panel = root.querySelector('[data-pp-panel]');
+        if (!panel) return;
+
+        const readonly = pickerReadonly(modal);
+        const selected = Array.isArray(modal.permisos) ? modal.permisos : [];
+        const baseRoles = readonly
+            ? null
+            : state.items
+                .filter(r => String(r.id) !== String(modal.id))
+                .map(r => ({ id: r.id, nombre: r.nombre }));
+
+        UI.permissionPicker.mount({
+            toolbar: root.querySelector('[data-pp-toolbar]'),
+            panel: panel,
+            catalog: state.catalog,
+            selected: selected,
+            readonly: readonly,
+            granted: grantedPermissions(),
+            baseRoles: baseRoles,
+            onBaseRole: loadRolePermissionCodes,
+            onChange: updatePickerSummary
+        });
+
+        bindAutogrow(root);
+        updatePickerSummary(selected);
     }
 
     // ====================================================================
@@ -314,11 +361,24 @@
         });
     }
 
+    function pickerSelected() {
+        const root = getModalRoot();
+        if (!root) return [];
+        const panel = root.querySelector('[data-pp-panel]');
+        return UI.permissionPicker.getSelected(panel);
+    }
+
     // ---------------------------------------------------------------- Alta
 
     function openCreate() {
         if (!canCreate()) return;
-        state.modal = { mode: 'create', errors: {}, formError: '', loading: state.grouped && Object.keys(state.grouped).length === 0 };
+        state.modal = {
+            mode: 'create',
+            permisos: [],
+            loading: !state.catalog.length,
+            errors: {},
+            formError: ''
+        };
         renderModal();
 
         if (state.modal.loading) {
@@ -336,12 +396,14 @@
 
         return `
             <div class="form-error hidden mb-3" data-form-error></div>
-            ${UI.grid(`
+            <div class="pp-head-row has-toolbar">
                 ${UI.field({ label: t('roles.fields.name'), name: 'nombre', type: 'text', required: true, maxlength: 100 })}
-                ${UI.field({ label: t('roles.fields.descripcion'), name: 'descripcion', type: 'textarea', rows: 2 })}
-            `, 1)}
-            <div class="form-label">${t('roles.perms.title')}</div>
-            ${renderMatrix([], false)}
+                <div class="pp-toolbar" data-pp-toolbar></div>
+            </div>
+            ${UI.field({ label: t('roles.fields.descripcion'), name: 'descripcion', type: 'textarea', rows: 2, maxlength: 500, controlClass: 'textarea-autogrow' })}
+            <div class="form-label mt-4">${t('roles.perms.title')}</div>
+            <div class="pp-mount" data-pp-panel></div>
+            <div class="alert alert-danger pp-critical hidden mt-2" data-pp-critical></div>
         `;
     }
 
@@ -352,7 +414,7 @@
 
         const nombre = fieldValue(root, 'nombre');
         const descripcion = fieldValue(root, 'descripcion');
-        const permisos = leerMatriz();
+        const permisos = pickerSelected();
 
         const errors = {};
         if (!nombre) errors.nombre = t('roles.errors.required');
@@ -392,22 +454,48 @@
         if (!canEdit()) return;
         const role = state.items.find(r => r.id === id);
         if (!role || role.tipo === 'BUILT_IN') return;
-        state.modal = { mode: 'edit', id, role, errors: {}, formError: '' };
+        const permisos = Array.isArray(role.permisos) ? role.permisos.slice() : null;
+
+        state.modal = {
+            mode: 'edit',
+            id,
+            role,
+            permisos,
+            loading: !state.catalog.length || permisos === null,
+            errors: {},
+            formError: ''
+        };
         renderModal();
+
+        const tareas = [];
+        if (!state.catalog.length) tareas.push(loadCatalog());
+        if (permisos === null) tareas.push(loadRolePermissions(id));
+        Promise.all(tareas).then(() => {
+            if (state.modal && state.modal.mode === 'edit') {
+                state.modal.loading = false;
+                renderModal();
+            }
+        });
     }
 
     function editBody(modal) {
+        if (modal.loading) return UI.loadingState();
         const r = modal.role;
+
         return `
             <div class="form-error hidden mb-3" data-form-error></div>
-            ${UI.grid(`
+            <div class="pp-head-row has-toolbar">
                 ${UI.field({ label: t('roles.fields.name'), name: 'nombre', type: 'text', value: r.nombre || '', required: true, maxlength: 100 })}
-                ${UI.field({ label: t('roles.fields.descripcion'), name: 'descripcion', type: 'textarea', rows: 2, value: r.descripcion || '' })}
-            `, 1)}
-            <label class="flex items-center gap-2 text-sm">
+                <div class="pp-toolbar" data-pp-toolbar></div>
+            </div>
+            ${UI.field({ label: t('roles.fields.descripcion'), name: 'descripcion', type: 'textarea', rows: 2, maxlength: 500, value: r.descripcion || '', controlClass: 'textarea-autogrow' })}
+            <label class="flex items-center gap-2 text-sm mt-3">
                 <input type="checkbox" name="activo" data-modal-field="activo"${r.activo ? ' checked' : ''}>
                 ${t('roles.fields.activo')}
             </label>
+            <div class="form-label mt-4">${t('roles.perms.title')}</div>
+            <div class="pp-mount" data-pp-panel></div>
+            <div class="alert alert-danger pp-critical hidden mt-2" data-pp-critical></div>
         `;
     }
 
@@ -420,6 +508,7 @@
         const nombre = fieldValue(root, 'nombre');
         const descripcion = fieldValue(root, 'descripcion');
         const activoEl = root.querySelector('[data-modal-field="activo"]');
+        const permisos = pickerSelected();
 
         const errors = {};
         if (!nombre) errors.nombre = t('roles.errors.required');
@@ -439,6 +528,7 @@
             };
 
             await global.HttpClient.patch('/roles/' + encodeURIComponent(modal.id), payload);
+            await global.HttpClient.patch('/roles/' + encodeURIComponent(modal.id) + '/permissions', { permisos });
             closeModal();
             const recargado = await loadRoles();
             if (recargado) {
@@ -467,55 +557,41 @@
             mode: 'permissions',
             id,
             role,
-            permisos: Array.isArray(role.permisos) ? role.permisos.slice() : null,
+            permisos: null,
+            loading: !state.catalog.length,
             errors: {},
             formError: ''
         };
         renderModal();
 
-        if (state.grouped && Object.keys(state.grouped).length === 0) {
-            loadCatalog().then(() => {
-                if (state.modal && state.modal.mode === 'permissions') renderModal();
-            });
-        }
-
-        loadRolePermissions(id);
-    }
-
-    async function loadRolePermissions(id) {
-        const modal = state.modal;
-        if (!modal || modal.mode !== 'permissions') return;
-
-        try {
-            const response = await global.HttpClient.get('/roles/' + encodeURIComponent(id) + '/permissions');
-            const payload = response && response.data ? response.data : response;
-            if (state.modal === modal) {
-                modal.permisos = (payload && payload.permisos) || [];
+        const tareas = [];
+        if (!state.catalog.length) tareas.push(loadCatalog());
+        tareas.push(loadRolePermissions(id));
+        Promise.all(tareas).then(() => {
+            if (state.modal && state.modal.mode === 'permissions') {
+                state.modal.loading = false;
                 renderModal();
             }
-        } catch (err) {
-            UI.handleActionError(err, {
-                fallbackMessage: t('roles.perms.load_error'),
-                tag: 'Roles'
-            });
-        }
+        });
     }
 
     function permissionsBody(modal) {
-        if (modal.permisos === null) return UI.loadingState();
+        if (modal.loading || modal.permisos === null) return UI.loadingState();
 
-        const soloLectura = modal.role.tipo === 'BUILT_IN' || !canEdit();
-        const editable = !soloLectura;
+        const readonly = pickerReadonly(modal);
 
         return `
             <div class="form-error hidden mb-3" data-form-error></div>
-            <div class="flex items-center gap-2 mb-3">
-                <span class="font-medium">${UI.escapeHtml(modal.role.nombre || '')}</span>
-                ${typeBadge(modal.role.tipo)}
-                ${estadoBadge(!!modal.role.activo)}
-                ${editable ? `<button type="button" class="btn btn-ghost btn-sm ml-auto" data-action="perm-all-toggle">${t('roles.perms.select_all')}</button>` : ''}
+            <div class="pp-head-row${readonly ? '' : ' has-toolbar'}">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-medium">${UI.escapeHtml(modal.role.nombre || '')}</span>
+                    ${typeBadge(modal.role.tipo)}
+                    ${estadoBadge(!!modal.role.activo)}
+                </div>
+                <div class="pp-toolbar" data-pp-toolbar></div>
             </div>
-            ${renderMatrix(modal.permisos, !editable)}
+            <div class="pp-mount" data-pp-panel></div>
+            <div class="alert alert-danger pp-critical hidden mt-2" data-pp-critical></div>
         `;
     }
 
@@ -524,7 +600,7 @@
         const modal = state.modal;
         if (!modal || modal.mode !== 'permissions') return;
 
-        const permisos = leerMatriz();
+        const permisos = pickerSelected();
         setSending(true);
 
         try {
@@ -544,26 +620,6 @@
         } finally {
             setSending(false);
         }
-    }
-
-    function toggleModulo(modulo) {
-        const root = getModalRoot();
-        if (!root) return;
-        const master = root.querySelector(`[data-perm-all][data-modulo="${modulo}"]`);
-        const marcado = master ? master.checked : false;
-        root.querySelectorAll('[data-perm-check]').forEach(el => {
-            const partes = (el.value || '').split('.');
-            if (partes[0] === modulo) el.checked = marcado;
-        });
-    }
-
-    function toggleAll() {
-        const root = getModalRoot();
-        if (!root) return;
-        const todos = [...root.querySelectorAll('[data-perm-check]')];
-        const marcar = todos.some(el => !el.checked);
-        todos.forEach(el => { el.checked = marcar; });
-        root.querySelectorAll('[data-perm-all]').forEach(el => { el.checked = marcar; });
     }
 
     // ------------------------------------------------------------- Borrado
@@ -626,29 +682,35 @@
         let size = 'xl';
         let body = '';
         let footer = '';
+        const readonly = modal.mode === 'permissions' ? pickerReadonly(modal) : false;
 
         switch (modal.mode) {
             case 'create':
                 title = t('roles.create.title');
+                size = 'pp';
                 body = createBody(modal);
                 footer = `
+                    <span class="pp-summary" data-pp-summary></span>
                     <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>
                     <button class="btn btn-primary" data-action="submit-create" data-modal-send${state.sending ? ' disabled' : ''}>${t('roles.create.submit')}</button>`;
                 break;
             case 'edit':
                 title = t('roles.edit.title');
-                size = 'lg';
+                size = 'pp';
                 body = editBody(modal);
                 footer = `
+                    <span class="pp-summary" data-pp-summary></span>
                     <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>
                     <button class="btn btn-primary" data-action="submit-edit" data-modal-send${state.sending ? ' disabled' : ''}>${t('roles.edit.submit')}</button>`;
                 break;
             case 'permissions':
                 title = t('roles.perms.title');
+                size = 'pp';
                 body = permissionsBody(modal);
                 footer = `
+                    <span class="pp-summary" data-pp-summary></span>
                     <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>
-                    ${(modal.role.tipo !== 'BUILT_IN' && canEdit())
+                    ${!readonly
                         ? `<button class="btn btn-primary" data-action="submit-permissions" data-modal-send${state.sending ? ' disabled' : ''}>${t('roles.perms.save')}</button>`
                         : ''}`;
                 break;
@@ -664,6 +726,7 @@
 
         UI.mountModal(root, UI.modalShell({ title, size, bodyHtml: body, footerHtml: footer }));
         applyErrors();
+        postMountPicker();
     }
 
     function fieldValue(root, name) {
@@ -719,11 +782,6 @@
             case 'submit-delete':
                 submitDelete();
                 break;
-            case 'perm-all':
-                break;
-            case 'perm-all-toggle':
-                toggleAll();
-                break;
         }
     }
 
@@ -733,11 +791,6 @@
         if (el.matches('[data-role-filter="inactive"]')) {
             state.includeInactive = !!el.checked;
             loadRoles();
-            return;
-        }
-
-        if (el.matches('[data-perm-all]')) {
-            toggleModulo(el.dataset.modulo);
         }
     }
 
@@ -787,7 +840,6 @@
                 loading: false,
                 includeInactive: false,
                 catalog: [],
-                grouped: {},
                 modal: null,
                 sending: false
             };

@@ -32,7 +32,29 @@
     "toast_rejected": "Operation rejected",
     "toast_lang_save_title": "Language",
     "toast_lang_save_failed": "Could not save the language on the server; it only applies to this browser.",
-    "row_actions": "Actions"
+    "row_actions": "Actions",
+    "picker": {
+      "base": "Base on",
+      "base_none": "No template",
+      "readonly_action": "Read only",
+      "clear": "Clear",
+      "search_placeholder": "Search permission by code or description",
+      "only_selected": "Selected only",
+      "risk": "Risk",
+      "risk_ALL": "All risks",
+      "risk_CRITICAL": "CRITICAL",
+      "risk_HIGH": "HIGH",
+      "risk_MEDIUM": "MEDIUM",
+      "risk_LOW": "LOW",
+      "select_module_all": "Select all in group",
+      "modules": "Modules",
+      "module_select": "Module",
+      "panel": "Module permissions",
+      "no_results": "No permission matches the filter.",
+      "empty": "There are no permissions available.",
+      "escalation": "You cannot grant a permission you do not hold.",
+      "note_view": "{code} has been added so the permission can be used."
+    }
   },
   "theme": {
     "action_dark": "Light",
@@ -1807,7 +1829,9 @@
       "select_all": "Select all",
       "saved": "Permissions saved ({count}).",
       "save": "Save permissions",
-      "load_error": "Role permissions could not be loaded."
+      "load_error": "Role permissions could not be loaded.",
+      "summary": "{count} permissions selected ({critical} critical)",
+      "critical_alert": "You are about to save {count} CRITICAL permissions: review them before confirming."
     },
     "errors": {
       "load": "Roles could not be loaded.",

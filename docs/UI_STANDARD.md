@@ -17,13 +17,15 @@ botones, misma semántica de URL) sin reimplementar el HTML en cada módulo.
 | Utilidades DOM (`escapeHtml`, etc.) | `public/js/ui/dom.js` |
 | Modales (`modalShell`, `field`, `grid`, errores de formulario) | `public/js/ui/modal.js` |
 | Acciones compartidas (`handleActionError`, `can`, claves idempotencia) | `public/js/ui/actions.js` |
+| Selector de permisos maestro-detalle (`permissionPicker`) | `public/js/ui/permission-picker.js` |
 | CSS de pestañas (`.tabs`, `.tab`, `.tab.is-active`) | `public/css/components.css` |
 
 Orden de carga en `public/index.php`: `core/i18n.js` (expone `t` global) →
-`ui/dom.js` → `ui/render.js` → `ui/view.js` → `ui/modal.js` → `ui/actions.js`.
-Si se añade un componente en `ui/view.js`, hay que incluirlo en `UI_FILES` de
-los smoke (`tools/smoke/smoke-*.mjs`): `['ui/dom.js','ui/render.js',
-'ui/view.js','ui/modal.js','ui/actions.js']`.
+`ui/dom.js` → `ui/render.js` → `ui/view.js` → `ui/modal.js` → `ui/actions.js` →
+`ui/permission-picker.js`. Si se añade un componente en `ui/view.js`, hay que
+incluirlo en `UI_FILES` de los smoke (`tools/smoke/smoke-*.mjs`):
+`['ui/dom.js','ui/render.js','ui/view.js','ui/modal.js','ui/actions.js']`
+(y `ui/permission-picker.js` en los smoke que montan modales con el picker).
 
 ## 2. Esqueleto de una vista
 
@@ -204,6 +206,48 @@ UI.rowActions({
     ariaLabel: t('users.columns.actions')
 });
 ```
+
+
+### 4.2 Selector de permisos (`UI.permissionPicker`)
+
+Componente `public/js/ui/permission-picker.js` (v1.13.25) para elegir los
+permisos de un rol dentro de un modal, con patrón maestro-detalle:
+
+- **Uso**: `UI.permissionPicker.mount({toolbar, panel, catalog, selected,
+  readonly, granted, baseRoles, onBaseRole, onChange})`. `catalog` es el
+  resultado de `GET /permissions` (campos `identificador`, `modulo`,
+  `recurso`, `criticidad`, `requiere_mfa`, `descripcion`, `nombre`). El
+  estado queda en `panel.__pp`; la selección se lee con
+  `UI.permissionPicker.getSelected(panel)` y se fija con `setSelected`.
+- **Estructura**: a la izquierda los módulos con contador
+  seleccionados/total (en pantallas estrechas, un `<select>`); a la derecha
+  los permisos del módulo activo agrupados por recurso, con checkbox,
+  código, descripción y badge de riesgo.
+- **Modal** (`size: 'pp'` → `.modal-pp`, 1100px × 85vh): cabecera y pie
+  fijos; sólo los paneles del picker hacen scroll. El body del modal se
+  vuelve flex (`.modal-pp .modal-body`) y el contenedor del picker usa
+  `.pp-mount`.
+- **Campos del formulario en el mismo modal**: Nombre (y toolbar del picker)
+  en `.pp-head-row`; **Descripción siempre en su propia fila** (nunca al par
+  de otro campo) con `controlClass: 'textarea-autogrow'` (crece con el
+  contenido, sin scrollbars ni asa de redimensionar).
+- **Escalada**: `granted` (códigos del actor vía `AuthState.getPermissions()`)
+  deshabilita con tooltip los permisos no poseídos; si es `null` no se
+  bloquea nada (mismo contrato vacío que `UI.can`).
+- **Sólo lectura**: `readonly: true` (rol BUILT_IN o sin `roles.role.edit`)
+  pinta todo deshabilitado y sin toolbar.
+- **Extras de UX**: buscador por código/descripción, filtro de riesgo,
+  "solo seleccionados", "Basar en" otro rol (`onBaseRole(id)` → códigos),
+  "Solo lectura" (sólo `.view`), "Limpiar", auto-marcar `.view` al marcar
+  crear/editar/eliminar del mismo recurso (aviso breve, sólo UI),
+  indeterminate en cabeceras de módulo/recurso, foco en el buscador al
+  montar y resumen `N permisos seleccionados (M criticos)` en el pie del
+  modal (aviso si hay críticos).
+- **CSS**: `.pp-*` en `public/css/components.css`. **i18n**: claves
+  `ui.picker.*` y `roles.perms.summary` / `roles.perms.critical_alert` en los
+  4 locales.
+- **Referencia de adopción**: `public/js/modules/roles/roles.js` (modales
+  crear/editar/permisos).
 
 
 ## 6. Reglas de contenido

@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.25] - 2026-10-12
+
+BLOQUE F (sólo frontend): el modal de roles (crear/editar/ver permisos) usa el nuevo componente compartido `UI.permissionPicker` (maestro-detalle de permisos) con dimensiones correctas, i18n en 4 locales y tema oscuro.
+
+### Added
+
+- **`public/js/ui/permission-picker.js`**: componente `UI.permissionPicker` (`mount`/`getSelected`/`setSelected`) con patrón maestro-detalle: módulos con contador seleccionados/total (en pantalla estrecha, `<select>`), permisos del módulo activo agrupados por recurso con checkbox/código/descripción/badge de riesgo, buscador por código y descripción, filtro de riesgo, "solo seleccionados", "Basar en" otro rol (`onBaseRole` → `GET /roles/{id}/permissions`), "Solo lectura" (sólo `.view`), "Limpiar", escalada (`granted` deshabilita con tooltip los permisos no poseídos; `null` = sin bloqueo, mismo contrato vacío que `UI.can`), auto-marcar `.view` al marcar crear/editar/eliminar del mismo recurso (aviso breve), indeterminate en cabeceras de módulo/recurso y foco en el buscador al montar.
+- **`tools/smoke/verify-permission-picker.mjs`** (Playwright, 19 checks): capturas y comprobaciones a 1366px en tema oscuro y claro y a 700px (select de módulos); verifica modal-pp ~1100×85vh, descripción sola a ancho completo sin scrollbars ni resize, único scroll en los paneles, buscador enfocado y superficie oscura/clara según tema. Capturas en `tools/smoke/capturas-permissions/`.
+
+### Changed
+
+- **`public/js/modules/roles/roles.js`**: los modales crear/editar/permisos usan `size: 'pp'` y montan el picker; la descripción va siempre en su propia fila (nunca al par de otro campo) con `textarea-autogrow`; el pie resume `N permisos seleccionados (M criticos)` y avisa si hay CRITICAL; "Editar rol" ahora también gestiona los permisos (`PATCH metadata` + `PATCH /roles/{id}/permissions`); se eliminan la matriz HTML a mano, `perm-all-toggle`, `toggleModulo`/`toggleAll` y `state.grouped`.
+- **`public/js/ui/modal.js`**: `SIZES.pp` (`modal-pp`) y `controlClass` opcional en `UI.field` (input/textarea).
+- **`public/css/components.css`**: `.modal-pp` (1100px × 85vh, cabecera/pie fijos, `.modal-pp .modal-body` flex), estilos `.pp-*` (toolbar, barra, módulos, panel, recurso, note, summary, critical), `.textarea-autogrow` y responsivo (módulos → select <768px).
+- **`public/index.php`**: carga `js/ui/permission-picker.js` tras `ui/actions.js`.
+- **`resources/locales/{es,en,pt,fr}.json`**: +22 claves `ui.picker.*` y +2 `roles.perms.{summary,critical_alert}` en los 4 locales.
+- **`docs/UI_STANDARD.md`**: §4.2 documenta `UI.permissionPicker` y su uso en modales.
+- **`tools/smoke/smoke-v1120.mjs`** (S3) y **`tools/smoke/verify-rowactions-vistas.mjs`** (RA-13, +21 checks): adaptados al picker (fixtures `/permissions` y `/roles/{id}/permissions`, `setCheck`/`setSearch`/`pickerSelected`, escalada, BUILT_IN sin toolbar); `UI_FILES` incluye `ui/permission-picker.js`.
+
+### Verification
+
+- Un solo ciclo de cierre: `php -l` index.php OK; `node --check` 5/5 (picker, modal, roles y los 2 smokes); `check-i18n.php` **0 errores** (paridad 1518 claves en las 4 locales; 30 AVISOs: 20 `ui.picker.*` vía wrapper `tr()`, 6 `theme.*` y 4 `roles.perms.*` preexistentes/muertas); smokes afectados en verde: `smoke-v1120` 151, `verify-rowactions-vistas` 128 (107 previos + 21 RA-13), `verify-permission-picker` 19 (Playwright real contra Apache); `composer test` 944 tests, 6818 assertions, OK (2 deprecations preexistentes); `check-schema-drift.php` SIN DRIFT.
+
+### Notes
+
+- Sólo frontend; ningún endpoint ni esquema tocado. Desviaciones sin tocar (para informe): `roles.perms.{readonly,empty,select_all,mfa}` quedan sin uso directo en `roles.js` (el picker usa `tr()` y sus propias claves `ui.picker.*`); en `pt.json`/`fr.json` el bloque `roles.*` preexistente sigue en español (no se corrige en silencio; las claves nuevas de este bloque sí están traducidas); la captura comprueba tema oscuro con `xp.theme` forzado, sin hardcodes de color añadidos al CSS.
+
 ## [1.13.24] - 2026-10-12
 
 BLOQUE D (sólo frontend + locales): `profile.js` deja de tener literales en español fuera de `t()`.

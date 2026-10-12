@@ -6,7 +6,7 @@
  * Cobertura:
  *  S1  Registro de rutas/modulos y wiring (loader, router, state, login)
  *  S2  Pantalla de Usuarios: listado, filtros, alta, estado, temporales
- *  S3  Pantalla de Roles: listado, matriz de permisos, alta y baja
+ *  S3  Pantalla de Roles: listado, selector maestro-detalle, alta y baja
  *  S4  Pantalla de Grupos: listado, detalle, miembros, roles, CRUD
  *  S5  Sidebar: items users/roles/groups segun permisos
  *  S6  Cambio de contrasena: menu, modal y modo obligatorio
@@ -33,7 +33,7 @@ const FILES = {
   i18n: read('core/i18n.js')
 };
 
-const UI_FILES = ['ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js'].map(read);
+const UI_FILES = ['ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js', 'ui/permission-picker.js'].map(read);
 
 let pass = 0;
 let fail = 0;
@@ -236,6 +236,24 @@ function createEnv({ perms = [], roles = ['ADMIN'], realEventBus = false, getHan
     if (el) el.value = value;
     return el;
   };
+  env.setCheck = (el, on) => {
+    if (!el || el.disabled) return;
+    if (el.checked !== on) {
+      el.checked = on;
+      el.dispatchEvent(new w.Event('change', { bubbles: true }));
+    }
+  };
+  env.setSearch = (root, value) => {
+    const el = root.querySelector('[data-pp-search]');
+    if (!el) return null;
+    el.value = value;
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    return el;
+  };
+  env.pickerSelected = (root) => {
+    const panel = root.querySelector('[data-pp-panel]');
+    return panel ? w.UI.permissionPicker.getSelected(panel) : [];
+  };
   env.close = () => dom.window.close();
 
   return env;
@@ -247,7 +265,7 @@ const ADMIN_PERMS = [
   'temporary.permission.revoke', 'roles.role.view', 'roles.role.create',
   'roles.role.edit', 'roles.role.delete', 'groups.group.view', 'groups.group.create',
   'groups.group.edit', 'groups.group.delete', 'groups.group.manage_members',
-  'groups.group.manage_roles', 'permissions.permission.view'
+  'groups.group.manage_roles', 'permissions.permission.view', 'inventory.stock.view'
 ];
 
 // =====================================================================
@@ -452,7 +470,9 @@ async function s3_roles_screen() {
   await tick(10);
   let root = env.modalRoot();
   check('modal de permisos BUILT_IN abierto', !!root);
+  check('modal usa el tamano del picker', !!root.querySelector('.modal-pp'));
   check('BUILT_IN sin boton guardar', !root.querySelector('[data-action="submit-permissions"]'));
+  check('BUILT_IN sin toolbar de acciones', !root.querySelector('[data-pp-clear]'));
   const checksR1 = [...root.querySelectorAll('[data-perm-check]')];
   check('BUILT_IN con casillas deshabilitadas',
     checksR1.length > 0 && checksR1.every(c => c.disabled),
@@ -461,19 +481,33 @@ async function s3_roles_screen() {
   env.click(root.querySelector('[data-action="close-modal"]'));
   await tick();
 
-  // --- Permisos del rol CUSTOM (matriz editable) ---
+  // --- Permisos del rol CUSTOM (selector maestro-detalle) ---
   env.click(env.container.querySelector('[data-action="open-permissions"][data-id="r2"]'));
   await tick(10);
   root = env.modalRoot();
-  check('casilla del permiso actual marcada',
-    !!root.querySelector('input[data-perm-check][value="inventory.stock.view"]')
-    && root.querySelector('input[data-perm-check][value="inventory.stock.view"]').checked);
-  check('casilla de usuarios disponible',
-    !!root.querySelector('input[data-perm-check][value="users.user.view"]'));
+  check('seleccion inicial con el permiso actual',
+    env.pickerSelected(root).includes('inventory.stock.view'),
+    JSON.stringify(env.pickerSelected(root)));
+  check('toolbar del picker presente', !!root.querySelector('[data-pp-clear]'));
+  check('resumen del pie visible', !!root.querySelector('[data-pp-summary]'));
 
-  env.click(root.querySelector('[data-action="perm-all-toggle"]'));
-  const allChecked = [...root.querySelectorAll('[data-perm-check]')].every(c => c.checked);
-  check('seleccionar todo marca la matriz', allChecked);
+  env.click(root.querySelector('[data-pp-module="users"]'));
+  await tick();
+  check('panel muestra el modulo users',
+    !!root.querySelector('input[data-perm-check][value="users.user.view"]'));
+  env.setCheck(root.querySelector('input[data-perm-check][value="users.user.view"]'), true);
+  check('marcar users.user.view entra en la seleccion',
+    env.pickerSelected(root).includes('users.user.view'),
+    JSON.stringify(env.pickerSelected(root)));
+
+  for (const mod of ['groups', 'inventory', 'users']) {
+    env.setCheck(root.querySelector(`[data-pp-modulo-all][data-modulo="${mod}"]`), true);
+  }
+  await tick();
+  check('seleccionar todo por modulo marca la matriz',
+    env.pickerSelected(root).length === PERMS.length,
+    JSON.stringify(env.pickerSelected(root)));
+
   env.click(root.querySelector('[data-action="submit-permissions"]'));
   await tick();
   check('PATCH /roles/r2/permissions con la matriz completa',
@@ -484,15 +518,45 @@ async function s3_roles_screen() {
     JSON.stringify(env.calls.patches));
   check('toast de permisos guardados', env.calls.toasts.some(t => t.type === 'success'));
 
-  // --- Alta de rol con matriz ---
+  // --- Escalada: permiso no poseido queda deshabilitado ---
+  const env3 = createEnv({
+    perms: ADMIN_PERMS.filter(p => p !== 'inventory.stock.view'),
+    roles: ['ADMIN']
+  });
+  env3.loadRoles();
+  await tick();
+  env3.click(env3.container.querySelector('[data-action="open-permissions"][data-id="r2"]'));
+  await tick(10);
+  const root3 = env3.modalRoot();
+  env3.click(root3.querySelector('[data-pp-module="inventory"]'));
+  await tick();
+  const invCheck = root3.querySelector('input[data-perm-check][value="inventory.stock.view"]');
+  check('escalada: permiso no poseido deshabilitado', !!invCheck && invCheck.disabled,
+    invCheck ? `disabled=${invCheck.disabled}` : 'sin casilla');
+  env3.close();
+
+  // --- Alta de rol con picker ---
   env.click(env.container.querySelector('[data-action="open-create"]'));
   await tick(10);
   root = env.modalRoot();
   check('modal de alta de rol abierto', !!root && !!root.querySelector('[data-modal-field="nombre"]'));
+  check('alta usa el tamano del picker', !!root.querySelector('.modal-pp'));
+  check('alta: buscador del picker presente', !!root.querySelector('[data-pp-search]'));
+  check('alta: descripcion en su propia fila (autogrow)',
+    !!root.querySelector('textarea.textarea-autogrow[data-modal-field="descripcion"]'));
   env.set(root, 'nombre', 'Operador');
-  env.set(root, 'descripcion', 'Operario de almacen');
+  const descEl = env.set(root, 'descripcion', 'Operario de almacen');
+  if (descEl) descEl.dispatchEvent(new env.w.Event('input', { bubbles: true }));
+
+  env.setSearch(root, 'users.user.view');
+  await tick();
   const permCheck = root.querySelector('input[data-perm-check][value="users.user.view"]');
-  permCheck.checked = true;
+  check('busqueda filtra hasta el permiso', !!permCheck);
+  env.setCheck(permCheck, true);
+  check('resumen refleja la seleccion',
+    /1/.test(root.querySelector('[data-pp-summary]').textContent),
+    root.querySelector('[data-pp-summary]').textContent);
+
   env.click(root.querySelector('[data-action="submit-create"]'));
   await tick();
   check('POST /roles con permisos seleccionados',

@@ -1,5 +1,6 @@
 /**
- * Smoke jsdom: estructura de UI.rowActions en las 12 vistas migradas (BLOQUE B).
+ * Smoke jsdom: estructura de UI.rowActions en las 12 vistas migradas (BLOQUE B)
+ * y del selector de permisos UI.permissionPicker en roles (BLOQUE F, RA-13).
  * Verifica por vista: celda .col-actions, primary correcto, menu con aria-haspopup,
  * orden de items, opcion danger al final y ausencia de acciones sin permiso.
  * Uso: node verify-rowactions-vistas.mjs   (desde .../Temp/opencode/jsdom-env)
@@ -28,7 +29,7 @@ const FILES = {
   audit: read('modules/audit/logs.js')
 };
 
-const UI_FILES = ['ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js'].map(read);
+const UI_FILES = ['ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js', 'ui/permission-picker.js'].map(read);
 
 let pass = 0;
 let fail = 0;
@@ -55,6 +56,17 @@ const ROLES = [
   { id: 'r1', nombre: 'Administrador', tipo: 'BUILT_IN', descripcion: 'Rol base', activo: true, permisos: [] },
   { id: 'r2', nombre: 'Analista', tipo: 'CUSTOM', descripcion: 'Lectura', activo: true, permisos: ['inventory.stock.view'] }
 ];
+
+// Catalogo GET /permissions + permisos por rol (BLOQUE F: picker).
+const PERMS = [
+  { id: 'p1', identificador: 'inventory.stock.view', nombre: 'Ver stock', descripcion: 'Ver el stock', modulo: 'inventory', recurso: 'stock', accion: 'view', criticidad: 'MEDIUM', activo: true },
+  { id: 'p2', identificador: 'users.user.view', nombre: 'Ver usuarios', descripcion: 'Ver usuarios', modulo: 'users', recurso: 'user', accion: 'view', criticidad: 'HIGH', activo: true },
+  { id: 'p3', identificador: 'groups.group.view', nombre: 'Ver grupos', descripcion: 'Ver grupos', modulo: 'groups', recurso: 'group', accion: 'view', criticidad: 'LOW', activo: true }
+];
+const ROLE_PERMS = {
+  r1: { permisos: [] },
+  r2: { permisos: ['inventory.stock.view'] }
+};
 
 const PRODUCTS = [
   { id: 'p1', sku: 'SKU-1', nombre: 'Prod', categoria: 'General', unidad_medida: 'UNIDAD', activo: true, created_at: '2026-01-01' },
@@ -316,7 +328,9 @@ const DELIVERIES_PAYLOAD = {
 
 const FULL = [
   'groups.group.view', 'groups.group.edit', 'groups.group.delete',
-  'roles.role.view', 'roles.role.edit', 'roles.role.delete',
+  'roles.role.view', 'roles.role.create', 'roles.role.edit', 'roles.role.delete',
+  'permissions.permission.view',
+  'users.user.view',
   'audit.log.view',
   'inventory.item.view', 'inventory.item.edit', 'inventory.item.delete',
   'inventory.location.view', 'inventory.location.manage',
@@ -373,11 +387,36 @@ function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {} } = {}) {
   const env = { w, calls, dom, container: w.document.getElementById('module-container') };
   env.evalIn = (code) => w.eval(code);
   env.close = () => dom.window.close();
+  env.click = (el) => el && el.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
+  env.modalRoot = () => env.container.querySelector('[data-modal-root]');
+  env.setCheck = (el, on) => {
+    if (!el || el.disabled) return;
+    if (el.checked !== on) {
+      el.checked = on;
+      el.dispatchEvent(new w.Event('change', { bubbles: true }));
+    }
+  };
+  env.setSearch = (root, value) => {
+    const el = root.querySelector('[data-pp-search]');
+    if (!el) return null;
+    el.value = value;
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    return el;
+  };
+  env.pickerSelected = (root) => {
+    const panel = root.querySelector('[data-pp-panel]');
+    return panel ? w.UI.permissionPicker.getSelected(panel) : [];
+  };
 
   const resolveGet = (p) => {
     if (getHandlers[p]) return getHandlers[p];
     if (p === '/groups') return { status: 200, data: { groups: GROUPS } };
     if (p === '/roles') return { status: 200, data: { roles: ROLES } };
+    if (p === '/permissions') return { status: 200, data: { permissions: PERMS } };
+    const mRolePerms = /^\/roles\/([^/]+)\/permissions$/.exec(p);
+    if (mRolePerms) {
+      return { status: 200, data: ROLE_PERMS[mRolePerms[1]] || { permisos: [] } };
+    }
     if (p === '/users') return { status: 200, data: { data: [{ id: 'user-1', nombre: 'Demo', apellido: 'Admin', email: 'demo@acme.local' }], pagination: { total: 1, page: 1, per_page: 100 } } };
     if (p === '/inventory/products') return PRODUCTS_PAYLOAD;
     if (p === '/inventory/locations') return LOCATIONS_PAYLOAD;
@@ -857,6 +896,140 @@ async function ra12_audit() {
 }
 
 // =====================================================================
+// RA-13 PICKER DE PERMISOS (BLOQUE F)
+// =====================================================================
+async function ra13_roles_picker() {
+  console.log('RA-13 picker de permisos: modal-pp, buscador, contadores, basar-en, solo lectura, escalada');
+  const env = createEnv({ perms: FULL });
+  env.evalIn(FILES.roles);
+  env.w.RolesRolesModule.init({}, env.container);
+  await tick(12);
+
+  env.click(env.container.querySelector('[data-action="open-create"]'));
+  await tick(10);
+  let root = env.modalRoot();
+  check('RA-13.1 modal-pp en el alta', !!root.querySelector('.modal-pp'));
+  check('RA-13.2 buscador del picker', !!root.querySelector('[data-pp-search]'));
+  check('RA-13.3 tres modulos en la lista',
+    root.querySelectorAll('[data-pp-module]').length === 3,
+    String(root.querySelectorAll('[data-pp-module]').length));
+  check('RA-13.4 contador del modulo activo', /\d\/\d/.test((root.querySelector('[data-pp-mod-count]') || {}).textContent || ''));
+  check('RA-13.5 descripcion sola en su fila (autogrow)',
+    !!root.querySelector('textarea.textarea-autogrow[data-modal-field="descripcion"]')
+    && !root.querySelector('.pp-head-row textarea'));
+
+  // Busqueda filtra hasta un modulo concreto.
+  env.setSearch(root, 'users.user.view');
+  await tick();
+  check('RA-13.6 busqueda deja un solo modulo',
+    root.querySelectorAll('[data-pp-module]').length === 1,
+    String(root.querySelectorAll('[data-pp-module]').length));
+  check('RA-13.7 permiso filtrado visible',
+    !!root.querySelector('input[data-perm-check][value="users.user.view"]'));
+
+  env.setSearch(root, 'zzz-no-existe');
+  await tick();
+  check('RA-13.8 sin resultados muestra el aviso',
+    /Ning/.test((root.querySelector('[data-pp-panel]') || {}).textContent || ''));
+
+  env.setSearch(root, '');
+  await tick();
+
+  // Solo seleccionados (empiza vacio).
+  env.setCheck(root.querySelector('[data-pp-only]'), true);
+  await tick();
+  check('RA-13.9 solo seleccionados sin marca: panel vacio',
+    root.querySelectorAll('[data-perm-check]').length === 0);
+  env.setCheck(root.querySelector('[data-pp-only]'), false);
+  await tick();
+
+  // Filtro de riesgo.
+  const risk = root.querySelector('[data-pp-risk]');
+  risk.value = 'HIGH';
+  risk.dispatchEvent(new env.w.Event('change', { bubbles: true }));
+  await tick();
+  check('RA-13.10 filtro de riesgo HIGH deja users',
+    !!root.querySelector('input[data-perm-check][value="users.user.view"]')
+    && !root.querySelector('input[data-perm-check][value="inventory.stock.view"]'));
+  risk.value = 'ALL';
+  risk.dispatchEvent(new env.w.Event('change', { bubbles: true }));
+  await tick();
+
+  // Marcar una casilla actualiza el resumen.
+  env.click(root.querySelector('[data-pp-module="users"]'));
+  await tick();
+  env.setCheck(root.querySelector('input[data-perm-check][value="users.user.view"]'), true);
+  check('RA-13.11 resumen refleja 1 seleccionado',
+    /1/.test((root.querySelector('[data-pp-summary]') || {}).textContent || ''),
+    (root.querySelector('[data-pp-summary]') || {}).textContent);
+
+  // Basar en r2 carga sus permisos.
+  const base = root.querySelector('[data-pp-base]');
+  check('RA-13.12 opciones de basar-en', !!base && base.querySelectorAll('option').length >= 2);
+  base.value = 'r2';
+  base.dispatchEvent(new env.w.Event('change', { bubbles: true }));
+  await tick(10);
+  check('RA-13.13 basar en r2 trae inventory.stock.view',
+    env.pickerSelected(root).includes('inventory.stock.view'),
+    JSON.stringify(env.pickerSelected(root)));
+  check('RA-13.14 GET /roles/r2/permissions para basar-en',
+    env.calls.gets.some(g => g.path === '/roles/r2/permissions'));
+
+  // Solo lectura (solo .view).
+  env.click(root.querySelector('[data-pp-readonly-action]'));
+  await tick();
+  const soloVista = env.pickerSelected(root);
+  check('RA-13.15 solo lectura deja solo permisos view',
+    soloVista.length === 3 && soloVista.every(c => c.endsWith('.view')),
+    JSON.stringify(soloVista));
+
+  // Limpiar.
+  env.click(root.querySelector('[data-pp-clear]'));
+  await tick();
+  check('RA-13.16 limpiar vacia la seleccion', env.pickerSelected(root).length === 0);
+
+  env.click(root.querySelector('[data-action="close-modal"]'));
+  await tick();
+  noErrors(env, 'RA-13.17');
+  env.close();
+
+  // --- Escalada: sin inventory.stock.view no se puede otorgar ---
+  const e2 = createEnv({ perms: without('inventory.stock.view') });
+  e2.evalIn(FILES.roles);
+  e2.w.RolesRolesModule.init({}, e2.container);
+  await tick(12);
+  e2.click(e2.container.querySelector('[data-action="open-permissions"][data-id="r2"]'));
+  await tick(10);
+  const root2 = e2.modalRoot();
+  e2.click(root2.querySelector('[data-pp-module="inventory"]'));
+  await tick();
+  const inv = root2.querySelector('input[data-perm-check][value="inventory.stock.view"]');
+  check('RA-13.18 escalada deshabilita el permiso no poseido', !!inv && inv.disabled,
+    inv ? `disabled=${inv.disabled}` : 'sin casilla');
+  check('RA-13.19 permiso poseido sigue habilitado',
+    (() => {
+      e2.click(root2.querySelector('[data-pp-module="groups"]'));
+      const g = root2.querySelector('input[data-perm-check][value="groups.group.view"]');
+      return !!g && !g.disabled;
+    })());
+  e2.close();
+
+  // --- BUILT_IN: solo lectura total, sin toolbar ---
+  const e3 = createEnv({ perms: FULL });
+  e3.evalIn(FILES.roles);
+  e3.w.RolesRolesModule.init({}, e3.container);
+  await tick(12);
+  e3.click(e3.container.querySelector('[data-action="open-permissions"][data-id="r1"]'));
+  await tick(10);
+  const root3 = e3.modalRoot();
+  check('RA-13.20 BUILT_IN sin toolbar', !root3.querySelector('[data-pp-clear]'));
+  const checks3 = [...root3.querySelectorAll('[data-perm-check]')];
+  check('RA-13.21 BUILT_IN casillas deshabilitadas',
+    checks3.length > 0 && checks3.every(c => c.disabled));
+  e3.close();
+}
+
+// =====================================================================
 async function main() {
   await ra1_groups();
   await ra2_roles();
@@ -870,6 +1043,7 @@ async function main() {
   await ra10_deliveries();
   await ra11_reservations();
   await ra12_audit();
+  await ra13_roles_picker();
 
   console.log(`\nRESULTADO: ${pass} OK, ${fail} FAIL`);
   if (fail > 0) process.exitCode = 1;

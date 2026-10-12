@@ -32,7 +32,29 @@
     "toast_rejected": "Operación rechazada",
     "toast_lang_save_title": "Idioma",
     "toast_lang_save_failed": "No se pudo guardar el idioma en el servidor; se mantiene solo en este navegador.",
-    "row_actions": "Acciones"
+    "row_actions": "Acciones",
+    "picker": {
+      "base": "Basar en",
+      "base_none": "Sin plantilla",
+      "readonly_action": "Solo lectura",
+      "clear": "Limpiar",
+      "search_placeholder": "Buscar permiso por código o descripción",
+      "only_selected": "Solo seleccionados",
+      "risk": "Riesgo",
+      "risk_ALL": "Todos los riesgos",
+      "risk_CRITICAL": "CRITICAL",
+      "risk_HIGH": "HIGH",
+      "risk_MEDIUM": "MEDIUM",
+      "risk_LOW": "LOW",
+      "select_module_all": "Seleccionar todo el grupo",
+      "modules": "Módulos",
+      "module_select": "Módulo",
+      "panel": "Permisos del módulo",
+      "no_results": "Ningún permiso coincide con el filtro.",
+      "empty": "No hay permisos disponibles.",
+      "escalation": "No puedes otorgar un permiso que no posees.",
+      "note_view": "Se ha añadido {code} para poder usar el permiso."
+    }
   },
   "theme": {
     "action_dark": "Claro",
@@ -1807,7 +1829,9 @@
       "select_all": "Marcar todo",
       "saved": "Permisos guardados ({count}).",
       "save": "Guardar permisos",
-      "load_error": "No se pudieron cargar los permisos del rol."
+      "load_error": "No se pudieron cargar los permisos del rol.",
+      "summary": "{count} permisos seleccionados ({critical} críticos)",
+      "critical_alert": "Vas a guardar {count} permisos CRITICAL: revísalos antes de confirmar."
     },
     "errors": {
       "load": "No se pudieron cargar los roles.",

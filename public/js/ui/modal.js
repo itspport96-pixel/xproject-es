@@ -23,7 +23,8 @@
     const SIZES = {
         sm: 'modal-sm',
         lg: 'modal-lg',
-        xl: 'modal-xl'
+        xl: 'modal-xl',
+        pp: 'modal-pp'
     };
 
     /**
@@ -91,9 +92,11 @@
             control = `<select class="select" data-modal-field="${name}"${attrs}${sizeAttr}>${opciones}</select>`;
         } else if (o.type === 'textarea') {
             const rows = o.rows || 4;
-            control = `<textarea class="input" rows="${rows}" data-modal-field="${name}"${attrs}>${UI.escapeHtml(o.value || '')}</textarea>`;
+            const extraClass = o.controlClass ? ' ' + o.controlClass : '';
+            control = `<textarea class="input${extraClass}" rows="${rows}" data-modal-field="${name}"${attrs}>${UI.escapeHtml(o.value || '')}</textarea>`;
         } else {
-            control = `<input type="${UI.escapeHtml(o.type || 'text')}" class="input" data-modal-field="${name}"${attrs} value="${UI.escapeHtml(o.value || '')}"${o.type === 'text' ? ' autocomplete="off"' : ''}>`;
+            const extraClass = o.controlClass ? ' ' + o.controlClass : '';
+            control = `<input type="${UI.escapeHtml(o.type || 'text')}" class="input${extraClass}" data-modal-field="${name}"${attrs} value="${UI.escapeHtml(o.value || '')}"${o.type === 'text' ? ' autocomplete="off"' : ''}>`;
         }
 
         return `
