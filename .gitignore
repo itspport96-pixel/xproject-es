@@ -7,6 +7,17 @@ script2.ps1
 script.ps1
 CHANGELOG.md
 .env
+.env.*
+
+# Registros sueltos (los logs concretos del servidor E2E ya estan abajo).
+*.log
+
+# Claves y certificados: nunca se versionan.
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
 
 # /database se versiona (schema.sql, create_tables.ps1 y seeders): sólo se
 # ignoran los volcados con datos y las copias de seguridad (v1.8.3).
