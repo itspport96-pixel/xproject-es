@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.22] - 2026-10-12
+
+BLOQUE B (sólo frontend): las 12 vistas que pintaban acciones de fila a mano migran al componente compartido `UI.rowActions` (regla 14 de AGENTS.md / §4.1 de `docs/UI_STANDARD.md`), con opción discreta + menú de tres puntos, grupos, destructivo al final en rojo y permisos filtrados en el módulo.
+
+### Changed
+
+- **`UI.rowActions` ampliado** (`public/js/ui/view.js`): parámetro opcional `attrs` por opción (primaria y de menú) para atributos HTML extra; el módulo escapa los valores. Sólo lo necesita picking, que conserva `data-lote` (handlers y smoke `v171` leen `[data-lote]`); el resto de vistas pasa `id` normal (`data-id`).
+- **12 vistas migradas** (mismos `data-action` de siempre, para no romper las aserciones de permisos de los smokes): `audit/logs` (primaria `detail` con `data-id` = índice del row; el handler pasa de `btn.dataset.index` a `btn.dataset.id`), `groups` (`open-detail` + grupos Editar/Eliminar; helper `actionBtn` eliminado), `roles` (`open-permissions` + Editar/Eliminar sólo en roles CUSTOM; `actionBtn` eliminado), `products` (`edit` + Stock + Activar/Desactivar + Eliminar), `locations` (`edit` + Unidades + Activar/Desactivar + Eliminar), `stock` (`move` + Reservar + Bloquear/Desbloquear + Historial), `shipments` (`open-detail` + Autorizar sólo en `PREPARACION`), `incidents` (`open-detail` + Investigar/Resolver según estado y permiso), `counts` (primaria única `open-detail` con etiqueta contextual `view`/`count`/`reconcile`), `picking` (`rowActionsForLote`: `expand-lote` + Completar/Verificar por estado, todos con `attrs data-lote`), `deliveries` (sin permiso `inventory.delivery.confirm` la celda queda vacía; con él, `open-confirm` + Marcar fallida) y `reservations` (sin primaria; menú sólo con Liberar `danger`).
+- **Nuevo smoke `tools/smoke/verify-rowactions-vistas.mjs`** (jsdom, 100 checks): por vista verifica celda `td.col-actions`, cabecera `th.col-actions`, primaria correcta (y sus `data-id`/`data-lote`), orden exacto del menú, `aria-haspopup="menu"`/`aria-expanded="false"` en el trigger, opción `danger` al final, guardas de estado (BUILT_IN, `PREPARACION`, `RESUELTA`, lotes, producto inactivo…) y ausencia de la acción cuando se retira su permiso; además, ausencia de errores de consola en cada carga.
+
+### Verification
+
+- `node --check`: 14/14 ficheros (13 JS + el smoke) OK.
+- `composer test`: 944 tests, 6818 assertions, OK (2 deprecations PHPUnit preexistentes).
+- Smokes jsdom (13 scripts, todos en verde): `v1120` 140, `v193` 136, `v171` 105, `v184` 100, `verify-rowactions-vistas` 100, `v162` 89, `v1100` 66, `v1102` 44, `verify-rowactions-users` 44, `v1103` 34, `bloque1b` 26, `bloque2` 20, `verify-tabs-scroll` 8.
+- `check-i18n.php`: 2 errores preexistentes en `profile.js`, fuera del alcance. `check-schema-drift.php`: SIN DRIFT. `check-data-integrity.php`: DATOS CONSISTENTES. GETs de solo lectura con admin (users/roles/groups/permissions/temp + 13 endpoints inventory): 19/19 → 200.
+
+### Notes
+
+- Sólo frontend: ningún endpoint, esquema ni permiso tocado. Desviación pendiente de informe: `users` ya estaba en el patrón (Bloque 2) y no se toca; queda fuera el resto de botones de fila que aún no son menú de tres puntos, si los hubiera, para revisión en informe de cierre.
+
 ## [1.13.21] - 2026-10-12
 
 BLOQUE A (sólo frontend): patrón de éxito en los submits de toda la UI — el toast `success` se emite **después** de esperar la recarga real (y sólo si la recarga tuvo éxito), no antes de lanzarla.

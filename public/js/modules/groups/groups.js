@@ -139,10 +139,14 @@
                 ? UI.formatNumber(count)
                 : '<span class="text-muted">…</span>';
 
-            const acciones = [];
-            acciones.push(actionBtn('open-detail', g.id, t('groups.actions.detail')));
-            if (canEdit()) acciones.push(actionBtn('open-edit', g.id, t('groups.actions.edit')));
-            if (canDelete()) acciones.push(actionBtn('open-delete', g.id, t('groups.actions.delete'), 'btn-danger'));
+            const acciones = UI.rowActions({
+                primary: { action: 'open-detail', id: g.id, label: t('groups.actions.detail') },
+                groups: [
+                    [canEdit() ? { action: 'open-edit', id: g.id, label: t('groups.actions.edit') } : null],
+                    [canDelete() ? { action: 'open-delete', id: g.id, label: t('groups.actions.delete'), danger: true } : null]
+                ],
+                ariaLabel: t('groups.columns.actions')
+            });
 
             return `
                 <tr>
@@ -152,7 +156,7 @@
                     </td>
                     <td>${estadoBadge(!!g.activo)}</td>
                     <td class="text-right">${miembros}</td>
-                    <td class="table-actions col-actions">${acciones.join('')}</td>
+                    <td class="table-actions col-actions">${acciones}</td>
                 </tr>`;
         }).join('');
 
@@ -162,11 +166,6 @@
             { label: t('groups.columns.members'), className: 'text-right' },
             { label: t('groups.columns.actions'), className: 'col-actions' }
         ], rows);
-    }
-
-    function actionBtn(action, id, label, extraClass) {
-        const clase = 'btn btn-ghost btn-sm' + (extraClass ? ' ' + extraClass : '');
-        return `<button class="${clase}" data-action="${action}" data-id="${UI.escapeHtml(id)}">${UI.escapeHtml(label)}</button>`;
     }
 
     // ====================================================================

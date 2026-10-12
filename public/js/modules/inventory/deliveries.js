@@ -299,14 +299,19 @@
     }
 
     function renderRowActions(shipment) {
-        if (!canConfirm()) return '<span class="text-muted">—</span>';
+        if (!canConfirm()) return '';
 
-        return `
-            <button class="btn btn-ghost btn-sm" data-action="open-confirm"
-                data-id="${escapeHtml(shipment.shipment_id)}">${t('inventory.deliveries.actions.confirm')}</button>
-            <button class="btn btn-ghost btn-sm" data-action="open-failed"
-                data-id="${escapeHtml(shipment.shipment_id)}">${t('inventory.deliveries.actions.failed')}</button>
-        `;
+        return UI.rowActions({
+            primary: {
+                action: 'open-confirm',
+                id: shipment.shipment_id,
+                label: t('inventory.deliveries.actions.confirm')
+            },
+            groups: [
+                [{ action: 'open-failed', id: shipment.shipment_id, label: t('inventory.deliveries.actions.failed') }]
+            ],
+            ariaLabel: t('inventory.deliveries.columns.acciones')
+        });
     }
 
     // ====================================================================

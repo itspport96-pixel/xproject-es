@@ -266,21 +266,21 @@
         const block = canBlock() && canBlockUnit(u);
         const unblock = canBlock() && canUnblockUnit(u);
 
-        const buttons = [];
-        if (move) {
-            buttons.push(`<button class="btn btn-ghost btn-sm" data-action="move" data-id="${escapeHtml(u.unidad_fisica_id)}">${t('inventory.stock.actions.move')}</button>`);
-        }
-        if (reserve) {
-            buttons.push(`<button class="btn btn-ghost btn-sm" data-action="reserve" data-id="${escapeHtml(u.unidad_fisica_id)}">${t('inventory.stock.actions.reserve')}</button>`);
-        }
-        if (block) {
-            buttons.push(`<button class="btn btn-ghost btn-sm" data-action="block" data-id="${escapeHtml(u.unidad_fisica_id)}">${t('inventory.stock.actions.block')}</button>`);
-        }
-        if (unblock) {
-            buttons.push(`<button class="btn btn-ghost btn-sm" data-action="unblock" data-id="${escapeHtml(u.unidad_fisica_id)}">${t('inventory.stock.actions.unblock')}</button>`);
-        }
-        buttons.push(`<button class="btn btn-ghost btn-sm" data-action="history" data-id="${escapeHtml(u.unidad_fisica_id)}">${t('inventory.stock.actions.history')}</button>`);
-        return buttons.join('');
+        return UI.rowActions({
+            primary: move
+                ? { action: 'move', id: u.unidad_fisica_id, label: t('inventory.stock.actions.move') }
+                : null,
+            groups: [
+                [reserve ? { action: 'reserve', id: u.unidad_fisica_id, label: t('inventory.stock.actions.reserve') } : null],
+                [block
+                    ? { action: 'block', id: u.unidad_fisica_id, label: t('inventory.stock.actions.block') }
+                    : unblock
+                        ? { action: 'unblock', id: u.unidad_fisica_id, label: t('inventory.stock.actions.unblock') }
+                        : null],
+                [{ action: 'history', id: u.unidad_fisica_id, label: t('inventory.stock.actions.history') }]
+            ],
+            ariaLabel: t('inventory.stock.columns.acciones')
+        });
     }
 
     function renderPagination() {

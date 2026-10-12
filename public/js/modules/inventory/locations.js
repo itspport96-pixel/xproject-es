@@ -183,16 +183,19 @@
                 <td class="min-w-[120px]">${renderCapacityBar(l)}</td>
                 <td>${l.activa ? `<span class="badge badge-success">${t('inventory.locations.states.active')}</span>` : `<span class="badge badge-neutral">${t('inventory.locations.states.inactive')}</span>`}</td>
                 <td class="text-xs text-muted">${formatDate(l.created_at)}</td>
-                <td class="table-actions col-actions">
-                    ${can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])
-                        ? `<button class="btn btn-ghost btn-sm" data-action="units" data-id="${l.id}">${t('inventory.locations.actions.units')}</button>`
-                        : ''}
-                    <button class="btn btn-ghost btn-sm" data-action="edit" data-id="${l.id}">${t('inventory.locations.actions.edit')}</button>
-                    ${l.activa
-                        ? `<button class="btn btn-ghost btn-sm" data-action="deactivate" data-id="${l.id}">${t('inventory.locations.actions.deactivate')}</button>`
-                        : `<button class="btn btn-ghost btn-sm" data-action="activate" data-id="${l.id}">${t('inventory.locations.actions.activate')}</button>`}
-                    <button class="btn btn-ghost btn-sm text-danger" data-action="delete" data-id="${l.id}">${t('inventory.locations.actions.delete')}</button>
-                </td>
+                <td class="table-actions col-actions">${UI.rowActions({
+                    primary: { action: 'edit', id: l.id, label: t('inventory.locations.actions.edit') },
+                    groups: [
+                        [can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])
+                            ? { action: 'units', id: l.id, label: t('inventory.locations.actions.units') }
+                            : null],
+                        [l.activa
+                            ? { action: 'deactivate', id: l.id, label: t('inventory.locations.actions.deactivate') }
+                            : { action: 'activate', id: l.id, label: t('inventory.locations.actions.activate') }],
+                        [{ action: 'delete', id: l.id, label: t('inventory.locations.actions.delete'), danger: true }]
+                    ],
+                    ariaLabel: t('inventory.locations.columns.actions')
+                })}</td>
             </tr>
         `).join('');
 

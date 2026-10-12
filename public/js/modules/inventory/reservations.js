@@ -147,11 +147,14 @@
                 <td class="text-right font-medium">${UI.formatNumber(r.cantidad)}</td>
                 <td>${UI.estadoBadge(r.estado, catalog, 'warning')}</td>
                 <td class="text-xs">${renderExpiry(r)}</td>
-                <td class="table-actions col-actions">
-                    ${releaseAllowed
-                        ? `<button class="btn btn-ghost btn-sm" data-action="release" data-id="${UI.escapeHtml(r.reserva_id)}">${t('inventory.reservations.actions.release')}</button>`
-                        : '<span class="text-xs text-muted">—</span>'}
-                </td>
+                <td class="table-actions col-actions">${UI.rowActions({
+                    groups: [
+                        [releaseAllowed
+                            ? { action: 'release', id: r.reserva_id, label: t('inventory.reservations.actions.release'), danger: true }
+                            : null]
+                    ],
+                    ariaLabel: t('inventory.reservations.columns.acciones')
+                })}</td>
             </tr>
         `).join('');
 

@@ -271,14 +271,22 @@
             const abierta = r.estado === 'ABIERTA';
             const abiertaONoCerrada = ESTADOS_ABIERTOS.includes(r.estado);
 
-            let acciones = `<button class="btn btn-ghost btn-sm" data-action="open-detail" data-id="${UI.escapeHtml(r.incidencia_id)}">${t('inventory.incidents.actions.view')}</button>`;
-
-            if (resolveAllowed && abierta) {
-                acciones += ` <button class="btn btn-ghost btn-sm" data-action="investigate" data-id="${UI.escapeHtml(r.incidencia_id)}">${t('inventory.incidents.actions.investigate')}</button>`;
-            }
-            if (resolveAllowed && abiertaONoCerrada) {
-                acciones += ` <button class="btn btn-ghost btn-sm" data-action="open-resolve" data-id="${UI.escapeHtml(r.incidencia_id)}">${t('inventory.incidents.actions.resolve')}</button>`;
-            }
+            const acciones = UI.rowActions({
+                primary: {
+                    action: 'open-detail',
+                    id: r.incidencia_id,
+                    label: t('inventory.incidents.actions.view')
+                },
+                groups: [
+                    [resolveAllowed && abierta
+                        ? { action: 'investigate', id: r.incidencia_id, label: t('inventory.incidents.actions.investigate') }
+                        : null],
+                    [resolveAllowed && abiertaONoCerrada
+                        ? { action: 'open-resolve', id: r.incidencia_id, label: t('inventory.incidents.actions.resolve') }
+                        : null]
+                ],
+                ariaLabel: t('inventory.incidents.columns.acciones')
+            });
 
             return `
             <tr>

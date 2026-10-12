@@ -569,15 +569,19 @@
     }
 
     function renderRowActions(shipment) {
-        const buttons = [`<button class="btn btn-ghost btn-sm" data-action="open-detail"
-            data-id="${escapeHtml(shipment.shipment_id)}">${t('inventory.shipments.actions.detail')}</button>`];
-
-        if (canAuthorize() && shipment.estado === 'PREPARACION') {
-            buttons.push(`<button class="btn btn-ghost btn-sm" data-action="authorize"
-                data-id="${escapeHtml(shipment.shipment_id)}">${t('inventory.shipments.actions.authorize')}</button>`);
-        }
-
-        return buttons.join('');
+        return UI.rowActions({
+            primary: {
+                action: 'open-detail',
+                id: shipment.shipment_id,
+                label: t('inventory.shipments.actions.detail')
+            },
+            groups: [
+                [canAuthorize() && shipment.estado === 'PREPARACION'
+                    ? { action: 'authorize', id: shipment.shipment_id, label: t('inventory.shipments.actions.authorize') }
+                    : null]
+            ],
+            ariaLabel: t('inventory.shipments.columns.acciones')
+        });
     }
 
     function renderPagination() {

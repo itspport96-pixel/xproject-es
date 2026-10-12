@@ -317,11 +317,14 @@
      *                     disabled?: boolean}|null,
      *          groups?: Array<Array<{action: string, id?: string, label: string,
      *                                 danger?: boolean, disabled?: boolean}>>,
-     *          ariaLabel?: string}} opts
+     *          ariaLabel?: string, attrs?: string}} opts
      *   primary: accion mas frecuente (p. ej. Editar) como btn-ghost.
      *   groups:  cada array es un grupo del menu; se separan con divider y
      *            las opciones `danger` van al final del ultimo grupo (la
      *            convencion es ponerlas en su propio grupo).
+     *   attrs:   atributos HTML extra opcionales por opcion (p. ej.
+     *            `data-lote="LOTE-A"`); el modulo es responsable de
+     *            escapar los valores.
      *   Si no hay primary ni opciones tras filtrar permisos, devuelve ''.
      *   El menu se pinta con aria-haspopup="menu" y aria-expanded="false".
      */
@@ -338,7 +341,7 @@
         if (!primary && groups.length === 0) return '';
 
         const primaryHtml = primary && primary.action
-            ? `<button type="button" class="btn btn-ghost btn-sm" data-action="${UI.escapeHtml(primary.action)}"${primary.id ? ` data-id="${UI.escapeHtml(primary.id)}"` : ''}${primary.disabled ? ' disabled' : ''}>${UI.escapeHtml(primary.label || '')}</button>`
+            ? `<button type="button" class="btn btn-ghost btn-sm" data-action="${UI.escapeHtml(primary.action)}"${primary.id ? ` data-id="${UI.escapeHtml(primary.id)}"` : ''}${primary.attrs ? ' ' + primary.attrs : ''}${primary.disabled ? ' disabled' : ''}>${UI.escapeHtml(primary.label || '')}</button>`
             : '';
 
         if (groups.length === 0) {
@@ -347,7 +350,7 @@
 
         const menuHtml = groups.map((grupo, index) => {
             const items = grupo.map(item => `
-                <button type="button" role="menuitem" class="dropdown-item${item.danger ? ' danger' : ''}" data-action="${UI.escapeHtml(item.action)}"${item.id ? ` data-id="${UI.escapeHtml(item.id)}"` : ''}${item.disabled ? ' disabled' : ''}>${UI.escapeHtml(item.label || '')}</button>`).join('');
+                <button type="button" role="menuitem" class="dropdown-item${item.danger ? ' danger' : ''}" data-action="${UI.escapeHtml(item.action)}"${item.id ? ` data-id="${UI.escapeHtml(item.id)}"` : ''}${item.attrs ? ' ' + item.attrs : ''}${item.disabled ? ' disabled' : ''}>${UI.escapeHtml(item.label || '')}</button>`).join('');
             const divider = index < groups.length - 1 ? '<div class="dropdown-divider" role="separator"></div>' : '';
             return items + divider;
         }).join('');

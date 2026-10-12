@@ -136,11 +136,16 @@
         const rows = state.items.map(r => {
             const esBuiltIn = r.tipo === 'BUILT_IN';
             const permisos = Array.isArray(r.permisos) ? r.permisos.length : 0;
-            const acciones = [];
-
-            if (canView()) acciones.push(actionBtn('open-permissions', r.id, t('roles.actions.permissions')));
-            if (canEdit() && !esBuiltIn) acciones.push(actionBtn('open-edit', r.id, t('roles.actions.edit')));
-            if (canDelete() && !esBuiltIn) acciones.push(actionBtn('open-delete', r.id, t('roles.actions.delete'), 'btn-danger'));
+            const acciones = UI.rowActions({
+                primary: canView()
+                    ? { action: 'open-permissions', id: r.id, label: t('roles.actions.permissions') }
+                    : null,
+                groups: [
+                    [canEdit() && !esBuiltIn ? { action: 'open-edit', id: r.id, label: t('roles.actions.edit') } : null],
+                    [canDelete() && !esBuiltIn ? { action: 'open-delete', id: r.id, label: t('roles.actions.delete'), danger: true } : null]
+                ],
+                ariaLabel: t('roles.columns.actions')
+            });
 
             return `
                 <tr>
@@ -151,7 +156,7 @@
                     <td>${typeBadge(r.tipo)}</td>
                     <td>${estadoBadge(!!r.activo)}</td>
                     <td class="text-right">${UI.formatNumber(permisos)}</td>
-                    <td class="table-actions col-actions">${acciones.join('')}</td>
+                    <td class="table-actions col-actions">${acciones}</td>
                 </tr>`;
         }).join('');
 
@@ -162,11 +167,6 @@
             { label: t('roles.columns.permissions'), className: 'text-right' },
             { label: t('roles.columns.actions'), className: 'col-actions' }
         ], rows);
-    }
-
-    function actionBtn(action, id, label, extraClass) {
-        const clase = 'btn btn-ghost btn-sm' + (extraClass ? ' ' + extraClass : '');
-        return `<button class="${clase}" data-action="${action}" data-id="${UI.escapeHtml(id)}">${UI.escapeHtml(label)}</button>`;
     }
 
     // ====================================================================

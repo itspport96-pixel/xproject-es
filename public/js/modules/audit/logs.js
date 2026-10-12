@@ -203,9 +203,10 @@
                 <td>${row.resultado === 'FAILURE'
                     ? `<span class="badge badge-danger">${t('audit.results.failure_badge')}</span>`
                     : `<span class="badge badge-success">${t('audit.results.success')}</span>`}</td>
-                <td class="table-actions col-actions">
-                    <button class="btn btn-ghost btn-sm" data-action="detail" data-index="${index}">${t('audit.columns.detail')}</button>
-                </td>
+                <td class="table-actions col-actions">${UI.rowActions({
+                    primary: { action: 'detail', id: String(index), label: t('audit.columns.detail') },
+                    ariaLabel: t('audit.columns.detail')
+                })}</td>
             </tr>
         `).join('');
 
@@ -440,7 +441,7 @@
 
         const action = btn.dataset.action;
         const page = btn.dataset.page;
-        const index = btn.dataset.index;
+        const index = btn.dataset.id;
 
         switch (action) {
             case 'apply-filters':

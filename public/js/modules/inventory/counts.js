@@ -212,14 +212,18 @@
             const abierto = ABIERTOS.includes(c.estado);
             const porReconciliar = c.estado === 'COMPLETADO' && Number(c.discrepancias_pendientes || 0) > 0;
 
-            let acciones = `<button class="btn btn-ghost btn-sm" data-action="open-detail" data-id="${UI.escapeHtml(c.conteo_id)}">${t('inventory.counts.actions.view')}</button>`;
-
+            let etiqueta = t('inventory.counts.actions.view');
             if (canCreate() && abierto) {
-                acciones += ` <button class="btn btn-ghost btn-sm" data-action="open-detail" data-id="${UI.escapeHtml(c.conteo_id)}">${t('inventory.counts.actions.count')}</button>`;
+                etiqueta = t('inventory.counts.actions.count');
             }
             if (canReconcile() && porReconciliar) {
-                acciones += ` <button class="btn btn-ghost btn-sm" data-action="open-detail" data-id="${UI.escapeHtml(c.conteo_id)}">${t('inventory.counts.actions.reconcile')}</button>`;
+                etiqueta = t('inventory.counts.actions.reconcile');
             }
+
+            const acciones = UI.rowActions({
+                primary: { action: 'open-detail', id: c.conteo_id, label: etiqueta },
+                ariaLabel: t('inventory.counts.columns.acciones')
+            });
 
             return `
             <tr>

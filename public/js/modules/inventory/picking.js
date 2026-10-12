@@ -475,11 +475,7 @@
                     <td class="text-xs">${escapeHtml(g.selector || '—')}</td>
                     <td class="text-xs">${escapeHtml(g.supervisor || '—')}</td>
                     <td class="text-xs">${escapeHtml(g.fecha_creacion || '—')}</td>
-                    <td class="table-actions col-actions">
-                        <button class="btn btn-ghost btn-sm" data-action="expand-lote"
-                                data-lote="${escapeHtml(g.lote)}">${open ? t('inventory.picking.actions.collapse') : t('inventory.picking.actions.expand')}</button>
-                        ${renderLoteActions(g)}
-                    </td>
+                    <td class="table-actions col-actions">${rowActionsForLote(g, open)}</td>
                 </tr>
             `;
 
@@ -522,19 +518,28 @@
         `;
     }
 
-    function renderLoteActions(g) {
-        const buttons = [];
+    // Acciones de la fila del lote: expandir siempre; Completar/Verificar
+    // segun estado y permiso. Conservan data-lote (no data-id) porque los
+    // handlers y los smokes lo leen de ahi.
+    function rowActionsForLote(g, open) {
+        const attrs = `data-lote="${escapeHtml(g.lote)}"`;
 
-        if (canConfirm() && g.estado === 'EN_CURSO') {
-            buttons.push(`<button class="btn btn-ghost btn-sm" data-action="complete-lote"
-                data-lote="${escapeHtml(g.lote)}">${t('inventory.picking.actions.complete')}</button>`);
-        }
-        if (canVerify() && g.estado === 'COMPLETADA') {
-            buttons.push(`<button class="btn btn-ghost btn-sm" data-action="verify-lote"
-                data-lote="${escapeHtml(g.lote)}">${t('inventory.picking.actions.verify')}</button>`);
-        }
-
-        return buttons.length > 0 ? buttons.join('') : '<span class="text-xs text-muted">—</span>';
+        return UI.rowActions({
+            primary: {
+                action: 'expand-lote',
+                label: open ? t('inventory.picking.actions.collapse') : t('inventory.picking.actions.expand'),
+                attrs
+            },
+            groups: [
+                [canConfirm() && g.estado === 'EN_CURSO'
+                    ? { action: 'complete-lote', label: t('inventory.picking.actions.complete'), attrs }
+                    : null],
+                [canVerify() && g.estado === 'COMPLETADA'
+                    ? { action: 'verify-lote', label: t('inventory.picking.actions.verify'), attrs }
+                    : null]
+            ],
+            ariaLabel: t('inventory.picking.columns.acciones')
+        });
     }
 
     function renderPagination() {

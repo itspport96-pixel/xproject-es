@@ -147,16 +147,19 @@
                 <td>${renderStockCell(p)}</td>
                 <td>${p.activo ? `<span class="badge badge-success">${t('inventory.products.states.active')}</span>` : `<span class="badge badge-neutral">${t('inventory.products.states.inactive')}</span>`}</td>
                 <td class="text-xs text-muted">${formatDate(p.created_at)}</td>
-                <td class="table-actions col-actions">
-                    ${can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])
-                        ? `<button class="btn btn-ghost btn-sm" data-action="stock" data-id="${p.id}">${t('inventory.products.actions.stock')}</button>`
-                        : ''}
-                    <button class="btn btn-ghost btn-sm" data-action="edit" data-id="${p.id}">${t('inventory.products.actions.edit')}</button>
-                    ${p.activo
-                        ? `<button class="btn btn-ghost btn-sm" data-action="deactivate" data-id="${p.id}">${t('inventory.products.actions.deactivate')}</button>`
-                        : `<button class="btn btn-ghost btn-sm" data-action="activate" data-id="${p.id}">${t('inventory.products.actions.activate')}</button>`}
-                    <button class="btn btn-ghost btn-sm text-danger" data-action="delete" data-id="${p.id}">${t('inventory.products.actions.delete')}</button>
-                </td>
+                <td class="table-actions col-actions">${UI.rowActions({
+                    primary: { action: 'edit', id: p.id, label: t('inventory.products.actions.edit') },
+                    groups: [
+                        [can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])
+                            ? { action: 'stock', id: p.id, label: t('inventory.products.actions.stock') }
+                            : null],
+                        [p.activo
+                            ? { action: 'deactivate', id: p.id, label: t('inventory.products.actions.deactivate') }
+                            : { action: 'activate', id: p.id, label: t('inventory.products.actions.activate') }],
+                        [{ action: 'delete', id: p.id, label: t('inventory.products.actions.delete'), danger: true }]
+                    ],
+                    ariaLabel: t('inventory.products.columns.acciones')
+                })}</td>
             </tr>
         `).join('');
 
