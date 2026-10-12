@@ -249,43 +249,40 @@
     }
 
     /**
-     * Posiciona el menu dentro del viewport: si al abrirse hacia abajo no
-     * cabe, se ancla hacia arriba; si aun así se sale por la izquierda, se
-     * desplaza. Se recalcula al hacer scroll de la ventana.
+     * Posiciona el menú dentro del viewport con `position: fixed` para que
+     * el overflow del `.table-wrapper` no lo recorte: se ancla bajo el
+     * disparador y, si no cabe, se coloca encima; el `left` se ajusta para
+     * no salirse por la derecha ni por la izquierda.
      */
     function positionRowMenu(dropdown, menu) {
-        menu.style.visibility = 'hidden';
-        menu.style.top = '';
-        menu.style.bottom = '';
-        menu.style.left = '';
-        menu.style.right = '';
-        menu.style.transform = '';
+        const trigger = dropdown.querySelector('[data-row-menu-trigger]');
+        if (!trigger) return;
 
-        const rect = menu.getBoundingClientRect();
+        menu.style.top = '0';
+        menu.style.left = '0';
+        menu.style.bottom = 'auto';
+        menu.style.right = 'auto';
+        menu.style.marginTop = '0';
+        menu.style.marginBottom = '0';
+        menu.style.visibility = 'hidden';
+
+        const t = trigger.getBoundingClientRect();
+        const m = menu.getBoundingClientRect();
         const vw = document.documentElement.clientWidth || window.innerWidth;
         const vh = document.documentElement.clientHeight || window.innerHeight;
 
-        if (rect.bottom > vh - 4 && rect.top > vh - rect.height - 4) {
-            menu.style.top = 'auto';
-            menu.style.bottom = '100%';
-            menu.style.marginBottom = '0.25rem';
-            menu.style.marginTop = '0';
-        } else {
-            menu.style.top = '100%';
-            menu.style.bottom = 'auto';
-            menu.style.marginTop = '0.25rem';
-            menu.style.marginBottom = '0';
+        const gap = 4;
+        let top = t.bottom + gap;
+        if (top + m.height > vh - gap && t.top - m.height - gap > gap) {
+            top = t.top - m.height - gap;
         }
+        top = Math.max(gap, Math.min(top, vh - m.height - gap));
 
-        const after = menu.getBoundingClientRect();
-        if (after.left < 4) {
-            menu.style.right = 'auto';
-            menu.style.left = '0';
-        } else if (after.right > vw - 4) {
-            menu.style.left = 'auto';
-            menu.style.right = '0';
-        }
+        let left = t.right - m.width;
+        left = Math.max(gap, Math.min(left, vw - m.width - gap));
 
+        menu.style.top = Math.round(top) + 'px';
+        menu.style.left = Math.round(left) + 'px';
         menu.style.visibility = '';
     }
 
@@ -398,6 +395,7 @@
         });
 
         window.addEventListener('resize', () => closeRowMenus(null));
+        window.addEventListener('scroll', () => closeRowMenus(null), true);
     }
 
     if (typeof document !== 'undefined') {

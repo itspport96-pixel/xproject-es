@@ -253,6 +253,7 @@ main {
     font-weight: 500;
     border-radius: 9999px;
     line-height: 1.5;
+    white-space: nowrap;
 }
 
 .badge-success {

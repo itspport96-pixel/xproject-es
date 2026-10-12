@@ -496,6 +496,14 @@
     white-space: nowrap;
 }
 
+/* Celda de roles: recorta en horizontal si falta espacio (los chips no se
+   parten) y el title del padre muestra el listado completo. */
+.table td .cell-clip {
+    max-width: 14rem;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
 .table td {
     padding: 0.75rem 1rem;
     color: rgb(var(--color-text-muted));
@@ -780,9 +788,16 @@
 }
 
 /* Menu de rowActions: oculto por defecto y visible al abrirlo. La clase
-   .is-open la alterna el modulo (no se usa :hover). */
+   .is-open la alterna el modulo (no se usa :hover). position: fixed para
+   que el overflow del .table-wrapper no lo recorte; el modulo calcula
+   top/left dentro del viewport al abrir. */
 .dropdown-menu[data-row-menu] {
     display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: auto;
+    margin-top: 0;
 }
 
 .dropdown-menu[data-row-menu].is-open {

@@ -180,10 +180,79 @@
     function rolesCell(u) {
         const roles = u.roles || [];
         if (roles.length === 0) return '<span class="text-muted">—</span>';
-        return `<div class="flex flex-wrap gap-1">${roles.map(r => `
+
+        // Si falta espacio la celda se trunca (overflow) y el title muestra
+        // el listado completo: los chips nunca se parten en dos lineas.
+        const title = roles.map(r =>
+            r.nombre + (r.origen === 'grupo' ? ' (' + t('users.roles.from_group') + ')' : '')
+        ).join(', ');
+
+        return `<div class="cell-clip" title="${UI.escapeHtml(title)}"><div class="flex gap-1">${roles.map(r => `
             <span class="inline-flex items-center gap-1">
                 <span class="badge badge-neutral">${UI.escapeHtml(r.nombre)}</span>${roleOriginBadge(r)}
-            </span>`).join('')}</div>`;
+            </span>`).join('')}</div></div>`;
+    }
+
+    // ------------------------------------------------------------------
+    // Acciones de fila (UI.rowActions) - v1.13.17.
+    //
+    // Reglas:
+    //  - Principal: Editar.
+    //  - Menu en 3 grupos: [Roles, Ver permisos temporales] |
+    //    [Cambiar estado, Restablecer contrasena] | [Eliminar (rojo)].
+    //  - Escalada: sobre el propio usuario no se ofrecen Eliminar ni
+    //    Cambiar estado; y un actor que no es ADMIN no actua sobre ADMIN.
+    //  - Cada opcion sólo si tiene el permiso; sin opciones, sin menu.
+
+    function actorRoles() {
+        if (global.AuthState && typeof global.AuthState.getRoles === 'function') {
+            return global.AuthState.getRoles();
+        }
+        return [];
+    }
+
+    function isAdmin() {
+        return actorRoles().indexOf('ADMIN') !== -1;
+    }
+
+    /** Escalada: no ofrecer acciones peligrosas sobre ADMIN salvo ADMIN. */
+    function canActOnUser(user, dangerous) {
+        if (!user) return false;
+        const targetIsAdmin = (user.roles || []).some(r => r.nombre === 'ADMIN');
+        if (targetIsAdmin && !isAdmin()) return false;
+        if (dangerous && user.id === currentUserId()) return false;
+        return true;
+    }
+
+    function currentUserId() {
+        if (global.AuthState && typeof global.AuthState.getUserId === 'function') {
+            return global.AuthState.getUserId();
+        }
+        return null;
+    }
+
+    function rowActionsFor(u) {
+        const verRoles = canView() ? { action: 'open-roles', id: u.id, label: t('users.actions.roles') } : null;
+        const verTemp = canViewTemp() ? { action: 'open-temp-user', id: u.id, label: t('users.actions.temp_view') } : null;
+        const estado = canStatus() && canActOnUser(u, true)
+            ? { action: 'open-status', id: u.id, label: t('users.actions.status') }
+            : null;
+        const reset = canReset() && canActOnUser(u, false)
+            ? { action: 'open-reset', id: u.id, label: t('users.actions.reset') }
+            : null;
+        const eliminar = canDelete() && canActOnUser(u, true)
+            ? { action: 'open-delete', id: u.id, label: t('users.actions.delete'), danger: true }
+            : null;
+
+        return UI.rowActions({
+            primary: canEdit() ? { action: 'open-edit', id: u.id, label: t('users.actions.edit') } : null,
+            groups: [
+                [verRoles, verTemp],
+                [estado, reset],
+                [eliminar]
+            ],
+            ariaLabel: t('users.columns.actions')
+        });
     }
 
     function renderUsersTable() {
@@ -205,13 +274,7 @@
 
         const catalogo = estadoCatalogo();
         const rows = state.items.map(u => {
-            const acciones = [];
-            if (canEdit()) acciones.push(actionBtn('open-edit', u.id, t('users.actions.edit')));
-            if (canStatus()) acciones.push(actionBtn('open-status', u.id, t('users.actions.status')));
-            if (canReset()) acciones.push(actionBtn('open-reset', u.id, t('users.actions.reset')));
-            if (canView()) acciones.push(actionBtn('open-roles', u.id, t('users.actions.roles')));
-            if (canViewTemp()) acciones.push(actionBtn('open-temp-user', u.id, t('users.actions.temp_view')));
-            if (canDelete()) acciones.push(actionBtn('open-delete', u.id, t('users.actions.delete'), 'btn-danger'));
+            const acciones = rowActionsFor(u);
 
             const estado = UI.estadoBadge(u.estado, catalogo);
 
@@ -223,9 +286,11 @@
                     </td>
                     <td>${UI.escapeHtml(((u.nombre || '') + ' ' + (u.apellido || '')).trim())}</td>
                     <td>${estado}</td>
-                    <td>${rolesCell(u)}</td>
-                    <td class="text-xs">${u.ultimo_login ? UI.escapeHtml(u.ultimo_login) : '<span class="text-muted">—</span>'}</td>
-                    <td class="table-actions col-actions">${acciones.join('')}</td>
+                    <td class="nowrap-cell">${rolesCell(u)}</td>
+                    <td class="text-xs nowrap-cell">${u.ultimo_login
+                        ? `<span title="${UI.escapeHtml(u.ultimo_login)}">${UI.escapeHtml(u.ultimo_login)}</span>`
+                        : '<span class="text-muted">—</span>'}</td>
+                    <td class="table-actions col-actions">${acciones}</td>
                 </tr>`;
         }).join('');
 
@@ -237,11 +302,6 @@
             { label: t('users.columns.last_login') },
             { label: t('users.columns.actions'), className: 'col-actions' }
         ], rows);
-    }
-
-    function actionBtn(action, id, label, extraClass) {
-        const clase = 'btn btn-ghost btn-sm' + (extraClass ? ' ' + extraClass : '');
-        return `<button class="${clase}" data-action="${action}" data-id="${UI.escapeHtml(id)}">${UI.escapeHtml(label)}</button>`;
     }
 
     function renderUsersPagination() {
@@ -299,9 +359,15 @@
 
         const rows = state.temp.items.map(row => {
             const vigente = !!row.activo && String(row.fecha_expiracion || '') > new Date().toISOString().slice(0, 19).replace('T', ' ');
-            const acciones = canRevoke() && row.activo
-                ? actionBtn('open-revoke', row.id, t('users.temp.revoke'), 'btn-danger')
-                : '';
+            const acciones = UI.rowActions({
+                primary: null,
+                groups: [[
+                    (canRevoke() && row.activo)
+                        ? { action: 'open-revoke', id: row.id, label: t('users.temp.revoke'), danger: true }
+                        : null
+                ]],
+                ariaLabel: t('users.columns.actions')
+            });
             const estado = row.activo
                 ? (vigente
                     ? `<span class="badge badge-success">${t('users.temp.active')}</span>`
@@ -445,6 +511,7 @@
     function switchTab(tab) {
         if (tab === 'temp' && !canViewTemp()) return;
         state.tab = tab;
+        UI.syncTabParam(tab);
 
         const panelUsers = container.querySelector('[data-panel="users"]');
         const panelTemp = container.querySelector('[data-panel="temp"]');
@@ -1596,6 +1663,8 @@
                 return;
             }
 
+            state.tab = UI.tabFromParams(params, ['users', 'temp'], 'users');
+            if (state.tab === 'temp' && !canViewTemp()) state.tab = 'users';
             container.innerHTML = buildTemplate();
             bindEvents();
 
@@ -1606,7 +1675,7 @@
             }
         },
 
-        onActivate() {
+        onActivate(params) {
             if (!container) return;
 
             if (!canView() && !canViewTemp()) {
@@ -1618,6 +1687,9 @@
                 container.innerHTML = buildTemplate();
                 bindEvents();
             }
+
+            const tab = UI.tabFromParams(params, ['users', 'temp'], state.tab);
+            if (tab !== state.tab) switchTab(tab);
 
             if (state.tab === 'temp') loadTemp();
             else loadUsers(state.pagination.page || 1);
