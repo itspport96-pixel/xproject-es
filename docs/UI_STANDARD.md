@@ -153,6 +153,58 @@ no crear claves `tabs.*` nuevas si ya hay un título equivalente.
 | `UI.formFooter({submitLabel, submitAction, hintHtml})` | Pie de formulario: pista de `Idempotency-Key` (`[data-key-hint]`) + botón de envío. |
 | `UI.errorState({title, message, retryAction, retryLabel})` | Error de carga con botón de reintento. |
 | `UI.deniedState({title, message, ctaHref, ctaLabel})` | Pantalla "sin permiso" con CTA al dashboard. |
+| `UI.rowActions({primary, groups, ariaLabel})` | Acciones de fila (ver §4.1). Devuelve `''` si no hay ninguna opción tras filtrar permisos en el módulo. |
+
+### 4.1 Acciones de fila (`UI.rowActions`)
+
+Patrón estándar de acciones de una tabla (regla en `AGENTS.md`):
+
+- **Acción principal** visible (la más frecuente, normalmente Editar) como
+  `btn btn-ghost btn-sm` discreto.
+- **Resto en un menú de tres puntos** (`⋮`) a la derecha, con grupos
+  separados por `dropdown-divider` y la acción destructiva al final, en rojo
+  (`.dropdown-item.danger`), siempre con confirmación.
+- **Columna** `col-actions` compacta, alineada a la derecha; sin scroll
+  horizontal de la tabla en escritorio (1366px y 1920px). En pantallas
+  estrechas el menú sigue funcionando (se posiciona dentro del viewport).
+- **Permisos**: cada opción se pinta sólo si el usuario tiene el permiso
+  (se filtra en el módulo antes de llamar); si no queda ninguna, no se pinta
+  ni el menú (`rowActions` devuelve `''`).
+- **Accesibilidad**: abre con clic o teclado (`aria-haspopup="menu"`,
+  `aria-expanded`), cierra con Esc y clic fuera, foco gestionado (al abrir
+  va al primer ítem; al cerrar con Esc vuelve al disparador). El menú se
+  reposiciona para no quedar cortado por el contenedor de la tabla.
+- **Eventos**: delegación global en `document` (una sola vez al cargar
+  `ui/view.js`); el módulo no necesita bind de abrir/cerrar menú, sólo de
+  sus `data-action` (ya en `handleClick`).
+- **CSS**: `.row-actions`, `.row-actions-trigger` y `.dropdown-menu[data-row-menu]`
+  en `public/css/components.css`. Las celdas de texto largo usan
+  `truncate-cell` (con `title`) o `nowrap-cell` (chip/último acceso).
+
+Ejemplo:
+
+```js
+UI.rowActions({
+    primary: canEdit()
+        ? { action: 'open-edit', id: u.id, label: t('users.actions.edit') }
+        : null,
+    groups: [
+        [
+            { action: 'open-roles', id: u.id, label: t('users.actions.roles') },
+            { action: 'open-temp-user', id: u.id, label: t('users.actions.temp_view') }
+        ],
+        [
+            { action: 'open-status', id: u.id, label: t('users.actions.status') },
+            { action: 'open-reset', id: u.id, label: t('users.actions.reset') }
+        ],
+        [
+            { action: 'open-delete', id: u.id, label: t('users.actions.delete'), danger: true }
+        ]
+    ],
+    ariaLabel: t('users.columns.actions')
+});
+```
+
 
 ## 6. Reglas de contenido
 

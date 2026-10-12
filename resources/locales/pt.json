@@ -30,7 +30,8 @@
     "toast_conflict": "Conflicto",
     "toast_rejected": "Operación rechazada",
     "toast_lang_save_title": "Idioma",
-    "toast_lang_save_failed": "Nao foi possivel salvar o idioma no servidor; ele vale apenas neste navegador."
+    "toast_lang_save_failed": "Nao foi possivel salvar o idioma no servidor; ele vale apenas neste navegador.",
+    "row_actions": "Acoes"
   },
   "theme": {
     "action_dark": "Claro",

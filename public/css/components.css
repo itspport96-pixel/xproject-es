@@ -456,18 +456,43 @@
     text-align: right;
 }
 
-/* Columna de acciones: cabecera y celdas centradas y sin envolver.
-   Ambas partes llevan la misma clase (.col-actions) para que la alineación
-   no dependa de selectores de posición: en 1.9.1 el centrado vivía en
-   `th:last-child` y lo pisaba `.text-right` del markup, con lo que la
-   cabecera salía a la derecha sobre celdas centradas. `.table-actions` se
-   mantiene como alias para el marcado de las celdas. El <td> sigue siendo
-   table-cell: display:flex lo sacaba del layout de tabla y su border-bottom
-   quedaba desfasado respecto al resto de la fila. */
+/* Columna de acciones compacta, alineada a la derecha. */
 .table th.col-actions,
 .table td.col-actions,
 .table .table-actions {
-    text-align: center;
+    text-align: right;
+    white-space: nowrap;
+    width: 1%;
+}
+
+/* Fila de acciones de un registro: principal + menu de tres puntos. */
+.row-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.25rem;
+}
+
+.row-actions-trigger {
+    min-width: 2rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    font-size: 1.125rem;
+    line-height: 1;
+    letter-spacing: 0;
+}
+
+/* Sin scroll horizontal de la tabla en escritorio (1366px y 1920px). Las
+   celdas de texto se truncan con tooltip nativo via title. */
+.table td.truncate-cell {
+    max-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Chip "Por grupo" y ultimo acceso: no se parten en dos lineas. */
+.table td.nowrap-cell {
     white-space: nowrap;
 }
 
@@ -752,6 +777,16 @@
     z-index: var(--z-dropdown);
     padding: 0.25rem;
     animation: scaleIn 0.1s ease-out;
+}
+
+/* Menu de rowActions: oculto por defecto y visible al abrirlo. La clase
+   .is-open la alterna el modulo (no se usa :hover). */
+.dropdown-menu[data-row-menu] {
+    display: none;
+}
+
+.dropdown-menu[data-row-menu].is-open {
+    display: block;
 }
 
 .dropdown-item {

@@ -230,6 +230,184 @@
         </div>`;
     }
 
+    // ====================================================================
+    // ACCIONES DE FILA (rowActions)
+    // ====================================================================
+
+    /**
+     * Cierra el menu abierto y limpia aria-expanded. `except` permite
+     * conservar el desplegable que se acaba de abrir.
+     */
+    function closeRowMenus(except) {
+        document.querySelectorAll('[data-row-menu].is-open').forEach(menu => {
+            if (menu === except) return;
+            menu.classList.remove('is-open');
+            menu.setAttribute('aria-hidden', 'true');
+            const trigger = menu.parentElement && menu.parentElement.querySelector('[data-row-menu-trigger]');
+            if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        });
+    }
+
+    /**
+     * Posiciona el menu dentro del viewport: si al abrirse hacia abajo no
+     * cabe, se ancla hacia arriba; si aun así se sale por la izquierda, se
+     * desplaza. Se recalcula al hacer scroll de la ventana.
+     */
+    function positionRowMenu(dropdown, menu) {
+        menu.style.visibility = 'hidden';
+        menu.style.top = '';
+        menu.style.bottom = '';
+        menu.style.left = '';
+        menu.style.right = '';
+        menu.style.transform = '';
+
+        const rect = menu.getBoundingClientRect();
+        const vw = document.documentElement.clientWidth || window.innerWidth;
+        const vh = document.documentElement.clientHeight || window.innerHeight;
+
+        if (rect.bottom > vh - 4 && rect.top > vh - rect.height - 4) {
+            menu.style.top = 'auto';
+            menu.style.bottom = '100%';
+            menu.style.marginBottom = '0.25rem';
+            menu.style.marginTop = '0';
+        } else {
+            menu.style.top = '100%';
+            menu.style.bottom = 'auto';
+            menu.style.marginTop = '0.25rem';
+            menu.style.marginBottom = '0';
+        }
+
+        const after = menu.getBoundingClientRect();
+        if (after.left < 4) {
+            menu.style.right = 'auto';
+            menu.style.left = '0';
+        } else if (after.right > vw - 4) {
+            menu.style.left = 'auto';
+            menu.style.right = '0';
+        }
+
+        menu.style.visibility = '';
+    }
+
+    function openRowMenu(trigger) {
+        const dropdown = trigger.closest('.dropdown');
+        if (!dropdown) return;
+        const menu = dropdown.querySelector('[data-row-menu]');
+        if (!menu) return;
+
+        const willOpen = !menu.classList.contains('is-open');
+        closeRowMenus(willOpen ? menu : null);
+        if (!willOpen) {
+            menu.classList.remove('is-open');
+            menu.setAttribute('aria-hidden', 'true');
+            trigger.setAttribute('aria-expanded', 'false');
+            return;
+        }
+
+        menu.classList.add('is-open');
+        menu.setAttribute('aria-hidden', 'false');
+        trigger.setAttribute('aria-expanded', 'true');
+        positionRowMenu(dropdown, menu);
+
+        const first = menu.querySelector('.dropdown-item:not([disabled])');
+        if (first) first.focus();
+    }
+
+    /**
+     * Acciones de fila: principal discreta + menu de tres puntos.
+     *
+     * @param {{primary?: {action: string, id?: string, label: string,
+     *                     disabled?: boolean}|null,
+     *          groups?: Array<Array<{action: string, id?: string, label: string,
+     *                                 danger?: boolean, disabled?: boolean}>>,
+     *          ariaLabel?: string}} opts
+     *   primary: accion mas frecuente (p. ej. Editar) como btn-ghost.
+     *   groups:  cada array es un grupo del menu; se separan con divider y
+     *            las opciones `danger` van al final del ultimo grupo (la
+     *            convencion es ponerlas en su propio grupo).
+     *   Si no hay primary ni opciones tras filtrar permisos, devuelve ''.
+     *   El menu se pinta con aria-haspopup="menu" y aria-expanded="false".
+     */
+    function rowActions(opts) {
+        const o = opts || {};
+        const primary = o.primary || null;
+        const allGroups = Array.isArray(o.groups) ? o.groups : [];
+        const ariaLabel = o.ariaLabel || t('ui.row_actions');
+
+        const groups = allGroups
+            .map(g => (Array.isArray(g) ? g : []).filter(item => item && item.action))
+            .filter(g => g.length > 0);
+
+        if (!primary && groups.length === 0) return '';
+
+        const primaryHtml = primary && primary.action
+            ? `<button type="button" class="btn btn-ghost btn-sm" data-action="${UI.escapeHtml(primary.action)}"${primary.id ? ` data-id="${UI.escapeHtml(primary.id)}"` : ''}${primary.disabled ? ' disabled' : ''}>${UI.escapeHtml(primary.label || '')}</button>`
+            : '';
+
+        if (groups.length === 0) {
+            return `<div class="row-actions">${primaryHtml}</div>`;
+        }
+
+        const menuHtml = groups.map((grupo, index) => {
+            const items = grupo.map(item => `
+                <button type="button" role="menuitem" class="dropdown-item${item.danger ? ' danger' : ''}" data-action="${UI.escapeHtml(item.action)}"${item.id ? ` data-id="${UI.escapeHtml(item.id)}"` : ''}${item.disabled ? ' disabled' : ''}>${UI.escapeHtml(item.label || '')}</button>`).join('');
+            const divider = index < groups.length - 1 ? '<div class="dropdown-divider" role="separator"></div>' : '';
+            return items + divider;
+        }).join('');
+
+        return `
+            <div class="row-actions">
+                ${primaryHtml}
+                <div class="dropdown">
+                    <button type="button" class="btn btn-ghost btn-sm row-actions-trigger" data-row-menu-trigger
+                            aria-haspopup="menu" aria-expanded="false" aria-label="${UI.escapeHtml(ariaLabel)}">&#8942;</button>
+                    <div class="dropdown-menu" data-row-menu role="menu" aria-hidden="true">${menuHtml}</div>
+                </div>
+            </div>`;
+    }
+
+    // Delegacion global de menu de fila: un solo par de listeners para
+    // abrir/cerrar con clic, Esc y clic fuera. Se registra una sola vez.
+    let rowMenuBound = false;
+
+    function bindRowMenuGlobal() {
+        if (rowMenuBound || typeof document === 'undefined') return;
+        rowMenuBound = true;
+
+        document.addEventListener('click', (e) => {
+            const trigger = e.target.closest('[data-row-menu-trigger]');
+            if (trigger) {
+                e.preventDefault();
+                e.stopPropagation();
+                openRowMenu(trigger);
+                return;
+            }
+            if (!e.target.closest('[data-row-menu]')) {
+                closeRowMenus(null);
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const open = document.querySelector('[data-row-menu].is-open');
+                if (!open) return;
+                const trigger = open.parentElement && open.parentElement.querySelector('[data-row-menu-trigger]');
+                closeRowMenus(null);
+                if (trigger) trigger.focus();
+            }
+        });
+
+        window.addEventListener('resize', () => closeRowMenus(null));
+    }
+
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bindRowMenuGlobal);
+        } else {
+            bindRowMenuGlobal();
+        }
+    }
+
     global.UI = Object.assign(global.UI || {}, {
         tabsBar: tabsBar,
         tabPanel: tabPanel,
@@ -240,7 +418,8 @@
         filtersCard: filtersCard,
         formFooter: formFooter,
         errorState: errorState,
-        deniedState: deniedState
+        deniedState: deniedState,
+        rowActions: rowActions
     });
 
 })(window);

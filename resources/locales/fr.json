@@ -30,7 +30,8 @@
     "toast_conflict": "Conflicto",
     "toast_rejected": "Operación rechazada",
     "toast_lang_save_title": "Langue",
-    "toast_lang_save_failed": "Impossible d enregistrer la langue sur le serveur; elle ne s applique qu a ce navigateur."
+    "toast_lang_save_failed": "Impossible d enregistrer la langue sur le serveur; elle ne s applique qu a ce navigateur.",
+    "row_actions": "Actions"
   },
   "theme": {
     "action_dark": "Claro",

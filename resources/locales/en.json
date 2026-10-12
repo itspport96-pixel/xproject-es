@@ -30,7 +30,8 @@
     "toast_conflict": "Conflict",
     "toast_rejected": "Operation rejected",
     "toast_lang_save_title": "Language",
-    "toast_lang_save_failed": "Could not save the language on the server; it only applies to this browser."
+    "toast_lang_save_failed": "Could not save the language on the server; it only applies to this browser.",
+    "row_actions": "Actions"
   },
   "theme": {
     "action_dark": "Light",
