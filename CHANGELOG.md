@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.23] - 2026-10-12
+
+BLOQUE C (sólo frontend): las acciones de fila de `products`, `locations` y `reservations` se pintan sólo cuando coinciden con lo que el backend acepta (permiso y estado).
+
+### Changed
+
+- **`products`**: la primaria `edit` sólo se pinta con `inventory.item.edit` (nuevos helpers `canEdit`/`canDelete`; fallbacks `['ADMIN', 'MANAGER']`/`['ADMIN']`, igual que los roles BUILT_IN del seeder) y la opción `delete` sólo con `inventory.item.delete`; sin permiso, la acción desaparece y las demás (Stock, Activar/Desactivar) siguen.
+- **`locations`**: `edit` y `delete` sólo con `inventory.location.manage` (el único permiso de gestión que exige el backend para PATCH/DELETE); `units`/`activate`/`deactivate` sin cambios.
+- **`reservations`**: `release` exige además `estado === 'ACTIVA'`, como el backend (`ReleaseReservationUseCase` devuelve 409 `reservationNotActive` en cualquier otro estado): una reserva CANCELADA/liberada/expirada queda con la celda vacía.
+- **`stock`**: historial visible para todos, sin cambios (decisión explícita del alcance).
+
+### Verification
+
+- Un solo ciclo de cierre: `node --check` 4/4 (products, locations, reservations, smoke); smokes afectados en verde: `verify-rowactions-vistas` 107 (7 checks nuevos: sin `item.edit`/`item.delete`/`location.manage` → ausente; reserva CANCELADA → sin release), `smoke-bloque2-permisos` 20, `smoke-v162` 89; `composer test` 944 tests, 6818 assertions, OK (2 deprecations preexistentes); `check-schema-drift.php` SIN DRIFT.
+
+### Notes
+
+- Sólo frontend; ningún endpoint ni esquema tocado. Fuera de alcance y sin tocar: en `products`/`locations`, `activate`/`deactivate` tampoco están filtrados por permiso aunque el backend exige `item.edit`/`location.manage` respectivamente — queda anotado para informe.
+
 ## [1.13.22] - 2026-10-12
 
 BLOQUE B (sólo frontend): las 12 vistas que pintaban acciones de fila a mano migran al componente compartido `UI.rowActions` (regla 14 de AGENTS.md / §4.1 de `docs/UI_STANDARD.md`), con opción discreta + menú de tres puntos, grupos, destructivo al final en rojo y permisos filtrados en el módulo.

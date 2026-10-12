@@ -149,7 +149,7 @@
                 <td class="text-xs">${renderExpiry(r)}</td>
                 <td class="table-actions col-actions">${UI.rowActions({
                     groups: [
-                        [releaseAllowed
+                        [releaseAllowed && r.estado === 'ACTIVA'
                             ? { action: 'release', id: r.reserva_id, label: t('inventory.reservations.actions.release'), danger: true }
                             : null]
                     ],

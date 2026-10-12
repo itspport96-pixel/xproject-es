@@ -318,7 +318,7 @@ const FULL = [
   'groups.group.view', 'groups.group.edit', 'groups.group.delete',
   'roles.role.view', 'roles.role.edit', 'roles.role.delete',
   'audit.log.view',
-  'inventory.item.view',
+  'inventory.item.view', 'inventory.item.edit', 'inventory.item.delete',
   'inventory.location.view', 'inventory.location.manage',
   'inventory.stock.view', 'inventory.movement.create', 'inventory.stock.block',
   'inventory.reservation.view', 'inventory.reservation.create', 'inventory.reservation.cancel',
@@ -542,6 +542,24 @@ async function ra3_products() {
   const c2 = info(cellsOf(e2)[0]);
   check('RA-3.9 sin stock.view no hay item stock', eq(c2.actions, ['deactivate', 'delete']), JSON.stringify(c2.actions));
   e2.close();
+
+  const e3 = createEnv({ perms: without('inventory.item.edit') });
+  e3.evalIn(FILES.products);
+  e3.w.InventoryProductsModule.init({}, e3.container);
+  await tick(15);
+  const c3 = info(cellsOf(e3)[0]);
+  check('RA-3.10 sin item.edit no hay primary edit', !c3.primary, c3.primary && c3.primary.dataset.action);
+  check('RA-3.11 sin item.edit el menu conserva delete', eq(c3.actions, ['stock', 'deactivate', 'delete']), JSON.stringify(c3.actions));
+  e3.close();
+
+  const e4 = createEnv({ perms: without('inventory.item.delete') });
+  e4.evalIn(FILES.products);
+  e4.w.InventoryProductsModule.init({}, e4.container);
+  await tick(15);
+  const c4 = info(cellsOf(e4)[0]);
+  check('RA-3.12 sin item.delete no hay opcion delete', eq(c4.actions, ['stock', 'deactivate']), JSON.stringify(c4.actions));
+  check('RA-3.13 sin item.delete la primary edit sigue', !!c4.primary && c4.primary.dataset.action === 'edit');
+  e4.close();
 }
 
 // =====================================================================
@@ -571,6 +589,15 @@ async function ra4_locations() {
   const c2 = info(cellsOf(e2)[0]);
   check('RA-4.7 sin stock.view no hay item units', eq(c2.actions, ['deactivate', 'delete']), JSON.stringify(c2.actions));
   e2.close();
+
+  const e3 = createEnv({ perms: without('inventory.location.manage') });
+  e3.evalIn(FILES.locations);
+  e3.w.InventoryLocationsModule.init({}, e3.container);
+  await tick(12);
+  const c3 = info(cellsOf(e3)[0]);
+  check('RA-4.8 sin location.manage no hay primary edit', !c3.primary, c3.primary && c3.primary.dataset.action);
+  check('RA-4.9 sin location.manage no hay opcion delete', eq(c3.actions, ['units', 'deactivate']), JSON.stringify(c3.actions));
+  e3.close();
 }
 
 // =====================================================================
@@ -791,14 +818,18 @@ async function ra11_reservations() {
   check('RA-11.3 menu [release]', eq(r1.actions, ['release']), JSON.stringify(r1.actions));
   check('RA-11.4 release danger', !!r1.menu[0] && r1.menu[0].classList.contains('danger'));
   check('RA-11.5 trigger aria-haspopup=menu', !!r1.trigger && r1.trigger.getAttribute('aria-haspopup') === 'menu');
-  noErrors(env, 'RA-11.6');
+  const r2cell = cellsOf(env)[1];
+  check('RA-11.6 reserva CANCELADA sin release (celda vacia)',
+    !!r2cell && !r2cell.querySelector('.row-actions'),
+    r2cell ? String(!!r2cell.querySelector('.row-actions')) : 'sin celda');
+  noErrors(env, 'RA-11.7');
   env.close();
 
   const e2 = createEnv({ perms: without('inventory.reservation.cancel') });
   e2.evalIn(FILES.reservations);
   e2.w.InventoryReservationsModule.init({}, e2.container);
   await tick(12);
-  check('RA-11.7 sin reservation.cancel no hay acciones',
+  check('RA-11.8 sin reservation.cancel no hay acciones',
     cellsOf(e2).length === 2 && cellsOf(e2).every(c => !c.querySelector('.row-actions')),
     JSON.stringify(cellsOf(e2).map(c => !!c.querySelector('.row-actions'))));
   e2.close();

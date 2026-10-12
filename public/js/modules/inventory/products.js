@@ -51,6 +51,8 @@
 
     const canCreate = () => can('inventory.item.create', ['ADMIN', 'MANAGER']);
     const canView = () => can('inventory.item.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
+    const canEdit = () => can('inventory.item.edit', ['ADMIN', 'MANAGER']);
+    const canDelete = () => can('inventory.item.delete', ['ADMIN']);
 
     // ====================================================================
     // PLANTILLA
@@ -148,7 +150,9 @@
                 <td>${p.activo ? `<span class="badge badge-success">${t('inventory.products.states.active')}</span>` : `<span class="badge badge-neutral">${t('inventory.products.states.inactive')}</span>`}</td>
                 <td class="text-xs text-muted">${formatDate(p.created_at)}</td>
                 <td class="table-actions col-actions">${UI.rowActions({
-                    primary: { action: 'edit', id: p.id, label: t('inventory.products.actions.edit') },
+                    primary: canEdit()
+                        ? { action: 'edit', id: p.id, label: t('inventory.products.actions.edit') }
+                        : null,
                     groups: [
                         [can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])
                             ? { action: 'stock', id: p.id, label: t('inventory.products.actions.stock') }
@@ -156,7 +160,9 @@
                         [p.activo
                             ? { action: 'deactivate', id: p.id, label: t('inventory.products.actions.deactivate') }
                             : { action: 'activate', id: p.id, label: t('inventory.products.actions.activate') }],
-                        [{ action: 'delete', id: p.id, label: t('inventory.products.actions.delete'), danger: true }]
+                        [canDelete()
+                            ? { action: 'delete', id: p.id, label: t('inventory.products.actions.delete'), danger: true }
+                            : null]
                     ],
                     ariaLabel: t('inventory.products.columns.acciones')
                 })}</td>
