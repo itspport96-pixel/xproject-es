@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.21] - 2026-10-12
+
+BLOQUE A (sólo frontend): patrón de éxito en los submits de toda la UI — el toast `success` se emite **después** de esperar la recarga real (y sólo si la recarga tuvo éxito), no antes de lanzarla.
+
+### Changed
+
+- **Carga con resultado**: los loaders de `users`, `groups`, `roles` y de los 11 módulos de inventory (`counts`, `incidents`, `locations`, `products`, `reservations`, `returns`, `deliveries`, `shipments`, `stock`, `picking`, `receiving`) devuelven `true`/`false` (y `openDetail` de counts/incidents igual) en lugar de `undefined`: `true` cuando la lista/detalle se refrescó desde el servidor, `false` cuando el `catch` interno ya emitió su propio `danger` y dejó la vista vacía o en estado de error.
+- **Reordenación de submits** (≈35 sitios en 14 ficheros): `closeModal()`/cambios locales de estado → `await` de la recarga (`loadX()`, `Promise.all([...])` combinando `&&`, o `switchTab('temp')` que ahora devuelve la promesa de su carga) → `if (recargado) UI.toast('success', ...)`; los avisos informativos del backend (warnings de movimiento, rechazo total de recepción) se muestran siempre, con independencia del resultado de la recarga. Si la recarga falla, el usuario ve el error del propio loader y nunca un "éxito" con la pantalla desactualizada.
+- **Sitios sin recarga intactos** (toast inmediato, no aplica): `password.js` (sólo cierra el modal), `picking.js` `unit_selected`, `users.js` copia de clave al portapapeles.
+
+### Verification
+
+- `node --check`: 14/14 ficheros modificados OK.
+- `composer test`: 944 tests, 6818 assertions, OK (2 deprecations PHPUnit preexistentes).
+- Smokes jsdom (12 scripts, todos en verde): `v1120` 140, `v193` 136, `v171` 105, `v184` 100, `v162` 89, `v1100` 66, `v1102` 44, `v1103` 34, `bloque1b` 26, `bloque2` 20, `verify-rowactions-users` 44, `verify-tabs-scroll` 8.
+- `check-i18n.php`: 2 errores preexistentes en `profile.js`, fuera del alcance. `check-schema-drift.php`: SIN DRIFT. GETs de solo lectura con admin (users/roles/groups/permissions/temp + 10 endpoints inventory): 19/19 → 200.
+
+### Notes
+
+- Sólo frontend: ningún endpoint, esquema ni permiso tocado. Desviación pendiente de informe aparte (Block B): las 12 vistas sin `UI.rowActions`.
+
 ## [1.13.20] - 2026-10-12
 
 BLOQUE 1B completo (backend + frontend): rol heredado por grupo en el modal de Roles de Usuarios. Borrado protegido con 409 `ROLE_NOT_DIRECT`, procedencia con `group_id`/`group_name`, acción "Quitar del grupo" con confirmación y recarga real.

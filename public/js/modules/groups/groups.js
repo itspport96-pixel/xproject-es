@@ -183,10 +183,12 @@
             const response = await global.HttpClient.get('/groups', { params });
             const payload = response && response.data ? response.data : response;
             state.items = (payload && payload.groups) || [];
+            return true;
         } catch (err) {
             console.error('[Groups] load error:', err);
             UI.toast('danger', t('ui.error_generic'), err.message || t('groups.errors.load'));
             state.items = [];
+            return false;
         } finally {
             state.loading = false;
             renderTable();
@@ -254,7 +256,7 @@
 
     async function loadDetail() {
         const detail = state.detail;
-        if (!detail) return;
+        if (!detail) return true;
 
         detail.loading = true;
         renderModal();
@@ -274,6 +276,7 @@
                 state.memberCounts[detail.id] = detail.members.length;
                 renderModal();
             }
+            return true;
         } catch (err) {
             console.error('[Groups] detail error:', err);
             if (state.detail === detail) {
@@ -281,6 +284,7 @@
                 detail.error = true;
                 renderModal();
             }
+            return false;
         }
     }
 
@@ -456,9 +460,11 @@
             await global.HttpClient.post('/groups', payload, {
                 headers: { 'Idempotency-Key': UI.newIdempotencyKey() }
             });
-            UI.toast('success', t('groups.create.success_title'), t('groups.create.success_body', { nombre: UI.escapeHtml(nombre) }));
             closeModal();
-            loadGroups();
+            const recargado = await loadGroups();
+            if (recargado) {
+                UI.toast('success', t('groups.create.success_title'), t('groups.create.success_body', { nombre: UI.escapeHtml(nombre) }));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('groups.errors.create'),
@@ -520,9 +526,11 @@
             };
 
             await global.HttpClient.patch('/groups/' + encodeURIComponent(modal.id), payload);
-            UI.toast('success', t('groups.edit.success_title'), t('groups.edit.success_body', { nombre: UI.escapeHtml(nombre) }));
             closeModal();
-            loadGroups();
+            const recargado = await loadGroups();
+            if (recargado) {
+                UI.toast('success', t('groups.edit.success_title'), t('groups.edit.success_body', { nombre: UI.escapeHtml(nombre) }));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('groups.errors.edit'),
@@ -611,10 +619,12 @@
 
         try {
             await global.HttpClient.post('/groups/' + encodeURIComponent(detail.id) + '/members', { user_id: userId });
-            UI.toast('success', t('groups.members.add'), t('groups.members.added'));
             state.modal = { mode: 'detail' };
             renderModal();
-            loadDetail();
+            const recargado = await loadDetail();
+            if (recargado) {
+                UI.toast('success', t('groups.members.add'), t('groups.members.added'));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('groups.errors.add_member'),
@@ -645,8 +655,10 @@
 
         try {
             await global.HttpClient.delete('/groups/' + encodeURIComponent(detail.id) + '/members/' + encodeURIComponent(userId));
-            UI.toast('success', t('groups.members.remove'), t('groups.members.removed'));
-            loadDetail();
+            const recargado = await loadDetail();
+            if (recargado) {
+                UI.toast('success', t('groups.members.remove'), t('groups.members.removed'));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('groups.errors.remove_member'),
@@ -721,10 +733,12 @@
 
         try {
             await global.HttpClient.post('/groups/' + encodeURIComponent(detail.id) + '/roles', { role_id: roleId });
-            UI.toast('success', t('groups.roles.assign'), t('groups.roles.assigned'));
             state.modal = { mode: 'detail' };
             renderModal();
-            loadDetail();
+            const recargado = await loadDetail();
+            if (recargado) {
+                UI.toast('success', t('groups.roles.assign'), t('groups.roles.assigned'));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('groups.errors.assign_role'),
@@ -743,8 +757,10 @@
 
         try {
             await global.HttpClient.delete('/groups/' + encodeURIComponent(detail.id) + '/roles/' + encodeURIComponent(roleId));
-            UI.toast('success', t('groups.roles.unassign'), t('groups.roles.unassigned'));
-            loadDetail();
+            const recargado = await loadDetail();
+            if (recargado) {
+                UI.toast('success', t('groups.roles.unassign'), t('groups.roles.unassigned'));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('groups.errors.unassign_role'),
@@ -777,9 +793,11 @@
 
         try {
             await global.HttpClient.delete('/groups/' + encodeURIComponent(modal.id));
-            UI.toast('success', t('groups.delete.success_title'), t('groups.delete.success_body'));
             closeModal();
-            loadGroups();
+            const recargado = await loadGroups();
+            if (recargado) {
+                UI.toast('success', t('groups.delete.success_title'), t('groups.delete.success_body'));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('groups.errors.delete'),

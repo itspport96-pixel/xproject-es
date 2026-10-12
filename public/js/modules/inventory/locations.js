@@ -439,10 +439,12 @@
             state.items = data.data || [];
             state.pagination = data.pagination || state.pagination;
             state.pagination.page = page;
+            return true;
         } catch (err) {
             console.error('[Locations] load error:', err);
             showToast('danger', t('ui.error_generic'), err.message || t('inventory.locations.messages.load_error'));
             state.items = [];
+            return false;
         } finally {
             state.loading = false;
             renderTable();
@@ -467,9 +469,11 @@
 
         try {
             await global.HttpClient[method](url, formData);
-            showToast('success', isEdit ? t('inventory.locations.messages.saved_updated') : t('inventory.locations.messages.saved_created'));
             closeModal();
-            await loadLocations(state.pagination.page);
+            const recargado = await loadLocations(state.pagination.page);
+            if (recargado) {
+                showToast('success', isEdit ? t('inventory.locations.messages.saved_updated') : t('inventory.locations.messages.saved_created'));
+            }
         } catch (err) {
             const formError = container.querySelector('[data-form-error]');
             if (formError) {
@@ -492,8 +496,10 @@
         try {
             const action = activate ? 'activate' : 'deactivate';
             await global.HttpClient.post(`/inventory/locations/${id}/${action}`);
-            showToast('success', activate ? t('inventory.locations.messages.activated') : t('inventory.locations.messages.deactivated'));
-            await loadLocations(state.pagination.page);
+            const recargado = await loadLocations(state.pagination.page);
+            if (recargado) {
+                showToast('success', activate ? t('inventory.locations.messages.activated') : t('inventory.locations.messages.deactivated'));
+            }
         } catch (err) {
             showToast('danger', t('ui.error_generic'), err.message || t('inventory.locations.messages.toggle_error'));
         }
@@ -504,8 +510,10 @@
 
         try {
             await global.HttpClient.delete(`/inventory/locations/${id}`);
-            showToast('success', t('inventory.locations.messages.deleted'));
-            await loadLocations(state.pagination.page);
+            const recargado = await loadLocations(state.pagination.page);
+            if (recargado) {
+                showToast('success', t('inventory.locations.messages.deleted'));
+            }
         } catch (err) {
             showToast('danger', t('ui.error_generic'), err.message || t('inventory.locations.messages.delete_error'));
         }

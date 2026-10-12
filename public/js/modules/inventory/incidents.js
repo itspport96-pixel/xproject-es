@@ -345,6 +345,7 @@
             state.summary = (payload && payload.summary) || state.summary;
             state.pagination = (payload && payload.pagination) || state.pagination;
             state.pagination.page = (payload && payload.pagination && payload.pagination.page) || page;
+            return true;
         } catch (err) {
             console.error('[Incidents] load error:', err);
             state.items = [];
@@ -354,6 +355,7 @@
             } else {
                 UI.toast('danger', t('ui.error_generic'), (err && err.message) || t('inventory.incidents.messages.load_error'));
             }
+            return false;
         } finally {
             state.loading = false;
             renderAll();
@@ -557,9 +559,11 @@
                 headers: { 'Idempotency-Key': modal.key }
             });
 
-            UI.toast('success', t('inventory.incidents.messages.reported_title'), t('inventory.incidents.messages.reported_message'));
             closeModal();
-            await loadIncidents(1);
+            const recargado = await loadIncidents(1);
+            if (recargado) {
+                UI.toast('success', t('inventory.incidents.messages.reported_title'), t('inventory.incidents.messages.reported_message'));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('inventory.incidents.messages.report_error'),
@@ -598,13 +602,14 @@
                 tag: 'Incidents'
             });
             closeModal();
-            return;
+            return false;
         }
 
         if (state.modal === token) {
             token.loading = false;
             renderModal();
         }
+        return true;
     }
 
     function detailRow(label, value) {
@@ -820,9 +825,11 @@
                 { headers: { 'Idempotency-Key': modal.key } }
             );
 
-            UI.toast('success', t('inventory.incidents.messages.resolved_title'), t('inventory.incidents.messages.resolved_message'));
             closeModal();
-            await loadIncidents(state.pagination.page || 1);
+            const recargado = await loadIncidents(state.pagination.page || 1);
+            if (recargado) {
+                UI.toast('success', t('inventory.incidents.messages.resolved_title'), t('inventory.incidents.messages.resolved_message'));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('inventory.incidents.messages.resolve_error'),
@@ -857,12 +864,15 @@
 
         try {
             await global.HttpClient.post('/inventory/incidents/' + encodeURIComponent(id) + '/investigate');
-            UI.toast('success', t('inventory.incidents.messages.investigating_title'), t('inventory.incidents.messages.investigating_message'));
 
+            let recargadoDetalle = true;
             if (state.modal && state.modal.mode === 'detail' && state.modal.id === id) {
-                await openDetail(id);
+                recargadoDetalle = await openDetail(id);
             }
-            await loadIncidents(state.pagination.page || 1);
+            const recargadoLista = await loadIncidents(state.pagination.page || 1);
+            if (recargadoDetalle && recargadoLista) {
+                UI.toast('success', t('inventory.incidents.messages.investigating_title'), t('inventory.incidents.messages.investigating_message'));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('inventory.incidents.messages.investigate_error'),

@@ -379,9 +379,11 @@
             state.products = productsPayload.data || [];
             state.locations = locationsPayload.data || [];
             renderCatalogs();
+            return true;
         } catch (err) {
             console.error('[Receiving] catalog load error:', err);
             showToast('danger', t('ui.error_generic'), err.message || t('inventory.receiving.messages.catalog_error'));
+            return false;
         } finally {
             state.loadingCatalog = false;
         }
@@ -463,23 +465,12 @@
             renderKeyHint();
             renderResult();
 
-            if (state.result.rechazo_total) {
-                showToast('warning', t('inventory.receiving.messages.toast_rechazo_titulo'),
-                    state.result.mensaje || t('inventory.receiving.messages.toast_rechazo_fallback'));
-            } else {
-                showToast('success', t('inventory.receiving.messages.toast_registrada_titulo'),
-                    t('inventory.receiving.messages.toast_registrada_mensaje', {
-                        codigo: state.result.codigo_barcode || '',
-                        ubicacion: state.result.ubicacion_codigo || ''
-                    }));
-            }
-
             form.querySelector('input[name="cantidad_esperada"]').value = '';
             form.querySelector('input[name="cantidad_recibida"]').value = '';
             form.querySelector('input[name="lote"]').value = '';
             form.querySelector('input[name="numero_serie"]').value = '';
 
-            // Formulario limpio para la próxima recepción.
+            // Formulario limpio para la pr��xima recepci��n.
             const rechazoCheck = form.querySelector('[data-rechazo-total]');
             if (rechazoCheck) {
                 rechazoCheck.checked = false;
@@ -487,8 +478,19 @@
                 if (recibida) recibida.disabled = false;
             }
 
-            // La capacidad usada de la ubicación cambió: recargar catálogo.
-            await loadCatalogs();
+            // La capacidad usada de la ubicaci��n cambi��: recargar catǭlogo.
+            const recargadoCatalogos = await loadCatalogs();
+
+            if (state.result.rechazo_total) {
+                showToast('warning', t('inventory.receiving.messages.toast_rechazo_titulo'),
+                    state.result.mensaje || t('inventory.receiving.messages.toast_rechazo_fallback'));
+            } else if (recargadoCatalogos) {
+                showToast('success', t('inventory.receiving.messages.toast_registrada_titulo'),
+                    t('inventory.receiving.messages.toast_registrada_mensaje', {
+                        codigo: state.result.codigo_barcode || '',
+                        ubicacion: state.result.ubicacion_codigo || ''
+                    }));
+            }
         } catch (err) {
             handleReceiveError(err);
         } finally {

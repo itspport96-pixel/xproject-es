@@ -326,10 +326,12 @@
             if (can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])) {
               loadStockTotals(state.items);
             }
+            return true;
         } catch (err) {
             console.error('[Products] load error:', err);
             showToast('danger', t('ui.error_generic'), err.message || t('inventory.products.messages.load_error'));
             state.items = [];
+            return false;
         } finally {
             state.loading = false;
             renderTable();
@@ -502,9 +504,11 @@
 
         try {
             await global.HttpClient[method](url, formData);
-            showToast('success', isEdit ? t('inventory.products.messages.updated') : t('inventory.products.messages.created'));
             closeModal();
-            await loadProducts(state.pagination.page);
+            const recargado = await loadProducts(state.pagination.page);
+            if (recargado) {
+                showToast('success', isEdit ? t('inventory.products.messages.updated') : t('inventory.products.messages.created'));
+            }
         } catch (err) {
             const formError = container.querySelector('[data-form-error]');
             if (formError) {
@@ -527,8 +531,10 @@
         try {
             const action = activate ? 'activate' : 'deactivate';
             await global.HttpClient.post(`/inventory/products/${id}/${action}`);
-            showToast('success', activate ? t('inventory.products.messages.activated') : t('inventory.products.messages.deactivated'));
-            await loadProducts(state.pagination.page);
+            const recargado = await loadProducts(state.pagination.page);
+            if (recargado) {
+                showToast('success', activate ? t('inventory.products.messages.activated') : t('inventory.products.messages.deactivated'));
+            }
         } catch (err) {
             showToast('danger', t('ui.error_generic'), err.message || t('inventory.products.messages.toggle_error'));
         }
@@ -539,8 +545,10 @@
 
         try {
             await global.HttpClient.delete(`/inventory/products/${id}`);
-            showToast('success', t('inventory.products.messages.deleted'));
-            await loadProducts(state.pagination.page);
+            const recargado = await loadProducts(state.pagination.page);
+            if (recargado) {
+                showToast('success', t('inventory.products.messages.deleted'));
+            }
         } catch (err) {
             showToast('danger', t('ui.error_generic'), err.message || t('inventory.products.messages.delete_error'));
         }

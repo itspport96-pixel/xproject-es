@@ -782,6 +782,7 @@
             renderOriginOptions();
             renderModePanel();
             renderSelectionCount();
+            return locationsRes !== null && stockRes !== null && pickingRes !== null;
         } finally {
             state.preparedLoading = false;
             renderModePanel();
@@ -850,6 +851,7 @@
             state.pagination = payload.pagination || state.pagination;
             state.pagination.page = page;
             state.listError = false;
+            return true;
         } catch (err) {
             console.error('[Shipments] load error:', err);
             state.items = [];
@@ -859,6 +861,7 @@
             } else {
                 showToast('danger', t('ui.error_generic'), (err && err.message) || t('inventory.shipments.messages.list_load_error'));
             }
+            return false;
         } finally {
             state.listLoading = false;
             renderAll();
@@ -929,20 +932,22 @@
             state.loadKey = newIdempotencyKey();
             state.selected.clear();
 
-            showToast('success', t('inventory.shipments.messages.loaded_title'),
-                t('inventory.shipments.messages.loaded_message', {
-                    unidades: unidades,
-                    id: id || t('inventory.shipments.messages.loaded_fallback_id')
-                }));
+            const mensaje = t('inventory.shipments.messages.loaded_message', {
+                unidades: unidades,
+                id: id || t('inventory.shipments.messages.loaded_fallback_id')
+            });
 
             renderKeyHint();
             renderSelectionCount();
             renderModePanel();
 
-            // El envío ya existe: la pestaña de listado gana el foco y la
+            // El env��o ya existe: la pesta��a de listado gana el foco y la
             // recarga de ambos paneles ocurre en el Promise.all de abajo.
             applyTab('list');
-            await Promise.all([loadShipments(1), loadCatalogs()]);
+            const [recargadoLista, recargadoCatalogos] = await Promise.all([loadShipments(1), loadCatalogs()]);
+            if (recargadoLista && recargadoCatalogos) {
+                showToast('success', t('inventory.shipments.messages.loaded_title'), mensaje);
+            }
         } catch (err) {
             handleActionError(err, t('inventory.shipments.messages.load_error'), () => {
                 state.loadKey = newIdempotencyKey();
@@ -970,13 +975,17 @@
             const transito = (body && body.ubicacion_transito && body.ubicacion_transito.codigo) || '';
             delete state.shipmentKeys[shipmentId];
 
-            showToast('success', t('inventory.shipments.messages.authorized_title'),
-                transito
-                    ? t('inventory.shipments.messages.authorized_transit', { codigo: transito })
-                    : t('inventory.shipments.messages.authorized_en_ruta'));
+            const mensaje = transito
+                ? t('inventory.shipments.messages.authorized_transit', { codigo: transito })
+                : t('inventory.shipments.messages.authorized_en_ruta');
 
             closeDetail();
-            await Promise.all([loadShipments(state.pagination.page || 1), loadCatalogs()]);
+            const [recargadoLista, recargadoCatalogos] = await Promise.all([
+                loadShipments(state.pagination.page || 1), loadCatalogs()
+            ]);
+            if (recargadoLista && recargadoCatalogos) {
+                showToast('success', t('inventory.shipments.messages.authorized_title'), mensaje);
+            }
         } catch (err) {
             handleActionError(err, t('inventory.shipments.messages.authorize_error'), () => {
                 state.shipmentKeys[shipmentId] = newIdempotencyKey();

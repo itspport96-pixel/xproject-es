@@ -545,6 +545,7 @@
             state.summary = payload.summary || state.summary;
             state.pagination = payload.pagination || state.pagination;
             state.pagination.page = page;
+            return true;
         } catch (err) {
             console.error('[Returns] load error:', err);
             state.items = [];
@@ -553,6 +554,7 @@
             } else {
                 showToast('danger', t('ui.error_generic'), (err && err.message) || t('inventory.returns.messages.load_error'));
             }
+            return false;
         } finally {
             state.listLoading = false;
             renderAll();
@@ -620,11 +622,13 @@
             const destino = body && body.ubicacion_destino ? body.ubicacion_destino.codigo : '';
 
             state.modal.key = newIdempotencyKey();
-            showToast('success', t('inventory.returns.messages.registered_title'),
-                devolucion.return_id ? `${devolucion.return_id}${destino ? ' → ' + destino : ''}` : '');
 
             closeModal();
-            await loadHistory(1);
+            const recargado = await loadHistory(1);
+            if (recargado) {
+                showToast('success', t('inventory.returns.messages.registered_title'),
+                    devolucion.return_id ? `${devolucion.return_id}${destino ? '  → ' + destino : ''}` : '');
+            }
         } catch (err) {
             handleActionError(err, t('inventory.returns.messages.register_error'), () => {
                 if (state.modal) state.modal.key = newIdempotencyKey();

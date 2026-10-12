@@ -436,10 +436,12 @@
             state.items = (payload && payload.data) || [];
             state.pagination = (payload && payload.pagination) || state.pagination;
             state.pagination.page = page;
+            return true;
         } catch (err) {
             console.error('[Users] load error:', err);
             UI.toast('danger', t('ui.error_generic'), UI.errorMessage(err) || t('users.errors.load'));
             state.items = [];
+            return false;
         } finally {
             state.loading = false;
             renderUsersTable();
@@ -462,10 +464,12 @@
             state.temp.items = (payload && payload.temporary_permissions) || [];
             state.temp.total = (payload && payload.total) || state.temp.items.length;
             if (payload && payload.pagination) state.temp.pagination = payload.pagination;
+            return true;
         } catch (err) {
             console.error('[Users] temp load error:', err);
             UI.toast('danger', t('ui.error_generic'), UI.errorMessage(err) || t('users.temp.load_error'));
             state.temp.items = [];
+            return false;
         } finally {
             state.temp.loading = false;
             renderTempFilterUser();
@@ -528,10 +532,9 @@
         });
 
         if (tab === 'users') {
-            loadUsers(state.pagination.page || 1);
-        } else {
-            loadTemp();
+            return loadUsers(state.pagination.page || 1);
         }
+        return loadTemp();
     }
 
     // ====================================================================
@@ -729,9 +732,11 @@
 
             const temporal = user && user.password_temporal ? user.password_temporal : null;
 
-            UI.toast('success', t('users.create.success_title'), t('users.create.success_body', { email: email }));
             closeModal();
-            await loadUsers(1);
+            const recargado = await loadUsers(1);
+            if (recargado) {
+                UI.toast('success', t('users.create.success_title'), t('users.create.success_body', { email: email }));
+            }
 
             if (temporal) {
                 openTempPassword(temporal, t('users.create.temp_title'));
@@ -802,9 +807,11 @@
                 email, nombre, apellido,
                 telefono: telefono || null
             });
-            UI.toast('success', t('users.edit.success_title'), t('users.edit.success_body', { email: email }));
             closeModal();
-            await loadUsers(state.pagination.page || 1);
+            const recargado = await loadUsers(state.pagination.page || 1);
+            if (recargado) {
+                UI.toast('success', t('users.edit.success_title'), t('users.edit.success_body', { email: email }));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('users.errors.edit'),
@@ -885,12 +892,14 @@
             await global.HttpClient.post('/users/' + encodeURIComponent(modal.id) + '/status', {
                 estado, motivo
             });
-            UI.toast('success', t('users.status.success_title'), t('users.status.success_body', {
-                email: UI.escapeHtml(modal.user.email || ''),
-                estado: UI.escapeHtml(estadoLabel(estado))
-            }));
             closeModal();
-            await loadUsers(state.pagination.page || 1);
+            const recargado = await loadUsers(state.pagination.page || 1);
+            if (recargado) {
+                UI.toast('success', t('users.status.success_title'), t('users.status.success_body', {
+                    email: UI.escapeHtml(modal.user.email || ''),
+                    estado: UI.escapeHtml(estadoLabel(estado))
+                }));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('users.errors.status'),
@@ -934,8 +943,10 @@
             const temporal = data && data.password_temporal;
 
             closeModal();
-            UI.toast('success', t('users.reset.success_title'), t('users.reset.success_body'));
-            await loadUsers(state.pagination.page || 1);
+            const recargado = await loadUsers(state.pagination.page || 1);
+            if (recargado) {
+                UI.toast('success', t('users.reset.success_title'), t('users.reset.success_body'));
+            }
 
             if (temporal) {
                 openTempPassword(temporal, t('users.reset.temp_title'));
@@ -1016,7 +1027,7 @@
 
     async function loadUserRoles(id) {
         const modal = state.modal;
-        if (!modal || modal.mode !== 'roles') return;
+        if (!modal || modal.mode !== 'roles') return true;
 
         try {
             const response = await global.HttpClient.get('/users/' + encodeURIComponent(id) + '/roles');
@@ -1025,6 +1036,7 @@
                 modal.roles = (payload && payload.roles) || [];
                 renderModal();
             }
+            return true;
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('users.roles.load_error'),
@@ -1034,6 +1046,7 @@
                 modal.roles = [];
                 renderModal();
             }
+            return false;
         }
     }
 
@@ -1154,9 +1167,11 @@
             modal.confirmGroup = null;
             modal.roles = null;
             renderModal();
-            await loadUserRoles(modal.id);
-            UI.toast('success', t('users.roles.title'),
-                t('users.roles.remove_group_success', { group: UI.escapeHtml(groupName || '') }));
+            const recargado = await loadUserRoles(modal.id);
+            if (recargado) {
+                UI.toast('success', t('users.roles.title'),
+                    t('users.roles.remove_group_success', { group: UI.escapeHtml(groupName || '') }));
+            }
         } catch (err) {
             modal.confirmGroup = null;
             await loadUserRoles(modal.id);
@@ -1195,8 +1210,10 @@
             await global.HttpClient.post('/users/' + encodeURIComponent(modal.id) + '/roles', {
                 role_id: roleId
             });
-            UI.toast('success', t('users.roles.title'), t('users.roles.assigned'));
-            await loadUserRoles(modal.id);
+            const recargado = await loadUserRoles(modal.id);
+            if (recargado) {
+                UI.toast('success', t('users.roles.title'), t('users.roles.assigned'));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('users.roles.assign_error'),
@@ -1219,8 +1236,10 @@
                 '/users/' + encodeURIComponent(modal.id) + '/roles/' + encodeURIComponent(roleId)
             );
             // Estado real desde el servidor antes de confirmar el exito.
-            await loadUserRoles(modal.id);
-            UI.toast('success', t('users.roles.title'), t('users.roles.removed'));
+            const recargado = await loadUserRoles(modal.id);
+            if (recargado) {
+                UI.toast('success', t('users.roles.title'), t('users.roles.removed'));
+            }
         } catch (err) {
             // 409 ROLE_NOT_DIRECT: el rol no esta asignado directamente
             // (heredado de grupo). Sin exito; se recarga y se avisa.
@@ -1266,9 +1285,11 @@
 
         try {
             await global.HttpClient.delete('/users/' + encodeURIComponent(modal.id));
-            UI.toast('success', t('users.delete.success_title'), t('users.delete.success_body'));
             closeModal();
-            await loadUsers(state.pagination.page || 1);
+            const recargado = await loadUsers(state.pagination.page || 1);
+            if (recargado) {
+                UI.toast('success', t('users.delete.success_title'), t('users.delete.success_body'));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('users.errors.delete'),
@@ -1429,9 +1450,11 @@
 
         try {
             await global.HttpClient.post('/temporary-permissions', payload);
-            UI.toast('success', t('users.grant.success_title'), t('users.grant.success_body'));
             closeModal();
-            switchTab('temp');
+            const recargado = await switchTab('temp');
+            if (recargado) {
+                UI.toast('success', t('users.grant.success_title'), t('users.grant.success_body'));
+            }
         } catch (err) {
             if (err && err.status === 429) {
                 UI.toast('warning', t('users.temp.rate_title'), UI.errorMessage(err) || t('users.temp.rate_body'));
@@ -1473,9 +1496,11 @@
 
         try {
             await global.HttpClient.delete('/temporary-permissions/' + encodeURIComponent(modal.id));
-            UI.toast('success', t('users.temp.revoke_title'), t('users.temp.revoked'));
             closeModal();
-            loadTemp();
+            const recargado = await loadTemp();
+            if (recargado) {
+                UI.toast('success', t('users.temp.revoke_title'), t('users.temp.revoked'));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('users.temp.revoke_error'),

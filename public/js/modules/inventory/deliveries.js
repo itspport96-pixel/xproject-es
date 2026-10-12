@@ -734,6 +734,7 @@
             });
             const payload = response.data || response;
             state.enRuta = payload.data || [];
+            return true;
         } catch (err) {
             state.enRuta = [];
             if (err && err.status === 403) {
@@ -743,6 +744,7 @@
                 state.enRutaError = true;
                 showToast('danger', t('ui.error_generic'), (err && err.message) || t('inventory.deliveries.messages.load_en_ruta_error'));
             }
+            return false;
         } finally {
             state.enRutaLoading = false;
             renderEnRuta();
@@ -768,6 +770,7 @@
             state.pagination = payload.pagination || state.pagination;
             state.pagination.page = page;
             state.listError = false;
+            return true;
         } catch (err) {
             console.error('[Deliveries] history load error:', err);
             state.items = [];
@@ -777,6 +780,7 @@
             } else {
                 showToast('danger', t('ui.error_generic'), (err && err.message) || t('inventory.deliveries.messages.load_history_error'));
             }
+            return false;
         } finally {
             state.listLoading = false;
             renderAll();
@@ -868,15 +872,17 @@
             });
             const body = response.data || response;
             const shipment = (body && body.shipment) || {};
+            const mensaje = shipment.shipment_id
+                ? t('inventory.deliveries.messages.shipment_ref', { id: shipment.shipment_id })
+                : t('inventory.deliveries.messages.units_delivered', { count: marcadas });
 
             state.modal.key = newIdempotencyKey();
-            showToast('success', t('inventory.deliveries.messages.confirmed_title'),
-                shipment.shipment_id
-                    ? t('inventory.deliveries.messages.shipment_ref', { id: shipment.shipment_id })
-                    : t('inventory.deliveries.messages.units_delivered', { count: marcadas }));
 
             closeModal();
-            await Promise.all([loadHistory(1), loadEnRuta()]);
+            const [recargadoHistorial, recargadoEnRuta] = await Promise.all([loadHistory(1), loadEnRuta()]);
+            if (recargadoHistorial && recargadoEnRuta) {
+                showToast('success', t('inventory.deliveries.messages.confirmed_title'), mensaje);
+            }
         } catch (err) {
             handleActionError(err, t('inventory.deliveries.messages.confirm_error'), () => {
                 if (state.modal) state.modal.key = newIdempotencyKey();
@@ -921,15 +927,17 @@
             });
             const body = response.data || response;
             const shipment = (body && body.shipment) || {};
+            const mensaje = shipment.shipment_id
+                ? t('inventory.deliveries.messages.shipment_ref', { id: shipment.shipment_id })
+                : t('inventory.deliveries.messages.shipment_failed');
 
             state.modal.key = newIdempotencyKey();
-            showToast('success', t('inventory.deliveries.messages.failed_title'),
-                shipment.shipment_id
-                    ? t('inventory.deliveries.messages.shipment_ref', { id: shipment.shipment_id })
-                    : t('inventory.deliveries.messages.shipment_failed'));
 
             closeModal();
-            await Promise.all([loadHistory(1), loadEnRuta()]);
+            const [recargadoHistorial, recargadoEnRuta] = await Promise.all([loadHistory(1), loadEnRuta()]);
+            if (recargadoHistorial && recargadoEnRuta) {
+                showToast('success', t('inventory.deliveries.messages.failed_title'), mensaje);
+            }
         } catch (err) {
             handleActionError(err, t('inventory.deliveries.messages.failed_error'), () => {
                 if (state.modal) state.modal.key = newIdempotencyKey();

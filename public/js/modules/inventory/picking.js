@@ -595,6 +595,7 @@
             state.selected.forEach(id => {
                 if (!vivas.has(id)) state.selected.delete(id);
             });
+            return true;
         } catch (err) {
             console.error('[Picking] reservations load error:', err);
             state.reservations = [];
@@ -603,6 +604,7 @@
             } else {
                 showToast('danger', t('ui.error_generic'), (err && err.message) || t('inventory.picking.messages.reservations_load_error'));
             }
+            return false;
         } finally {
             state.reservationsLoading = false;
             renderReservations();
@@ -627,6 +629,7 @@
             state.pickingPagination = payload.pagination || state.pickingPagination;
             state.pickingPagination.page = page;
             state.listError = false;
+            return true;
         } catch (err) {
             console.error('[Picking] load error:', err);
             state.pickings = [];
@@ -636,6 +639,7 @@
             } else {
                 showToast('danger', t('ui.error_generic'), (err && err.message) || t('inventory.picking.messages.pickings_load_error'));
             }
+            return false;
         } finally {
             state.pickingLoading = false;
             renderAll();
@@ -705,14 +709,15 @@
             state.selected.clear();
             state.startKey = newIdempotencyKey();
 
-            showToast('success', t('inventory.picking.messages.started_title'), t('inventory.picking.messages.started_message', { lote: lote, unidades: unidades }));
-
             form.reset();
             renderKeyHint(container.querySelector('[data-start-section]'));
-            // El lote ya existe: la pestaña de operaciones gana el foco y la
+            // El lote ya existe: la pesta��a de operaciones gana el foco y la
             // recarga de ambos paneles ocurre en el Promise.all de abajo.
             applyTab('list');
-            await Promise.all([loadReservations(), loadPickings(1)]);
+            const [recargadasReservas, recargadoLotes] = await Promise.all([loadReservations(), loadPickings(1)]);
+            if (recargadasReservas && recargadoLotes) {
+                showToast('success', t('inventory.picking.messages.started_title'), t('inventory.picking.messages.started_message', { lote: lote, unidades: unidades }));
+            }
         } catch (err) {
             handleActionError(err, t('inventory.picking.messages.start_error'), () => {
                 // 409: clave ya usada con otra carga útil → se renueva.
@@ -732,9 +737,12 @@
                 { headers: { 'Idempotency-Key': loteKey(lote) } }
             );
             const body = response.data || response;
-            showToast('success', t('inventory.picking.messages.completed_title'), (body && body.mensaje) || t('inventory.picking.messages.lote_message', { lote: lote }));
+            const mensaje = (body && body.mensaje) || t('inventory.picking.messages.lote_message', { lote: lote });
             delete state.loteKeys[lote];
-            await loadPickings(state.pickingPagination.page || 1);
+            const recargado = await loadPickings(state.pickingPagination.page || 1);
+            if (recargado) {
+                showToast('success', t('inventory.picking.messages.completed_title'), mensaje);
+            }
         } catch (err) {
             handleActionError(err, t('inventory.picking.messages.complete_error'), () => {
                 state.loteKeys[lote] = newIdempotencyKey();
@@ -750,9 +758,12 @@
                 { headers: { 'Idempotency-Key': loteKey(lote) } }
             );
             const body = response.data || response;
-            showToast('success', t('inventory.picking.messages.verified_title'), (body && body.mensaje) || t('inventory.picking.messages.lote_message', { lote: lote }));
+            const mensaje = (body && body.mensaje) || t('inventory.picking.messages.lote_message', { lote: lote });
             delete state.loteKeys[lote];
-            await loadPickings(state.pickingPagination.page || 1);
+            const recargado = await loadPickings(state.pickingPagination.page || 1);
+            if (recargado) {
+                showToast('success', t('inventory.picking.messages.verified_title'), mensaje);
+            }
         } catch (err) {
             handleActionError(err, t('inventory.picking.messages.verify_error'), () => {
                 state.loteKeys[lote] = newIdempotencyKey();

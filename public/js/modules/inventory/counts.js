@@ -284,6 +284,7 @@
             state.summary = (payload && payload.summary) || state.summary;
             state.pagination = (payload && payload.pagination) || state.pagination;
             state.pagination.page = (payload && payload.pagination && payload.pagination.page) || page;
+            return true;
         } catch (err) {
             console.error('[Counts] load error:', err);
             state.items = [];
@@ -293,6 +294,7 @@
             } else {
                 UI.toast('danger', t('ui.error_generic'), (err && err.message) || t('inventory.counts.messages.load_error'));
             }
+            return false;
         } finally {
             state.loading = false;
             renderAll();
@@ -414,16 +416,19 @@
             const data = response && response.data ? response.data : response;
             const conteo = (data && data.conteo) || null;
 
-            UI.toast('success', t('inventory.counts.messages.started_title'),
-                (data && data.unidades_en_lista !== undefined)
-                    ? t('inventory.counts.messages.started_units', { count: UI.formatNumber(data.unidades_en_lista) })
-                    : t('inventory.counts.messages.started_pending'));
-
             closeModal();
-            await loadCounts(1);
+            const recargadoLista = await loadCounts(1);
+            let recargadoDetalle = true;
 
             if (conteo && conteo.conteo_id) {
-                await openDetail(conteo.conteo_id);
+                recargadoDetalle = await openDetail(conteo.conteo_id);
+            }
+
+            if (recargadoLista && recargadoDetalle) {
+                UI.toast('success', t('inventory.counts.messages.started_title'),
+                    (data && data.unidades_en_lista !== undefined)
+                        ? t('inventory.counts.messages.started_units', { count: UI.formatNumber(data.unidades_en_lista) })
+                        : t('inventory.counts.messages.started_pending'));
             }
         } catch (err) {
             UI.handleActionError(err, {
@@ -463,13 +468,14 @@
                 tag: 'Counts'
             });
             closeModal();
-            return;
+            return false;
         }
 
         if (state.modal === token) {
             token.loading = false;
             renderModal();
         }
+        return true;
     }
 
     function detailRow(label, value) {
@@ -739,13 +745,14 @@
             );
             const data = response && response.data ? response.data : response;
 
-            UI.toast('success', t('inventory.counts.messages.results_registered_title'),
-                t('inventory.counts.messages.results_registered_message', {
-                    count: UI.formatNumber(data && data.unidades_pendientes !== undefined ? data.unidades_pendientes : 0)
-                }));
-
-            await openDetail(modal.id);
-            await loadCounts(state.pagination.page || 1);
+            const recargadoDetalle = await openDetail(modal.id);
+            const recargadoLista = await loadCounts(state.pagination.page || 1);
+            if (recargadoDetalle && recargadoLista) {
+                UI.toast('success', t('inventory.counts.messages.results_registered_title'),
+                    t('inventory.counts.messages.results_registered_message', {
+                        count: UI.formatNumber(data && data.unidades_pendientes !== undefined ? data.unidades_pendientes : 0)
+                    }));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('inventory.counts.messages.results_error'),
@@ -791,13 +798,14 @@
             );
             const data = response && response.data ? response.data : response;
 
-            UI.toast('success', t('inventory.counts.messages.completed_title'),
-                t('inventory.counts.messages.completed_message', {
-                    count: UI.formatNumber(data && data.total_discrepancias !== undefined ? data.total_discrepancias : 0)
-                }));
-
-            await openDetail(modal.id);
-            await loadCounts(state.pagination.page || 1);
+            const recargadoDetalle = await openDetail(modal.id);
+            const recargadoLista = await loadCounts(state.pagination.page || 1);
+            if (recargadoDetalle && recargadoLista) {
+                UI.toast('success', t('inventory.counts.messages.completed_title'),
+                    t('inventory.counts.messages.completed_message', {
+                        count: UI.formatNumber(data && data.total_discrepancias !== undefined ? data.total_discrepancias : 0)
+                    }));
+            }
         } catch (err) {
             const message = (err && err.message) || '';
             const faltaResultados = err && err.status === 422
@@ -929,22 +937,24 @@
             const data = response && response.data ? response.data : response;
 
             const incidencias = data && Array.isArray(data.incidencias) ? data.incidencias.length : 0;
-            UI.toast('success', t('inventory.counts.messages.reconciled_title'),
-                incidencias > 0
-                    ? t('inventory.counts.messages.reconciled_message_incidents', {
-                        acciones: UI.formatNumber(leido.acciones.length),
-                        incidencias: UI.formatNumber(incidencias)
-                    })
-                    : t('inventory.counts.messages.reconciled_message', {
-                        acciones: UI.formatNumber(leido.acciones.length)
-                    }));
 
             if (state.modal && state.modal.mode === 'detail') {
                 state.modal.key = UI.newIdempotencyKey();
             }
 
-            await openDetail(modal.id);
-            await loadCounts(state.pagination.page || 1);
+            const recargadoDetalle = await openDetail(modal.id);
+            const recargadoLista = await loadCounts(state.pagination.page || 1);
+            if (recargadoDetalle && recargadoLista) {
+                UI.toast('success', t('inventory.counts.messages.reconciled_title'),
+                    incidencias > 0
+                        ? t('inventory.counts.messages.reconciled_message_incidents', {
+                            acciones: UI.formatNumber(leido.acciones.length),
+                            incidencias: UI.formatNumber(incidencias)
+                        })
+                        : t('inventory.counts.messages.reconciled_message', {
+                            acciones: UI.formatNumber(leido.acciones.length)
+                        }));
+            }
         } catch (err) {
             const rootNow = getModalRoot();
             const message = (err && err.message) || '';

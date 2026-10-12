@@ -718,12 +718,13 @@
             const body = response && response.data ? response.data : response;
             const estado = body && body.estado ? body.estado : (esBloquear ? 'BLOQUEADO' : 'DISPONIBLE');
 
-            showToast('success',
-                esBloquear ? t('inventory.stock.messages.blocked_title') : t('inventory.stock.messages.unblocked_title'),
-                t('inventory.stock.messages.state_with', { estado: estadoLabel(estado) }));
-
-            await loadStock(state.pagination.page || 1);
-            await loadCatalogs();
+            const recargadoLista = await loadStock(state.pagination.page || 1);
+            const recargadoCatalogos = await loadCatalogs();
+            if (recargadoLista && recargadoCatalogos) {
+                showToast('success',
+                    esBloquear ? t('inventory.stock.messages.blocked_title') : t('inventory.stock.messages.unblocked_title'),
+                    t('inventory.stock.messages.state_with', { estado: estadoLabel(estado) }));
+            }
         } catch (err) {
             handleActionError(err, esBloquear
                 ? t('inventory.stock.messages.block_error')
@@ -875,18 +876,20 @@
             const destino = state.locations.find(l => l.id === payload.ubicacion_destino_id);
             const esCorreccion = !!(body && body.movimiento && body.movimiento.es_correccion);
             closeModal();
-            showToast('success', t('inventory.stock.messages.moved_title'),
-                t('inventory.stock.messages.moved_message', { destino: destino ? destino.codigo : '' })
-                + (esCorreccion ? ' · ' + t('inventory.stock.messages.moved_correction') : ''));
+
+            const recargadoLista = await loadStock(state.pagination.page || 1);
+            const recargadoCatalogos = await loadCatalogs();
+            if (recargadoLista && recargadoCatalogos) {
+                showToast('success', t('inventory.stock.messages.moved_title'),
+                    t('inventory.stock.messages.moved_message', { destino: destino ? destino.codigo : '' })
+                    + (esCorreccion ? '  → ' + t('inventory.stock.messages.moved_correction') : ''));
+            }
 
             // v1.10.0 (CU-002): avisos informativos del backend (no bloquean).
             const warnings = (body && Array.isArray(body.warnings)) ? body.warnings : [];
             warnings.forEach(w => {
                 showToast('warning', t('inventory.stock.messages.warning_title'), (w && w.mensaje) || t('inventory.stock.messages.reserved_warning'));
             });
-
-            await loadStock(state.pagination.page || 1);
-            await loadCatalogs();
         } catch (err) {
             handleActionError(err, t('inventory.stock.messages.move_error'));
         } finally {
@@ -915,10 +918,11 @@
 
             const barcode = state.modal.unit.codigo_barcode;
             closeModal();
-            showToast('success', t('inventory.stock.messages.reserve_created_title'),
-                t('inventory.stock.messages.reserve_created_message', { barcode }));
-
-            await loadStock(state.pagination.page || 1);
+            const recargado = await loadStock(state.pagination.page || 1);
+            if (recargado) {
+                showToast('success', t('inventory.stock.messages.reserve_created_title'),
+                    t('inventory.stock.messages.reserve_created_message', { barcode }));
+            }
         } catch (err) {
             handleActionError(err, t('inventory.stock.messages.reserve_error'));
         } finally {
@@ -984,8 +988,10 @@
             state.products = productsPayload.data || [];
             state.locations = locationsPayload.data || [];
             renderFilters();
+            return true;
         } catch (err) {
             console.error('[Stock] catalog load error:', err);
+            return false;
         }
     }
 
@@ -1010,10 +1016,12 @@
             state.summary = payload.summary || state.summary;
             state.pagination = payload.pagination || state.pagination;
             state.pagination.page = page;
+            return true;
         } catch (err) {
             console.error('[Stock] load error:', err);
             showToast('danger', t('ui.error_generic'), err.message || t('inventory.stock.messages.stock_load_error'));
             state.items = [];
+            return false;
         } finally {
             state.loading = false;
             renderSummary();

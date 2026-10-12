@@ -194,6 +194,7 @@
             state.summary = (payload && payload.summary) || { total: 0, activas: 0, con_expiracion: 0 };
             state.pagination = (payload && payload.pagination) || state.pagination;
             state.pagination.page = (payload && payload.pagination && payload.pagination.page) || page;
+            return true;
         } catch (err) {
             console.error('[Reservations] load error:', err);
             state.items = [];
@@ -204,6 +205,7 @@
             } else {
                 UI.toast('danger', t('ui.error_generic'), (err && err.message) || t('inventory.reservations.messages.load_error'));
             }
+            return false;
         } finally {
             state.loading = false;
             renderSummary();
@@ -218,8 +220,10 @@
 
         try {
             await global.HttpClient.post('/inventory/reservations/' + encodeURIComponent(id) + '/release');
-            UI.toast('success', t('inventory.reservations.messages.released_title'), t('inventory.reservations.messages.released_message'));
-            await loadReservations(state.pagination.page || 1);
+            const recargado = await loadReservations(state.pagination.page || 1);
+            if (recargado) {
+                UI.toast('success', t('inventory.reservations.messages.released_title'), t('inventory.reservations.messages.released_message'));
+            }
         } catch (err) {
             const status = err && err.status;
 

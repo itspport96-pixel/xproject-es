@@ -183,10 +183,12 @@
             const response = await global.HttpClient.get('/roles', { params });
             const payload = response && response.data ? response.data : response;
             state.items = (payload && payload.roles) || [];
+            return true;
         } catch (err) {
             console.error('[Roles] load error:', err);
             UI.toast('danger', t('ui.error_generic'), err.message || t('roles.errors.load'));
             state.items = [];
+            return false;
         } finally {
             state.loading = false;
             renderTable();
@@ -367,9 +369,11 @@
             if (descripcion) payload.descripcion = descripcion;
 
             await global.HttpClient.post('/roles', payload);
-            UI.toast('success', t('roles.create.success_title'), t('roles.create.success_body', { nombre: UI.escapeHtml(nombre) }));
             closeModal();
-            loadRoles();
+            const recargado = await loadRoles();
+            if (recargado) {
+                UI.toast('success', t('roles.create.success_title'), t('roles.create.success_body', { nombre: UI.escapeHtml(nombre) }));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('roles.errors.create'),
@@ -435,9 +439,11 @@
             };
 
             await global.HttpClient.patch('/roles/' + encodeURIComponent(modal.id), payload);
-            UI.toast('success', t('roles.edit.success_title'), t('roles.edit.success_body', { nombre: UI.escapeHtml(nombre) }));
             closeModal();
-            loadRoles();
+            const recargado = await loadRoles();
+            if (recargado) {
+                UI.toast('success', t('roles.edit.success_title'), t('roles.edit.success_body', { nombre: UI.escapeHtml(nombre) }));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('roles.errors.edit'),
@@ -523,9 +529,11 @@
 
         try {
             await global.HttpClient.patch('/roles/' + encodeURIComponent(modal.id) + '/permissions', { permisos });
-            UI.toast('success', t('roles.perms.title'), t('roles.perms.saved', { count: UI.formatNumber(permisos.length) }));
             closeModal();
-            loadRoles();
+            const recargado = await loadRoles();
+            if (recargado) {
+                UI.toast('success', t('roles.perms.title'), t('roles.perms.saved', { count: UI.formatNumber(permisos.length) }));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('roles.errors.perms'),
@@ -583,9 +591,11 @@
 
         try {
             await global.HttpClient.delete('/roles/' + encodeURIComponent(modal.id));
-            UI.toast('success', t('roles.delete.success_title'), t('roles.delete.success_body'));
             closeModal();
-            loadRoles();
+            const recargado = await loadRoles();
+            if (recargado) {
+                UI.toast('success', t('roles.delete.success_title'), t('roles.delete.success_body'));
+            }
         } catch (err) {
             UI.handleActionError(err, {
                 fallbackMessage: t('roles.errors.delete'),
