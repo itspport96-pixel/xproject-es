@@ -60,8 +60,8 @@ final class UserController
         $result = $this->userService->findAll($tenantId, $filters);
 
         // v1.13.3: columna Roles de la tabla. Misma fuente que
-        // GET /users/{id}/roles (origen directo/grupo); sólo lo que pinta
-        // la UI (sin el JSON de permisos, que multiplaría el payload).
+        // GET /users/{id}/roles (origen direct/group/temporary); sólo lo que
+        // pinta la UI (sin el JSON de permisos, que multiplaría el payload).
         foreach ($result['data'] as &$row) {
             $row['roles'] = array_map(
                 static fn(array $role): array => [
@@ -492,6 +492,11 @@ final class UserController
     // DELETE /api/users/{id}/roles/{roleId}
     // ========================================================================
 
+    /**
+     * v1.13.20: si la asignacion no existe en role_assignments (rol heredado
+     * de un grupo o rol ya ausente) responde 409 ROLE_NOT_DIRECT con
+     * data.error_code, nunca un 200 silencioso que no cambia nada.
+     */
     public function removeRole(array $params, array $request = []): array
     {
         $claims = $this->requireAuthenticated();
@@ -527,7 +532,12 @@ final class UserController
             );
         }
 
-        $this->userService->removeRole($userId, $roleId, $tenantId);
+        $removed = $this->userService->removeRole($userId, $roleId, $tenantId);
+        if (!$removed) {
+            // rowCount 0: no hay fila en role_assignments. El rol no esta
+            // asignado directamente (heredado de grupo o inexistente).
+            throw UserException::roleNotDirect();
+        }
 
         // El usuario afectado pierde permisos efectivos: vaciar su cache
         $this->authz->invalidateCache($userId, $tenantId);

@@ -62,6 +62,7 @@
     const canViewTemp = () => can('temporary.permission.view', ['ADMIN', 'MANAGER']);
     const canGrant = () => can('temporary.permission.grant', ['ADMIN']);
     const canRevoke = () => can('temporary.permission.revoke', ['ADMIN', 'MANAGER']);
+    const canManageMembers = () => can('groups.group.manage_members', ['ADMIN', 'MANAGER']);
 
     // ====================================================================
     // PLANTILLA
@@ -169,11 +170,15 @@
     // TABLA DE USUARIOS
     // ====================================================================
 
-    /** Badge de procedencia del rol (v1.13.3): sólo para roles de grupo. */
+    /** Badge de procedencia del rol (v1.13.3; origen direct|group|temporary). */
     function roleOriginBadge(rol) {
-        return rol.origen === 'grupo'
-            ? `<span class="badge badge-info">${t('users.roles.from_group')}</span>`
-            : '';
+        if (rol.origen !== 'group') return '';
+        // Con group_name (modal de roles) el chip nombra el grupo; en la
+        // tabla de la lista el endpoint recorta los campos y dice "Por grupo".
+        const texto = rol.group_name
+            ? t('users.roles.from_group_named', { group: UI.escapeHtml(rol.group_name) })
+            : t('users.roles.from_group');
+        return `<span class="badge badge-info">${texto}</span>`;
     }
 
     /** Celda Roles de la tabla (v1.13.3): chips con badge de origen. */
@@ -184,7 +189,7 @@
         // Si falta espacio la celda se trunca (overflow) y el title muestra
         // el listado completo: los chips nunca se parten en dos lineas.
         const title = roles.map(r =>
-            r.nombre + (r.origen === 'grupo' ? ' (' + t('users.roles.from_group') + ')' : '')
+            r.nombre + (r.origen === 'group' ? ' (' + t('users.roles.from_group') + ')' : '')
         ).join(', ');
 
         return `<div class="cell-clip" title="${UI.escapeHtml(title)}"><div class="flex gap-1">${roles.map(r => `
@@ -994,7 +999,10 @@
         if (!canView()) return;
         const user = state.items.find(u => u.id === id);
         if (!user) return;
-        state.modal = { mode: 'roles', id, user, roles: null, errors: {}, formError: '' };
+        state.modal = {
+            mode: 'roles', id, user, roles: null, confirmGroup: null,
+            errors: {}, formError: ''
+        };
         renderModal();
         // v1.12.1: el selector de roles disponibles carga el catálogo
         // GET /roles aquí (antes sólo se cargaba al abrir el alta); sin él
@@ -1029,7 +1037,30 @@
         }
     }
 
+    /**
+     * Accion de una fila de roles del modal (v1.13.20):
+     *  - directo/temporary: "Quitar" la asignacion directa (como hasta ahora);
+     *  - group: "Quitar del grupo" (borrar la membresia con el endpoint
+     *    existente DELETE /groups/{id}/members/{userId}), sólo con
+     *    groups.group.manage_members y con escalada (nunca sobre un usuario
+     *    que el actor no puede gestionar ni sobre uno mismo).
+     */
+    function roleRowActions(modal, rol) {
+        if (rol.origen === 'group') {
+            if (!canManageMembers() || !canActOnUser(modal.user, true)) return '';
+            return `<button type="button" class="btn btn-ghost btn-sm btn-danger"
+                data-action="ask-remove-group"
+                data-group-id="${UI.escapeHtml(rol.group_id || '')}"
+                data-group-name="${UI.escapeHtml(rol.group_name || '')}">${t('users.roles.remove_group')}</button>`;
+        }
+
+        return canEdit() ? `<button type="button" class="btn btn-ghost btn-sm btn-danger"
+            data-action="remove-role" data-role-id="${UI.escapeHtml(rol.id)}">${t('users.roles.remove')}</button>` : '';
+    }
+
     function rolesBody(modal) {
+        if (modal.confirmGroup) return confirmGroupBody(modal);
+
         const actuales = modal.roles === null
             ? UI.loadingState()
             : (modal.roles.length === 0
@@ -1040,8 +1071,7 @@
                             <span class="font-medium">${UI.escapeHtml(r.nombre)}</span>
                             <span class="badge badge-neutral">${UI.escapeHtml(r.tipo || '')}</span>${roleOriginBadge(r)}
                         </span>
-                        ${canEdit() ? `<button type="button" class="btn btn-ghost btn-sm btn-danger"
-                            data-action="remove-role" data-role-id="${UI.escapeHtml(r.id)}">${t('users.roles.remove')}</button>` : ''}
+                        ${roleRowActions(modal, r)}
                     </li>`).join('')}</ul>`);
 
         const disponibles = state.roles
@@ -1066,6 +1096,86 @@
                 </div>
             ` : ''}
         `;
+    }
+
+    /** Confirmacion de baja del grupo (v1.13.20): que se pierde y por que. */
+    function confirmGroupBody(modal) {
+        const c = modal.confirmGroup;
+        const perdidos = (modal.roles || [])
+            .filter(r => r.origen === 'group' && r.group_id === c.groupId)
+            .map(r => r.nombre);
+        const lista = perdidos.length > 0 ? perdidos.join(', ') : t('users.roles.none');
+
+        return `
+            <div class="form-error hidden mb-3" data-form-error></div>
+            <div class="text-xs text-muted mb-1">${UI.escapeHtml(modal.user.email || '')}</div>
+            <div class="alert alert-danger mt-2">${t('users.roles.remove_group_confirm', {
+                group: UI.escapeHtml(c.groupName || ''),
+                roles: UI.escapeHtml(lista)
+            })}</div>
+        `;
+    }
+
+    /** Abrir la confirmacion de baja del grupo (sólo con permiso y escalada). */
+    function askRemoveGroup(groupId, groupName) {
+        const modal = state.modal;
+        if (!modal || modal.mode !== 'roles' || state.sending) return;
+        if (!canManageMembers() || !canActOnUser(modal.user, true)) return;
+        if (!groupId) return;
+
+        modal.confirmGroup = { groupId, groupName };
+        renderModal();
+    }
+
+    function cancelRemoveGroup() {
+        const modal = state.modal;
+        if (!modal || modal.mode !== 'roles' || state.sending) return;
+        modal.confirmGroup = null;
+        renderModal();
+    }
+
+    /**
+     * Baja del grupo con el endpoint existente de miembros
+     * (DELETE /groups/{id}/members/{userId}): no se crea ninguno nuevo.
+     * El backend invalida la cache de permisos; aquí se recarga desde el
+     * servidor antes de dar por bueno el cambio.
+     */
+    async function submitRemoveGroup() {
+        const modal = state.modal;
+        if (!modal || modal.mode !== 'roles' || !modal.confirmGroup || state.sending) return;
+        if (!canManageMembers() || !canActOnUser(modal.user, true)) return;
+
+        const { groupId, groupName } = modal.confirmGroup;
+        setSending(true);
+        try {
+            await global.HttpClient.delete(
+                '/groups/' + encodeURIComponent(groupId) + '/members/' + encodeURIComponent(modal.id)
+            );
+            modal.confirmGroup = null;
+            modal.roles = null;
+            renderModal();
+            await loadUserRoles(modal.id);
+            UI.toast('success', t('users.roles.title'),
+                t('users.roles.remove_group_success', { group: UI.escapeHtml(groupName || '') }));
+        } catch (err) {
+            modal.confirmGroup = null;
+            await loadUserRoles(modal.id);
+            UI.handleActionError(err, {
+                fallbackMessage: t('users.roles.remove_group_error'),
+                root: getModalRoot(),
+                inline: true,
+                tag: 'Users'
+            });
+        } finally {
+            setSending(false);
+        }
+    }
+
+    /** data.error_code del envelope de error ('' si no trae). */
+    function errorCodeOf(err) {
+        const body = (err && err.data && typeof err.data === 'object') ? err.data : null;
+        const inner = (body && body.data && typeof body.data === 'object') ? body.data : null;
+        return (inner && inner.error_code) || (body && body.error_code) || '';
     }
 
     async function assignRole() {
@@ -1108,9 +1218,18 @@
             await global.HttpClient.delete(
                 '/users/' + encodeURIComponent(modal.id) + '/roles/' + encodeURIComponent(roleId)
             );
-            UI.toast('success', t('users.roles.title'), t('users.roles.removed'));
+            // Estado real desde el servidor antes de confirmar el exito.
             await loadUserRoles(modal.id);
+            UI.toast('success', t('users.roles.title'), t('users.roles.removed'));
         } catch (err) {
+            // 409 ROLE_NOT_DIRECT: el rol no esta asignado directamente
+            // (heredado de grupo). Sin exito; se recarga y se avisa.
+            const recargar = errorCodeOf(err) === 'ROLE_NOT_DIRECT';
+            await loadUserRoles(modal.id);
+            if (recargar) {
+                UI.toast('warning', t('users.roles.title'), t('users.roles.not_direct'));
+                return;
+            }
             UI.handleActionError(err, {
                 fallbackMessage: t('users.roles.remove_error'),
                 root: getModalRoot(),
@@ -1428,8 +1547,10 @@
             case 'roles':
                 title = t('users.roles.title');
                 body = rolesBody(modal);
-                footer = `
-                    <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>`;
+                footer = modal.confirmGroup
+                    ? `<button class="btn btn-secondary" data-action="cancel-remove-group"${state.sending ? ' disabled' : ''}>${t('ui.cancel')}</button>
+                       <button class="btn btn-danger" data-action="submit-remove-group" data-modal-send${state.sending ? ' disabled' : ''}>${t('users.roles.remove_group')}</button>`
+                    : `<button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>`;
                 break;
             case 'delete':
                 title = t('users.delete.title');
@@ -1594,6 +1715,15 @@
                 break;
             case 'remove-role':
                 removeRole(btn.dataset.roleId);
+                break;
+            case 'ask-remove-group':
+                askRemoveGroup(btn.dataset.groupId, btn.dataset.groupName);
+                break;
+            case 'cancel-remove-group':
+                cancelRemoveGroup();
+                break;
+            case 'submit-remove-group':
+                submitRemoveGroup();
                 break;
         }
 

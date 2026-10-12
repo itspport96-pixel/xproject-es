@@ -103,7 +103,7 @@ final class UserPreferencesEndpointTest extends TestCase
         );
         $this->pdo->exec(
             "CREATE TABLE user_groups (
-                id TEXT PRIMARY KEY, tenant_id TEXT,
+                id TEXT PRIMARY KEY, tenant_id TEXT, nombre TEXT,
                 activo INTEGER DEFAULT 1, deleted_at TEXT
             )"
         );

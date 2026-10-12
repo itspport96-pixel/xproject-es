@@ -21,6 +21,7 @@
     "pagination": "Showing {shown} of {total} {label}",
     "records": "records",
     "close": "Close",
+    "cancel": "Cancel",
     "error_generic": "Error",
     "error_not_csv": "The response is not a CSV.",
     "toast_invalid": "Invalid data",
@@ -1656,7 +1657,13 @@
       "load_error": "Roles could not be loaded.",
       "assign_error": "The role could not be assigned.",
       "remove_error": "The role could not be removed.",
-      "from_group": "From group"
+      "from_group": "From group",
+      "from_group_named": "From group: {group}",
+      "remove_group": "Remove from group",
+      "remove_group_confirm": "The user will be removed from the group {group} and will lose ALL roles granted by the group: {roles}",
+      "remove_group_success": "User removed from the group {group}.",
+      "remove_group_error": "The user could not be removed from the group.",
+      "not_direct": "The role is not assigned directly: it comes from a group. Remove it from the group."
     },
     "delete": {
       "title": "Delete user",

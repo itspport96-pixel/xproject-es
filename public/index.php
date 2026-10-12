@@ -79,6 +79,9 @@ set_exception_handler(function (Throwable $e) use ($container) {
         $data = [
             'field' => method_exists($e, 'getField') ? $e->getField() : null,
             'category' => method_exists($e, 'getCategory') ? $e->getCategory() : null,
+            // Codigo de maquina para la UI (v1.13.20): ej. ROLE_NOT_DIRECT
+            // en un 409 permite a la UI mostrar un mensaje i18n propio.
+            'error_code' => method_exists($e, 'getErrorCode') ? $e->getErrorCode() : null,
         ];
         if (isDebugEnabled()) {
             $data = array_merge($data, [

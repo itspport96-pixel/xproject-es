@@ -131,19 +131,27 @@ final class AuthorizationService
     }
 
     /**
-     * Roles efectivos del usuario con su origen (v1.12.1): roles directos de
-     * role_assignments y roles otorgados por grupos activos. Es la fuente
-     * unica que usan login y /auth/me; el token no es la autoridad.
+     * Roles efectivos del usuario con su origen (v1.12.1; contrato ampliado
+     * en v1.13.20): roles directos de role_assignments y roles otorgados por
+     * grupos activos. Es la fuente unica que usan login, /auth/me y
+     * GET /users/{id}/roles; el token no es la autoridad.
+     *
+     * Origen (enum de la API):
+     *  - 'direct'    asignacion directa sin caducidad (role_assignments);
+     *  - 'temporary' asignacion directa con fecha_expiracion (trae la fecha);
+     *  - 'group'     heredado de un grupo activo (trae group_id y group_name).
+     *
+     * Si un rol llega por directo Y por grupo, manda el directo (dedup).
      *
      * @return array<int, array<string, mixed>> filas con id, nombre, tipo,
-     *         activo, permisos y origen ('directo' | 'grupo'), ordenadas por nombre.
+     *         activo, permisos y origen, ordenadas por nombre.
      */
     public function getUserRolesWithOrigin(string $userId, string $tenantId): array
     {
         $roles = [];
 
         foreach ($this->fetchRoles($userId, $tenantId, false) as $row) {
-            $row['origen'] = 'directo';
+            $row['origen'] = ($row['fecha_expiracion'] ?? null) !== null ? 'temporary' : 'direct';
             $roles[(string) $row['id']] = $row;
         }
 
@@ -152,7 +160,7 @@ final class AuthorizationService
             if (isset($roles[$id])) {
                 continue;
             }
-            $row['origen'] = 'grupo';
+            $row['origen'] = 'group';
             $roles[$id] = $row;
         }
 
@@ -196,15 +204,20 @@ final class AuthorizationService
     }
 
     /**
-     * Filas de roles del usuario: directos (role_assignments) o via grupos
-     * activos (mismas condiciones que los permisos efectivos).
+     * Filas de roles del usuario: directos (role_assignments, con su
+     * fecha_expiracion para distinguir temporary) o via grupos activos
+     * (mismas condiciones que los permisos efectivos; con group_id y
+     * group_name para que la UI pueda señalar el grupo y quitar de él).
+     *
+     * @param bool $porGrupo true = via group_members/group_roles
      *
      * @return array<int, array<string, mixed>>
      */
     private function fetchRoles(string $userId, string $tenantId, bool $porGrupo): array
     {
         if ($porGrupo) {
-            $sql = "SELECT r.id, r.nombre, r.tipo, r.activo, r.permisos
+            $sql = "SELECT r.id, r.nombre, r.tipo, r.activo, r.permisos,
+                           ug.id AS group_id, ug.nombre AS group_name
                     FROM group_members gm
                     INNER JOIN group_roles gr ON gr.group_id = gm.group_id
                     INNER JOIN roles r ON r.id = gr.role_id
@@ -216,17 +229,20 @@ final class AuthorizationService
                       AND ug.activo = 1
                       AND ug.deleted_at IS NULL
                       AND r.activo = 1
-                      AND r.deleted_at IS NULL";
+                      AND r.deleted_at IS NULL
+                    ORDER BY ug.nombre ASC, r.nombre ASC";
             $params = ['uid' => $userId, 'tid' => $tenantId, 'gtid' => $tenantId];
         } else {
-            $sql = "SELECT r.id, r.nombre, r.tipo, r.activo, r.permisos
+            $sql = "SELECT r.id, r.nombre, r.tipo, r.activo, r.permisos,
+                           ra.fecha_expiracion
                     FROM role_assignments ra
                     INNER JOIN roles r ON r.id = ra.role_id
                     WHERE ra.user_id = :uid
                       AND ra.tenant_id = :tid
                       AND r.activo = 1
                       AND r.deleted_at IS NULL
-                      AND (ra.fecha_expiracion IS NULL OR ra.fecha_expiracion > NOW())";
+                      AND (ra.fecha_expiracion IS NULL OR ra.fecha_expiracion > NOW())
+                    ORDER BY r.nombre ASC";
             $params = ['uid' => $userId, 'tid' => $tenantId];
         }
 

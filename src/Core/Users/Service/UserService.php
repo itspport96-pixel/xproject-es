@@ -556,6 +556,10 @@ final class UserService
 
     /**
      * Remueve un rol de un usuario en un tenant.
+     *
+     * @return bool true si borro la asignacion directa; false si no existia
+     *              fila en role_assignments (rol heredado de grupo o ya
+     *              ausente) - el caller decide la respuesta (v1.13.20: 409).
      */
     public function removeRole(string $userId, string $roleId, string $tenantId): bool
     {

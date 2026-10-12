@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.20] - 2026-10-12
+
+BLOQUE 1B completo (backend + frontend): rol heredado por grupo en el modal de Roles de Usuarios. Borrado protegido con 409 `ROLE_NOT_DIRECT`, procedencia con `group_id`/`group_name`, acción "Quitar del grupo" con confirmación y recarga real.
+
+### Added
+
+- **409 `ROLE_NOT_DIRECT`**: `UserController::removeRole` lanza `UserException::roleNotDirect()` (categoría `conflict`, con `getErrorCode()`); el envelope de `public/index.php` expone `data.error_code` y `UserService::removeRole` devuelve el `rowCount`, de modo que el controller distingue "no existía" de "no estaba asignado directamente". Un rol heredado de grupo ya no devuelve un 200 falso sin borrar nada.
+- **Orígenes en `GET /users/{id}/roles`**: `AuthorizationService::getUserRolesWithOrigin`/`fetchRoles` emite `direct` | `temporary` (directo con `fecha_expiracion`) | `group` con `group_id` y `group_name` (mismo contrato que login y `/auth/me`, que pasan de `directo`/`grupo` a `direct`/`group`).
+- **Frontend `public/js/modules/users/users.js`**: chip "Por grupo: {group}" (`users.roles.from_group_named`); acción por fila `ask-remove-group` sólo con `groups.group.manage_members` y escalada (`canActOnUser`, nunca sobre un usuario ADMIN salvo ADMIN ni sobre uno mismo); sub-estado de confirmación en el modal (texto con el grupo y la lista de roles que se pierden, pie Cancelar/Quitar); envío por el endpoint existente `DELETE /groups/{id}/members/{userId}` con recarga desde el servidor antes del toast de éxito; el 409 en "Quitar" recarga y avisa con toast warning `not_direct` sin toast de éxito.
+- **i18n**: `ui.cancel` y `users.roles.{remove_group,remove_group_confirm,remove_group_success,remove_group_error,not_direct,from_group_named}` en es/en/pt/fr.
+
+### Fixed
+
+- **`tests/Unit/UserPreferencesEndpointTest.php`**: el esquema SQLite local de `user_groups` no tenía `nombre`, columna que `fetchRoles` selecciona; se añade (espejo de la BD viva).
+
+### Verification
+
+- `composer test`: 944 tests, 6818 assertions, OK (2 deprecations PHPUnit preexistentes).
+- E2E: `tools/e2e/e2e-v11320.ps1` (nuevo; 4 escenarios: borrado directo 200; rol sólo de grupo 409 + persiste; baja del grupo con `/auth/me` reflejando la invalidación de caché; sin `groups.group.manage_members` → 403 con control positivo del ADMIN) — TODOS LOS CASOS OK. `e2e-v1121` y `e2e-v1133` con el vocabulario `direct`/`group`/`temporary` — en verde.
+- Smokes jsdom (12 scripts, todos en verde): `smoke-bloque1b-roles.mjs` (nuevo, 26 checks: chip, acción presente/ausente por permiso/escalada/self, confirmación cancelar y confirmar con recarga real, 409 sin éxito falso) más los 11 preexistentes.
+- `check-i18n.php`: paridad de claves en los 4 locales; 2 errores preexistentes en `profile.js`, fuera del alcance. `check-schema-drift.php`: SIN DRIFT. `check-data-integrity.php`: DATOS CONSISTENTES. GETs de solo lectura del módulo con admin (users/roles/groups/permissions/temp/auth): 15/15 → 200.
+
+### Notes
+
+- Desviación a informe: `GroupController::removeMember` no aplica escalada de actor (sólo exige `groups.group.manage_members`); la escalada se aplica en el frontend. Ningún endpoint nuevo: se reutiliza `DELETE /groups/{id}/members/{userId}`.
+
 ## [1.13.19] - 2026-10-12
 
 CIERRE de rowActions (BLOQUES 1–2): verificación completa con capturas Playwright, smokes, tests, i18n y drift.

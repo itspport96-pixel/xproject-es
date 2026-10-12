@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Continue'
+﻿$ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot '_env.ps1')   # BD E2E + servidor PHP embebido
 $script:failures = 0
 $script:runId = [guid]::NewGuid().ToString('N').Substring(0, 8)
@@ -279,7 +279,7 @@ if ($rid1 -and $rid2) {
             if ($rl.id -eq $rid1) { $origenDirecto = $rl.origen }
             if ($rl.id -eq $rid2) { $origenGrupo = $rl.origen }
         }
-        if ($lista.Count -eq 2 -and $origenDirecto -eq 'directo' -and $origenGrupo -eq 'grupo') {
+        if ($lista.Count -eq 2 -and $origenDirecto -eq 'direct' -and $origenGrupo -eq 'group') {
             Ok 'GET /users/{id}/roles con procedencia' "2 roles: directo=$origenDirecto grupo=$origenGrupo"
         } else {
             Bad 'GET /users/{id}/roles con procedencia' "n=$($lista.Count) rid1=$origenDirecto rid2=$origenGrupo"
@@ -296,7 +296,7 @@ if ($rid1 -and $rid2) {
         else { $lista2 = @() }
         $d2 = $null
         foreach ($rl in $lista2) { if ($rl.id -eq $rid1) { $d2 = $rl.origen } }
-        if ($r.Status -eq 200 -and $lista2.Count -eq 2 -and $d2 -eq 'directo') {
+        if ($r.Status -eq 200 -and $lista2.Count -eq 2 -and $d2 -eq 'direct') {
             Ok 'DEDUP rol en ambos origenes' "sigue con 2 roles y el directo manda (origen=$d2)"
         } else {
             Bad 'DEDUP rol en ambos origenes' "status=$($r.Status) n=$($lista2.Count) origen=$d2"
@@ -314,7 +314,7 @@ if ($rid1 -and $rid2) {
         foreach ($rr in $entradas) {
             $tiene = @($rr.PSObject.Properties.Name | Sort-Object)
             if (($tiene -join ',') -ne ($esperadas -join ',')) { $clavesOk = $false }
-            if ($rr.origen -ne 'directo' -and $rr.origen -ne 'grupo') { $clavesOk = $false }
+            if ($rr.origen -notin @('direct', 'group', 'temporary')) { $clavesOk = $false }
         }
         if ($clavesOk) { Ok 'GET /users fila con columna roles' '2 entradas, claves exactas id/nombre/tipo/origen' }
         else { Bad 'GET /users fila con columna roles' "roles=$($fila.roles | ConvertTo-Json -Compress)" }
@@ -329,7 +329,7 @@ if ($rid1 -and $rid2) {
     $origenRaro = @()
     foreach ($u in $todas) {
         foreach ($rr in @($u.roles)) {
-            if ($rr.origen -ne 'directo' -and $rr.origen -ne 'grupo') { $origenRaro += "$($u.email):$($rr.origen)" }
+            if ($rr.origen -notin @('direct', 'group', 'temporary')) { $origenRaro += "$($u.email):$($rr.origen)" }
         }
     }
     if ($r.Status -eq 200 -and $todas.Count -gt 0 -and $sinClave.Count -eq 0 -and $origenRaro.Count -eq 0) {

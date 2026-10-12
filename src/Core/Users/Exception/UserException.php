@@ -22,6 +22,11 @@ use Throwable;
  *  - not_found:  recurso inexistente en el tenant (404)
  *  - auth:       credenciales/cuenta (401/403)
  *  - forbidden:  permisos insuficientes (403)
+ *  - conflict:   el request choca con el estado actual (409)
+ *
+ * Ademas, `errorCode` (v1.13.20) es un codigo de maquina que el handler de
+ * public/index.php serializa en `data.error_code` para que la UI mapee un
+ * mensaje i18n propio (ej. ROLE_NOT_DIRECT); sin codigo es null.
  */
 final class UserException extends HttpException
 {
@@ -29,21 +34,25 @@ final class UserException extends HttpException
     public const CATEGORY_NOT_FOUND  = 'not_found';
     public const CATEGORY_AUTH       = 'auth';
     public const CATEGORY_FORBIDDEN  = 'forbidden';
+    public const CATEGORY_CONFLICT   = 'conflict';
 
     private ?string $field;
     private string $category;
+    private ?string $errorCode;
 
     public function __construct(
         string $message,
         int $code = 0,
         ?Throwable $previous = null,
         ?string $field = null,
-        string $category = self::CATEGORY_VALIDATION
+        string $category = self::CATEGORY_VALIDATION,
+        ?string $errorCode = null
     ) {
         $statusCode = ($code >= 400 && $code <= 499) ? $code : 400;
         parent::__construct($message, $statusCode, $previous);
         $this->field = $field;
         $this->category = $category;
+        $this->errorCode = $errorCode;
     }
 
     public function getField(): ?string
@@ -54,6 +63,12 @@ final class UserException extends HttpException
     public function getCategory(): string
     {
         return $this->category;
+    }
+
+    /** Codigo de maquina para la UI (data.error_code); null si no aplica. */
+    public function getErrorCode(): ?string
+    {
+        return $this->errorCode;
     }
 
     public static function emailAlreadyExists(string $email): self
@@ -112,5 +127,22 @@ final class UserException extends HttpException
     public static function emailNotVerified(): self
     {
         return new self('El email del usuario no ha sido verificado.', 403, null, null, self::CATEGORY_FORBIDDEN);
+    }
+
+    /**
+     * DELETE /users/{id}/roles/{roleId} sobre un rol que NO esta asignado
+     * directamente (viene de un grupo o no hay asignacion): 409 con el
+     * codigo de maquina ROLE_NOT_DIRECT, nunca un 200 silencioso.
+     */
+    public static function roleNotDirect(): self
+    {
+        return new self(
+            'El rol no está asignado directamente al usuario; si es heredado de un grupo, quítalo desde el grupo.',
+            409,
+            null,
+            null,
+            self::CATEGORY_CONFLICT,
+            'ROLE_NOT_DIRECT'
+        );
     }
 }

@@ -17,9 +17,12 @@ use Tests\Support\RecordingAuditLogger;
 /**
  * Capa HTTP de /api/users (deuda v1.13.3: UserController sin tests).
  *
- *  - GET /users/{id}/roles responde con la procedencia (directo/grupo)
- *    desde AuthorizationService::getUserRolesWithOrigin, la misma fuente
- *    que usan login y /auth/me.
+ *  - GET /users/{id}/roles responde con la procedencia (direct|group|temporary,
+ *    con group_id/group_name para el grupo) desde
+ *    AuthorizationService::getUserRolesWithOrigin, la misma fuente que usan
+ *    login y /auth/me.
+ *  - DELETE /users/{id}/roles/{roleId}: 200 si borra la asignacion directa;
+ *    409 ROLE_NOT_DIRECT si el rol no esta asignado directamente (v1.13.20).
  *  - GET /users enriquece cada fila con `roles` para la columna Roles de
  *    la tabla (v1.13.3), sin el JSON de permisos.
  *  - PATCH /users no puede bajar al único ADMIN activo (guarda v1.13.2)
@@ -114,13 +117,20 @@ final class UserControllerTest extends PlatformControlSqliteTestCase
         ksort($origenes);
 
         $this->assertSame(
-            ['role-directo' => 'directo', 'role-grupo' => 'grupo'],
+            ['role-directo' => 'direct', 'role-grupo' => 'group'],
             $origenes
         );
 
         $porId = array_column($result['data']['roles'], null, 'id');
         $this->assertSame('OPERADOR', $porId['role-directo']['nombre']);
         $this->assertSame('CUSTOM', $porId['role-grupo']['tipo']);
+
+        // v1.13.20: el origen group trae id y nombre del grupo para que la
+        // UI pueda ofrecer "Quitar del grupo"; el directo no los lleva.
+        $this->assertSame('group-pcs-1', $porId['role-grupo']['group_id']);
+        $this->assertSame('Grupo group-pcs-1', $porId['role-grupo']['group_name']);
+        $this->assertArrayNotHasKey('group_id', $porId['role-directo']);
+        $this->assertArrayNotHasKey('group_name', $porId['role-directo']);
     }
 
     public function testGetRolesPrefiereElOrigenDirectoCuandoTambienVieneDeGrupo(): void
@@ -135,7 +145,23 @@ final class UserControllerTest extends PlatformControlSqliteTestCase
         $result = $this->controller->getRoles(['id' => self::USER]);
 
         $this->assertCount(1, $result['data']['roles']);
-        $this->assertSame('directo', $result['data']['roles'][0]['origen']);
+        $this->assertSame('direct', $result['data']['roles'][0]['origen']);
+    }
+
+    public function testGetRolesMarcaComoTemporaryLaAsignacionConCaducidad(): void
+    {
+        $this->seedRole('role-temp', 'OPERADOR', []);
+        $this->assignRole(self::USER, 'role-temp', '2030-01-01 00:00:00');
+
+        $result = $this->controller->getRoles(['id' => self::USER]);
+
+        $this->assertSame(200, $result['status']);
+        $this->assertCount(1, $result['data']['roles']);
+        $this->assertSame('temporary', $result['data']['roles'][0]['origen']);
+        $this->assertStringStartsWith(
+            '2030-01-01',
+            (string) $result['data']['roles'][0]['fecha_expiracion']
+        );
     }
 
     // ====================================================================
@@ -168,11 +194,11 @@ final class UserControllerTest extends PlatformControlSqliteTestCase
         }
 
         $this->assertCount(1, $porId['u-directo-pcs']);
-        $this->assertSame('directo', $porId['u-directo-pcs'][0]['origen']);
+        $this->assertSame('direct', $porId['u-directo-pcs'][0]['origen']);
         $this->assertSame('OPERADOR', $porId['u-directo-pcs'][0]['nombre']);
 
         $this->assertCount(1, $porId['u-grupo-pcs']);
-        $this->assertSame('grupo', $porId['u-grupo-pcs'][0]['origen']);
+        $this->assertSame('group', $porId['u-grupo-pcs'][0]['origen']);
 
         $this->assertSame([], $porId['u-sin-roles-pcs']);
 
@@ -185,6 +211,60 @@ final class UserControllerTest extends PlatformControlSqliteTestCase
                 );
             }
         }
+    }
+
+    // ====================================================================
+    // DELETE /users/{id}/roles — 200 directo / 409 heredado (v1.13.20)
+    // ====================================================================
+
+    public function testRemoveRoleDirectoDevuelve200YBorraLaAsignacion(): void
+    {
+        $this->seedRole('role-directo', 'OPERADOR', []);
+        $this->assignRole(self::USER, 'role-directo');
+
+        $result = $this->controller->removeRole(
+            ['id' => self::USER, 'roleId' => 'role-directo'],
+            $this->request()
+        );
+
+        $this->assertSame(200, $result['status']);
+        $this->assertSame(
+            [],
+            $this->controller->getRoles(['id' => self::USER])['data']['roles'],
+            'La asignacion directa debe desaparecer del listado'
+        );
+
+        $entrada = $this->audit->byOperacion('user.role.remove');
+        $this->assertNotNull($entrada, 'La baja directa debe quedar auditada');
+        $this->assertSame('role-directo', $entrada['valores_anteriores']['role_id']);
+    }
+
+    public function testRemoveRoleHeredadoDeGrupoDevuelve409RoleNotDirect(): void
+    {
+        $this->seedRole('role-grupo', 'AUDITOR', []);
+        $groupId = $this->seedGroup('group-pcs-1');
+        $this->addGroupMember($groupId, self::USER);
+        $this->attachGroupRole($groupId, 'role-grupo');
+
+        try {
+            $this->controller->removeRole(
+                ['id' => self::USER, 'roleId' => 'role-grupo'],
+                $this->request()
+            );
+            $this->fail('Se esperaba UserException 409 ROLE_NOT_DIRECT');
+        } catch (UserException $e) {
+            $this->assertSame(409, $e->getStatusCode());
+            $this->assertSame('conflict', $e->getCategory());
+            $this->assertSame('ROLE_NOT_DIRECT', $e->getErrorCode());
+        }
+
+        // El rol sigue donde estaba: nada se borró en silencio.
+        $roles = $this->controller->getRoles(['id' => self::USER])['data']['roles'];
+        $this->assertCount(1, $roles);
+        $this->assertSame('group', $roles[0]['origen']);
+
+        // Sin cambio de estado no hay auditoría de éxito.
+        $this->assertNull($this->audit->byOperacion('user.role.remove'));
     }
 
     // ====================================================================

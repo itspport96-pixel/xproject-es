@@ -143,9 +143,9 @@ $u1Roles = $lg.data.user.roles
 $u1Perms = $lg.data.user.permisos
 $origenGrupo = $false
 if ($u1Roles -is [array]) {
-    foreach ($rl in $u1Roles) { if ($rl.origen -eq 'grupo') { $origenGrupo = $true } }
+    foreach ($rl in $u1Roles) { if ($rl.origen -eq 'group') { $origenGrupo = $true } }
 }
-if ($origenGrupo) { Ok 'LOGIN u1 roles con origen' 'al menos un rol con origen=grupo' }
+if ($origenGrupo) { Ok 'LOGIN u1 roles con origen' 'al menos un rol con origen=group' }
 else { Bad 'LOGIN u1 roles con origen' "roles=$($u1Roles | ConvertTo-Json -Compress)" }
 
 if (Test-PermisoEn $u1Perms 'users.user.view') { Ok 'LOGIN u1 permisos efectivos' 'incluye users.user.view' }
@@ -156,8 +156,8 @@ $r = Invoke-Get '/auth/me' $u1.Token
 if ($r.Status -eq 200) {
     $me = ($r.Content | ConvertFrom-Json).data
     $meOrigenGrupo = $false
-    if ($me.roles -is [array]) { foreach ($rl in $me.roles) { if ($rl.origen -eq 'grupo') { $meOrigenGrupo = $true } } }
-    if ($meOrigenGrupo) { Ok 'ME u1 roles con origen' 'al menos un rol con origen=grupo' }
+    if ($me.roles -is [array]) { foreach ($rl in $me.roles) { if ($rl.origen -eq 'group') { $meOrigenGrupo = $true } } }
+    if ($meOrigenGrupo) { Ok 'ME u1 roles con origen' 'al menos un rol con origen=group' }
     else { Bad 'ME u1 roles con origen' "roles=$($me.roles | ConvertTo-Json -Compress)" }
     if (Test-PermisoEn $me.permisos 'users.user.view') { Ok 'ME u1 permisos efectivos' 'incluye users.user.view' }
     else { Bad 'ME u1 permisos efectivos' "permisos=$($me.permisos | ConvertTo-Json -Compress)" }
@@ -257,7 +257,7 @@ $r = Invoke-Get '/auth/me' $u1.Token
 if ($r.Status -eq 200) {
     $me1b = ($r.Content | ConvertFrom-Json).data
     $todaviaGrupo = $false
-    if ($me1b.roles -is [array]) { foreach ($rl in $me1b.roles) { if ($rl.origen -eq 'grupo') { $todaviaGrupo = $true } } }
+    if ($me1b.roles -is [array]) { foreach ($rl in $me1b.roles) { if ($rl.origen -eq 'group') { $todaviaGrupo = $true } } }
     if (-not $todaviaGrupo -and -not (Test-PermisoEn $me1b.permisos 'users.user.view')) {
         Ok 'ME u1 tras BAJA del grupo' 'sin rol de grupo ni su permiso'
     } else {

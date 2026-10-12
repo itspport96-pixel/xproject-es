@@ -21,6 +21,7 @@
     "pagination": "Mostrando {shown} de {total} {label}",
     "records": "registros",
     "close": "Cerrar",
+    "cancel": "Cancelar",
     "error_generic": "Error",
     "error_not_csv": "La respuesta no es un CSV.",
     "toast_invalid": "Datos inválidos",
@@ -1656,7 +1657,13 @@
       "load_error": "No se pudieron cargar los roles.",
       "assign_error": "No se pudo asignar el rol.",
       "remove_error": "No se pudo quitar el rol.",
-      "from_group": "Por grupo"
+      "from_group": "Por grupo",
+      "from_group_named": "Do grupo: {group}",
+      "remove_group": "Remover do grupo",
+      "remove_group_confirm": "O usuário será removido do grupo {group} e perderá TODOS os papéis concedidos pelo grupo: {roles}",
+      "remove_group_success": "Usuário removido do grupo {group}.",
+      "remove_group_error": "Não foi possível remover o usuário do grupo.",
+      "not_direct": "O papel não está atribuído diretamente: vem de um grupo. Remova-o pelo grupo."
     },
     "delete": {
       "title": "Eliminar usuario",
