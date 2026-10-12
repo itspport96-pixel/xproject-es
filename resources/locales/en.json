@@ -1823,10 +1823,7 @@
     },
     "perms": {
       "title": "Role permissions",
-      "readonly": "Built-in roles are read-only.",
-      "empty": "There are no permissions available.",
       "mfa": "MFA",
-      "select_all": "Select all",
       "saved": "Permissions saved ({count}).",
       "save": "Save permissions",
       "load_error": "Role permissions could not be loaded.",

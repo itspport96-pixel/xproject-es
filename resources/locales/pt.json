@@ -1762,85 +1762,82 @@
     }
   },
   "roles": {
-    "title": "Roles",
-    "subtitle": "Roles del sistema y sus permisos",
+    "title": "Perfis",
+    "subtitle": "Perfis do sistema e suas permissoes",
     "filter": {
-      "inactive": "Ver roles inactivos"
+      "inactive": "Ver perfis inativos"
     },
     "denied": {
-      "title": "Acceso denegado",
-      "body": "No tienes permiso para gestionar roles."
+      "title": "Acesso negado",
+      "body": "Nao tem permissao para gerir perfis."
     },
     "type": {
-      "BUILT_IN": "Del sistema",
+      "BUILT_IN": "Do sistema",
       "CUSTOM": "Personalizado"
     },
     "state": {
-      "active": "Activo",
-      "inactive": "Inactivo"
+      "active": "Ativo",
+      "inactive": "Inativo"
     },
     "empty": {
-      "title": "Sin roles",
-      "message": "No hay roles que mostrar."
+      "title": "Sem perfis",
+      "message": "Nao ha perfis para mostrar."
     },
     "actions": {
-      "create": "Nuevo rol",
-      "permissions": "Permisos",
+      "create": "Novo perfil",
+      "permissions": "Permissoes",
       "edit": "Editar",
       "delete": "Eliminar"
     },
     "columns": {
-      "name": "Nombre",
+      "name": "Nome",
       "type": "Tipo",
       "state": "Estado",
-      "permissions": "Permisos",
-      "actions": "Acciones"
+      "permissions": "Permissoes",
+      "actions": "Acoes"
     },
     "fields": {
-      "name": "Nombre",
-      "descripcion": "Descripción",
-      "activo": "Rol activo"
+      "name": "Nome",
+      "descripcion": "Descricao",
+      "activo": "Perfil ativo"
     },
     "create": {
-      "title": "Nuevo rol",
-      "submit": "Crear rol",
-      "success_title": "Rol creado",
-      "success_body": "Se ha creado el rol {nombre}."
+      "title": "Novo perfil",
+      "submit": "Criar perfil",
+      "success_title": "Perfil criado",
+      "success_body": "O perfil {nombre} foi criado."
     },
     "edit": {
-      "title": "Editar rol",
-      "submit": "Guardar cambios",
-      "success_title": "Rol actualizado",
-      "success_body": "Se han guardado los cambios de {nombre}."
+      "title": "Editar perfil",
+      "submit": "Guardar alteracoes",
+      "success_title": "Perfil atualizado",
+      "success_body": "As alteracoes de {nombre} foram guardadas."
     },
     "delete": {
-      "title": "Eliminar rol",
+      "title": "Eliminar perfil",
       "submit": "Eliminar",
-      "body": "Vas a eliminar el rol {nombre}.",
-      "warning": "Los usuarios y grupos que lo usen perderán sus permisos. Esta acción no se puede deshacer desde la interfaz.",
-      "success_title": "Rol eliminado",
-      "success_body": "El rol ha sido eliminado."
+      "body": "Vai eliminar o perfil {nombre}.",
+      "warning": "Os utilizadores e grupos que o usem perderao as suas permissoes. Esta acao nao pode ser desfeita na interface.",
+      "success_title": "Perfil eliminado",
+      "success_body": "O perfil foi eliminado."
     },
     "perms": {
-      "title": "Permisos del rol",
-      "readonly": "Los roles del sistema son de solo lectura.",
-      "empty": "No hay permisos disponibles.",
+      "title": "Permissoes do perfil",
       "mfa": "MFA",
-      "select_all": "Marcar todo",
-      "saved": "Permisos guardados ({count}).",
-      "save": "Guardar permisos",
-      "load_error": "No se pudieron cargar los permisos del rol.",
+      "saved": "Permissoes guardadas ({count}).",
+      "save": "Guardar permissoes",
+      "load_error": "Nao foi possivel carregar as permissoes do perfil.",
       "summary": "{count} permissoes selecionadas ({critical} criticas)",
       "critical_alert": "Esta a guardar {count} permissoes CRITICAL: revise-as antes de confirmar."
     },
     "errors": {
-      "load": "No se pudieron cargar los roles.",
-      "catalog": "No se pudo cargar el catálogo de permisos.",
-      "required": "El nombre es obligatorio",
-      "create": "No se pudo crear el rol",
-      "edit": "No se pudieron guardar los cambios",
-      "perms": "No se pudieron guardar los permisos",
-      "delete": "No se pudo eliminar el rol"
+      "load": "Nao foi possivel carregar os perfis.",
+      "catalog": "Nao foi possivel carregar o catalogo de permissoes.",
+      "required": "O nome e obrigatorio",
+      "create": "Nao foi possivel criar o perfil",
+      "edit": "Nao foi possivel guardar as alteracoes",
+      "perms": "Nao foi possivel guardar as permissoes",
+      "delete": "Nao foi possivel eliminar o perfil"
     }
   },
   "groups": {

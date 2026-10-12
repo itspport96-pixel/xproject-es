@@ -1763,84 +1763,81 @@
   },
   "roles": {
     "title": "Roles",
-    "subtitle": "Roles del sistema y sus permisos",
+    "subtitle": "Roles du systeme et leurs permissions",
     "filter": {
-      "inactive": "Ver roles inactivos"
+      "inactive": "Afficher les roles inactifs"
     },
     "denied": {
-      "title": "Acceso denegado",
-      "body": "No tienes permiso para gestionar roles."
+      "title": "Acces refuse",
+      "body": "Vous ne disposez pas des permissions pour gerer les roles."
     },
     "type": {
-      "BUILT_IN": "Del sistema",
-      "CUSTOM": "Personalizado"
+      "BUILT_IN": "Systeme",
+      "CUSTOM": "Personnalise"
     },
     "state": {
-      "active": "Activo",
-      "inactive": "Inactivo"
+      "active": "Actif",
+      "inactive": "Inactif"
     },
     "empty": {
-      "title": "Sin roles",
-      "message": "No hay roles que mostrar."
+      "title": "Aucun role",
+      "message": "Il n y a pas de roles a afficher."
     },
     "actions": {
-      "create": "Nuevo rol",
-      "permissions": "Permisos",
-      "edit": "Editar",
-      "delete": "Eliminar"
+      "create": "Nouveau role",
+      "permissions": "Permissions",
+      "edit": "Modifier",
+      "delete": "Supprimer"
     },
     "columns": {
-      "name": "Nombre",
-      "type": "Tipo",
-      "state": "Estado",
-      "permissions": "Permisos",
-      "actions": "Acciones"
+      "name": "Nom",
+      "type": "Type",
+      "state": "Etat",
+      "permissions": "Permissions",
+      "actions": "Actions"
     },
     "fields": {
-      "name": "Nombre",
-      "descripcion": "Descripción",
-      "activo": "Rol activo"
+      "name": "Nom",
+      "descripcion": "Description",
+      "activo": "Role actif"
     },
     "create": {
-      "title": "Nuevo rol",
-      "submit": "Crear rol",
-      "success_title": "Rol creado",
-      "success_body": "Se ha creado el rol {nombre}."
+      "title": "Nouveau role",
+      "submit": "Creer le role",
+      "success_title": "Role cree",
+      "success_body": "Le role {nombre} a ete cree."
     },
     "edit": {
-      "title": "Editar rol",
-      "submit": "Guardar cambios",
-      "success_title": "Rol actualizado",
-      "success_body": "Se han guardado los cambios de {nombre}."
+      "title": "Modifier le role",
+      "submit": "Enregistrer les modifications",
+      "success_title": "Role mis a jour",
+      "success_body": "Les modifications de {nombre} ont ete enregistrees."
     },
     "delete": {
-      "title": "Eliminar rol",
-      "submit": "Eliminar",
-      "body": "Vas a eliminar el rol {nombre}.",
-      "warning": "Los usuarios y grupos que lo usen perderán sus permisos. Esta acción no se puede deshacer desde la interfaz.",
-      "success_title": "Rol eliminado",
-      "success_body": "El rol ha sido eliminado."
+      "title": "Supprimer le role",
+      "submit": "Supprimer",
+      "body": "Vous etes sur le point de supprimer le role {nombre}.",
+      "warning": "Les utilisateurs et groupes qui l utilisent perdront ses permissions. Cette action ne peut pas etre annulee depuis l interface.",
+      "success_title": "Role supprime",
+      "success_body": "Le role a ete supprime."
     },
     "perms": {
-      "title": "Permisos del rol",
-      "readonly": "Los roles del sistema son de solo lectura.",
-      "empty": "No hay permisos disponibles.",
+      "title": "Permissions du role",
       "mfa": "MFA",
-      "select_all": "Marcar todo",
-      "saved": "Permisos guardados ({count}).",
-      "save": "Guardar permisos",
-      "load_error": "No se pudieron cargar los permisos del rol.",
+      "saved": "Permissions enregistrees ({count}).",
+      "save": "Enregistrer les permissions",
+      "load_error": "Les permissions du role n ont pas pu etre chargees.",
       "summary": "{count} permissions selectionnees ({critical} critiques)",
       "critical_alert": "Vous etes sur le point d enregistrer {count} permissions CRITICAL : revoyez-les avant de confirmer."
     },
     "errors": {
-      "load": "No se pudieron cargar los roles.",
-      "catalog": "No se pudo cargar el catálogo de permisos.",
-      "required": "El nombre es obligatorio",
-      "create": "No se pudo crear el rol",
-      "edit": "No se pudieron guardar los cambios",
-      "perms": "No se pudieron guardar los permisos",
-      "delete": "No se pudo eliminar el rol"
+      "load": "Les roles n ont pas pu etre charges.",
+      "catalog": "Le catalogue de permissions n a pas pu etre charge.",
+      "required": "Le nom est obligatoire",
+      "create": "Le role n a pas pu etre cree",
+      "edit": "Les modifications n ont pas pu etre enregistrees",
+      "perms": "Les permissions n ont pas pu etre enregistrees",
+      "delete": "Le role n a pas pu etre supprime"
     }
   },
   "groups": {

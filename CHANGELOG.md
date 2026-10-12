@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.26] - 2026-10-12
+
+Reparación de las 3 desviaciones anotadas al cierre del BLOQUE F (sólo frontend + locales).
+
+### Changed
+
+- **`public/js/ui/permission-picker.js`**: los textos pasan del wrapper `tr()` al `t()` global de `core/i18n.js` (mismo patrón que el resto de UI); se elimina el helper local. `check-i18n` ya detecta las 22 claves `ui.picker.*` y `roles.perms.mfa`.
+- **`resources/locales/{es,en,pt,fr}.json`**: se borran las claves muertas `roles.perms.{readonly,empty,select_all}` (sin uso desde que la matriz a mano se reemplazó por el picker).
+- **`resources/locales/{pt,fr}.json`**: el bloque completo `roles.*` (40 claves) deja de estar en español y se traduce a portugués y francés (convención del fichero: pt sin acentos, fr sin apóstrofos); `{nombre}` y `{count}`/`{critical}` se conservan como placeholders.
+- **Doble `data-pp-panel` unificado**: el panel interno que pinta el picker deja de llevar `data-pp-panel` (sólo la clase `.pp-panel`); el atributo queda único en el nodo mount del módulo, que es el ancla del estado (`panel.__pp`). Documentado en la cabecera del componente.
+
+### Verification
+
+- `node --check` permission-picker.js OK; JSON válido en los 4 locales; `check-i18n.php` **0 errores** (paridad 1515 claves; avisos 30 → **6**, sólo `theme.*` preexistentes); smokes en verde sin cambios de aserciones: `smoke-v1120` 151, `verify-rowactions-vistas` 128, `verify-permission-picker` (Playwright) 19. Sin PHP ni esquema tocados: sin `composer test` ni drift (verificación proporcional).
+
 ## [1.13.25] - 2026-10-12
 
 BLOQUE F (sólo frontend): el modal de roles (crear/editar/ver permisos) usa el nuevo componente compartido `UI.permissionPicker` (maestro-detalle de permisos) con dimensiones correctas, i18n en 4 locales y tema oscuro.

@@ -22,6 +22,11 @@
  *   UI.permissionPicker.getSelected(panel);
  *   UI.permissionPicker.setSelected(panel, codes);
  *
+ * El nodo `panel` recibido por el modulo es el ancla del estado (`panel.__pp`)
+ * y lleva el atributo `data-pp-panel`; el panel interno que pinta el
+ * componente es sólo `.pp-panel` (clase), para no duplicar el atributo.
+ * Los textos usan el `t()` global de core/i18n.js.
+ *
  * Reglas del diseno:
  *  - Escalada: los permisos que el actor no posee quedan deshabilitados con
  *    tooltip (si `granted` es null no se bloquea nada).
@@ -45,10 +50,6 @@
 
     function esc(value) {
         return UI.escapeHtml(String(value == null ? '' : value));
-    }
-
-    function tr(key, params) {
-        return typeof t === 'function' ? t(key, params) : key;
     }
 
     function riskBadge(valor) {
@@ -109,32 +110,32 @@
             `<option value="${esc(r.id)}">${esc(r.nombre)}</option>`).join('');
         return `
             <label class="pp-base text-sm">
-                <span class="form-label">${esc(tr('ui.picker.base'))}</span>
-                <select class="select" data-pp-base aria-label="${esc(tr('ui.picker.base'))}">
-                    <option value="">${esc(tr('ui.picker.base_none'))}</option>
+                <span class="form-label">${esc(t('ui.picker.base'))}</span>
+                <select class="select" data-pp-base aria-label="${esc(t('ui.picker.base'))}">
+                    <option value="">${esc(t('ui.picker.base_none'))}</option>
                     ${opciones}
                 </select>
             </label>
-            <button type="button" class="btn btn-ghost btn-sm" data-pp-readonly-action>${esc(tr('ui.picker.readonly_action'))}</button>
-            <button type="button" class="btn btn-ghost btn-sm" data-pp-clear>${esc(tr('ui.picker.clear'))}</button>`;
+            <button type="button" class="btn btn-ghost btn-sm" data-pp-readonly-action>${esc(t('ui.picker.readonly_action'))}</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-pp-clear>${esc(t('ui.picker.clear'))}</button>`;
     }
 
     function barHtml() {
         return `
             <div class="pp-bar">
                 <input type="search" class="input" data-pp-search autocomplete="off"
-                    placeholder="${esc(tr('ui.picker.search_placeholder'))}"
-                    aria-label="${esc(tr('ui.picker.search_placeholder'))}">
+                    placeholder="${esc(t('ui.picker.search_placeholder'))}"
+                    aria-label="${esc(t('ui.picker.search_placeholder'))}">
                 <label class="pp-toggle text-sm">
                     <input type="checkbox" data-pp-only>
-                    ${esc(tr('ui.picker.only_selected'))}
+                    ${esc(t('ui.picker.only_selected'))}
                 </label>
-                <select class="select pp-risk" data-pp-risk aria-label="${esc(tr('ui.picker.risk'))}">
-                    <option value="ALL">${esc(tr('ui.picker.risk_ALL'))}</option>
-                    <option value="CRITICAL">${esc(tr('ui.picker.risk_CRITICAL'))}</option>
-                    <option value="HIGH">${esc(tr('ui.picker.risk_HIGH'))}</option>
-                    <option value="MEDIUM">${esc(tr('ui.picker.risk_MEDIUM'))}</option>
-                    <option value="LOW">${esc(tr('ui.picker.risk_LOW'))}</option>
+                <select class="select pp-risk" data-pp-risk aria-label="${esc(t('ui.picker.risk'))}">
+                    <option value="ALL">${esc(t('ui.picker.risk_ALL'))}</option>
+                    <option value="CRITICAL">${esc(t('ui.picker.risk_CRITICAL'))}</option>
+                    <option value="HIGH">${esc(t('ui.picker.risk_HIGH'))}</option>
+                    <option value="MEDIUM">${esc(t('ui.picker.risk_MEDIUM'))}</option>
+                    <option value="LOW">${esc(t('ui.picker.risk_LOW'))}</option>
                 </select>
             </div>
             <div class="pp-note hidden" data-pp-note role="status" aria-live="polite"></div>`;
@@ -154,25 +155,25 @@
                 <div class="pp-module${state.active === modulo ? ' is-active' : ''}" data-pp-module="${esc(modulo)}">
                     <input type="checkbox" data-pp-modulo-all data-modulo="${esc(modulo)}"
                         ${all ? 'checked' : ''} ${disabled ? 'disabled' : ''}
-                        aria-label="${esc(modulo)}: ${esc(tr('ui.picker.select_module_all'))}">
+                        aria-label="${esc(modulo)}: ${esc(t('ui.picker.select_module_all'))}">
                     <span class="pp-module-name font-mono">${esc(modulo)}</span>
                     <span class="pp-module-count" data-pp-mod-count="${esc(modulo)}">${sel}/${total}</span>
                 </div>`;
         });
 
         const sin = visibles.length === 0
-            ? `<p class="pp-empty text-sm">${esc(tr('ui.picker.no_results'))}</p>` : '';
+            ? `<p class="pp-empty text-sm">${esc(t('ui.picker.no_results'))}</p>` : '';
 
         const opciones = state.modules.map(modulo =>
             `<option value="${esc(modulo)}"${state.active === modulo ? ' selected' : ''}>${esc(modulo)}</option>`).join('');
 
         return `
-            <div class="pp-modules" data-pp-modules role="group" aria-label="${esc(tr('ui.picker.modules'))}">
+            <div class="pp-modules" data-pp-modules role="group" aria-label="${esc(t('ui.picker.modules'))}">
                 ${items.join('')}
                 ${sin}
             </div>
             <div class="pp-mobile">
-                <select class="select" data-pp-modules-select aria-label="${esc(tr('ui.picker.module_select'))}">
+                <select class="select" data-pp-modules-select aria-label="${esc(t('ui.picker.module_select'))}">
                     ${opciones}
                 </select>
             </div>`;
@@ -180,12 +181,12 @@
 
     function panelHtml(state) {
         if (state.modules.length === 0) {
-            return `<div class="pp-panel" data-pp-panel role="group" aria-label="${esc(tr('ui.picker.panel'))}">
-                <p class="pp-empty text-sm">${esc(tr('ui.picker.empty'))}</p></div>`;
+            return `<div class="pp-panel" role="group" aria-label="${esc(t('ui.picker.panel'))}">
+                <p class="pp-empty text-sm">${esc(t('ui.picker.empty'))}</p></div>`;
         }
         if (!state.active) {
-            return `<div class="pp-panel" data-pp-panel role="group" aria-label="${esc(tr('ui.picker.panel'))}">
-                <p class="pp-empty text-sm">${esc(tr('ui.picker.no_results'))}</p></div>`;
+            return `<div class="pp-panel" role="group" aria-label="${esc(t('ui.picker.panel'))}">
+                <p class="pp-empty text-sm">${esc(t('ui.picker.no_results'))}</p></div>`;
         }
 
         const grupos = state.grouped[state.active] || {};
@@ -207,9 +208,9 @@
             const filas = items.map(p => {
                 const code = p.identificador;
                 const bloqueado = state.readonly || !canGrant(state, code);
-                const tip = (!state.readonly && !canGrant(state, code)) ? ` title="${esc(tr('ui.picker.escalation'))}"` : '';
+                const tip = (!state.readonly && !canGrant(state, code)) ? ` title="${esc(t('ui.picker.escalation'))}"` : '';
                 const mfa = p.requiere_mfa
-                    ? ` <span class="badge badge-warning">${esc(tr('roles.perms.mfa'))}</span>` : '';
+                    ? ` <span class="badge badge-warning">${esc(t('roles.perms.mfa'))}</span>` : '';
                 const desc = p.descripcion || p.nombre || '';
                 return `
                     <label class="pp-perm"${tip}>
@@ -228,7 +229,7 @@
                             <input type="checkbox" data-pp-recurso-all
                                 data-modulo="${esc(state.active)}" data-recurso="${esc(recurso)}"
                                 ${all ? 'checked' : ''} ${disabled ? 'disabled' : ''}
-                                aria-label="${esc(state.active)}/${esc(recurso)}: ${esc(tr('ui.picker.select_module_all'))}">
+                                aria-label="${esc(state.active)}/${esc(recurso)}: ${esc(t('ui.picker.select_module_all'))}">
                             <span class="pp-recurso-name">${esc(recurso)}</span>
                         </label>
                         <span class="pp-recurso-count" data-pp-rec-count="${esc(state.active)}.${esc(recurso)}">${sel}/${total}</span>
@@ -238,9 +239,9 @@
         });
 
         if (!html) {
-            html = `<p class="pp-empty text-sm">${esc(tr('ui.picker.no_results'))}</p>`;
+            html = `<p class="pp-empty text-sm">${esc(t('ui.picker.no_results'))}</p>`;
         }
-        return `<div class="pp-panel" data-pp-panel role="group" aria-label="${esc(tr('ui.picker.panel'))}">${html}</div>`;
+        return `<div class="pp-panel" role="group" aria-label="${esc(t('ui.picker.panel'))}">${html}</div>`;
     }
 
     // ====================================================================
@@ -323,7 +324,7 @@
                     state.selected.add(viewCode);
                     const viewEl = state.el.panel.querySelector(`input[data-perm-check][value="${viewCode}"]`);
                     if (viewEl) viewEl.checked = true;
-                    note(state, tr('ui.picker.note_view', { code: viewCode }));
+                    note(state, t('ui.picker.note_view', { code: viewCode }));
                 }
             }
         }
