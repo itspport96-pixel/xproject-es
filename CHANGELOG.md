@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.24] - 2026-10-12
+
+BLOQUE D (sólo frontend + locales): `profile.js` deja de tener literales en español fuera de `t()`.
+
+### Changed
+
+- **`profile`**: `LANG_NAMES` con el literal `Español` (profile.js:22) pasa a `LANG_KEYS` con claves `profile.lang.{es,en,pt,fr}` resueltas con `t()` en `langOptionsHtml` (los nombres nativos son iguales en las 4 locales); el `console.warn` de `ensurePasswordModule` (`"[Profile] auth/password no disponible:"`, profile.js:70) pasa a `t('profile.password_module_unavailable')`.
+- **`resources/locales/{es,en,pt,fr}.json`**: +5 claves nuevas bajo `profile` (`lang.es/en/pt/fr` y `password_module_unavailable`), traducidas en cada locale (`auth/password no disponible` / `not available` / `não disponible` / `indisponible`).
+
+### Verification
+
+- Un solo ciclo de cierre: `node --check` profile.js OK; `check-i18n.php` **0 errores** (2 literales resueltos; paridad 1496 claves en las 4 locales; 6 AVISOs de claves `theme.*` sin uso, preexistentes); `composer test` 944 tests, 6818 assertions, OK (2 deprecations preexistentes); `check-schema-drift.php` SIN DRIFT. Ningún smoke referencia `profile` (grep dirigido en `tools/smoke/*.mjs`): sin smokes afectados.
+
 ## [1.13.23] - 2026-10-12
 
 BLOQUE C (sólo frontend): las acciones de fila de `products`, `locations` y `reservations` se pintan sólo cuando coinciden con lo que el backend acepta (permiso y estado).

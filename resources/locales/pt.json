@@ -140,6 +140,13 @@
     "section_password": "Alterar palavra-passe",
     "password_body": "Atualize a sua palavra-passe. Aplicam-se as mesmas regras de segurança do resto da aplicação.",
     "section_language": "Idioma",
+    "lang": {
+      "es": "Español",
+      "en": "English",
+      "pt": "Português",
+      "fr": "Français"
+    },
+    "password_module_unavailable": "auth/password não disponível",
     "language_body": "O idioma aplica-se a toda a interface e é guardado no seu perfil."
   },
   "inventory": {

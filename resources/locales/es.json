@@ -140,6 +140,13 @@
     "section_password": "Cambiar contraseña",
     "password_body": "Actualiza tu contraseña. Se aplican las mismas reglas de seguridad que en el resto de la aplicación.",
     "section_language": "Idioma",
+    "lang": {
+      "es": "Español",
+      "en": "English",
+      "pt": "Português",
+      "fr": "Français"
+    },
+    "password_module_unavailable": "auth/password no disponible",
     "language_body": "El idioma se aplica a toda la interfaz y se guarda en tu perfil."
   },
   "inventory": {

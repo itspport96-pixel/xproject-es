@@ -17,12 +17,13 @@
 
     let container = null;
 
-    // Nombres nativos de los idiomas (mismo criterio que i18n.js LANG_NAMES).
-    const LANG_NAMES = {
-        es: 'Español',
-        en: 'English',
-        pt: 'Português',
-        fr: 'Français'
+    // Nombres nativos de los idiomas, via claves i18n (profile.lang.*,
+    // mismo criterio que i18n.js LANG_NAMES).
+    const LANG_KEYS = {
+        es: 'profile.lang.es',
+        en: 'profile.lang.en',
+        pt: 'profile.lang.pt',
+        fr: 'profile.lang.fr'
     };
 
     function escapeHtml(str) {
@@ -39,7 +40,7 @@
         const supported = (global.i18n && global.i18n.SUPPORTED) || ['es', 'en', 'pt', 'fr'];
         return supported.map(function(locale) {
             const selected = locale === current ? ' selected' : '';
-            return `<option value="${escapeHtml(locale)}"${selected}>${escapeHtml(LANG_NAMES[locale] || locale)}</option>`;
+            return `<option value="${escapeHtml(locale)}"${selected}>${escapeHtml(t(LANG_KEYS[locale] || locale))}</option>`;
         }).join('');
     }
 
@@ -67,7 +68,7 @@
             try {
                 await global.ModuleLoader.load('auth/password', null);
             } catch (e) {
-                console.warn('[Profile] auth/password no disponible:', e.message);
+                console.warn('[Profile] ' + t('profile.password_module_unavailable'), e.message);
             }
         }
         return global.AuthPasswordModule || null;

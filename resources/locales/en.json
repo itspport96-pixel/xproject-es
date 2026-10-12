@@ -140,6 +140,13 @@
     "section_password": "Change password",
     "password_body": "Update your password. The same security rules as the rest of the application apply.",
     "section_language": "Language",
+    "lang": {
+      "es": "Español",
+      "en": "English",
+      "pt": "Português",
+      "fr": "Français"
+    },
+    "password_module_unavailable": "auth/password not available",
     "language_body": "The language applies to the whole interface and is saved to your profile."
   },
   "inventory": {

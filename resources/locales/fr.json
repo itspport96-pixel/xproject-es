@@ -140,6 +140,13 @@
     "section_password": "Changer le mot de passe",
     "password_body": "Mettez à jour votre mot de passe. Les mêmes règles de sécurité que dans le reste de l'application s'appliquent.",
     "section_language": "Langue",
+    "lang": {
+      "es": "Español",
+      "en": "English",
+      "pt": "Português",
+      "fr": "Français"
+    },
+    "password_module_unavailable": "auth/password indisponible",
     "language_body": "La langue s'applique à toute l'interface et est enregistrée dans votre profil."
   },
   "inventory": {
