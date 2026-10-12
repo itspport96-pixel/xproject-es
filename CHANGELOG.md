@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.19] - 2026-10-12
+
+CIERRE de rowActions (BLOQUES 1–2): verificación completa con capturas Playwright, smokes, tests, i18n y drift.
+
+### Verification
+
+- `tools/smoke/verify-rowactions-users.mjs` (nuevo): 44/44 — Users a 1366px y 1920px como admin (`aleon@acme.local`, rol ADMIN) y como manager (`manager@acme.local`): sin scroll horizontal de la tabla, columna de acciones alineada a la derecha, chips sin partir (`white-space: nowrap`), menú de tres puntos accesible (`aria-haspopup`/`aria-expanded`, Esc cierra), grupos separados por línea, Eliminar al final en rojo, menú dentro del viewport (`position: fixed` escapando del `overflow` del `.table-wrapper`), escalada (sin Eliminar/Estado sobre sí mismo; MANAGER sin acciones sobre ADMIN; sin Eliminar sin permiso) y `?tab=` en la URL. Capturas en `tools/smoke/capturas-rowactions/`.
+- Smokes jsdom (10 scripts, todos en verde): `v1120` 140 OK, `v162` 89, `v171` 105, `v1100` 66, `v1102` 44, `v1103` 34, `v184` 100, `v193` 136, `bloque2-permisos` 20, más la verificación Playwright.
+- `composer test`: 941 tests, 6800 assertions, OK (2 deprecations PHPUnit preexistentes).
+- `check-i18n.php`: claves es/en/pt/fr alineadas (1484); 2 errores preexistentes en `profile.js`, fuera del alcance.
+- `check-schema-drift.php`: SIN DRIFT (BD viva `xproject` vs `schema.sql`). GETs de solo lectura con admin: `/users`, `/roles`, `/groups`, `/permissions`, `/temporary-permissions` → 200.
+
+### Notes
+
+- Sólo frontend: `routes/api.php`, BD y permisos intactos en este sprint.
+
+## [1.13.18] - 2026-10-12
+
+BLOQUE 2: `UI.rowActions` aplicado a la vista Users (lista de usuarios y permisos temporales), con reglas de escalada y columnas compactas. Sólo frontend.
+
+### Changed
+
+- **`public/js/modules/users/users.js`**: las acciones de fila pasan a `UI.rowActions` con la agrupación pedida — principal **Editar**; menú `[Roles, Ver permisos temporales] | [Cambiar estado, Restablecer contraseña] | [Eliminar]` (rojo, al final, con confirmación). Escalada: sobre el propio usuario no se ofrecen **Eliminar** ni **Cambiar estado**; un actor que no es ADMIN no actúa sobre usuarios con rol ADMIN (`canActOnUser`). Cada opción sólo con su permiso; sin opciones no se pinta el menú. La tabla de permisos temporales también usa `rowActions` (Revocar en rojo). Se eliminó el helper local `actionBtn` para la tabla de usuarios.
+- **Columnas**: celda Roles con `cell-clip` (recorta en horizontal con `title` completo) y `white-space: nowrap` en `.badge` (el chip "Por grupo" no se parte); último acceso en `nowrap-cell` con `title` cuando falta espacio.
+- **`?tab=` en la URL**: `state.tab` se restaura con `UI.tabFromParams` en `init`/`onActivate` y se refleja con `UI.syncTabParam` al cambiar de pestaña (regla 13 de `AGENTS.md`).
+
+### Fixed
+
+- **Menú recortado por la tabla**: `.dropdown-menu[data-row-menu]` usa `position: fixed` con posición calculada dentro del viewport al abrir, porque `.table-wrapper` tiene `overflow-x: auto` (y el eje Y computa a `auto`, recortando el menú). Se cierra con resize y scroll.
+
+## [1.13.17] - 2026-10-12
+
+BLOQUE 1: componente compartido de acciones de fila en la capa UI. Sólo frontend.
+
+### Added
+
+- **`UI.rowActions({primary, groups, ariaLabel})` en `public/js/ui/view.js`**: acción principal discreta (botón `btn-ghost`) + menú de tres puntos con grupos separados por `dropdown-divider` y la acción destructiva al final en rojo (`.dropdown-item.danger`). Devuelve `''` si no queda ninguna opción. Accesible: abre con clic o teclado (`aria-haspopup="menu"`, `aria-expanded`), cierra con Esc y clic fuera, foco gestionado (primer ítem al abrir; vuelve al disparador con Esc). Delegación global de eventos en `document` (una sola vez). Posicionamiento `fixed` dentro del viewport.
+- **CSS**: `.row-actions`, `.row-actions-trigger`, `.dropdown-menu[data-row-menu]` (oculto por defecto; se alterna con `.is-open`), `.table td.truncate-cell`, `.table td.nowrap-cell`, `.table td .cell-clip` y `.badge { white-space: nowrap }`.
+- **i18n**: clave `ui.row_actions` en es/en/pt/fr.
+- **Documentación**: `docs/UI_STANDARD.md` §4.1 (contrato y ejemplo) y regla 14 en `AGENTS.md` (las acciones de fila se pintan con `UI.rowActions`; no se reimplementan botones de fila a mano).
+
 ## [1.13.16] - 2026-10-11
 
 CIERRE del bloque de mantenimiento (BLOQUES 1–4): verificación completa sin cambios de código.
