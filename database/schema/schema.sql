@@ -363,6 +363,27 @@ CREATE TABLE `rate_limit_log` (
   CONSTRAINT `rate_limit_log_ibfk_2` FOREIGN KEY (`usuario_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `receiving_documents`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `receiving_documents` (
+  `id` char(36) NOT NULL,
+  `tenant_id` char(36) NOT NULL,
+  `numero_documento` varchar(100) NOT NULL,
+  `proveedor` varchar(255) DEFAULT NULL,
+  `referencia` varchar(255) DEFAULT NULL,
+  `estado` enum('PLANIFICADA','EN_RECEPCION','CERRADA','ANULADA') NOT NULL DEFAULT 'PLANIFICADA',
+  `creado_por` char(36) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_rd_numero` (`tenant_id`,`numero_documento`),
+  KEY `idx_rd_tenant_estado` (`tenant_id`,`estado`),
+  KEY `fk_rd_creador` (`creado_por`),
+  CONSTRAINT `fk_rd_creador` FOREIGN KEY (`creado_por`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_rd_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `refresh_tokens`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -637,6 +658,28 @@ CREATE TABLE `picking_operations` (
   CONSTRAINT `picking_operations_ibfk_2` FOREIGN KEY (`unidad_fisica_id`) REFERENCES `stock_units` (`id`),
   CONSTRAINT `picking_operations_ibfk_3` FOREIGN KEY (`ubicacion_origen_id`) REFERENCES `locations` (`id`),
   CONSTRAINT `picking_operations_ibfk_4` FOREIGN KEY (`ubicacion_preparacion_id`) REFERENCES `locations` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `receiving_document_lines`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `receiving_document_lines` (
+  `id` char(36) NOT NULL,
+  `document_id` char(36) NOT NULL,
+  `producto_id` char(36) NOT NULL,
+  `sku` varchar(100) NOT NULL,
+  `cantidad_esperada` decimal(15,4) NOT NULL,
+  `estado` enum('PENDIENTE','RECIBIDA') NOT NULL DEFAULT 'PENDIENTE',
+  `unidad_recepcion_id` char(36) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_rdl_document` (`document_id`),
+  KEY `idx_rdl_producto` (`producto_id`),
+  KEY `fk_rdl_unidad` (`unidad_recepcion_id`),
+  CONSTRAINT `fk_rdl_doc` FOREIGN KEY (`document_id`) REFERENCES `receiving_documents` (`id`),
+  CONSTRAINT `fk_rdl_producto` FOREIGN KEY (`producto_id`) REFERENCES `products` (`id`),
+  CONSTRAINT `fk_rdl_unidad` FOREIGN KEY (`unidad_recepcion_id`) REFERENCES `stock_units` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `reservations`;

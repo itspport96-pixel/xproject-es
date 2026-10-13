@@ -36,6 +36,8 @@ use PDO;
  * incidencias sin escalar.
  * v1.10.0 (E4) añade `inventory.stock.block` (bloquear/desbloquear unidades;
  * escritura → sólo ADMIN y MANAGER): total 34.
+ * v1.13.28 (BLOQUE R1) añade `inventory.receiving.plan` (planificar recepción:
+ * documentos de recepción; escritura → sólo ADMIN y MANAGER): total 35.
  */
 final class InventoryPermissionSeeder
 {
@@ -72,6 +74,7 @@ final class InventoryPermissionSeeder
         ['inventory.picking.view', 'Ver Picking', 'inventory', 'picking', 'view', 'MEDIUM', 0, 1],
         ['inventory.receiving.confirm', 'Confirmar Recepción', 'inventory', 'receiving', 'edit', 'HIGH', 0, 1],
         ['inventory.receiving.create', 'Recibir Inventario', 'inventory', 'receiving', 'create', 'HIGH', 0, 1],
+        ['inventory.receiving.plan', 'Planificar Recepción', 'inventory', 'receiving', 'create', 'HIGH', 0, 1],
         ['inventory.reservation.cancel', 'Cancelar Reserva', 'inventory', 'reservation', 'edit', 'MEDIUM', 0, 1],
         ['inventory.reservation.create', 'Crear Reserva', 'inventory', 'reservation', 'create', 'MEDIUM', 0, 1],
         ['inventory.reservation.view', 'Ver Reservas', 'inventory', 'reservation', 'view', 'MEDIUM', 0, 1],
@@ -107,6 +110,7 @@ final class InventoryPermissionSeeder
             'inventory.location.manage',
             'inventory.receiving.create',
             'inventory.receiving.confirm',
+            'inventory.receiving.plan',
             'inventory.movement.create',
             'inventory.reservation.view',
             'inventory.reservation.create',
@@ -141,6 +145,7 @@ final class InventoryPermissionSeeder
             'inventory.location.view',
             'inventory.receiving.create',
             'inventory.receiving.confirm',
+            'inventory.receiving.plan',
             'inventory.movement.create',
             'inventory.reservation.view',
             'inventory.reservation.create',

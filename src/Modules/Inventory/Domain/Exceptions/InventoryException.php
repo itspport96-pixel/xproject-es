@@ -958,4 +958,91 @@ final class InventoryException extends HttpException
             'cantidad'
         );
     }
+
+    // ====================================================================
+    // DOCUMENTOS DE RECEPCIÓN (v1.13.28, BLOQUE R1)
+    // ====================================================================
+
+    public static function receivingDocumentNotFound(string $id): self
+    {
+        return new self(
+            "El documento de recepción con ID '{$id}' no existe.",
+            404,
+            self::CATEGORY_NOT_FOUND
+        );
+    }
+
+    public static function receivingDocumentNumberAlreadyExists(string $numero): self
+    {
+        return new self(
+            "El número de documento '{$numero}' ya está registrado en este tenant.",
+            409,
+            self::CATEGORY_CONFLICT,
+            'numero_documento'
+        );
+    }
+
+    /**
+     * Separación de funciones (principio 2): quien planifica la recepción no
+     * puede ser el único usuario activo del tenant con permiso de recepción;
+     * debe existir al menos otro usuario que pueda recibirla.
+     */
+    public static function receivingSecondReceiverRequired(): self
+    {
+        return new self(
+            'Se requiere otro usuario con permiso de recepción: quien planifica no puede ser el único receptor del tenant.',
+            409,
+            self::CATEGORY_CONFLICT
+        );
+    }
+
+    public static function receivingDocumentNotEditable(string $estado): self
+    {
+        return new self(
+            "El documento de recepción está en estado '{$estado}': sólo se puede editar si está PLANIFICADA y sin líneas recibidas.",
+            422,
+            self::CATEGORY_BUSINESS,
+            'estado'
+        );
+    }
+
+    public static function receivingDocumentCannotCancel(string $estado): self
+    {
+        return new self(
+            "El documento de recepción está en estado '{$estado}': sólo se puede anular si está PLANIFICADA.",
+            422,
+            self::CATEGORY_BUSINESS,
+            'estado'
+        );
+    }
+
+    public static function receivingDocumentLinesRequired(): self
+    {
+        return new self(
+            'El documento de recepción debe incluir al menos una línea.',
+            422,
+            self::CATEGORY_VALIDATION,
+            'lineas'
+        );
+    }
+
+    public static function receivingDocumentProductNotFound(string $sku): self
+    {
+        return new self(
+            "El producto con SKU '{$sku}' no existe o está inactivo en este tenant.",
+            404,
+            self::CATEGORY_NOT_FOUND,
+            'lineas'
+        );
+    }
+
+    public static function receivingDocumentDuplicateSku(string $sku): self
+    {
+        return new self(
+            "El SKU '{$sku}' está repetido en las líneas del documento.",
+            422,
+            self::CATEGORY_VALIDATION,
+            'lineas'
+        );
+    }
 }

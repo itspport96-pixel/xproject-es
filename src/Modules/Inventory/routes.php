@@ -81,6 +81,7 @@ use App\Modules\Inventory\Http\PickingController;
 use App\Modules\Inventory\Http\ProductController;
 use App\Modules\Inventory\Http\LocationController;
 use App\Modules\Inventory\Http\ReceivingController;
+use App\Modules\Inventory\Http\ReceivingDocumentController;
 use App\Modules\Inventory\Http\ReservationController;
 use App\Modules\Inventory\Http\ReturnController;
 use App\Modules\Inventory\Http\ShipmentController;
@@ -251,6 +252,48 @@ $router->group('/api/inventory', function ($router) {
     // sola transacción. Requiere el header Idempotency-Key (spec R7).
     $router->post('/receive', [ReceivingController::class, 'receive'], [
         PermissionMiddleware::class . ':inventory.receiving.create',
+        RateLimitMiddleware::class . ':api',
+    ]);
+
+    // ================================================================
+    // RECEIVING DOCUMENTS (v1.13.28, BLOQUE R1)
+    // Documentos de recepción planificada: la cantidad esperada la
+    // introduce quien planifica; la recepción ciega llega en R2.
+    // ================================================================
+
+    // GET /api/inventory/receiving/documents
+    // Lista documentos de recepción del tenant (filtros: estado, search)
+    $router->get('/receiving/documents', [ReceivingDocumentController::class, 'index'], [
+        PermissionMiddleware::class . ':inventory.receiving.plan',
+        RateLimitMiddleware::class . ':api',
+    ]);
+
+    // POST /api/inventory/receiving/documents
+    // Crea un documento PLANIFICADA con sus líneas; exige que exista otro
+    // usuario activo con receiving.create (separación de funciones, 409)
+    $router->post('/receiving/documents', [ReceivingDocumentController::class, 'store'], [
+        PermissionMiddleware::class . ':inventory.receiving.plan',
+        RateLimitMiddleware::class . ':api',
+    ]);
+
+    // GET /api/inventory/receiving/documents/{id}
+    // Detalle de un documento con sus líneas
+    $router->get('/receiving/documents/{id}', [ReceivingDocumentController::class, 'show'], [
+        PermissionMiddleware::class . ':inventory.receiving.plan',
+        RateLimitMiddleware::class . ':api',
+    ]);
+
+    // PATCH /api/inventory/receiving/documents/{id}
+    // Edita un documento PLANIFICADA y sin líneas recibidas (audita antes/después)
+    $router->patch('/receiving/documents/{id}', [ReceivingDocumentController::class, 'update'], [
+        PermissionMiddleware::class . ':inventory.receiving.plan',
+        RateLimitMiddleware::class . ':api',
+    ]);
+
+    // POST /api/inventory/receiving/documents/{id}/cancel
+    // Anula un documento PLANIFICADA (estado ANULADA; no se borra, regla 11)
+    $router->post('/receiving/documents/{id}/cancel', [ReceivingDocumentController::class, 'cancel'], [
+        PermissionMiddleware::class . ':inventory.receiving.plan',
         RateLimitMiddleware::class . ':api',
     ]);
 

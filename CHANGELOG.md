@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.28] - 2026-10-13
+
+BLOQUE R1 (backend): documentos de recepción planificada. Separa la planificación de la recepción (CU-001): quien planifica introduce `cantidad_esperada` y no puede ser el único receptor; la recepción ciega llega en R2.
+
+### Added
+
+- **Tablas `receiving_documents` y `receiving_document_lines`** (BD viva + `schema.sql` regenerado): documento con `numero_documento` único por tenant, estado `PLANIFICADA|EN_RECEPCION|CERRADA|ANULADA`, `creado_por` FK a users; líneas con SKU, `cantidad_esperada` y estado `PENDIENTE|RECIBIDA` (FK a la unidad de recepción, NULL hasta R2).
+- **`inventory.receiving.plan`** (seeder idempotente, ADMIN y MANAGER): permiso de planificación; distinto de `receiving.create` (recepción). Sembrado en la BD viva (1 creado, 2 roles actualizados).
+- **`GET/POST /inventory/receiving/documents`**, **`GET/PATCH /inventory/receiving/documents/{id}`**, **`POST /inventory/receiving/documents/{id}/cancel`** (los 5 con `inventory.receiving.plan`): listado paginado con filtros estado/search; creación transaccional (documento + líneas) con validación de SKU activo por tenant y unicidad de número; edición sólo en PLANIFICADA y sin líneas recibidas (audita antes/después); anulación por estado (política de borrado: no se borra, se anula).
+- **Separación de funciones en creación**: si en el tenant no hay otro usuario activo con `inventory.receiving.create` distinto del creador → 409 `receivingSecondReceiverRequired` (mensaje i18n en frontend, R4).
+- **`ReceivingDocumentService`** (DatabaseService + TenantContext + AuthorizationService) y **`ReceivingDocumentController`** (AuditLogger, patrón LocationController); factories nuevas en `InventoryException` (8 métodos receiving.*).
+- **Tests**: `ReceivingDocumentRoutesTest` (5 rutas, permiso, auth/tenant/rate-limit) y `ReceivingDocumentServiceTest` (15 casos SQLite: creación, duplicados, segundo receptor, SKU inactivo/duplicado, edición con líneas recibidas, anulación, aislamiento tenant, listado). Tablas añadidas al esquema SQLite de `InventorySqliteTestCase`.
+
+### Verification
+
+- `php -l` en 6 PHPs OK; `composer test` **963/963 OK**; `check-schema-drift` **SIN DRIFT** (34 tablas, 410 columnas); `check-data-integrity` **DATOS CONSISTENTES**; E2E `e2e-v1139` (política de borrado) todos los casos OK. Verificación end-to-end contra BD viva con admin: `GET /receiving/documents` 200 (vacío), `POST` 201 (PO-TEST-001, PROD-001), `GET /{id}` 200 con línea, `POST /cancel` 200 → ANULADA, `GET` tras cancel 200.
+
 ## [1.13.27] - 2026-10-13
 
 Arreglo del selector de unidades del modal "Registrar devolución" (Devoluciones): era un `size="6"` que lo renderizaba como listbox expandido en vez de desplegable, y tras buscar podía conservar una selección oculta.

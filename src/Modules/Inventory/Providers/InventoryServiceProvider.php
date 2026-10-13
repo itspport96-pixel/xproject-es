@@ -43,6 +43,7 @@ use App\Modules\Inventory\Application\Services\MovementQueryService;
 use App\Modules\Inventory\Application\Services\PickingQueryService;
 use App\Modules\Inventory\Application\Services\ProductService;
 use App\Modules\Inventory\Application\Services\ReceiveInventoryUseCase;
+use App\Modules\Inventory\Application\Services\ReceivingDocumentService;
 use App\Modules\Inventory\Application\Services\ReconcileCountUseCase;
 use App\Modules\Inventory\Application\Services\RecordCountResultsUseCase;
 use App\Modules\Inventory\Application\Services\ReleaseReservationUseCase;
@@ -317,6 +318,18 @@ final class InventoryServiceProvider
                 $c->get(StockCalculationService::class),
                 $c->get(BarcodeService::class),
                 $c->get(TenantContext::class)
+            )
+        );
+
+        // BLOQUE R1 (v1.13.28): documentos de recepción planificada. El
+        // chequeo de "otro receptor activo" usa AuthorizationService (registrado
+        // en bootstrap.php).
+        $container->singleton(
+            ReceivingDocumentService::class,
+            fn($c) => new ReceivingDocumentService(
+                $c->get('database'),
+                $c->get(TenantContext::class),
+                $c->get(\App\Core\Authorization\Service\AuthorizationService::class)
             )
         );
 
