@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Modules\Inventory\Http;
 
 use App\Core\Audit\AuditLogger;
+use App\Modules\Inventory\Application\Services\ReceiveDocumentUseCase;
 use App\Modules\Inventory\Application\Services\ReceivingDocumentService;
+use App\Modules\Inventory\Http\Concerns\ExtractsIdempotencyKey;
+use App\Modules\Inventory\Http\Concerns\ReturnsUseCaseResult;
 use App\Shared\Container\Container;
 use App\Shared\Exceptions\HttpException;
 
 /**
- * Controlador HTTP para los documentos de recepción planificada (BLOQUE R1).
+ * Controlador HTTP para los documentos de recepción planificada (BLOQUE R1)
+ * y la recepción ciega contra documento (BLOQUE R2).
  *
  * Endpoints:
  *  - GET   /api/inventory/receiving/documents       → index (listar)
@@ -18,18 +22,28 @@ use App\Shared\Exceptions\HttpException;
  *  - GET   /api/inventory/receiving/documents/{id}  → show
  *  - PATCH /api/inventory/receiving/documents/{id}  → update
  *  - POST  /api/inventory/receiving/documents/{id}/cancel → cancel
+ *  - POST  /api/inventory/receiving/documents/{id}/receive → receive (ciega)
  *
  * Permisos (aplicados via PermissionMiddleware en routes):
- *  - inventory.receiving.plan → los 5 endpoints
+ *  - inventory.receiving.plan   → los 5 endpoints de planificación
+ *  - inventory.receiving.create → el endpoint de recepción (R2)
  */
 final class ReceivingDocumentController
 {
+    use ExtractsIdempotencyKey;
+    use ReturnsUseCaseResult;
+
     private ReceivingDocumentService $service;
+    private ReceiveDocumentUseCase $receiveUseCase;
     private ?AuditLogger $audit;
 
-    public function __construct(?ReceivingDocumentService $service = null, ?AuditLogger $audit = null)
-    {
+    public function __construct(
+        ?ReceivingDocumentService $service = null,
+        ?ReceiveDocumentUseCase $receiveUseCase = null,
+        ?AuditLogger $audit = null
+    ) {
         $this->service = $service ?? Container::getInstance()->get(ReceivingDocumentService::class);
+        $this->receiveUseCase = $receiveUseCase ?? Container::getInstance()->get(ReceiveDocumentUseCase::class);
         $this->audit = $audit ?? $this->resolveAuditLogger();
     }
 
@@ -168,6 +182,42 @@ final class ReceivingDocumentController
     }
 
     // ====================================================================
+    // RECEPCIÓN CIEGA (BLOQUE R2)
+    // ====================================================================
+
+    /**
+     * POST /api/inventory/receiving/documents/{id}/receive
+     *
+     * Recepción a ciegas contra el documento: el receptor sólo envía lo que
+     * cuenta (`cantidad_recibida`); el `cantidad_esperada` lo conoce el
+     * servidor (principio 1). Requiere Idempotency-Key.
+     */
+    public function receive(array $request, array $params): array
+    {
+        $claims = $this->requireAuthenticated($request);
+
+        $id = $params['id'] ?? '';
+        if ($id === '') {
+            throw new HttpException('ID de documento requerido', 400);
+        }
+
+        $key = $this->idempotencyKey($request);
+
+        $response = $this->receiveUseCase->execute(
+            (string) $id,
+            $request['body'] ?? [],
+            $key,
+            (string) $claims['user_id']
+        );
+
+        if (!$this->isReplay($response)) {
+            $this->auditReceiving($request, $claims, $key, $response);
+        }
+
+        return $this->useCaseResponse($response);
+    }
+
+    // ====================================================================
     // HELPERS PRIVADOS
     // ====================================================================
 
@@ -202,17 +252,45 @@ final class ReceivingDocumentController
     }
 
     /**
-     * @throws HttpException 401 si no está autenticado
+     * Auditoría de dominio de la recepción ciega (BLOQUE R2, spec §7.1).
+     *
+     * Sólo en éxito: los errores (400/404/409/422) ya los registra el hook
+     * del Router (AuditMiddleware) con su causa.
+     *
+     * `valores_anteriores` guarda el detalle interno `_auditoria` (número de
+     * documento, esperada, intentos y recibida por línea). El marcador NO se
+     * filtra al cliente: `useCaseResponse()` sólo copia `status` y `data`.
      */
-    private function requireAuthenticated(array $request): array
+    private function auditReceiving(array $request, array $claims, string $key, array $response): void
     {
-        $claims = $request['user'] ?? null;
-
-        if (!is_array($claims) || empty($claims['user_id']) || empty($claims['tenant_id'])) {
-            throw new HttpException('No autorizado', 401);
+        if ($this->audit === null) {
+            return;
         }
 
-        return $claims;
+        $data = is_array($response['data'] ?? null) ? $response['data'] : [];
+        $auditoria = is_array($response['_auditoria'] ?? null) ? $response['_auditoria'] : [];
+
+        $this->audit->record([
+            'tenant_id' => $claims['tenant_id'] ?? null,
+            'usuario_id' => $claims['user_id'] ?? null,
+            'operacion' => 'receiving.document.receive',
+            'modulo' => 'inventory',
+            'recurso' => 'receiving_document',
+            'entidad_id' => is_string($data['documento_id'] ?? null) ? $data['documento_id'] : null,
+            'tipo_cambio' => 'UPDATE',
+            'resultado' => 'SUCCESS',
+            'valores_nuevos' => $data,
+            'ip_address' => $request['ip'] ?? null,
+            'user_agent' => $request['user_agent'] ?? null,
+            'request_id' => $request['request_id'] ?? null,
+            'detalles_adicionales' => [
+                'idempotency_key' => $key,
+                'codigo_respuesta' => $response['status'] ?? null,
+                'documento_numero' => $auditoria['numero_documento'] ?? null,
+                'ubicacion_codigo' => $auditoria['ubicacion_codigo'] ?? null,
+                'lineas' => $auditoria['lineas'] ?? [],
+            ],
+        ]);
     }
 
     private function json(int $status, array $data): array

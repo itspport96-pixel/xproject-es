@@ -298,6 +298,21 @@ $router->group('/api/inventory', function ($router) {
     ]);
 
     // ================================================================
+    // RECEIVING DOCUMENTS - RECEPCIÓN CIEGA (v1.13.29, BLOQUE R2)
+    // ================================================================
+
+    // POST /api/inventory/receiving/documents/{id}/receive
+    // Recepción CIEGA contra el documento: el receptor sólo envía lo que
+    // cuenta (cantidad_recibida); el esperado lo conoce el servidor (principio
+    // 1). Un solo reconteo; 2º fallo → unidad contada + incidencia
+    // DISCREPANCIA_CANTIDAD restringida. El creador NO puede recibirlo
+    // (principio 2). Requiere el header Idempotency-Key (spec R7).
+    $router->post('/receiving/documents/{id}/receive', [ReceivingDocumentController::class, 'receive'], [
+        PermissionMiddleware::class . ':inventory.receiving.create',
+        RateLimitMiddleware::class . ':api',
+    ]);
+
+    // ================================================================
     // STOCK (R1)
     // ================================================================
 

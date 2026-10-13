@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.29] - 2026-10-13
+
+BLOQUE R2 (backend): recepción ciega contra documento. El receptor nunca introduce `cantidad_esperada`; cuenta a ciegas, con un solo reconteo y, en el segundo fallo, abre una incidencia `DISCREPANCIA_CANTIDAD` cuya resolución queda restringida a un tercero (ni receptor ni planificador).
+
+### Added
+
+- **Columnas nuevas en la BD viva + `schema.sql` regenerado**: `receiving_document_lines.cantidad_recibida` (decimal(15,4), NULL hasta que se recibe) y `receiving_document_lines.intentos` (int NOT NULL DEFAULT 0, 1 = primer fallo que dispara reconteo); `incidents.restriccion_resolucion` (longtext JSON, CHECK json_valid) guarda `{receptor, planificador}`.
+- **`POST /inventory/receiving/documents/{id}/receive`** (permiso `inventory.receiving.create`, `Idempotency-Key` obligatoria, RateLimit): recibe contra un documento PLANIFICADA/EN_RECEPCION. El payload sólo admite `cantidad_recibida` (≥0) por línea; `cantidad_esperada` en cualquier nivel → 422 `receivingExpectedQuantityNotAccepted`.
+- **Principio de separación de funciones**: el creador del documento no puede recibirlo → 422 `receivingDocumentCreatorCannotReceive`.
+- **Recepción ciega con un solo reconteo**: al primer mismatch la línea queda RECONTEO (PENDIENTE) y la respuesta no revela esperado ni diferencia; en el segundo fallo se crea la unidad física con la cantidad contada y una incidencia `DISCREPANCIA_CANTIDAD` (prioridad ALTA si la discrepancia alcanza el umbral `RECEPTION_DISCREPANCY_THRESHOLD`, 5% por defecto) con `restriccion_resolucion=[receptor, planificador]`.
+- **`ResolveIncidentUseCase`**: guarda de resolución — el actor en `restriccion_resolucion` recibe 422 `incidentResolutionRestricted`; un tercero la resuelve con normalidad.
+- **Auditoría interna (`_auditoria`, no filtrada al cliente)**: cada línea registra `numero_documento`, `cantidad_esperada`, `intentos` y `cantidad_recibida` para trazabilidad completa de la recepción ciega.
+- **Tests de comportamiento sobre MySQL real**: `ReceiveDocumentUseCaseTest` (14 casos: match, mismatch/reconteo, segundo fallo + incidencia restringida, umbral de prioridad, sobre-recepción, creador no recibe, SKU no perteneciente, línea ya recibida, documento no recibible, idempotencia y aislamiento de tenant). Base nueva `InventoryMysqlTestCase` (BD dedicada `xproject_test` recreada desde `schema.sql` con `bin/prepare-test-db.php`, tenant único por test, sin transacción externa porque los use cases abren la suya). `InventoryMysqlSmokeTest` valida conexión y limpieza. El esquema SQLite de `InventorySqliteTestCase` se amplía con las 3 columnas para que los tests existentes sigan en verde.
+
+### Verification
+
+- `php -l` en 13 PHPs (7 backend + 1 bin + 5 tests) OK; `composer test` **981/981 OK** (suite completa: 14 nuevos en MySQL + los existentes); `check-schema-drift` **SIN DRIFT** (34 tablas, 413 columnas, 149 índices); `check-data-integrity` **DATOS CONSISTENTES**. Verificación de solo lectura contra BD viva con admin: `GET /inventory/receiving/documents` 200, `GET /inventory/receiving/documents/{id}` 200, ninguno 500.
+
+### Notes
+
+- **Desviación consciente (migración pendiente)**: los ~30 tests existentes de recepción/incidencias siguen sobre `InventorySqliteTestCase`; se migran a MySQL en un bloque posterior (regla 14: un bloque a la vez). El fixture SQLite se amplía aquí con las 3 columnas nuevas para no romper la suite.
+- El módulo no tiene endpoint `restore` ni `include_deleted` (regla 11): la recepción no se recupera, se recrea.
+
 ## [1.13.28] - 2026-10-13
 
 BLOQUE R1 (backend): documentos de recepción planificada. Separa la planificación de la recepción (CU-001): quien planifica introduce `cantidad_esperada` y no puede ser el único receptor; la recepción ciega llega en R2.

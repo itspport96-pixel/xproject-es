@@ -690,6 +690,7 @@ abstract class InventorySqliteTestCase extends TestCase
                 timestamp_deteccion TEXT DEFAULT CURRENT_TIMESTAMP,
                 resolucion TEXT,
                 prioridad TEXT DEFAULT \'NORMAL\',
+                restriccion_resolucion TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )',
@@ -870,6 +871,8 @@ abstract class InventorySqliteTestCase extends TestCase
                 producto_id TEXT NOT NULL,
                 sku TEXT NOT NULL,
                 cantidad_esperada REAL NOT NULL,
+                cantidad_recibida REAL,
+                intentos INTEGER NOT NULL DEFAULT 0,
                 estado TEXT DEFAULT \'PENDIENTE\',
                 unidad_recepcion_id TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,

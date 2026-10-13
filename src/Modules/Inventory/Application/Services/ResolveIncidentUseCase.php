@@ -108,6 +108,13 @@ final class ResolveIncidentUseCase
                 }
 
                 $incident = $this->load($tenantId, $incidentId);
+
+                // BLOQUE R2 (principio 4): la incidencia de una recepción ciega
+                // no la resuelve ni el receptor ni el planificador del documento.
+                if ($incident->resolucionRestringidaPara((string) $actorId)) {
+                    throw InventoryException::incidentResolutionRestricted();
+                }
+
                 $this->assertResultado($incident, $payload);
                 $incident->resolver($payload['estado'], $payload['detalle'], (string) $actorId);
                 $this->incidents->update($incident);

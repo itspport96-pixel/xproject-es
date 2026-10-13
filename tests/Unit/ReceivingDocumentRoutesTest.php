@@ -18,8 +18,10 @@ use PHPUnit\Framework\TestCase;
  *  - GET    /api/inventory/receiving/documents/{id}
  *  - PATCH  /api/inventory/receiving/documents/{id}
  *  - POST   /api/inventory/receiving/documents/{id}/cancel
+ *  - POST   /api/inventory/receiving/documents/{id}/receive  (R2)
  *
- * Las 5 rutas exigen inventory.receiving.plan; Auth + Tenant se aplican
+ * Las 5 rutas de planificaci&#243;n exigen inventory.receiving.plan; la de
+ * recepci&#243;n (R2) exige inventory.receiving.create. Auth + Tenant se aplican
  * UNA sola vez (desde el group) y cada ruta lleva su permiso granular +
  * rate limit.
  */
@@ -126,5 +128,29 @@ final class ReceivingDocumentRoutesTest extends TestCase
         $this->assertNotNull($list);
         $this->assertNotNull($detail);
         $this->assertNotSame($list['path'], $detail['path']);
+    }
+
+    // ====================================================================
+    // RECEPCI&#211;N CIEGA (BLOQUE R2)
+    // ====================================================================
+
+    public function testLaRutaDeReceiveEstaRegistradaYExigeReceivingCreate(): void
+    {
+        $route = $this->find('POST', '/receiving/documents/{id}/receive');
+
+        $this->assertNotNull($route, 'Falta POST /api/inventory/receiving/documents/{id}/receive');
+
+        $permissions = $this->permissionOf($route);
+        $this->assertCount(1, $permissions, 'receive: un &#250;nico permiso');
+        $this->assertStringEndsWith(':inventory.receiving.create', $permissions[0]);
+
+        $count = static fn(string $prefix): int => count(array_filter(
+            $route['middleware'],
+            static fn(string $m): bool => str_starts_with($m, $prefix)
+        ));
+
+        $this->assertSame(1, $count(AuthenticationMiddleware::class), 'receive: Auth');
+        $this->assertSame(1, $count(TenantMiddleware::class), 'receive: Tenant');
+        $this->assertSame(1, $count(RateLimitMiddleware::class), 'receive: RateLimit');
     }
 }

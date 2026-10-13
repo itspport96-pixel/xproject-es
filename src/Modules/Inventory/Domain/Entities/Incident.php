@@ -88,7 +88,8 @@ final class Incident
         private readonly ?string $actorIdReporta,
         private readonly DateTimeImmutable $timestampDeteccion,
         private ?string $resolucion,
-        private readonly string $prioridad
+        private readonly string $prioridad,
+        private readonly ?string $restriccionResolucion = null
     ) {
         $this->updatedAt = $timestampDeteccion;
     }
@@ -108,10 +109,16 @@ final class Incident
             actorIdReporta: $data['actor_id_reporta'] ?? null,
             timestampDeteccion: new DateTimeImmutable($data['timestamp_deteccion']),
             resolucion: $data['resolucion'] ?? null,
-            prioridad: (string) ($data['prioridad'] ?? self::PRIORIDAD_NORMAL)
+            prioridad: (string) ($data['prioridad'] ?? self::PRIORIDAD_NORMAL),
+            restriccionResolucion: $data['restriccion_resolucion'] ?? null
         );
     }
 
+    /**
+     * Crea una incidencia. `restriccionResolucion` (opcional, JSON) guarda los
+     * usuarios que NO pueden resolverla (recepción ciega, BLOQUE R2: ni el
+     * receptor ni el planificador del documento).
+     */
     public static function create(
         string $id,
         string $tenantId,
@@ -121,7 +128,8 @@ final class Incident
         ?string $ubicacionId = null,
         ?string $actorIdReporta = null,
         ?string $observaciones = null,
-        string $prioridad = self::PRIORIDAD_NORMAL
+        string $prioridad = self::PRIORIDAD_NORMAL,
+        ?array $restriccionResolucion = null
     ): self {
         if (trim($tenantId) === '') {
             throw InventoryException::requiredField('tenant_id');
@@ -149,7 +157,10 @@ final class Incident
             actorIdReporta: $actorIdReporta !== null ? trim($actorIdReporta) : null,
             timestampDeteccion: new DateTimeImmutable(),
             resolucion: null,
-            prioridad: $prioridad
+            prioridad: $prioridad,
+            restriccionResolucion: $restriccionResolucion !== null && $restriccionResolucion !== []
+                ? json_encode($restriccionResolucion, JSON_UNESCAPED_UNICODE)
+                : null
         );
     }
 
@@ -227,6 +238,43 @@ final class Incident
     public function updatedAt(): DateTimeImmutable { return $this->updatedAt; }
     public function resolucion(): ?string { return $this->resolucion; }
     public function prioridad(): string { return $this->prioridad; }
+    public function restriccionResolucion(): ?string { return $this->restriccionResolucion; }
+
+    /**
+     * Usuarios que NO pueden resolver esta incidencia (recepción ciega, R2):
+     * array de IDs (p.ej. [receptor, planificador]) o null si no hay restricción.
+     *
+     * @return array<int, string>|null
+     */
+    public function usuariosRestringidos(): ?array
+    {
+        if ($this->restriccionResolucion === null || $this->restriccionResolucion === '') {
+            return null;
+        }
+
+        $decoded = json_decode($this->restriccionResolucion, true);
+
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        return array_values(array_filter(array_map(
+            static fn($v): ?string => is_string($v) && trim($v) !== '' ? trim($v) : null,
+            $decoded
+        )));
+    }
+
+    /** true si $userId no puede resolver esta incidencia por restricción. */
+    public function resolucionRestringidaPara(string $userId): bool
+    {
+        $restringidos = $this->usuariosRestringidos();
+
+        if ($restringidos === null) {
+            return false;
+        }
+
+        return in_array(trim($userId), $restringidos, true);
+    }
 
     /** @return array<string, mixed>|null detalle JSON de la resolución */
     public function resolucionDetalle(): ?array
@@ -256,6 +304,7 @@ final class Incident
             'timestamp_deteccion' => $this->timestampDeteccion->format('Y-m-d H:i:s'),
             'resolucion'          => $this->resolucion,
             'prioridad'           => $this->prioridad,
+            'restriccion_resolucion' => $this->restriccionResolucion,
             'created_at'          => $this->timestampDeteccion->format('Y-m-d H:i:s'),
             'updated_at'          => $this->updatedAt->format('Y-m-d H:i:s'),
         ];

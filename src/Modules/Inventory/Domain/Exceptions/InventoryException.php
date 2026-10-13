@@ -1045,4 +1045,78 @@ final class InventoryException extends HttpException
             'lineas'
         );
     }
+
+    // ====================================================================
+    // RECEPCIÓN CIEGA CONTRA DOCUMENTO (v1.13.29, BLOQUE R2)
+    // ====================================================================
+
+    /**
+     * Principio 1: el esperado nunca lo introduce quien recibe. El payload de
+     * recepción ciega NO admite `cantidad_esperada` (ni arriba ni por línea).
+     */
+    public static function receivingExpectedQuantityNotAccepted(): self
+    {
+        return new self(
+            'La recepción es ciega: no se admite cantidad_esperada en el payload. El receptor sólo envía lo que cuenta.',
+            422,
+            self::CATEGORY_VALIDATION,
+            'cantidad_esperada'
+        );
+    }
+
+    /**
+     * Principio 2: quien planifica/crea el documento no puede recibirlo.
+     */
+    public static function receivingDocumentCreatorCannotReceive(): self
+    {
+        return new self(
+            'Quien planificó el documento no puede recibirlo: la recepción debe hacerla otro usuario.',
+            422,
+            self::CATEGORY_BUSINESS
+        );
+    }
+
+    public static function receivingDocumentNotReceivable(string $estado): self
+    {
+        return new self(
+            "El documento de recepción está en estado '{$estado}': sólo se puede recibir si está PLANIFICADA o EN_RECEPCION.",
+            422,
+            self::CATEGORY_BUSINESS,
+            'estado'
+        );
+    }
+
+    public static function receivingLineNotFoundForDocument(string $sku): self
+    {
+        return new self(
+            "El SKU '{$sku}' no es una línea pendiente de este documento de recepción.",
+            422,
+            self::CATEGORY_VALIDATION,
+            'lineas'
+        );
+    }
+
+    public static function receivingLineAlreadyReceived(string $sku): self
+    {
+        return new self(
+            "La línea del SKU '{$sku}' ya fue recibida: no se puede recibir dos veces.",
+            422,
+            self::CATEGORY_BUSINESS,
+            'lineas'
+        );
+    }
+
+    /**
+     * Principio 4 / separación de funciones en la resolución: la incidencia
+     * abierta por la recepción ciega no la resuelve ni el receptor ni el
+     * planificador del documento.
+     */
+    public static function incidentResolutionRestricted(): self
+    {
+        return new self(
+            'Esta incidencia no puede ser resuelta por el receptor ni por el planificador del documento: debe resolverla un tercero.',
+            422,
+            self::CATEGORY_BUSINESS
+        );
+    }
 }
