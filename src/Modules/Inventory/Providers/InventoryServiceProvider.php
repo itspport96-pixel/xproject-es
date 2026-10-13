@@ -42,6 +42,9 @@ use App\Modules\Inventory\Application\Services\MoveStockUseCase;
 use App\Modules\Inventory\Application\Services\MovementQueryService;
 use App\Modules\Inventory\Application\Services\PickingQueryService;
 use App\Modules\Inventory\Application\Services\ProductService;
+use App\Modules\Inventory\Application\Services\ReceiveAdhocUseCase;
+use App\Modules\Inventory\Application\Services\ConfirmAdhocUseCase;
+use App\Modules\Inventory\Application\Services\RejectAdhocUseCase;
 use App\Modules\Inventory\Application\Services\ReceiveDocumentUseCase;
 use App\Modules\Inventory\Application\Services\ReceiveInventoryUseCase;
 use App\Modules\Inventory\Application\Services\ReceivingDocumentService;
@@ -350,6 +353,59 @@ final class InventoryServiceProvider
                 $c->get(IncidentRepositoryInterface::class),
                 $c->get(StockCalculationService::class),
                 $c->get(BarcodeService::class),
+                $c->get(TenantContext::class)
+            )
+        );
+
+        // ============================================================
+        // RECEPCIÓN ADHOC (v1.13.30, BLOQUE R3)
+        // ============================================================
+
+        // Registra recepción sin documento planificado (referencia
+        // obligatoria). Unidades en BLOQUEADO hasta confirmar/rechazar
+        // (separación de funciones).
+        $container->singleton(
+            ReceiveAdhocUseCase::class,
+            fn($c) => new ReceiveAdhocUseCase(
+                $c->get('database'),
+                $c->get(IdempotencyService::class),
+                $c->get(ProductRepositoryInterface::class),
+                $c->get(LocationRepositoryInterface::class),
+                $c->get(StockUnitRepositoryInterface::class),
+                $c->get(StockLedgerRepositoryInterface::class),
+                $c->get(StockEventRepositoryInterface::class),
+                $c->get(StockCalculationService::class),
+                $c->get(BarcodeService::class),
+                $c->get(TenantContext::class)
+            )
+        );
+
+        // Confirmación: el usuario que registró no confirma (422). Unidades
+        // BLOQUEADO -> DISPONIBLE via matriz de transiciones.
+        $container->singleton(
+            ConfirmAdhocUseCase::class,
+            fn($c) => new ConfirmAdhocUseCase(
+                $c->get('database'),
+                $c->get(IdempotencyService::class),
+                $c->get(LocationRepositoryInterface::class),
+                $c->get(StockUnitRepositoryInterface::class),
+                $c->get(StockLedgerRepositoryInterface::class),
+                $c->get(StockEventRepositoryInterface::class),
+                $c->get(StockCalculationService::class),
+                $c->get(StateTransitionService::class),
+                $c->get(TenantContext::class)
+            )
+        );
+
+        // Rechazo: unidades permanecen BLOQUEADO + incidencia ALTA
+        // restringida (ni creador ni rechazador la resuelven).
+        $container->singleton(
+            RejectAdhocUseCase::class,
+            fn($c) => new RejectAdhocUseCase(
+                $c->get('database'),
+                $c->get(IdempotencyService::class),
+                $c->get(IncidentRepositoryInterface::class),
+                $c->get(StockEventRepositoryInterface::class),
                 $c->get(TenantContext::class)
             )
         );

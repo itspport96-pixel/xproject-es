@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.30] - 2026-10-13
+
+BLOQUE R3 (backend): recepción adhoc. Registra una recepción sin documento planificado (referencia al albarán/entrega obligatoria). Las unidades nacen en BLOQUEADO y las confirma o rechaza un segundo usuario (separación de funciones).
+
+### Added
+
+- **Tablas `receiving_adhoc` y `receiving_adhoc_lines`** (BD viva + `schema.sql` regenerado): adhoc con `referencia_documento` (única por tenant), estado `PENDIENTE|CONFIRMADA|RECHAZADA`, `creado_por` y `creado_por_confirma` FK a users; líneas con SKU, `cantidad` y `unidad_id` FK a la unidad física.
+- **`inventory.receiving.adhoc`** (seeder idempotente, ADMIN y MANAGER; corregido duplicado en ADMIN): permiso de registro adhoc; sembrado en la BD viva.
+- **`POST /inventory/receiving/adhoc`** (permiso `inventory.receiving.adhoc`, `Idempotency-Key` obligatoria, RateLimit): registra la recepción adhoc. La referencia del albarán es obligatoria (principio 1); duplicada en el tenant → 409 `receivingAdhocReferenceAlreadyExists`; sin referencia → 400 `requiredField`. Cada línea crea una unidad física en **BLOQUEADO** (ledger + evento `RECIBIDO`), consume capacidad de la ubicación destino y deja el adhoc en PENDIENTE.
+- **`POST /inventory/receiving/adhoc/{id}/confirm`** (permiso `inventory.receiving.confirm`, `Idempotency-Key` obligatoria): confirma un adhoc PENDIENTE pasando todas sus unidades de BLOQUEADO a **DISPONIBLE** (transición ya presente en la matriz de transiciones). El usuario que registró no puede confirmar → 422 `receivingAdhocCreatorCannotConfirm`. Cada línea sin unidad física → 422 `receivingAdhocLineHasNoUnit`.
+- **`POST /inventory/receiving/adhoc/{id}/reject`** (permiso `inventory.receiving.confirm`, `Idempotency-Key` obligatoria): rechaza un adhoc PENDIENTE. Las unidades permanecen en **BLOQUEADO** y se abre una incidencia `ENTREGA_RECHAZADA` de prioridad **ALTA** con `restriccion_resolucion={creador, rechazador}` (ni el creador ni el rechazador la resuelven). El creador no puede rechazar → 422 (misma semántica de separación de funciones que la confirmación).
+- **Auditoría de dominio (`_auditoria`, no filtrada al cliente)**: cada operación registra `adhoc_id`, `referencia_documento`, `ubicacion_codigo` y las líneas (SKU, cantidad, unidad_fisica_id, estados) para trazabilidad completa.
+- **Tests de comportamiento sobre MySQL real**: `ReceiveAdhocUseCaseTest` (9 casos: referencia obligatoria, referencia duplicada → 409, unidades nacen BLOQUEADO, creador no confirma, confirmar con segundo usuario pasa a DISPONIBLE, rechazar deja BLOQUEADO + incidencia ALTA, creador no rechaza, idempotencia, aislamiento de tenant). `InventoryMysqlTestCase` se amplía con los 3 use cases adhoc y helper `createReceivingAdhoc`; el fixture SQLite se amplía con las 2 tablas.
+
+### Verification
+
+- `php -l` en los PHPs tocados (3 use cases + controller + rutas + service provider + seeder + exception + 2 tests de soporte + test R3) OK; `composer test` **990/990 OK**; `check-schema-drift` **SIN DRIFT** (36 tablas, 429 columnas); `check-data-integrity` **DATOS CONSISTENTES**. E2E `e2e-v11330.ps1` contra BD aislada `xproject_e2e` (36 tablas, recreada con `--fresh`): **0 fallos** — registro 201, creador no confirma 422, rechazo 200 con unidad BLOQUEADO + incidencia ALTA, confirmación 200 con unidad DISPONIBLE, `GET /receiving/documents` 200, ninguno 500.
+
+### Notes
+
+- **Desviación consciente**: `GET /inventory/receiving/adhoc` no existe (sólo 3 POST); el listado/detalle de adhoc queda para R4 (frontend) si se decide exponerlo. La BD de E2E quedó con datos de la ejecución del E2E; `prepare-e2e-db.php --fresh` la recrea desde `schema.sql` cuando haga falta.
+- El módulo no tiene endpoint `restore` ni `include_deleted` (regla 11): el adhoc no se recupera, se recrea.
+
 ## [1.13.29] - 2026-10-13
 
 BLOQUE R2 (backend): recepción ciega contra documento. El receptor nunca introduce `cantidad_esperada`; cuenta a ciegas, con un solo reconteo y, en el segundo fallo, abre una incidencia `DISCREPANCIA_CANTIDAD` cuya resolución queda restringida a un tercero (ni receptor ni planificador).

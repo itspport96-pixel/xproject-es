@@ -81,6 +81,7 @@ use App\Modules\Inventory\Http\PickingController;
 use App\Modules\Inventory\Http\ProductController;
 use App\Modules\Inventory\Http\LocationController;
 use App\Modules\Inventory\Http\ReceivingController;
+use App\Modules\Inventory\Http\ReceivingAdhocController;
 use App\Modules\Inventory\Http\ReceivingDocumentController;
 use App\Modules\Inventory\Http\ReservationController;
 use App\Modules\Inventory\Http\ReturnController;
@@ -309,6 +310,37 @@ $router->group('/api/inventory', function ($router) {
     // (principio 2). Requiere el header Idempotency-Key (spec R7).
     $router->post('/receiving/documents/{id}/receive', [ReceivingDocumentController::class, 'receive'], [
         PermissionMiddleware::class . ':inventory.receiving.create',
+        RateLimitMiddleware::class . ':api',
+    ]);
+
+    // ================================================================
+    // RECEPCIÓN ADHOC (v1.13.30, BLOQUE R3)
+    // Recepción sin documento planificado: la referencia del albarán es
+    // obligatoria (principio 1). Las unidades nacen en BLOQUEADO y un
+    // segundo usuario las confirma (→ DISPONIBLE) o las rechaza (siguen
+    // BLOQUEADO + incidencia ALTA). Requiere Idempotency-Key (spec R7).
+    // ================================================================
+
+    // POST /api/inventory/receiving/adhoc
+    // Registra una recepción adhoc (referencia obligatoria, unidades BLOQUEADO)
+    $router->post('/receiving/adhoc', [ReceivingAdhocController::class, 'store'], [
+        PermissionMiddleware::class . ':inventory.receiving.adhoc',
+        RateLimitMiddleware::class . ':api',
+    ]);
+
+    // POST /api/inventory/receiving/adhoc/{id}/confirm
+    // Confirma: unidades BLOQUEADO → DISPONIBLE (matriz de transiciones).
+    // El usuario que registró NO puede confirmar (422, separación de funciones)
+    $router->post('/receiving/adhoc/{id}/confirm', [ReceivingAdhocController::class, 'confirm'], [
+        PermissionMiddleware::class . ':inventory.receiving.confirm',
+        RateLimitMiddleware::class . ':api',
+    ]);
+
+    // POST /api/inventory/receiving/adhoc/{id}/reject
+    // Rechaza: unidades permanecen BLOQUEADO + incidencia ALTA restringida
+    // (ni el creador ni el rechazador la resuelven)
+    $router->post('/receiving/adhoc/{id}/reject', [ReceivingAdhocController::class, 'reject'], [
+        PermissionMiddleware::class . ':inventory.receiving.confirm',
         RateLimitMiddleware::class . ':api',
     ]);
 

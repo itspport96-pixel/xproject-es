@@ -13,6 +13,9 @@ use App\Modules\Inventory\Adapters\Persistence\StockEventRepository;
 use App\Modules\Inventory\Adapters\Persistence\StockLedgerRepository;
 use App\Modules\Inventory\Adapters\Persistence\StockUnitRepository;
 use App\Modules\Inventory\Application\Services\BarcodeService;
+use App\Modules\Inventory\Application\Services\ReceiveAdhocUseCase;
+use App\Modules\Inventory\Application\Services\ConfirmAdhocUseCase;
+use App\Modules\Inventory\Application\Services\RejectAdhocUseCase;
 use App\Modules\Inventory\Application\Services\ReceiveDocumentUseCase;
 use App\Modules\Inventory\Application\Services\InventoryPresenceService;
 use App\Modules\Inventory\Application\Services\ResolveIncidentUseCase;
@@ -68,6 +71,9 @@ abstract class InventoryMysqlTestCase extends TestCase
     protected StateTransitionService $states;
 
     protected ReceiveDocumentUseCase $receiveDocumentUseCase;
+    protected ReceiveAdhocUseCase $receiveAdhocUseCase;
+    protected ConfirmAdhocUseCase $confirmAdhocUseCase;
+    protected RejectAdhocUseCase $rejectAdhocUseCase;
     protected ResolveIncidentUseCase $resolveIncidentUseCase;
 
     protected string $tenantId;
@@ -117,6 +123,39 @@ abstract class InventoryMysqlTestCase extends TestCase
         $this->barcodeService = new BarcodeService();
         $this->calculation = new StockCalculationService();
         $this->states = new StateTransitionService();
+
+        $this->receiveAdhocUseCase = new ReceiveAdhocUseCase(
+            $this->db,
+            new IdempotencyService($this->control),
+            new ProductRepository($this->db, $this->tenantContext),
+            $this->locations,
+            $this->stockUnits,
+            $this->ledgers,
+            $this->events,
+            $this->calculation,
+            $this->barcodeService,
+            $this->tenantContext
+        );
+
+        $this->confirmAdhocUseCase = new ConfirmAdhocUseCase(
+            $this->db,
+            new IdempotencyService($this->control),
+            $this->locations,
+            $this->stockUnits,
+            $this->ledgers,
+            $this->events,
+            $this->calculation,
+            $this->states,
+            $this->tenantContext
+        );
+
+        $this->rejectAdhocUseCase = new RejectAdhocUseCase(
+            $this->db,
+            new IdempotencyService($this->control),
+            $this->incidents,
+            $this->events,
+            $this->tenantContext
+        );
 
         $this->receiveDocumentUseCase = new ReceiveDocumentUseCase(
             $this->db,
@@ -381,6 +420,70 @@ abstract class InventoryMysqlTestCase extends TestCase
         ];
     }
 
+    /**
+     * Crea una recepci&#243;n adhoc PENDIENTE y sus l&#237;neas por SQL directo
+     * (BLOQUE R3), sin pasar por ReceiveAdhocUseCase (&#250;til para tests que
+     * necesitan un adhoc ya existente en un estado concreto).
+     *
+     * @param array<int, array{sku: string, cantidad: float, unidad_id: string|null}> $lineas
+     * @return array{id: string, creado_por: string, referencia: string}
+     */
+    protected function createReceivingAdhoc(
+        string $creadoPor,
+        string $referencia = 'ADHOC-REF-001',
+        array $lineas = [],
+        string $estado = 'PENDIENTE'
+    ): array {
+        $lineas = $lineas === []
+            ? [['sku' => 'SKU-ALFA', 'cantidad' => 10.0, 'unidad_id' => null]]
+            : $lineas;
+
+        $adhocId = self::uuid('adhoc');
+        $now = date('Y-m-d H:i:s');
+
+        $this->control->prepare(
+            'INSERT INTO receiving_adhoc
+                (id, tenant_id, referencia_documento, estado, creado_por, creado_por_confirma, created_at, updated_at)
+             VALUES
+                (:id, :tenant, :ref, :estado, :creado_por, NULL, :created, :updated)'
+        )->execute([
+            'id' => $adhocId,
+            'tenant' => $this->tenantId,
+            'ref' => $referencia,
+            'estado' => $estado,
+            'creado_por' => $creadoPor,
+            'created' => $now,
+            'updated' => $now,
+        ]);
+
+        foreach ($lineas as $linea) {
+            $this->control->prepare(
+                'INSERT INTO receiving_adhoc_lines
+                    (id, adhoc_id, producto_id, sku, cantidad, unidad_id, created_at, updated_at)
+                 VALUES
+                    (:id, :adhoc, :producto, :sku, :cantidad, :unidad_id, :created, :updated)'
+            )->execute([
+                'id' => self::uuid('aline'),
+                'adhoc' => $adhocId,
+                'producto' => $this->scalar(
+                    'SELECT id FROM products WHERE tenant_id = ? AND sku = ?',
+                    [$this->tenantId, $linea['sku']]
+                ),
+                'sku' => $linea['sku'],
+                'cantidad' => $linea['cantidad'],
+                'unidad_id' => $linea['unidad_id'],
+                'created' => $now,
+                'updated' => $now,
+            ]);
+        }
+
+        return [
+            'id' => $adhocId,
+            'creado_por' => $creadoPor,
+            'referencia' => $referencia,
+        ];
+    }
+
     // ====================================================================
     // AYUDAS DE CONSULTA / ASSERTION
     // ====================================================================
@@ -424,7 +527,8 @@ abstract class InventoryMysqlTestCase extends TestCase
         $this->control->exec("SET FOREIGN_KEY_CHECKS = 0");
 
         $tables = [
-            'stock_events', 'stock_ledger', 'incidents', 'receiving_documents',
+            'stock_events', 'stock_ledger', 'incidents', 'receiving_adhoc_lines',
+            'receiving_adhoc', 'receiving_documents',
             'stock_units', 'movements', 'reservations', 'picking_operations',
             'shipment_items', 'shipments', 'deliveries', 'return_operations',
             'inventory_counts', 'idempotency_keys', 'audit_logs',

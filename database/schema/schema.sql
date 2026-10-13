@@ -363,6 +363,45 @@ CREATE TABLE `rate_limit_log` (
   CONSTRAINT `rate_limit_log_ibfk_2` FOREIGN KEY (`usuario_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `receiving_adhoc`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `receiving_adhoc` (
+  `id` char(36) NOT NULL,
+  `tenant_id` char(36) NOT NULL,
+  `referencia_documento` varchar(100) NOT NULL,
+  `estado` enum('PENDIENTE','CONFIRMADA','RECHAZADA') NOT NULL DEFAULT 'PENDIENTE',
+  `creado_por` char(36) NOT NULL,
+  `creado_por_confirma` char(36) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_ra_ref` (`tenant_id`,`referencia_documento`),
+  KEY `idx_ra_tenant_estado` (`tenant_id`,`estado`),
+  KEY `fk_ra_creador` (`creado_por`),
+  CONSTRAINT `fk_ra_creador` FOREIGN KEY (`creado_por`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_ra_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `receiving_adhoc_lines`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `receiving_adhoc_lines` (
+  `id` char(36) NOT NULL,
+  `adhoc_id` char(36) NOT NULL,
+  `producto_id` char(36) NOT NULL,
+  `sku` varchar(100) NOT NULL,
+  `cantidad` decimal(15,4) NOT NULL,
+  `unidad_id` char(36) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_ral_adhoc` (`adhoc_id`),
+  KEY `fk_ral_producto` (`producto_id`),
+  CONSTRAINT `fk_ral_adhoc` FOREIGN KEY (`adhoc_id`) REFERENCES `receiving_adhoc` (`id`),
+  CONSTRAINT `fk_ral_producto` FOREIGN KEY (`producto_id`) REFERENCES `products` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `receiving_documents`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;

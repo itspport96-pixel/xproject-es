@@ -1119,4 +1119,69 @@ final class InventoryException extends HttpException
             self::CATEGORY_BUSINESS
         );
     }
+
+    // ====================================================================
+    // RECEPCIÓN ADHOC (v1.13.30, BLOQUE R3)
+    // ====================================================================
+
+    public static function receivingAdhocNotFound(string $id): self
+    {
+        return new self(
+            "La recepción adhoc con ID '{$id}' no existe.",
+            404,
+            self::CATEGORY_NOT_FOUND
+        );
+    }
+
+    public static function receivingAdhocReferenceAlreadyExists(string $referencia): self
+    {
+        return new self(
+            "La referencia de documento '{$referencia}' ya fue registrada en este tenant.",
+            409,
+            self::CATEGORY_CONFLICT
+        );
+    }
+
+    public static function receivingAdhocNotConfirmable(string $estado): self
+    {
+        return new self(
+            "La recepción adhoc está en estado '{$estado}': sólo se puede confirmar si está PENDIENTE.",
+            422,
+            self::CATEGORY_BUSINESS,
+            'estado'
+        );
+    }
+
+    public static function receivingAdhocNotRejectable(string $estado): self
+    {
+        return new self(
+            "La recepción adhoc está en estado '{$estado}': sólo se puede rechazar si está PENDIENTE.",
+            422,
+            self::CATEGORY_BUSINESS,
+            'estado'
+        );
+    }
+
+    /**
+     * Separación de funciones: quien registró la recepción adhoc no puede
+     * confirmarla (debe hacerlo otro usuario).
+     */
+    public static function receivingAdhocCreatorCannotConfirm(): self
+    {
+        return new self(
+            'Quien registró la recepción adhoc no puede confirmarla: la confirmación debe hacerla otro usuario.',
+            422,
+            self::CATEGORY_BUSINESS
+        );
+    }
+
+    public static function receivingAdhocLineHasNoUnit(string $sku): self
+    {
+        return new self(
+            "La línea del SKU '{$sku}' no tiene unidad física asociada: no se puede confirmar.",
+            422,
+            self::CATEGORY_BUSINESS,
+            'lineas'
+        );
+    }
 }
