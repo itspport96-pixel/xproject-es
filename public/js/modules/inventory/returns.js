@@ -336,6 +336,9 @@
         if (!modal) return;
 
         modal.stockLoading = true;
+        // Se vacía la lista al recargar: si no, durante la carga (o si
+        // falla) el selector seguiría mostrando unidades del estado anterior.
+        modal.stock = [];
         renderModal();
 
         try {
@@ -448,7 +451,8 @@
 
                                 <div class="form-group">
                                     <label class="form-label">${t('inventory.returns.modal.unidad')} <span class="required">*</span></label>
-                                    <select class="select" data-modal-field="unidad_fisica_id" size="6">
+                                    <select class="select" data-modal-field="unidad_fisica_id"
+                                            ${modal.stockLoading ? 'disabled' : ''}>
                                         ${unitOptions(unidades)}
                                     </select>
                                     <span class="form-error hidden" data-error="unidad_fisica_id"></span>
@@ -841,8 +845,15 @@
 
         if (el.matches('[data-modal-field="search"]')) {
             state.modal.search = el.value;
+            const unidades = filteredStock();
+            // Si la unidad seleccionada queda fuera del filtro, se limpia
+            // la selección: si no, el alta enviaría un id que no se ve.
+            if (state.modal.unidad_fisica_id
+                && !unidades.some(u => u.unidad_fisica_id === state.modal.unidad_fisica_id)) {
+                state.modal.unidad_fisica_id = '';
+            }
             const select = container.querySelector('[data-modal-field="unidad_fisica_id"]');
-            if (select) select.innerHTML = unitOptions(filteredStock());
+            if (select) select.innerHTML = unitOptions(unidades);
             return;
         }
 

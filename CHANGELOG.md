@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.27] - 2026-10-13
+
+Arreglo del selector de unidades del modal "Registrar devolución" (Devoluciones): era un `size="6"` que lo renderizaba como listbox expandido en vez de desplegable, y tras buscar podía conservar una selección oculta.
+
+### Fixed
+
+- **`public/js/modules/inventory/returns.js`**: el `<select>` de unidad pierde el atributo `size="6"` (desplegable normal, como el resto de selects del modal); el buscador en cliente limpia `unidad_fisica_id` si la seleccionada queda fuera del filtro (evita POST con id invisible); `loadStock` vacía la lista antes de recargar (sin unidades del estado anterior durante la carga o tras un error) y el selector queda `disabled` mientras carga. Backend verificado sin cambios: `GET /inventory/stock?estado=ENTREGADO` devuelve las 8 unidades ENTREGADO + 1 DEVUELTO de la BD.
+
+### Verification
+
+- `node --check` OK; `smoke-v184` (entregas + devoluciones) **100 OK, 0 FAIL**. Sólo frontend: sin PHP ni esquema tocados (verificación proporcional).
+
 ## [1.13.26] - 2026-10-12
 
 Reparación de las 3 desviaciones anotadas al cierre del BLOQUE F (sólo frontend + locales).
