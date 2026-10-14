@@ -286,6 +286,68 @@ final class ReceivingDocumentServiceTest extends InventorySqliteTestCase
     }
 
     // ====================================================================
+    // PENDIENTES PARA EL RECEPTOR (v1.13.32)
+    // ====================================================================
+
+    public function testFindPendingExcluyeLosDocumentosCreadosPorElPropioUsuario(): void
+    {
+        $this->createSampleDocument('PO-PEND-PROPIO');
+
+        // Creados por CREATOR: para CREATOR no son recibibles (se excluyen).
+        $result = $this->service->findPendingForReceiver(self::CREATOR);
+
+        $this->assertSame([], $result['data']);
+        $this->assertSame(0, $result['pagination']['total']);
+    }
+
+    public function testFindPendingDevuelveLosDeOtrosConLineasYEsperada(): void
+    {
+        $this->createSampleDocument('PO-PEND-1');
+
+        $result = $this->service->findPendingForReceiver(self::OTHER);
+
+        $this->assertCount(1, $result['data']);
+        $doc = $result['data'][0];
+        $this->assertSame('PO-PEND-1', $doc['numero_documento']);
+        $this->assertSame('PLANIFICADA', $doc['estado']);
+        $this->assertSame(self::CREATOR, $doc['creado_por']);
+        $this->assertNotEmpty($doc['lineas']);
+        $this->assertSame('SKU-ALFA', $doc['lineas'][0]['sku']);
+        $this->assertSame(10.0, $doc['lineas'][0]['cantidad_esperada']);
+        $this->assertSame('PENDIENTE', $doc['lineas'][0]['estado']);
+    }
+
+    public function testFindPendingIncluyeEnRecepcionPeroNoAnuladasNiCerradas(): void
+    {
+        $enRecepcion = $this->createSampleDocument('PO-PEND-ENR');
+        $this->pdo->prepare("UPDATE receiving_documents SET estado = 'EN_RECEPCION' WHERE id = ?")
+            ->execute([$enRecepcion['id']]);
+
+        $anulada = $this->createSampleDocument('PO-PEND-ANUL');
+        $this->service->cancel($anulada['id']);
+
+        $cerrada = $this->createSampleDocument('PO-PEND-CERR');
+        $this->pdo->prepare("UPDATE receiving_documents SET estado = 'CERRADA' WHERE id = ?")
+            ->execute([$cerrada['id']]);
+
+        $result = $this->service->findPendingForReceiver(self::OTHER);
+
+        $this->assertCount(1, $result['data']);
+        $this->assertSame('PO-PEND-ENR', $result['data'][0]['numero_documento']);
+    }
+
+    public function testFindPendingNoVeDocumentosDeOtroTenant(): void
+    {
+        $doc = $this->createSampleDocument('PO-PEND-T2');
+        $this->pdo->prepare('UPDATE receiving_documents SET tenant_id = ? WHERE id = ?')
+            ->execute([self::T2, $doc['id']]);
+
+        $result = $this->service->findPendingForReceiver(self::OTHER);
+
+        $this->assertSame([], $result['data']);
+    }
+
+    // ====================================================================
     // HELPERS
     // ====================================================================
 

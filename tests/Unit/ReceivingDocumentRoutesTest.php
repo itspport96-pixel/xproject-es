@@ -131,8 +131,39 @@ final class ReceivingDocumentRoutesTest extends TestCase
     }
 
     // ====================================================================
-    // RECEPCI&#211;N CIEGA (BLOQUE R2)
+    // RECEPCI&#211;N CONTRA DOCUMENTO (v1.13.32)
     // ====================================================================
+
+    public function testLaRutaDePendingExigeReceivingCreateYVaAntesDelId(): void
+    {
+        // Registrar ANTES de {id} importa: el Router recorre en orden de
+        // registro y /documents/pending no debe capturarse como {id}.
+        $pending = null;
+        $detail = null;
+        foreach ($this->routes as $index => $route) {
+            if (strtoupper($route['method']) !== 'GET') {
+                continue;
+            }
+            if ($route['path'] === '/api/inventory/receiving/documents/pending') {
+                $pending = ['index' => $index, 'route' => $route];
+            }
+            if ($route['path'] === '/api/inventory/receiving/documents/{id}') {
+                $detail = ['index' => $index, 'route' => $route];
+            }
+        }
+
+        $this->assertNotNull($pending, 'Falta GET /api/inventory/receiving/documents/pending');
+        $this->assertNotNull($detail);
+        $this->assertLessThan(
+            $detail['index'],
+            $pending['index'],
+            'pending debe registrarse ANTES de /documents/{id}'
+        );
+
+        $permissions = $this->permissionOf($pending['route']);
+        $this->assertCount(1, $permissions, 'pending: un único permiso');
+        $this->assertStringEndsWith(':inventory.receiving.create', $permissions[0]);
+    }
 
     public function testLaRutaDeReceiveEstaRegistradaYExigeReceivingCreate(): void
     {

@@ -125,6 +125,77 @@ final class ReceivingDocumentService
     }
 
     /**
+     * Documentos pendientes para un receptor (v1.13.32).
+     *
+     * Devuelve los documentos PLANIFICADA/EN_RECEPCION del tenant con sus
+     * líneas Y cantidad_esperada, EXCLUYENDO los creados por el propio
+     * usuario (separación de funciones: quien planifica no recibe).
+     *
+     * @return array{data: array<int, array<string, mixed>>, pagination: array<string, mixed>}
+     */
+    public function findPendingForReceiver(string $actorId, int $page = 1, int $perPage = 20): array
+    {
+        $tenantId = $this->tenantContext->getTenantId();
+        $page = max(1, $page);
+        $perPage = min(self::PER_PAGE_MAX, max(1, $perPage));
+
+        $where = [
+            'd.tenant_id = :tenant_id',
+            "d.estado IN ('PLANIFICADA', 'EN_RECEPCION')",
+            'd.creado_por <> :actor_id',
+        ];
+        $params = ['tenant_id' => $tenantId, 'actor_id' => $actorId];
+
+        $whereSql = implode(' AND ', $where);
+
+        $totalStmt = $this->db->getConnection()->prepare(
+            "SELECT COUNT(*) FROM receiving_documents d WHERE {$whereSql}"
+        );
+        foreach ($params as $key => $value) {
+            $totalStmt->bindValue(":{$key}", $value);
+        }
+        $totalStmt->execute();
+        $total = (int) $totalStmt->fetchColumn();
+
+        $offset = ($page - 1) * $perPage;
+        $sql = "SELECT d.id, d.numero_documento, d.proveedor, d.referencia,
+                       d.estado, d.creado_por, d.created_at, d.updated_at,
+                       COUNT(l.id) AS lineas_totales,
+                       COALESCE(SUM(CASE WHEN l.estado = 'RECIBIDA' THEN 1 ELSE 0 END), 0) AS lineas_recibidas
+                  FROM receiving_documents d
+                  LEFT JOIN receiving_document_lines l ON l.document_id = d.id
+                 WHERE {$whereSql}
+                 GROUP BY d.id
+                 ORDER BY d.created_at DESC, d.id ASC
+                 LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->db->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":{$key}", $value);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $data = array_map(function (array $row): array {
+            $doc = $this->mapSummaryRow($row);
+            $doc['lineas'] = $this->findLines((string) $row['id']);
+
+            return $doc;
+        }, $stmt->fetchAll(PDO::FETCH_ASSOC));
+
+        return [
+            'data' => $data,
+            'pagination' => [
+                'total' => $total,
+                'page' => $page,
+                'per_page' => $perPage,
+                'has_next' => ($offset + $perPage) < $total,
+            ],
+        ];
+    }
+
+    /**
      * Detalle de UNO documento del tenant con sus líneas (null si no existe).
      *
      * @return array<string, mixed>|null

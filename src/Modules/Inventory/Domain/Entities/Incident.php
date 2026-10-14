@@ -116,8 +116,8 @@ final class Incident
 
     /**
      * Crea una incidencia. `restriccionResolucion` (opcional, JSON) guarda los
-     * usuarios que NO pueden resolverla (recepción ciega, BLOQUE R2: ni el
-     * receptor ni el planificador del documento).
+     * usuarios que NO pueden resolverla (v1.13.32: en las incidencias de
+     * recepción, ni el receptor ni el planificador del documento).
      */
     public static function create(
         string $id,

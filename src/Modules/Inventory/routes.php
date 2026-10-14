@@ -81,7 +81,6 @@ use App\Modules\Inventory\Http\PickingController;
 use App\Modules\Inventory\Http\ProductController;
 use App\Modules\Inventory\Http\LocationController;
 use App\Modules\Inventory\Http\ReceivingController;
-use App\Modules\Inventory\Http\ReceivingAdhocController;
 use App\Modules\Inventory\Http\ReceivingDocumentController;
 use App\Modules\Inventory\Http\ReservationController;
 use App\Modules\Inventory\Http\ReturnController;
@@ -249,8 +248,10 @@ $router->group('/api/inventory', function ($router) {
     // ================================================================
 
     // POST /api/inventory/receive
-    // Recibe inventario: crea unidad física + ledger + evento RECIBIDO en una
-    // sola transacción. Requiere el header Idempotency-Key (spec R7).
+    // CERRADO (v1.13.32): no hay recepción sin documento planificado. El
+    // endpoint sigue montado (dependencias históricas) pero responde 422
+    // receivingWithoutDocumentNotAllowed. Una entrega imprevista se
+    // planifica primero y se recibe contra el documento.
     $router->post('/receive', [ReceivingController::class, 'receive'], [
         PermissionMiddleware::class . ':inventory.receiving.create',
         RateLimitMiddleware::class . ':api',
@@ -266,6 +267,15 @@ $router->group('/api/inventory', function ($router) {
     // Lista documentos de recepción del tenant (filtros: estado, search)
     $router->get('/receiving/documents', [ReceivingDocumentController::class, 'index'], [
         PermissionMiddleware::class . ':inventory.receiving.plan',
+        RateLimitMiddleware::class . ':api',
+    ]);
+
+    // GET /api/inventory/receiving/documents/pending
+    // Documentos PLANIFICADA/EN_RECEPCION con sus líneas Y cantidad_esperada,
+    // excluyendo los creados por el usuario (v1.13.32: el receptor lee con
+    // receiving.create, NO con .plan). Registrar ANTES de la ruta {id}.
+    $router->get('/receiving/documents/pending', [ReceivingDocumentController::class, 'pending'], [
+        PermissionMiddleware::class . ':inventory.receiving.create',
         RateLimitMiddleware::class . ':api',
     ]);
 
@@ -299,48 +309,19 @@ $router->group('/api/inventory', function ($router) {
     ]);
 
     // ================================================================
-    // RECEIVING DOCUMENTS - RECEPCIÓN CIEGA (v1.13.29, BLOQUE R2)
+    // RECEIVING DOCUMENTS - RECEPCIÓN (v1.13.32: sin cegueza ni reconteo)
     // ================================================================
 
     // POST /api/inventory/receiving/documents/{id}/receive
-    // Recepción CIEGA contra el documento: el receptor sólo envía lo que
-    // cuenta (cantidad_recibida); el esperado lo conoce el servidor (principio
-    // 1). Un solo reconteo; 2º fallo → unidad contada + incidencia
-    // DISCREPANCIA_CANTIDAD restringida. El creador NO puede recibirlo
-    // (principio 2). Requiere el header Idempotency-Key (spec R7).
+    // Recepción contra el documento: el receptor envía lo que cuenta
+    // (cantidad_recibida; la cantidad esperada va en el documento y la UI
+    // la muestra bloqueada, pero el payload NO la admite → 422). El creador
+    // NO puede recibirlo (403, también ADMIN). Sin reconteo: discrepancia →
+    // unidad con lo contado + incidencia; línea cerrada. Concurrencia:
+    // bloqueo de fila de la línea; el perdedor recibe 409. Requiere el
+    // header Idempotency-Key (spec R7).
     $router->post('/receiving/documents/{id}/receive', [ReceivingDocumentController::class, 'receive'], [
         PermissionMiddleware::class . ':inventory.receiving.create',
-        RateLimitMiddleware::class . ':api',
-    ]);
-
-    // ================================================================
-    // RECEPCIÓN ADHOC (v1.13.30, BLOQUE R3)
-    // Recepción sin documento planificado: la referencia del albarán es
-    // obligatoria (principio 1). Las unidades nacen en BLOQUEADO y un
-    // segundo usuario las confirma (→ DISPONIBLE) o las rechaza (siguen
-    // BLOQUEADO + incidencia ALTA). Requiere Idempotency-Key (spec R7).
-    // ================================================================
-
-    // POST /api/inventory/receiving/adhoc
-    // Registra una recepción adhoc (referencia obligatoria, unidades BLOQUEADO)
-    $router->post('/receiving/adhoc', [ReceivingAdhocController::class, 'store'], [
-        PermissionMiddleware::class . ':inventory.receiving.adhoc',
-        RateLimitMiddleware::class . ':api',
-    ]);
-
-    // POST /api/inventory/receiving/adhoc/{id}/confirm
-    // Confirma: unidades BLOQUEADO → DISPONIBLE (matriz de transiciones).
-    // El usuario que registró NO puede confirmar (422, separación de funciones)
-    $router->post('/receiving/adhoc/{id}/confirm', [ReceivingAdhocController::class, 'confirm'], [
-        PermissionMiddleware::class . ':inventory.receiving.confirm',
-        RateLimitMiddleware::class . ':api',
-    ]);
-
-    // POST /api/inventory/receiving/adhoc/{id}/reject
-    // Rechaza: unidades permanecen BLOQUEADO + incidencia ALTA restringida
-    // (ni el creador ni el rechazador la resuelven)
-    $router->post('/receiving/adhoc/{id}/reject', [ReceivingAdhocController::class, 'reject'], [
-        PermissionMiddleware::class . ':inventory.receiving.confirm',
         RateLimitMiddleware::class . ':api',
     ]);
 

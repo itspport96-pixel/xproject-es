@@ -29,6 +29,7 @@ final class InventoryException extends HttpException
     public const CATEGORY_CONFLICT      = 'conflict';
     public const CATEGORY_BUSINESS      = 'business_rule';
     public const CATEGORY_ISOLATION     = 'isolation';
+    public const CATEGORY_AUTHORIZATION = 'authorization';
 
     private string $category;
     private ?string $field;
@@ -1047,17 +1048,18 @@ final class InventoryException extends HttpException
     }
 
     // ====================================================================
-    // RECEPCIÓN CIEGA CONTRA DOCUMENTO (v1.13.29, BLOQUE R2)
+    // RECEPCIÓN CONTRA DOCUMENTO (v1.13.32)
     // ====================================================================
 
     /**
-     * Principio 1: el esperado nunca lo introduce quien recibe. El payload de
-     * recepción ciega NO admite `cantidad_esperada` (ni arriba ni por línea).
+     * El esperado lo fija el documento, no quien recibe: el payload de
+     * recepción NO admite `cantidad_esperada` (ni arriba ni por línea). La UI
+     * muestra el esperado bloqueado, pero no lo envía.
      */
     public static function receivingExpectedQuantityNotAccepted(): self
     {
         return new self(
-            'La recepción es ciega: no se admite cantidad_esperada en el payload. El receptor sólo envía lo que cuenta.',
+            'No se admite cantidad_esperada en el payload: la cantidad esperada la fija el documento planificado.',
             422,
             self::CATEGORY_VALIDATION,
             'cantidad_esperada'
@@ -1065,14 +1067,15 @@ final class InventoryException extends HttpException
     }
 
     /**
-     * Principio 2: quien planifica/crea el documento no puede recibirlo.
+     * Principio 2 / separación de funciones: quien planifica/crea el
+     * documento no puede recibirlo, tampoco si es ADMIN (403, sin excepciones).
      */
     public static function receivingDocumentCreatorCannotReceive(): self
     {
         return new self(
             'Quien planificó el documento no puede recibirlo: la recepción debe hacerla otro usuario.',
-            422,
-            self::CATEGORY_BUSINESS
+            403,
+            self::CATEGORY_AUTHORIZATION
         );
     }
 
@@ -1100,16 +1103,42 @@ final class InventoryException extends HttpException
     {
         return new self(
             "La línea del SKU '{$sku}' ya fue recibida: no se puede recibir dos veces.",
-            422,
-            self::CATEGORY_BUSINESS,
+            409,
+            self::CATEGORY_CONFLICT,
             'lineas'
         );
     }
 
     /**
-     * Principio 4 / separación de funciones en la resolución: la incidencia
-     * abierta por la recepción ciega no la resuelve ni el receptor ni el
-     * planificador del documento.
+     * Una línea cerrada como RECHAZADA no admite una segunda recepción (409):
+     * el faltante de un rechazo se planifica en un documento nuevo.
+     */
+    public static function receivingLineClosed(string $sku, string $estado): self
+    {
+        return new self(
+            "La línea del SKU '{$sku}' está cerrada como '{$estado}': no se puede recibir de nuevo.",
+            409,
+            self::CATEGORY_CONFLICT,
+            'lineas'
+        );
+    }
+
+    /**
+     * No hay recepción sin documento planificado: POST /inventory/receive
+     * queda cerrado (v1.13.32). Una entrega imprevista se planifica primero.
+     */
+    public static function receivingWithoutDocumentNotAllowed(): self
+    {
+        return new self(
+            'No se permite la recepción sin documento planificado: planifica la entrega primero y recíbela contra el documento.',
+            422,
+            self::CATEGORY_BUSINESS
+        );
+    }
+
+    /**
+     * Separación de funciones en la resolución: la incidencia abierta por la
+     * recepción no la resuelve ni el receptor ni el planificador del documento.
      */
     public static function incidentResolutionRestricted(): self
     {
@@ -1117,71 +1146,6 @@ final class InventoryException extends HttpException
             'Esta incidencia no puede ser resuelta por el receptor ni por el planificador del documento: debe resolverla un tercero.',
             422,
             self::CATEGORY_BUSINESS
-        );
-    }
-
-    // ====================================================================
-    // RECEPCIÓN ADHOC (v1.13.30, BLOQUE R3)
-    // ====================================================================
-
-    public static function receivingAdhocNotFound(string $id): self
-    {
-        return new self(
-            "La recepción adhoc con ID '{$id}' no existe.",
-            404,
-            self::CATEGORY_NOT_FOUND
-        );
-    }
-
-    public static function receivingAdhocReferenceAlreadyExists(string $referencia): self
-    {
-        return new self(
-            "La referencia de documento '{$referencia}' ya fue registrada en este tenant.",
-            409,
-            self::CATEGORY_CONFLICT
-        );
-    }
-
-    public static function receivingAdhocNotConfirmable(string $estado): self
-    {
-        return new self(
-            "La recepción adhoc está en estado '{$estado}': sólo se puede confirmar si está PENDIENTE.",
-            422,
-            self::CATEGORY_BUSINESS,
-            'estado'
-        );
-    }
-
-    public static function receivingAdhocNotRejectable(string $estado): self
-    {
-        return new self(
-            "La recepción adhoc está en estado '{$estado}': sólo se puede rechazar si está PENDIENTE.",
-            422,
-            self::CATEGORY_BUSINESS,
-            'estado'
-        );
-    }
-
-    /**
-     * Separación de funciones: quien registró la recepción adhoc no puede
-     * confirmarla (debe hacerlo otro usuario).
-     */
-    public static function receivingAdhocCreatorCannotConfirm(): self
-    {
-        return new self(
-            'Quien registró la recepción adhoc no puede confirmarla: la confirmación debe hacerla otro usuario.',
-            422,
-            self::CATEGORY_BUSINESS
-        );
-    }
-
-    public static function receivingAdhocLineHasNoUnit(string $sku): self
-    {
-        return new self(
-            "La línea del SKU '{$sku}' no tiene unidad física asociada: no se puede confirmar.",
-            422,
-            self::CATEGORY_BUSINESS,
-            'lineas'
         );
     }
 }

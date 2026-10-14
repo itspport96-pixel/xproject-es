@@ -4,9 +4,60 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.32] - 2026-10-14
+
+Flujo definitivo de recepción: **sin recepción ciega y sin reconteo**. Quedan 2 pestañas (Planificación + Recepción contra documento): el receptor elige un documento pendiente, ve la `cantidad_esperada` bloqueada (visible en la UI, rechazada en el payload con 422) y contabiliza lo recibido; cualquier discrepancia cierra la línea con lo contado + incidencia, sin segundo conteo.
+
+### Changed
+
+- **`ReceiveDocumentUseCase` reescrito**: bloqueo `FOR UPDATE` de las líneas del documento; el creador del documento no puede recibirlo (403 `receivingDocumentCreatorCannotReceive`); líneas recibibles `PENDIENTE|RECONTEO`; discrepancia esperada/contada → unidad física con lo contado + incidencia `FALTANTE`/`SOBRE_RECEPCION` (umbral de faltante); `rechazo_total` cierra todas las líneas pendientes en `RECHAZADA` sin crear stock + incidencia `ENTREGA_RECHAZADA` ALTA; auditoría con `numero_documento`, `line_id`, planificador, receptor, esperada y recibida. `cantidad_esperada` en el payload → 422 `receivingExpectedQuantityNotAccepted`; líneas ya cerradas → 409.
+- **`GET /inventory/receiving/documents/pending`** (permiso `inventory.receiving.create`): documentos `PLANIFICADA|EN_RECEPCION` creados por otro usuario, con sus líneas y `cantidad_esperada`; registrado en `routes.php` antes de `/receiving/documents/{id}` para ganarle al patrón con parámetro.
+- **`ReceivingDocumentService::findPendingForReceiver`**: consulta de pendientes para el receptor con paginación.
+- **`POST /inventory/receive` cerrado (CU-001)**: `ReceivingController::receive` responde 401 sin claims y 422 `receivingWithoutDocumentNotAllowed` en cualquier caso; la recepción sólo es contra documento.
+- **Auditoría de recepción enriquecida** (`ReceivingDocumentController::auditReceiving`): incluye `creado_por`, `recibido_por`, `rechazo_total` y el detalle de líneas.
+- **Frontend `public/js/modules/inventory/receiving.js` reescrito**: 2 pestañas `receive`/`plan` (sin `register`); selector de documentos desde `GET /pending`; detalle con `cantidad_esperada` pintada `readonly`+`disabled`, inputs de lote/serie y checkbox "Rechazo total" (deshabilita las cantidades contadas); envío con `Idempotency-Key` al `POST /documents/{id}/receive` sin `cantidad_esperada`; en el plan-save, 409 de segundo receptor muestra aviso `error_second_receiver`.
+- **Enum `receiving_document_lines.estado` ampliado en la BD viva** a `PENDIENTE|RECIBIDA|RECONTEO|RECHAZADA` (ALTER; `RECONTEO` queda como estado legado de líneas, sin uso en el flujo nuevo); `schema.sql` regenerado con `bin/regenerate-schema.php`.
+- **Excepciones** de `InventoryException` actualizadas al flujo nuevo (403 creador, 409 línea cerrada/recibida, 422 sin documento y sin `cantidad_esperada`); textos y docblocks sin "recepción ciega".
+- **i18n** (`es|en|pt|fr`): sección `inventory.receiving` reestructurada (`tabs.receive/plan`, `receive.*`, `line_states.RECHAZADA`, `plan.messages.error_second_receiver`); eliminadas claves de registro/ciega/reconteo.
+- **Tests**: `ReceiveDocumentUseCaseTest` y `ReceivingControllerTest` reescritos (422 cantidad_esperada, 403 creador, faltante/sobre-recepción, rechazo total, idempotencia); `ReceivingDocumentRoutesTest` añade la ruta `pending`; `ReceivingDocumentServiceTest` cubre `findPendingForReceiver`.
+
+### Verification
+
+- `composer test` **982/982 OK**; `check-schema-drift` **SIN DRIFT** (34 tablas); `check-i18n` **0 errores**; `node --check` OK en `receiving.js`; smoke `tools/smoke/smoke-receiving.mjs` **59 ok, 0 FAIL**; `GET /receiving/documents`, `/pending` y detalle con admin → 200. Capturas 1366px en `tools/smoke/capturas-receiving-v11332/`.
+
+### Notes
+
+- **Permisos por tenant (BD viva)**: `inventory.receiving.plan` en roles built-in ADMIN y MANAGER; `inventory.receiving.create` en ADMIN, MANAGER y USER. En `acme-corp`, 4 usuarios activos pueden recibir (aleon ADMIN, manager MANAGER, fgal USER, user USER); 2 de ellos pueden planificar.
+- **Desviaciones**: los e2e históricos que aún usaban `POST /inventory/receive` (e2e-v1100/v170/v171/v180/v190/v191 y smoke-v1100) fallen por diseño (CU-001 cerrado); la columna `receiving_documents.intentos` queda sin uso (no destructivo); la concurrencia real se testea como repetición de la misma línea → 409, más el `FOR UPDATE` en código; 20 avisos de `check-i18n` por claves sin uso en el scanner.
+
+## [1.13.31] - 2026-10-13
+
+Reversión del BLOQUE adhoc (R3 + R4). Se descarta la recepción adhoc (recepción sin documento planificado con confirmar/rechazar) por no ser el flujo deseado. El modelo correcto es **planificación → recepción ciega** (R1 + R2, que se conservan): un usuario planifica el documento con `cantidad_esperada` y otro usuario distinto recibe contra él a ciegas.
+
+### Removed
+
+- **Tablas `receiving_adhoc` y `receiving_adhoc_lines`** dropeadas de la BD viva; `schema.sql` regenerado (34 tablas).
+- **Permiso `inventory.receiving.adhoc`** eliminado de `permissions` y de los arrays `permisos` de los roles en la BD viva; seeder `InventoryPermissionSeeder` restaurado a su estado sin adhoc.
+- **Endpoints adhoc** eliminados de `routes.php`: `POST /inventory/receiving/adhoc`, `POST /{id}/confirm`, `POST /{id}/reject`, y los `GET` de listado/detalle (R4).
+- **Casos de uso** `ReceiveAdhocUseCase`, `ConfirmAdhocUseCase`, `RejectAdhocUseCase` y servicio de lectura `ReceivingAdhocQueryService` eliminados; sus registros en `InventoryException` e `InventoryServiceProvider` revertidos.
+- **`ReceivingAdhocController`** eliminado.
+- **Pestaña "Recepción adhoc"** eliminada de `public/js/modules/inventory/receiving.js` (restaurado a su estado pre-R4, sólo el CU-001 clásico); claves i18n `inventory.receiving.adhoc.*` eliminadas de los 4 locales y del fragmento `receiving.es.json`.
+- **Tests** `ReceiveAdhocUseCaseTest` y `ReceivingAdhocQueryServiceTest` eliminados; `InventoryMysqlTestCase` e `InventorySqliteTestCase` restaurados sin fixtures adhoc.
+- **Scripts** `tools/e2e/e2e-v11330.ps1`, `tools/e2e/e2e-r4-adhoc.ps1` y `tools/smoke/smoke-r4-adhoc.mjs` eliminados.
+
+### Verification
+
+- `composer test` **981/981 OK** (vuelve al conteo previo a R3); `check-schema-drift` **SIN DRIFT** (34 tablas, 413 columnas); `check-data-integrity` **DATOS CONSISTENTES**; `check-i18n` **0 errores**; `php -l` y `node --check` OK en los PHPs/JS restaurados; sin coincidencias de `adhoc` en `src/`, `public/js/`, `routes/`, `tests/` ni `tools/`.
+- Rama de seguridad con el estado previo a la reversión: `backup/adhoc-r3r4-pre-revert` (apunta a `48f7185`).
+
+### Notes
+
+- **Conservado (R1 + R2)**: `receiving_documents`/`receiving_document_lines`, permiso `inventory.receiving.plan`, endpoints `GET/POST/PATCH /receiving/documents` + `/{id}/cancel`, y `POST /receiving/documents/{id}/receive` (recepción ciega con `cantidad_recibida`/`intentos` e incidencia `DISCREPANCIA_CANTIDAD` restringida). Estos endpoints siguen **sin interfaz**: la UI de planificación → recepción ciega es el siguiente paso.
+- La BD de E2E (`xproject_e2e`) sigue con datos adhoc de ejecuciones previas; `prepare-e2e-db.php --fresh` la recrea desde el `schema.sql` ya saneado cuando haga falta.
+
 ## [1.13.30] - 2026-10-13
 
-BLOQUE R3 (backend): recepción adhoc. Registra una recepción sin documento planificado (referencia al albarán/entrega obligatoria). Las unidades nacen en BLOQUEADO y las confirma o rechaza un segundo usuario (separación de funciones).
+BLOQUE R3 (backend): recepción adhoc. **REVERTIDO en 1.13.31**; se documenta como registro histórico.
 
 ### Added
 

@@ -23,32 +23,38 @@ use App\Shared\Services\IdempotencyService;
 use PDO;
 
 /**
- * ReceiveDocumentUseCase - BLOQUE R2 (v1.13.29): RECEPCIÓN CIEGA CONTRA
- * DOCUMENTO.
+ * ReceiveDocumentUseCase - recepción contra documento planificado (v1.13.32).
  *
- * Separa la RECEPCIÓN de la PLANIFICACIÓN con recepción a ciegas:
- *  - Principio 1: el `cantidad_esperada` NUNCA lo introduce quien recibe. El
- *    payload NO lo admite (422 `receivingExpectedQuantityNotAccepted`); sólo
- *    se envía lo que se cuenta (`cantidad_recibida`).
- *  - Principio 2: el creador del documento NO puede recibirlo (422
+ * Flujo definitivo (sin cegueza ni reconteo):
+ *  - El receptor ve la cantidad esperada (GET pendientes la devuelve) y la
+ *    UI la muestra bloqueada; el payload NO admite `cantidad_esperada`
+ *    (422 `receivingExpectedQuantityNotAccepted`).
+ *  - Quien creó el documento NO puede recibirlo, tampoco ADMIN (403
  *    `receivingDocumentCreatorCannotReceive`).
- *  - Principio 3: el receptor cuenta a ciegas. Al primer discrepancia se
- *    responde "recuenta" (estado RECONTEO) SIN revelar la cantidad esperada
- *    ni la diferencia.
- *  - Principio 4 / un solo reconteo: sólo se permite UN reconteo. En el 2º
- *    fallo se registra la cantidad contada (crea unidad física) y se abre una
- *    incidencia DISCREPANCIA_CANTIDAD (tanto en faltante como en
- *    sobre-recepción) con `restriccion_resolucion` = [receptor, planificador]
- *    (ni el receptor ni el planificador la pueden resolver).
- *  - El documento pasa a CERRADA cuando TODAS sus líneas están RECIBIDA; si
- *    sólo algunas, a EN_RECEPCION.
+ *  - Recibida == esperada → unidad física + ledger + evento + línea RECIBIDA.
+ *  - Recibida != esperada → la unidad entra con lo contado y se abre
+ *    incidencia (faltante DISCREPANCIA_CANTIDAD con prioridad por umbral;
+ *    sobre-recepción DISCREPANCIA_CANTIDAD ALTA). La línea queda CERRADA
+ *    (RECIBIDA); no hay reconteo ni segunda recepción del faltante: si el
+ *    proveedor entrega el resto, se planifica un documento nuevo.
+ *  - `rechazo_total` (opcional): las líneas del payload (o todas las
+ *    pendientes si lineas viene vacío) se cierran como RECHAZADA sin crear
+ *    stock y se abre una incidencia ENTREGA_RECHAZADA de prioridad ALTA con
+ *    restricción de resolución (ni receptor ni planificador).
+ *  - Concurrencia: las líneas del documento se cargan con SELECT ... FOR
+ *    UPDATE dentro de la transacción; dos receptores simultáneos sobre la
+ *    misma línea → uno gana, el otro recibe 409.
+ *  - Documento: PLANIFICADA → EN_RECEPCION (primera línea cerrada) → CERRADA
+ *    (todas las líneas cerradas). ANULADA/CERRADA no se reciben.
  *
  * Idempotencia (spec R7): el header `Idempotency-Key` es OBLIGATORIO.
  *
  * Input:
  *  - ubicacion_codigo | ubicacion_id (obligatorio uno; destino de las unidades)
- *  - lineas[] (obligatorio, ≥1): { sku (obligatorio), cantidad_recibida
- *    (obligatorio, ≥0), lote?, numero_serie? }
+ *  - lineas[] (obligatorio si no hay rechazo_total, ≥1): { sku (obligatorio),
+ *    cantidad_recibida (obligatorio si no hay rechazo_total, ≥0), lote?,
+ *    numero_serie? }
+ *  - rechazo_total? (bool, opcional)
  *  - NO se admite cantidad_esperada (ni arriba ni por línea) → 422.
  */
 final class ReceiveDocumentUseCase
@@ -59,6 +65,9 @@ final class ReceiveDocumentUseCase
     private const EPSILON = 0.0001;
 
     private const MAX_TEXT = 255;
+
+    /** Estados de línea que se pueden recibir (PENDIENTE y RECONTEO legado). */
+    private const LINEAS_RECIBIBLES = ['PENDIENTE', 'RECONTEO'];
 
     public function __construct(
         private readonly DatabaseService $db,
@@ -128,9 +137,9 @@ final class ReceiveDocumentUseCase
         );
     }
 
-    // ==================================================================
-    // RECEPCIÓN CIEGA (corazón del R2)
-    // ==================================================================
+    // ====================================================================
+    // RECEPCIÓN CONTRA DOCUMENTO
+    // ====================================================================
 
     /**
      * @param array<string, mixed> $payload ya normalizado/validado
@@ -138,9 +147,9 @@ final class ReceiveDocumentUseCase
      */
     private function receive(string $tenantId, string $documentId, array $payload, string $actorId): array
     {
-        $doc = $this->loadDocument($tenantId, $documentId);
+        $doc = $this->loadDocumentForUpdate($tenantId, $documentId);
 
-        // Principio 2: quien planifica/crea no recibe.
+        // Separación de funciones: quien planifica no recibe (403, también ADMIN).
         if ($doc['creado_por'] === $actorId) {
             throw InventoryException::receivingDocumentCreatorCannotReceive();
         }
@@ -151,37 +160,90 @@ final class ReceiveDocumentUseCase
 
         $location = $this->resolveLocation($tenantId, $payload);
 
-        $linesBySku = $this->loadLinesBySku($documentId);
+        // Bloqueo de fila de las líneas del documento: dos receptores
+        // simultáneos sobre la misma línea → el segundo espera el lock y
+        // luego recibe 409 (línea ya cerrada).
+        $linesBySku = $this->loadLinesBySkuForUpdate($documentId);
 
         $pdo = $this->db->getConnection();
         $now = date('Y-m-d H:i:s');
 
+        $rechazoTotal = (bool) $payload['rechazo_total'];
+        $incomingBySku = [];
+
+        foreach ($payload['lineas'] as $incoming) {
+            $incomingBySku[$incoming['sku']] = $incoming;
+        }
+
+        if ($rechazoTotal && $incomingBySku === []) {
+            // Rechazo total de la entrega sin desglose: se rechazan todas
+            // las líneas pendientes del documento.
+            foreach ($linesBySku as $sku => $line) {
+                if (in_array((string) $line['estado'], self::LINEAS_RECIBIBLES, true)) {
+                    $incomingBySku[$sku] = ['sku' => $sku, 'cantidad_recibida' => 0.0, 'lote' => null, 'numero_serie' => null];
+                }
+            }
+
+            if ($incomingBySku === []) {
+                throw InventoryException::receivingDocumentLinesRequired();
+            }
+        }
+
         $lineResults = [];
         $auditLines = [];
         $slots = 0;
-        $anyReceived = false;
-        $anyRecount = false;
+        $anyClosed = false;
+        $rejectedSkus = [];
 
-        foreach ($payload['lineas'] as $incoming) {
-            $sku = $incoming['sku'];
-
+        foreach ($incomingBySku as $sku => $incoming) {
             if (!isset($linesBySku[$sku])) {
                 throw InventoryException::receivingLineNotFoundForDocument($sku);
             }
 
             $line = $linesBySku[$sku];
+            $estadoLinea = (string) $line['estado'];
 
-            if ($line['estado'] === 'RECIBIDA') {
+            if ($estadoLinea === 'RECIBIDA') {
                 throw InventoryException::receivingLineAlreadyReceived($sku);
             }
 
-            $esperada = (float) $line['cantidad_esperada'];
-            $contada = $incoming['cantidad_recibida'];
-            $intentos = (int) $line['intentos'];
-            $esReconteo = $intentos >= 1;
-            $match = abs($esperada - $contada) < self::EPSILON;
+            if ($estadoLinea === 'RECHAZADA') {
+                throw InventoryException::receivingLineClosed($sku, $estadoLinea);
+            }
 
-            $nuevosIntentos = $intentos + 1;
+            if (!in_array($estadoLinea, self::LINEAS_RECIBIBLES, true)) {
+                throw InventoryException::receivingLineClosed($sku, $estadoLinea);
+            }
+
+            $esperada = (float) $line['cantidad_esperada'];
+
+            if ($rechazoTotal) {
+                // Rechazo total: la línea se cierra RECHAZADA, sin stock.
+                $this->markLineRejected($pdo, (string) $line['id'], $now);
+
+                $lineResults[] = [
+                    'line_id' => (string) $line['id'],
+                    'sku' => $sku,
+                    'estado_linea' => 'RECHAZADA',
+                    'cantidad_recibida' => 0.0,
+                    'unidad_fisica_id' => null,
+                    'incidencia_id' => null,
+                ];
+                $auditLines[] = [
+                    'line_id' => (string) $line['id'],
+                    'sku' => $sku,
+                    'cantidad_esperada' => $esperada,
+                    'cantidad_recibida' => 0.0,
+                    'resultado' => 'RECHAZADA',
+                ];
+                $rejectedSkus[] = $sku;
+                $anyClosed = true;
+                $linesBySku[$sku]['estado'] = 'RECHAZADA';
+                continue;
+            }
+
+            $contada = $incoming['cantidad_recibida'];
+            $match = abs($esperada - $contada) < self::EPSILON;
 
             if ($match) {
                 $unit = $this->createUnit(
@@ -192,14 +254,14 @@ final class ReceiveDocumentUseCase
                     $incoming['lote'],
                     $incoming['numero_serie'],
                     $doc,
-                    $esperada,
-                    $nuevosIntentos
+                    $esperada
                 );
                 $slots += (int) ceil($contada);
 
-                $this->markLineReceived($pdo, (string) $line['id'], $contada, $nuevosIntentos, $unit->id(), $now);
+                $this->markLineReceived($pdo, (string) $line['id'], $contada, $unit->id(), $now);
 
                 $lineResults[] = [
+                    'line_id' => (string) $line['id'],
                     'sku' => $sku,
                     'estado_linea' => 'RECIBIDA',
                     'cantidad_recibida' => $contada,
@@ -207,45 +269,19 @@ final class ReceiveDocumentUseCase
                     'incidencia_id' => null,
                 ];
                 $auditLines[] = [
+                    'line_id' => (string) $line['id'],
                     'sku' => $sku,
                     'cantidad_esperada' => $esperada,
                     'cantidad_recibida' => $contada,
-                    'intentos' => $nuevosIntentos,
                     'resultado' => 'RECIBIDA',
                 ];
-                $anyReceived = true;
+                $anyClosed = true;
                 $linesBySku[$sku]['estado'] = 'RECIBIDA';
                 continue;
             }
 
-            // Discrepancia.
-            if (!$esReconteo) {
-                // Primer fallo: sólo se pide reconteo, sin revelar esperado ni
-                // diferencia. La línea queda PENDIENTE con intentos=1.
-                $this->bumpAttempts($pdo, (string) $line['id'], $nuevosIntentos, $now);
-
-                $lineResults[] = [
-                    'sku' => $sku,
-                    'estado_linea' => 'RECONTEO',
-                    'cantidad_recibida' => null,
-                    'unidad_fisica_id' => null,
-                    'incidencia_id' => null,
-                ];
-                $auditLines[] = [
-                    'sku' => $sku,
-                    'cantidad_esperada' => $esperada,
-                    'cantidad_recibida' => $contada,
-                    'intentos' => $nuevosIntentos,
-                    'resultado' => 'RECONTEO',
-                ];
-                $anyRecount = true;
-                $linesBySku[$sku]['intentos'] = $nuevosIntentos;
-                continue;
-            }
-
-            // 2º fallo (un solo reconteo agotado): se registra la cantidad
-            // contada (unidad física) y se abre incidencia (faltante o
-            // sobre-recepción) con restricción de resolución.
+            // Discrepancia: el stock refleja SIEMPRE lo contado y la línea
+            // queda cerrada con incidencia (sin reconteo ni segunda entrega).
             $esSobreRecepcion = $contada > $esperada;
             $unit = $this->createUnit(
                 $tenantId,
@@ -255,12 +291,11 @@ final class ReceiveDocumentUseCase
                 $incoming['lote'],
                 $incoming['numero_serie'],
                 $doc,
-                $esperada,
-                $nuevosIntentos
+                $esperada
             );
             $slots += (int) ceil($contada);
 
-            $this->markLineReceived($pdo, (string) $line['id'], $contada, $nuevosIntentos, $unit->id(), $now);
+            $this->markLineReceived($pdo, (string) $line['id'], $contada, $unit->id(), $now);
 
             $incident = $this->createDiscrepancyIncident(
                 $tenantId,
@@ -270,12 +305,12 @@ final class ReceiveDocumentUseCase
                 $sku,
                 $esperada,
                 $contada,
-                $nuevosIntentos,
                 $actorId,
                 $esSobreRecepcion
             );
 
             $lineResults[] = [
+                'line_id' => (string) $line['id'],
                 'sku' => $sku,
                 'estado_linea' => 'RECIBIDA_CON_INCIDENCIA',
                 'cantidad_recibida' => $contada,
@@ -283,16 +318,36 @@ final class ReceiveDocumentUseCase
                 'incidencia_id' => $incident->id(),
             ];
             $auditLines[] = [
+                'line_id' => (string) $line['id'],
                 'sku' => $sku,
                 'cantidad_esperada' => $esperada,
                 'cantidad_recibida' => $contada,
-                'intentos' => $nuevosIntentos,
                 'resultado' => 'INCIDENCIA',
                 'incidencia_id' => $incident->id(),
                 'tipo_discrepancia' => $esSobreRecepcion ? 'SOBRE_RECEPCION' : 'FALTANTE',
             ];
-            $anyReceived = true;
+            $anyClosed = true;
             $linesBySku[$sku]['estado'] = 'RECIBIDA';
+        }
+
+        // Incidencia del rechazo total de la entrega (una sola, ALTA).
+        $rechazoIncidentId = null;
+        if ($rechazoTotal && $rejectedSkus !== []) {
+            $rechazoIncident = $this->createRejectedDeliveryIncident(
+                $tenantId,
+                $location,
+                $doc,
+                $rejectedSkus,
+                $actorId
+            );
+            $rechazoIncidentId = $rechazoIncident->id();
+
+            foreach ($lineResults as $index => $result) {
+                if ($result['estado_linea'] === 'RECHAZADA') {
+                    $lineResults[$index]['incidencia_id'] = $rechazoIncidentId;
+                    $auditLines[$index]['incidencia_id'] = $rechazoIncidentId;
+                }
+            }
         }
 
         // Capacidad usada de la destino.
@@ -301,27 +356,23 @@ final class ReceiveDocumentUseCase
             $this->locations->update($location);
         }
 
-        // Transición del documento: CERRADA si todas RECIBIDA, si no
-        // EN_RECEPCION.
-        $allReceived = $this->allLinesReceived($documentId);
-        $newState = $allReceived ? 'CERRADA' : 'EN_RECEPCION';
+        // Transición del documento: la primera línea cerrada pasa a
+        // EN_RECEPCION; si todas están cerradas (RECIBIDA o RECHAZADA), CERRADA.
+        $allClosed = $this->allLinesClosed($documentId);
+        $newState = $allClosed
+            ? 'CERRADA'
+            : ($anyClosed ? 'EN_RECEPCION' : (string) $doc['estado']);
         $this->updateDocumentState($tenantId, $documentId, $newState, $now);
 
-        $resultado = match (true) {
-            $anyRecount => 'RECONTEO_REQUERIDO',
-            $allReceived => 'RECIBIDO',
-            default => 'RECIBIDO',
-        };
-
         $data = [
-            'mensaje' => $anyRecount
-                ? 'Recepción procesada. Algunas líneas requieren reconteo.'
+            'mensaje' => $rechazoTotal
+                ? 'Recepción procesada: entrega rechazada con incidencia de prioridad alta.'
                 : 'Recepción procesada correctamente.',
             'documento_id' => $documentId,
             'numero_documento' => $doc['numero_documento'],
             'estado_documento' => $newState,
-            'resultado' => $resultado,
-            'requiere_reconteo' => $anyRecount,
+            'resultado' => $rechazoTotal ? 'RECHAZADA' : 'RECIBIDO',
+            'rechazo_total' => $rechazoTotal,
             'lineas' => $lineResults,
         ];
 
@@ -329,6 +380,9 @@ final class ReceiveDocumentUseCase
             'documento_id' => $documentId,
             'numero_documento' => $doc['numero_documento'],
             'ubicacion_codigo' => $location->codigo()->value(),
+            'creado_por' => (string) $doc['creado_por'],
+            'recibido_por' => $actorId,
+            'rechazo_total' => $rechazoTotal,
             'lineas' => $auditLines,
         ];
 
@@ -339,13 +393,13 @@ final class ReceiveDocumentUseCase
         ];
     }
 
-    // ==================================================================
+    // ====================================================================
     // UNIDAD FÍSICA + LEDGER + EVENTO
-    // ==================================================================
+    // ====================================================================
 
     /**
      * Crea la unidad física recibida (DISPONIBLE en la destino) con su ledger
-     * y evento RECIBIDO, igual que el CU-001.
+     * y evento RECIBIDO. La cantidad es SIEMPRE la contada.
      */
     private function createUnit(
         string $tenantId,
@@ -355,8 +409,7 @@ final class ReceiveDocumentUseCase
         ?string $lote,
         ?string $numeroSerie,
         array $doc,
-        float $esperada,
-        int $intentos
+        float $esperada
     ): StockUnit {
         $barcode = $this->generateUniqueBarcode();
 
@@ -390,9 +443,8 @@ final class ReceiveDocumentUseCase
             unidadFisicaId: $unit->id(),
             tipoEvento: StockEvent::TIPO_RECIBIDO,
             descripcion: sprintf(
-                'Recepción ciega contra documento %s (intento %d)',
-                $doc['numero_documento'],
-                $intentos
+                'Recepción contra documento %s',
+                $doc['numero_documento']
             ),
             datosOperacion: [
                 'documento_id' => $doc['id'],
@@ -401,7 +453,6 @@ final class ReceiveDocumentUseCase
                 'ubicacion_codigo' => $location->codigo()->value(),
                 'cantidad_esperada' => $esperada,
                 'cantidad_recibida' => $cantidad,
-                'intentos' => $intentos,
                 'lote' => $lote,
                 'numero_serie' => $numeroSerie,
             ] + StockLedger::contextoOperacion(
@@ -419,8 +470,8 @@ final class ReceiveDocumentUseCase
     }
 
     /**
-     * Incidencia DISCREPANCIA_CANTIDAD del 2º fallo, con restricción de
-     * resolución (ni el receptor ni el planificador pueden resolverla).
+     * Incidencia por discrepancia de cantidad (faltante o sobre-recepción),
+     * con restricción de resolución (ni el receptor ni el planificador).
      */
     private function createDiscrepancyIncident(
         string $tenantId,
@@ -430,7 +481,6 @@ final class ReceiveDocumentUseCase
         string $sku,
         float $esperada,
         float $contada,
-        int $intentos,
         string $receptorId,
         bool $esSobreRecepcion
     ): Incident {
@@ -441,22 +491,20 @@ final class ReceiveDocumentUseCase
 
         $descripcion = $esSobreRecepcion
             ? sprintf(
-                'Sobre-recepción en el documento %s, SKU %s: esperadas %.4f, contadas %.4f (+%.4f) tras %d intentos.',
+                'Sobre-recepción en el documento %s, SKU %s: esperadas %.4f, contadas %.4f (+%.4f).',
                 $doc['numero_documento'],
                 $sku,
                 $esperada,
                 $contada,
-                $diferencia,
-                $intentos
+                $diferencia
             )
             : sprintf(
-                'Faltante en el documento %s, SKU %s: esperadas %.4f, contadas %.4f (%.4f) tras %d intentos.',
+                'Faltante en el documento %s, SKU %s: esperadas %.4f, contadas %.4f (%.4f).',
                 $doc['numero_documento'],
                 $sku,
                 $esperada,
                 $contada,
-                $diferencia,
-                $intentos
+                $diferencia
             );
 
         $incident = Incident::create(
@@ -467,7 +515,7 @@ final class ReceiveDocumentUseCase
             unidadFisicaId: $unitId,
             ubicacionId: $locationId,
             actorIdReporta: $receptorId,
-            observaciones: sprintf('Recepción ciega del documento %s (SKU %s).', $doc['numero_documento'], $sku),
+            observaciones: sprintf('Recepción del documento %s (SKU %s).', $doc['numero_documento'], $sku),
             prioridad: $prioridad,
             restriccionResolucion: [
                 'receptor' => $receptorId,
@@ -479,19 +527,60 @@ final class ReceiveDocumentUseCase
         return $incident;
     }
 
-    // ==================================================================
+    /**
+     * Incidencia ENTREGA_RECHAZADA de prioridad ALTA del rechazo total, con
+     * restricción de resolución (ni receptor ni planificador).
+     *
+     * @param array<int, string> $skus
+     */
+    private function createRejectedDeliveryIncident(
+        string $tenantId,
+        Location $location,
+        array $doc,
+        array $skus,
+        string $receptorId
+    ): Incident {
+        $incident = Incident::create(
+            id: $this->generateUuid(),
+            tenantId: $tenantId,
+            tipo: Incident::TIPO_ENTREGA_RECHAZADA,
+            descripcion: sprintf(
+                'Rechazo total de la entrega del documento %s (SKUs: %s).',
+                $doc['numero_documento'],
+                implode(', ', $skus)
+            ),
+            unidadFisicaId: null,
+            ubicacionId: $location->id(),
+            actorIdReporta: $receptorId,
+            observaciones: sprintf('Rechazo total de la entrega del documento %s.', $doc['numero_documento']),
+            prioridad: Incident::PRIORIDAD_ALTA,
+            restriccionResolucion: [
+                'receptor' => $receptorId,
+                'planificador' => (string) $doc['creado_por'],
+            ]
+        );
+        $this->incidents->save($incident);
+
+        return $incident;
+    }
+
+    // ====================================================================
     // HELPERS
-    // ==================================================================
+    // ====================================================================
 
     /**
+     * Carga el documento con bloqueo de fila (FOR UPDATE) para serializar la
+     * transición de estado entre receptores concurrentes.
+     *
      * @return array<string, mixed>
      */
-    private function loadDocument(string $tenantId, string $documentId): array
+    private function loadDocumentForUpdate(string $tenantId, string $documentId): array
     {
         $stmt = $this->db->getConnection()->prepare(
             'SELECT id, tenant_id, numero_documento, estado, creado_por
                FROM receiving_documents
-              WHERE id = :id AND tenant_id = :tenant_id'
+              WHERE id = :id AND tenant_id = :tenant_id
+                FOR UPDATE'
         );
         $stmt->execute(['id' => $documentId, 'tenant_id' => $tenantId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -504,14 +593,15 @@ final class ReceiveDocumentUseCase
     }
 
     /**
-     * @return array<string, array<string, mixed>> líneas del documento indexadas por SKU
+     * @return array<string, array<string, mixed>> líneas del documento indexadas por SKU, bloqueadas (FOR UPDATE)
      */
-    private function loadLinesBySku(string $documentId): array
+    private function loadLinesBySkuForUpdate(string $documentId): array
     {
         $stmt = $this->db->getConnection()->prepare(
-            'SELECT id, producto_id, sku, cantidad_esperada, estado, intentos
+            'SELECT id, producto_id, sku, cantidad_esperada, estado
                FROM receiving_document_lines
-              WHERE document_id = :document_id'
+              WHERE document_id = :document_id
+                FOR UPDATE'
         );
         $stmt->execute(['document_id' => $documentId]);
 
@@ -527,7 +617,6 @@ final class ReceiveDocumentUseCase
         PDO $pdo,
         string $lineId,
         float $cantidadRecibida,
-        int $intentos,
         string $unidadId,
         string $now
     ): void {
@@ -535,7 +624,6 @@ final class ReceiveDocumentUseCase
             'UPDATE receiving_document_lines
                 SET estado = :estado,
                     cantidad_recibida = :cantidad_recibida,
-                    intentos = :intentos,
                     unidad_recepcion_id = :unidad_recepcion_id,
                     updated_at = :updated_at
               WHERE id = :id'
@@ -543,28 +631,31 @@ final class ReceiveDocumentUseCase
         $stmt->execute([
             'estado' => 'RECIBIDA',
             'cantidad_recibida' => $cantidadRecibida,
-            'intentos' => $intentos,
             'unidad_recepcion_id' => $unidadId,
             'updated_at' => $now,
             'id' => $lineId,
         ]);
     }
 
-    private function bumpAttempts(PDO $pdo, string $lineId, int $intentos, string $now): void
+    private function markLineRejected(PDO $pdo, string $lineId, string $now): void
     {
         $stmt = $pdo->prepare(
             'UPDATE receiving_document_lines
-                SET intentos = :intentos, updated_at = :updated_at
+                SET estado = :estado,
+                    cantidad_recibida = 0,
+                    unidad_recepcion_id = NULL,
+                    updated_at = :updated_at
               WHERE id = :id'
         );
-        $stmt->execute(['intentos' => $intentos, 'updated_at' => $now, 'id' => $lineId]);
+        $stmt->execute(['estado' => 'RECHAZADA', 'updated_at' => $now, 'id' => $lineId]);
     }
 
-    private function allLinesReceived(string $documentId): bool
+    /** true si TODAS las líneas están cerradas (RECIBIDA o RECHAZADA). */
+    private function allLinesClosed(string $documentId): bool
     {
         $stmt = $this->db->getConnection()->prepare(
             "SELECT COUNT(*) FROM receiving_document_lines
-              WHERE document_id = :document_id AND estado <> 'RECIBIDA'"
+              WHERE document_id = :document_id AND estado NOT IN ('RECIBIDA', 'RECHAZADA')"
         );
         $stmt->execute(['document_id' => $documentId]);
 
@@ -631,14 +722,15 @@ final class ReceiveDocumentUseCase
     }
 
     /**
-     * Normaliza y valida la entrada. Rechaza `cantidad_esperada` (recepción
-     * ciega) y devuelve el payload canónico.
+     * Normaliza y valida la entrada. Rechaza `cantidad_esperada` (no se
+     * admite en el payload) y devuelve el payload canónico.
      *
      * @return array<string, mixed>
      */
     private function normalize(array $input): array
     {
-        // Principio 1: el esperado no se admite en ningún nivel del payload.
+        // El esperado no se admite en ningún nivel del payload: la cantidad
+        // esperada la fija el documento, no el receptor.
         if ($this->containsExpectedQuantity($input)) {
             throw InventoryException::receivingExpectedQuantityNotAccepted();
         }
@@ -650,15 +742,17 @@ final class ReceiveDocumentUseCase
             throw InventoryException::requiredField('ubicacion_codigo');
         }
 
+        $rechazoTotal = filter_var($input['rechazo_total'] ?? false, FILTER_VALIDATE_BOOL);
+
         $rawLines = $input['lineas'] ?? [];
-        if (!is_array($rawLines) || $rawLines === []) {
+        if (!$rechazoTotal && (!is_array($rawLines) || $rawLines === [])) {
             throw InventoryException::receivingDocumentLinesRequired();
         }
 
         $lines = [];
         $seen = [];
 
-        foreach (array_values($rawLines) as $index => $item) {
+        foreach (array_values(is_array($rawLines) ? $rawLines : []) as $index => $item) {
             $n = $index + 1;
 
             if (!is_array($item)) {
@@ -674,6 +768,16 @@ final class ReceiveDocumentUseCase
                 throw InventoryException::receivingDocumentDuplicateSku($sku);
             }
             $seen[$sku] = true;
+
+            if ($rechazoTotal) {
+                $lines[] = [
+                    'sku' => $sku,
+                    'cantidad_recibida' => 0.0,
+                    'lote' => $this->optionalText($item['lote'] ?? null),
+                    'numero_serie' => $this->optionalText($item['numero_serie'] ?? null),
+                ];
+                continue;
+            }
 
             $contada = $item['cantidad_recibida'] ?? null;
             if (!is_numeric($contada) || (float) $contada < 0) {
@@ -694,6 +798,7 @@ final class ReceiveDocumentUseCase
         return [
             'ubicacion_id' => $ubicacionId,
             'ubicacion_codigo' => $ubicacionCodigo,
+            'rechazo_total' => $rechazoTotal,
             'lineas' => $lines,
         ];
     }

@@ -38,8 +38,6 @@ use PDO;
  * escritura → sólo ADMIN y MANAGER): total 34.
  * v1.13.28 (BLOQUE R1) añade `inventory.receiving.plan` (planificar recepción:
  * documentos de recepción; escritura → sólo ADMIN y MANAGER): total 35.
- * v1.13.30 (BLOQUE R3) añade `inventory.receiving.adhoc` (recepción sin
- * documento planificado; escritura → ADMIN y MANAGER): total 36.
  */
 final class InventoryPermissionSeeder
 {
@@ -74,7 +72,6 @@ final class InventoryPermissionSeeder
         ['inventory.picking.create', 'Crear Picking', 'inventory', 'picking', 'create', 'MEDIUM', 0, 1],
         ['inventory.picking.verify', 'Verificar Picking', 'inventory', 'picking', 'edit', 'HIGH', 0, 1],
         ['inventory.picking.view', 'Ver Picking', 'inventory', 'picking', 'view', 'MEDIUM', 0, 1],
-        ['inventory.receiving.adhoc', 'Recepción Adhoc', 'inventory', 'receiving', 'create', 'HIGH', 0, 1],
         ['inventory.receiving.confirm', 'Confirmar Recepción', 'inventory', 'receiving', 'edit', 'HIGH', 0, 1],
         ['inventory.receiving.create', 'Recibir Inventario', 'inventory', 'receiving', 'create', 'HIGH', 0, 1],
         ['inventory.receiving.plan', 'Planificar Recepción', 'inventory', 'receiving', 'create', 'HIGH', 0, 1],
@@ -112,7 +109,6 @@ final class InventoryPermissionSeeder
             'inventory.location.view',
             'inventory.location.manage',
             'inventory.receiving.create',
-            'inventory.receiving.adhoc',
             'inventory.receiving.confirm',
             'inventory.receiving.plan',
             'inventory.movement.create',
@@ -127,6 +123,7 @@ final class InventoryPermissionSeeder
             'inventory.shipping.confirm',
             'inventory.shipping.view',
             'inventory.delivery.confirm',
+            'inventory.delivery.reject',
             'inventory.delivery.view',
             'inventory.return.create',
             'inventory.return.confirm',
@@ -147,7 +144,6 @@ final class InventoryPermissionSeeder
             'inventory.stock.block',
             'inventory.location.view',
             'inventory.receiving.create',
-            'inventory.receiving.adhoc',
             'inventory.receiving.confirm',
             'inventory.receiving.plan',
             'inventory.movement.create',

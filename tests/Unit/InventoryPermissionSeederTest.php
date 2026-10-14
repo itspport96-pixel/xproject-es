@@ -101,9 +101,9 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
     {
         $result = $this->seeder->seed();
 
-        $this->assertSame(36, $result['permissions_created']);
+        $this->assertSame(35, $result['permissions_created']);
         $this->assertSame(0, $result['permissions_updated']);
-        $this->assertSame(36, $this->permissionCount());
+        $this->assertSame(35, $this->permissionCount());
 
         foreach (InventoryPermissionSeeder::PERMISSIONS as $definition) {
             [$identificador, $nombre, $modulo, $recurso, $accion, $criticidad, $requiereMfa, $activo] = $definition;
@@ -130,7 +130,7 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
             $this->assertSame('inventory', $modulo);
         }
 
-        $this->assertCount(36, InventoryPermissionSeeder::PERMISSIONS);
+        $this->assertCount(35, InventoryPermissionSeeder::PERMISSIONS);
 
         $identificadores = array_map(
             static fn(array $p): string => $p[0],
@@ -181,11 +181,11 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
         $first = $this->seeder->seed();
         $second = $this->seeder->seed();
 
-        $this->assertSame(36, $first['permissions_created']);
+        $this->assertSame(35, $first['permissions_created']);
         $this->assertSame(0, $second['permissions_created']);
         $this->assertSame(0, $second['permissions_updated']);
         $this->assertSame(0, $second['roles_updated']);
-        $this->assertSame(36, $this->permissionCount());
+        $this->assertSame(35, $this->permissionCount());
     }
 
     public function testNoTocaPermisosAjenosAInventory(): void
@@ -205,7 +205,7 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
         $row = $this->permissionRow('users.view');
         $this->assertNotNull($row);
         $this->assertSame('Ver Usuarios', $row['nombre']);
-        $this->assertSame(37, $this->permissionCount());
+        $this->assertSame(36, $this->permissionCount());
     }
 
     public function testReparaElDriftDeMetadatos(): void
@@ -229,7 +229,7 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
         $this->assertSame('MEDIUM', $fixed['criticidad']);
         $this->assertSame('1', (string) $fixed['activo']);
         $this->assertNotNull($this->permissionRow('inventory.reservation.cancel'));
-        $this->assertSame(36, $this->permissionCount());
+        $this->assertSame(35, $this->permissionCount());
     }
 
     // ====================================================================
@@ -277,7 +277,7 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
         $result = $this->seeder->seed();
 
         $this->assertSame(0, $result['roles_updated']);
-        $this->assertSame(36, $result['permissions_created']);
+        $this->assertSame(35, $result['permissions_created']);
     }
 
     public function testUnRolInexistenteSeOmiteSinError(): void
@@ -301,7 +301,7 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
 
         $esperado = [
             'ADMIN' => 35,
-            'MANAGER' => 33,
+            'MANAGER' => 32,
             'USER' => 17,
             'VIEWER' => 10,
         ];

@@ -879,28 +879,6 @@ abstract class InventorySqliteTestCase extends TestCase
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )',
             'CREATE INDEX idx_receiving_document_lines_document ON receiving_document_lines (document_id)',
-            'CREATE TABLE receiving_adhoc (
-                id TEXT PRIMARY KEY,
-                tenant_id TEXT NOT NULL,
-                referencia_documento TEXT NOT NULL,
-                estado TEXT DEFAULT \'PENDIENTE\',
-                creado_por TEXT NOT NULL,
-                creado_por_confirma TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE (tenant_id, referencia_documento)
-            )',
-            'CREATE TABLE receiving_adhoc_lines (
-                id TEXT PRIMARY KEY,
-                adhoc_id TEXT NOT NULL,
-                producto_id TEXT NOT NULL,
-                sku TEXT NOT NULL,
-                cantidad REAL NOT NULL,
-                unidad_id TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )',
-            'CREATE INDEX idx_receiving_adhoc_lines_adhoc ON receiving_adhoc_lines (adhoc_id)',
         ];
 
         foreach ($ddl as $statement) {

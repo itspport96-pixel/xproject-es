@@ -497,92 +497,153 @@
       }
     },
     "receiving": {
-      "title": "Recepción",
-      "subtitle": "Entrada de inventario: unidad física + ledger + evento en una sola transacción",
-      "card_title": "Nueva recepción",
+      "title": "Réception",
+      "subtitle": "Entrée de stock contre des documents planifiés",
       "labels": {
-        "producto": "Producto",
-        "ubicacion_destino": "Ubicación destino",
-        "cantidad_esperada": "Cantidad esperada",
-        "cantidad_recibida": "Cantidad recibida",
-        "lote": "Lote",
-        "numero_serie": "Número de serie",
-        "rechazo_total": "Rechazo total de la entrega"
+        "ubicacion_destino": "Emplacement de destination",
+        "cantidad_esperada": "Quantité attendue",
+        "cantidad_recibida": "Quantité comptée",
+        "lote": "Lot",
+        "numero_serie": "Numéro de série",
+        "rechazo_total": "Rejet total de la livraison"
       },
       "selects": {
-        "producto": "Seleccione un producto",
-        "ubicacion": "Seleccione una ubicación"
+        "producto": "Sélectionnez un produit",
+        "ubicacion": "Sélectionnez un emplacement"
       },
       "placeholders": {
-        "cantidad_recibida": "Vacío = igual a la esperada",
-        "opcional": "Opcional"
+        "opcional": "Facultatif"
       },
       "hints": {
-        "producto": "Sólo productos activos del catálogo.",
-        "ubicacion": "Sólo ubicaciones activas. Etiqueta: código (usada / capacidad).",
-        "cantidad_recibida": "Menor que la esperada genera recepción parcial con incidencia.",
-        "rechazo_total": "No entra en stock: no crea unidad ni ledger y abre una incidencia de entrega rechazada con prioridad alta. La cantidad recibida queda en 0."
-      },
-      "buttons": {
-        "submit": "Registrar recepción",
-        "submitting": "Registrando..."
+        "ubicacion": "Emplacements actifs uniquement. Libellé : code (utilisé / capacité).",
+        "rechazo_total": "La ligne est clôturée en REJETÉE sans créer de stock et ouvre un incident de livraison rejetée de priorité haute.",
+        "esperada_bloqueada": "La quantité attendue est fixée par le document : elle est affichée mais non modifiable."
       },
       "options": {
-        "sin_limite": "sin límite",
-        "sin_espacio": " - sin espacio"
-      },
-      "result": {
-        "title": "Última recepción",
-        "empty_title": "Sin recepciones en esta sesión",
-        "empty_hint": "El código de barras de la unidad aparecerá aquí."
-      },
-      "states": {
-        "rechazada": "Rechazada",
-        "parcial": "Parcial",
-        "completa": "Completa",
-        "sin_unidad": "— sin unidad —"
+        "sin_limite": "sans limite",
+        "sin_espacio": " - sans place"
       },
       "prioridad": {
-        "alta": "Alta",
-        "normal": "Normal"
-      },
-      "columns": {
-        "ubicacion": "Ubicación",
-        "estado": "Estado",
-        "discrepancia": "Discrepancia",
-        "codigo_barras": "Código de barras",
-        "sku": "SKU",
-        "esperada": "Esperada",
-        "recibida": "Recibida"
-      },
-      "messages": {
-        "catalog_error": "No se pudieron cargar productos y ubicaciones",
-        "error_producto_required": "Seleccione un producto.",
-        "error_ubicacion_required": "Seleccione una ubicación destino.",
-        "error_cantidad_esperada": "La cantidad esperada debe ser mayor que cero.",
-        "error_cantidad_recibida": "La cantidad recibida debe ser mayor que cero.",
-        "error_cantidad_recibida_max": "No puede ser mayor que la cantidad esperada.",
-        "submit_error": "No se pudo registrar la recepción",
-        "rechazo_titulo": "Entrega rechazada.",
-        "rechazo_fallback": "No se registró stock; se abrió una incidencia de entrega rechazada.",
-        "parcial_titulo": "Recepción parcial.",
-        "parcial_fallback": "Se registró una incidencia de discrepancia de cantidad.",
-        "evento": "Evento {tipo}",
-        "evento_hash": "· hash {hash}...",
-        "toast_rechazo_titulo": "Entrega rechazada",
-        "toast_rechazo_fallback": "Sin stock; se abrió una incidencia de prioridad alta.",
-        "toast_registrada_titulo": "Recepción registrada",
-        "toast_registrada_mensaje": "{codigo} en {ubicacion}",
-        "error_401_form": "Sesión expirada. Vuelve a iniciar sesión; la clave de idempotencia se conserva.",
-        "error_401_toast": "Vuelve a iniciar sesión para continuar",
-        "error_409_form": "La clave de idempotencia ya se había usado con otros datos. Se generó una nueva clave: revisa el stock antes de reintentar.",
-        "error_409_toast_titulo": "Idempotencia",
-        "error_409_toast": "Clave reutilizada con datos distintos; se generó una nueva",
-        "toast_capacidad": "Capacidad excedida"
+        "alta": "Haute",
+        "normal": "Normale"
       },
       "permission": {
-        "title": "Pas de permission",
-        "body": "Vous avez besoin de <code>{permiso}</code> pour voir cet ecran."
+        "title": "Sans permission",
+        "body": "Vous avez besoin de <code>{permiso}</code> pour voir cet écran."
+      },
+      "tabs": {
+        "receive": "Réception",
+        "plan": "Planification"
+      },
+      "doc_states": {
+        "PLANIFICADA": "Planifié",
+        "EN_RECEPCION": "En réception",
+        "CERRADA": "Clôturé",
+        "ANULADA": "Annulé"
+      },
+      "line_states": {
+        "RECIBIDA": "Reçue",
+        "RECHAZADA": "Rejetée",
+        "RECONTEO": "Recompte (legacy)",
+        "RECIBIDA_CON_INCIDENCIA": "Reçue avec incident"
+      },
+      "plan": {
+        "title": "Documents de réception",
+        "new": "Nouveau document",
+        "pagination_label": "documents",
+        "filters": {
+          "estado": "État",
+          "all_states": "Tous les états",
+          "search": "Rechercher",
+          "search_placeholder": "N° de document ou fournisseur",
+          "apply": "Filtrer",
+          "clear": "Effacer",
+          "clear_title": "Effacer les filtres"
+        },
+        "columns": {
+          "numero": "N° doc.",
+          "proveedor": "Fournisseur",
+          "referencia": "Référence",
+          "sku": "SKU",
+          "estado": "État",
+          "lineas": "Lignes",
+          "fecha": "Date",
+          "acciones": "Actions"
+        },
+        "actions": {
+          "edit": "Modifier",
+          "cancel": "Annuler",
+          "cancel_confirm": "Annuler ce document de réception ?"
+        },
+        "empty_title": "Aucun document",
+        "empty_message": "Créez un document de réception avec les quantités attendues.",
+        "load_error_title": "Impossible de charger les documents",
+        "load_error_fallback": "Erreur lors du chargement des documents de réception.",
+        "editor": {
+          "new_title": "Nouveau document de réception",
+          "edit_title": "Modifier le document de réception",
+          "numero": "N° de document",
+          "proveedor": "Fournisseur",
+          "referencia": "Référence",
+          "lineas": "Lignes (SKU et quantité attendue)",
+          "sku": "SKU",
+          "cantidad_esperada": "Quantité attendue",
+          "add_line": "Ajouter une ligne",
+          "save": "Enregistrer",
+          "saving": "Enregistrement..."
+        },
+        "messages": {
+          "saved_title": "Document enregistré",
+          "created_ok": "Document de réception créé.",
+          "updated_ok": "Document de réception mis à jour.",
+          "save_error": "Impossible d’enregistrer le document.",
+          "cancelled_title": "Document annulé",
+          "cancelled_ok": "Le document de réception a été annulé.",
+          "cancel_error": "Impossible d’annuler le document.",
+          "error_numero_required": "Le numéro de document est obligatoire.",
+          "error_lineas_required": "Ajoutez au moins une ligne avec SKU et quantité attendue.",
+          "error_linea_sku": "Chaque ligne doit avoir un SKU.",
+          "error_linea_cantidad": "La quantité attendue doit être supérieure à zéro.",
+          "error_second_receiver": "Celui qui planifie ne peut être le seul récepteur : créez ou activez un autre utilisateur avec la permission de réception."
+        }
+      },
+      "receive": {
+        "title": "Réception contre un document",
+        "select_doc": "Document en attente",
+        "select_placeholder": "Sélectionnez un document",
+        "select_hint": "Documents planifiés ou en réception créés par un autre utilisateur uniquement.",
+        "ubicacion_destino": "Emplacement de destination",
+        "cantidad_recibida": "Quantité comptée",
+        "expected_notice": "La quantité attendue est fixée par le document : elle est affichée verrouillée et n’est pas envoyée dans le payload.",
+        "loading": "Chargement...",
+        "submit": "Confirmer la réception",
+        "submitting": "Confirmation...",
+        "result_title": "Résultat de la réception",
+        "all_received_title": "Aucune ligne récevable",
+        "all_received_message": "Toutes les lignes de ce document sont clôturées (reçues ou rejetées).",
+        "load_error_fallback": "Erreur lors du chargement des documents en attente.",
+        "columns": {
+          "estado_linea": "État",
+          "esperada": "Attendue",
+          "contada": "Comptée",
+          "unidad": "Unité",
+          "incidencia": "Incident"
+        },
+        "states": {
+          "ok": "Traitée",
+          "rechazada": "Rejetée"
+        },
+        "messages": {
+          "doc_estado": "État du document",
+          "submit_error": "Impossible de traiter la réception.",
+          "error_ubicacion_required": "Sélectionnez un emplacement de destination.",
+          "error_lineas_required": "Saisissez la quantité comptée d’au moins une ligne.",
+          "error_409": "La ligne a déjà été reçue ou est clôturée. Les documents en attente ont été rechargés.",
+          "toast_title": "Réception traitée"
+        }
+      },
+      "messages": {
+        "catalog_error": "Impossible de charger les produits et les emplacements"
       }
     },
     "movements": {

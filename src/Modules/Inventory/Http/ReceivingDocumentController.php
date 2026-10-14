@@ -13,20 +13,21 @@ use App\Shared\Container\Container;
 use App\Shared\Exceptions\HttpException;
 
 /**
- * Controlador HTTP para los documentos de recepción planificada (BLOQUE R1)
- * y la recepción ciega contra documento (BLOQUE R2).
+ * Controlador HTTP para los documentos de recepción planificada (plan) y la
+ * recepción contra documento (v1.13.32: sin cegueza ni reconteo).
  *
  * Endpoints:
  *  - GET   /api/inventory/receiving/documents       → index (listar)
+ *  - GET   /api/inventory/receiving/documents/pending → pending (para el receptor)
  *  - POST  /api/inventory/receiving/documents       → store (crear)
  *  - GET   /api/inventory/receiving/documents/{id}  → show
  *  - PATCH /api/inventory/receiving/documents/{id}  → update
  *  - POST  /api/inventory/receiving/documents/{id}/cancel → cancel
- *  - POST  /api/inventory/receiving/documents/{id}/receive → receive (ciega)
+ *  - POST  /api/inventory/receiving/documents/{id}/receive → receive
  *
  * Permisos (aplicados via PermissionMiddleware en routes):
  *  - inventory.receiving.plan   → los 5 endpoints de planificación
- *  - inventory.receiving.create → el endpoint de recepción (R2)
+ *  - inventory.receiving.create → pending y receive (recepción)
  */
 final class ReceivingDocumentController
 {
@@ -83,6 +84,26 @@ final class ReceivingDocumentController
         $perPage = min(100, max(1, (int) ($query['per_page'] ?? 20)));
 
         $result = $this->service->findAll($filters, $page, $perPage);
+
+        return $this->json(200, $result);
+    }
+
+    /**
+     * GET /api/inventory/receiving/documents/pending
+     *
+     * Documentos PLANIFICADA/EN_RECEPCION del tenant con sus líneas y
+     * cantidad_esperada, excluyendo los creados por el usuario autenticado
+     * (v1.13.32: el receptor ve el esperado; la UI lo muestra bloqueado).
+     */
+    public function pending(array $request): array
+    {
+        $claims = $this->requireAuthenticated($request);
+
+        $query = $request['query'] ?? [];
+        $page = max(1, (int) ($query['page'] ?? 1));
+        $perPage = min(100, max(1, (int) ($query['per_page'] ?? 20)));
+
+        $result = $this->service->findPendingForReceiver((string) $claims['user_id'], $page, $perPage);
 
         return $this->json(200, $result);
     }
@@ -182,15 +203,15 @@ final class ReceivingDocumentController
     }
 
     // ====================================================================
-    // RECEPCIÓN CIEGA (BLOQUE R2)
+    // RECEPCIÓN CONTRA DOCUMENTO
     // ====================================================================
 
     /**
      * POST /api/inventory/receiving/documents/{id}/receive
      *
-     * Recepción a ciegas contra el documento: el receptor sólo envía lo que
-     * cuenta (`cantidad_recibida`); el `cantidad_esperada` lo conoce el
-     * servidor (principio 1). Requiere Idempotency-Key.
+     * El receptor envía lo que cuenta (`cantidad_recibida`); el esperado lo
+     * conoce el documento (la UI lo muestra bloqueado y el payload no lo
+     * admite). Requiere Idempotency-Key.
      */
     public function receive(array $request, array $params): array
     {
@@ -252,13 +273,14 @@ final class ReceivingDocumentController
     }
 
     /**
-     * Auditoría de dominio de la recepción ciega (BLOQUE R2, spec §7.1).
+     * Auditoría de dominio de la recepción contra documento (v1.13.32).
      *
-     * Sólo en éxito: los errores (400/404/409/422) ya los registra el hook
+     * Sólo en éxito: los errores (400/403/404/409/422) ya los registra el hook
      * del Router (AuditMiddleware) con su causa.
      *
      * `valores_anteriores` guarda el detalle interno `_auditoria` (número de
-     * documento, esperada, intentos y recibida por línea). El marcador NO se
+     * documento, ubicación, planificador, receptor, rechazo_total y el
+     * detalle por línea con line_id, esperada y recibida). El marcador NO se
      * filtra al cliente: `useCaseResponse()` sólo copia `status` y `data`.
      */
     private function auditReceiving(array $request, array $claims, string $key, array $response): void
@@ -288,6 +310,9 @@ final class ReceivingDocumentController
                 'codigo_respuesta' => $response['status'] ?? null,
                 'documento_numero' => $auditoria['numero_documento'] ?? null,
                 'ubicacion_codigo' => $auditoria['ubicacion_codigo'] ?? null,
+                'creado_por' => $auditoria['creado_por'] ?? null,
+                'recibido_por' => $auditoria['recibido_por'] ?? $claims['user_id'] ?? null,
+                'rechazo_total' => $auditoria['rechazo_total'] ?? false,
                 'lineas' => $auditoria['lineas'] ?? [],
             ],
         ]);
