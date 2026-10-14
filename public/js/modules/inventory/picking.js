@@ -317,7 +317,13 @@
         if (!root) return;
 
         if (state.reservationsLoading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: '' },
+                { label: t('inventory.picking.columns.barcode') },
+                { label: t('inventory.picking.columns.producto') },
+                { label: t('inventory.picking.columns.reservada'), className: 'text-right' },
+                { label: t('inventory.picking.columns.vencimiento') }
+            ], 6, [5, 18, 37, 15, 25]);
             return;
         }
 
@@ -441,7 +447,16 @@
         if (!root) return;
 
         if (state.pickingLoading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('inventory.picking.columns.lote') },
+                { label: t('inventory.picking.columns.unidades'), className: 'text-right' },
+                { label: t('inventory.picking.columns.estado') },
+                { label: t('inventory.picking.columns.referencia') },
+                { label: t('inventory.picking.columns.selector') },
+                { label: t('inventory.picking.columns.supervisor') },
+                { label: t('inventory.picking.columns.creado') },
+                { label: t('inventory.picking.columns.acciones'), className: 'col-actions' }
+            ], 6, [14, 10, 10, 14, 12, 12, 12, 16]);
             return;
         }
 

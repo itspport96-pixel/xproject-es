@@ -265,7 +265,14 @@
         if (!root) return;
 
         if (state.loading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('users.columns.email') },
+                { label: t('users.columns.name') },
+                { label: t('users.columns.status') },
+                { label: t('users.columns.roles') },
+                { label: t('users.columns.last_login') },
+                { label: t('users.columns.actions'), className: 'col-actions' }
+            ], 8, [30, 20, 12, 18, 12, 8]);
             return;
         }
 
@@ -350,7 +357,15 @@
         if (!root) return;
 
         if (state.temp.loading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('users.temp.columns.user') },
+                { label: t('users.temp.columns.permission') },
+                { label: t('users.temp.columns.motive') },
+                { label: t('users.temp.columns.expires') },
+                { label: t('users.temp.columns.granted_by') },
+                { label: t('users.temp.columns.state') },
+                { label: t('users.columns.actions'), className: 'col-actions' }
+            ], 6, [25, 20, 18, 15, 12, 8, 5]);
             return;
         }
 

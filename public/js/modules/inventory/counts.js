@@ -196,7 +196,15 @@
         if (!root) return;
 
         if (state.loading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('inventory.counts.columns.conteo') },
+                { label: t('inventory.counts.columns.ubicacion') },
+                { label: t('inventory.counts.columns.estado') },
+                { label: t('inventory.counts.columns.fecha') },
+                { label: t('inventory.counts.columns.discrepancias') },
+                { label: t('inventory.counts.columns.reconciliado') },
+                { label: t('inventory.counts.columns.acciones'), className: 'col-actions' }
+            ], 8, [18, 16, 12, 14, 14, 12, 14]);
             return;
         }
 

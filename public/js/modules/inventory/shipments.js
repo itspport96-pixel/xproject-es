@@ -512,7 +512,16 @@
         if (!root) return;
 
         if (state.listLoading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('inventory.shipments.columns.envio') },
+                { label: t('inventory.shipments.columns.destinatario') },
+                { label: t('inventory.shipments.columns.tipo') },
+                { label: t('inventory.shipments.columns.conductor') },
+                { label: t('inventory.shipments.columns.items'), className: 'text-right' },
+                { label: t('inventory.shipments.columns.estado') },
+                { label: t('inventory.shipments.columns.creado') },
+                { label: t('inventory.shipments.columns.acciones'), className: 'col-actions' }
+            ], 6, [12, 22, 10, 14, 8, 10, 12, 12]);
             return;
         }
 

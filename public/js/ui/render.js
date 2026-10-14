@@ -73,6 +73,59 @@
     }
 
     /**
+     * Skeleton de tabla: misma estructura que tableShell (thead + tbody)
+     * pero con filas placeholder animadas. Mantiene el layout estable
+     * mientras cargan los datos — no hay parpadeo ni layout shift.
+     *
+     * @param {Array<{label: string, className?: string}>} columnas
+     * @param {number} filas numero de filas placeholder (default 8)
+     * @param {Array<number>} widths anchos relativos por columna en % (opcional)
+     */
+    function tableSkeleton(columnas, filas, widths) {
+        const cols = columnas || [];
+        const numRows = Math.max(1, Number(filas) || 8);
+        const colWidths = Array.isArray(widths) && widths.length === cols.length
+            ? widths
+            : cols.map(() => Math.floor(100 / Math.max(1, cols.length)));
+
+        const cabecera = cols.map(col => {
+            const clase = col.className ? ` class="${col.className}"` : '';
+            return `<th${clase}>${UI.escapeHtml(col.label)}</th>`;
+        }).join('');
+
+        const filasHtml = Array.from({ length: numRows }, () => {
+            const celdas = colWidths.map(w => `
+                <td><div class="skeleton" style="height:0.875rem;width:${w}%;max-width:12rem;border-radius:var(--radius-sm)"></div></td>
+            `).join('');
+            return `<tr aria-hidden="true">${celdas}</tr>`;
+        }).join('');
+
+        return `
+            <table class="table">
+                <thead>
+                    <tr>${cabecera}</tr>
+                </thead>
+                <tbody>${filasHtml}</tbody>
+            </table>`;
+    }
+
+    /**
+     * Skeleton de tarjetas de resumen: N placeholders con la misma
+     * altura y estructura que summaryCards para evitar layout shift.
+     *
+     * @param {number} count numero de tarjetas (default 4)
+     */
+    function cardsSkeleton(count) {
+        const n = Math.max(1, Number(count) || 4);
+        return Array.from({ length: n }, () => `
+            <div class="card p-3">
+                <div class="skeleton" style="height:0.75rem;width:40%;margin-bottom:0.5rem;border-radius:var(--radius-sm)"></div>
+                <div class="skeleton" style="height:1.5rem;width:60%;border-radius:var(--radius-sm)"></div>
+            </div>
+        `).join('');
+    }
+
+    /**
      * @param {Array<{label: string, className?: string}>} columnas
      * @param {string} filasHtml
      */
@@ -149,6 +202,8 @@
         estadoBadge: estadoBadge,
         emptyState: emptyState,
         loadingState: loadingState,
+        tableSkeleton: tableSkeleton,
+        cardsSkeleton: cardsSkeleton,
         tableShell: tableShell,
         renderPagination: renderPagination,
         summaryCards: summaryCards

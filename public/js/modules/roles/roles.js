@@ -128,7 +128,13 @@
         if (!root) return;
 
         if (state.loading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('roles.columns.name') },
+                { label: t('roles.columns.type') },
+                { label: t('roles.columns.state') },
+                { label: t('roles.columns.permissions'), className: 'text-right' },
+                { label: t('roles.columns.actions'), className: 'col-actions' }
+            ], 6, [40, 15, 15, 15, 15]);
             return;
         }
 

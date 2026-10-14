@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.48] - 2026-10-14
+
+**Skeleton Loading en tablas: sin parpadeos ni layout shift durante la carga.** Se reemplaza el spinner centrado (`UI.loadingState`) por placeholders animados que mantienen la estructura, dimensiones y posiciones de la tabla mientras llegan los datos. Nuevas funciones `UI.tableSkeleton(columns, rows, widths)` (misma estructura que `tableShell` con filas placeholder shimmer) y `UI.cardsSkeleton(count)` (placeholders de tarjetas de resumen). Actualizados 10 módulos: users, groups, roles, counts, deliveries (2 tablas), incidents, movements, picking (2 tablas), reservations y shipments.
+
+### Added
+- `UI.tableSkeleton(columnas, filas, widths)` en `public/js/ui/render.js`: genera una tabla con thead real y filas placeholder animadas (clases `.skeleton` existentes en `components.css`). Los anchos por columna se especifican en % para que el skeleton reproduzca el layout real.
+- `UI.cardsSkeleton(count)` en `public/js/ui/render.js`: placeholders de tarjetas con la misma altura y estructura que `summaryCards`.
+
+### Changed
+- **users.js**: tabla de usuarios y tabla de permisos temporales usan skeleton (8 y 6 filas).
+- **groups.js**: tabla de grupos usa skeleton (6 filas).
+- **roles.js**: tabla de roles usa skeleton (6 filas).
+- **counts.js**: tabla de conteos usa skeleton (8 filas).
+- **deliveries.js**: tabla en-ruta e historial usan skeleton (6 y 8 filas).
+- **incidents.js**: tabla de incidencias usa skeleton (8 filas).
+- **movements.js**: tabla de movimientos usa skeleton (8 filas).
+- **picking.js**: tabla de reservas y tabla de picking usan skeleton (6 filas cada una).
+- **reservations.js**: tabla de reservas usa skeleton (6 filas).
+- **shipments.js**: tabla de envíos usa skeleton (6 filas).
+
 ## [1.13.47] - 2026-10-14
 
 **Fix: permisos temporales de usuarios borrados siguen apareciendo.** El query de `TemporaryPermissionRepository` hacía `INNER JOIN users` sin filtrar `u.deleted_at IS NULL`, así que los permisos temporales de un usuario con soft delete seguían listándose. Se añade el filtro al WHERE compartido (`findAll`, `count`, `findById`).

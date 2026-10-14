@@ -121,7 +121,12 @@
         if (!root) return;
 
         if (state.loading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('groups.columns.name') },
+                { label: t('groups.columns.state') },
+                { label: t('groups.columns.members'), className: 'text-right' },
+                { label: t('groups.columns.actions'), className: 'col-actions' }
+            ], 6, [45, 15, 20, 20]);
             return;
         }
 

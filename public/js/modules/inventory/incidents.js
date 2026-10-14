@@ -253,7 +253,17 @@
         if (!root) return;
 
         if (state.loading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('inventory.incidents.columns.incidencia') },
+                { label: t('inventory.incidents.columns.tipo') },
+                { label: t('inventory.incidents.columns.descripcion') },
+                { label: t('inventory.incidents.columns.unidad') },
+                { label: t('inventory.incidents.columns.ubicacion') },
+                { label: t('inventory.incidents.columns.estado') },
+                { label: t('inventory.incidents.columns.prioridad') },
+                { label: t('inventory.incidents.columns.deteccion') },
+                { label: t('inventory.incidents.columns.acciones'), className: 'col-actions' }
+            ], 8, [12, 8, 20, 10, 10, 10, 8, 12, 10]);
             return;
         }
 

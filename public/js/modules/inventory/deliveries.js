@@ -229,7 +229,15 @@
         if (!root) return;
 
         if (state.enRutaLoading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('inventory.deliveries.columns.envio') },
+                { label: t('inventory.deliveries.columns.referencia') },
+                { label: t('inventory.deliveries.columns.destinatario') },
+                { label: t('inventory.deliveries.columns.conductor') },
+                { label: t('inventory.deliveries.columns.items'), className: 'text-right' },
+                { label: t('inventory.deliveries.columns.creado') },
+                { label: t('inventory.deliveries.columns.acciones'), className: 'col-actions' }
+            ], 6, [14, 20, 20, 14, 10, 12, 10]);
             return;
         }
 
@@ -336,7 +344,16 @@
         if (!root) return;
 
         if (state.listLoading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('inventory.deliveries.columns.entrega') },
+                { label: t('inventory.deliveries.columns.envio') },
+                { label: t('inventory.deliveries.columns.barcode') },
+                { label: t('inventory.deliveries.columns.cantidad'), className: 'text-right' },
+                { label: t('inventory.deliveries.columns.estado') },
+                { label: t('inventory.deliveries.columns.destinatario') },
+                { label: t('inventory.deliveries.columns.firma') },
+                { label: t('inventory.deliveries.columns.entregado') }
+            ], 8, [12, 12, 14, 8, 10, 14, 10, 20]);
             return;
         }
 

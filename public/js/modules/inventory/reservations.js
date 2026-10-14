@@ -122,7 +122,14 @@
         if (!root) return;
 
         if (state.loading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('inventory.reservations.columns.barcode') },
+                { label: t('inventory.reservations.columns.producto') },
+                { label: t('inventory.reservations.columns.reservada'), className: 'text-right' },
+                { label: t('inventory.reservations.columns.estado') },
+                { label: t('inventory.reservations.columns.vencimiento') },
+                { label: t('inventory.reservations.columns.acciones'), className: 'col-actions' }
+            ], 6, [16, 30, 12, 12, 16, 14]);
             return;
         }
 

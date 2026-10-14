@@ -144,7 +144,15 @@
         if (!root) return;
 
         if (state.loading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('inventory.movements.columns.movimiento') },
+                { label: t('inventory.movements.columns.fecha') },
+                { label: t('inventory.movements.columns.unidad') },
+                { label: t('inventory.movements.columns.ruta') },
+                { label: t('inventory.movements.columns.motivo') },
+                { label: t('inventory.movements.columns.actor') },
+                { label: t('inventory.movements.columns.correccion') }
+            ], 8, [14, 14, 14, 20, 14, 12, 12]);
             return;
         }
 
