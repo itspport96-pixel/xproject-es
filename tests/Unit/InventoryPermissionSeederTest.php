@@ -43,7 +43,6 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
                 id TEXT PRIMARY KEY,
                 nombre TEXT NOT NULL UNIQUE,
                 tipo TEXT,
-                permisos TEXT,
                 updated_at TEXT,
                 deleted_at TEXT
             )'
@@ -63,27 +62,66 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
     // HELPERS
     // ====================================================================
 
-    private function seedRole(string $nombre, array $permisos, string $id = ''): void
+    private function seedPermission(string $identificador): string
     {
+        $id = 'perm-' . str_replace('.', '-', $identificador);
+        $parts = explode('.', $identificador, 3);
         $stmt = $this->pdo->prepare(
-            'INSERT INTO roles (id, nombre, tipo, permisos, updated_at) VALUES (?, ?, ?, ?, ?)'
+            'INSERT OR IGNORE INTO permissions (id, identificador, nombre, modulo, recurso, accion, criticidad)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
-            $id !== '' ? $id : 'role-' . strtolower($nombre),
+            $id,
+            $identificador,
+            'Permiso ' . $identificador,
+            $parts[0] ?? '',
+            $parts[1] ?? '',
+            $parts[2] ?? '',
+            'MEDIUM',
+        ]);
+        return $id;
+    }
+
+    private function seedRole(string $nombre, array $permisos, string $id = ''): void
+    {
+        $roleId = $id !== '' ? $id : 'role-' . strtolower($nombre);
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO roles (id, nombre, tipo, updated_at) VALUES (?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $roleId,
             $nombre,
             'BUILT_IN',
-            json_encode($permisos, JSON_UNESCAPED_UNICODE),
             date('Y-m-d H:i:s'),
         ]);
+
+        foreach ($permisos as $ident) {
+            $q = $this->pdo->prepare('SELECT id FROM permissions WHERE identificador = ?');
+            $q->execute([$ident]);
+            $permId = $q->fetchColumn();
+            if ($permId === false) {
+                continue;
+            }
+            $j = $this->pdo->prepare(
+                'INSERT OR IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)'
+            );
+            $j->execute([$roleId, (string) $permId]);
+        }
     }
 
     private function rolePermissions(string $nombre): array
     {
-        $stmt = $this->pdo->prepare('SELECT permisos FROM roles WHERE nombre = ?');
+        $stmt = $this->pdo->prepare(
+            'SELECT p.identificador
+             FROM role_permissions rp
+             INNER JOIN permissions p ON p.id = rp.permission_id
+             INNER JOIN roles r ON r.id = rp.role_id
+             WHERE r.nombre = ?
+             ORDER BY p.identificador'
+        );
         $stmt->execute([$nombre]);
-        $json = $stmt->fetchColumn();
 
-        return $json === false ? [] : (array) json_decode((string) $json, true);
+        return $stmt->fetchAll(\PDO::FETCH_COLUMN);
     }
 
     private function permissionRow(string $identificador): ?array
@@ -245,6 +283,11 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
 
     public function testAnadeLosPermisosFaltantesALosRoles(): void
     {
+        // Permisos preexistentes que el seeder no debe borrar
+        $this->seedPermission('users.create');
+        $this->seedPermission('inventory.item.view');
+        $this->seedPermission('audit.view');
+
         // Roles con listas incompletas (nuevo tenant) + permisos ajenos
         $this->seedRole('ADMIN', ['users.create', 'inventory.item.view']);
         $this->seedRole('MANAGER', []);
@@ -276,6 +319,11 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
 
     public function testNoModificaRolesQueYaEstanCompletos(): void
     {
+        // Sembrar permisos ANTES de seedRole para que junction pueda poblarse
+        foreach (InventoryPermissionSeeder::PERMISSIONS as $def) {
+            $this->seedPermission($def[0]);
+        }
+
         $this->seedRole('ADMIN', InventoryPermissionSeeder::ROLE_PERMISSIONS['ADMIN']);
         $this->seedRole('MANAGER', InventoryPermissionSeeder::ROLE_PERMISSIONS['MANAGER']);
         $this->seedRole('USER', InventoryPermissionSeeder::ROLE_PERMISSIONS['USER']);
@@ -284,7 +332,7 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
         $result = $this->seeder->seed();
 
         $this->assertSame(0, $result['roles_updated']);
-        $this->assertSame(34, $result['permissions_created']);
+        $this->assertSame(0, $result['permissions_created'], 'Los permisos ya existen');
     }
 
     public function testUnRolInexistenteSeOmiteSinError(): void

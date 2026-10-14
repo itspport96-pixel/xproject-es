@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.42] - 2026-10-14
+
+**Normalizacion BD (N1-N5): integridad referencial, limpieza de tablas muertas y migracion de roles.permisos JSON a junction role_permissions.** Bloque completo de normalizacion de esquema. Tablas muertas dropeadas (notification_logs, notification_preferences, receiving_documents, receiving_document_lines). FKs anadidas a picking_operations, movements (self-FK), idempotency_keys. secrets_vault UNIQUE pasa a (tenant_id, nombre). roles.permisos (JSON array de identificadores) reemplazado por tabla junction role_permissions (role_id, permission_id) con FKs CASCADE — contrato API `permisos: string[]` sin cambios.
+
+### Added
+- **Tabla `role_permissions`** (role_id CHAR(36), permission_id CHAR(36), PK compuesto, FKs CASCADE a roles y permissions). 128 filas migradas desde el JSON de los 4 roles BUILT_IN.
+- **FKs**: `picking_operations.actor_id_selector` y `supervisor_id` → users, `movements.movimiento_referencia_id` → movements (self-FK), `idempotency_keys.actor_id` → users.
+
+### Changed
+- **Lectura de permisos de rol**: `AuthorizationService::getRolePermissions`, `getPermissionsFromDirectRoles`, `getPermissionsFromGroupRoles`, `UserRepository::getUserPermissions`, `PermissionRepository::isAssignedToAnyRole`, `RoleRepository::findByPermisos` y `findById/findAll/findByTipo` ahora usan JOIN role_permissions. Se elimina `extractPermissionsFromRows` (decodificador JSON muerto).
+- **Escritura de permisos de rol**: `RoleRepository::save()` y `update()` sincronizan la junction (delete+insert). Los 3 seeders (Inventory, PlatformControl, Audit) leen de junction para calcular faltantes y anaden via junction.
+- **Hydratacion**: `AuthorizationService::fetchRoles` y `RoleRepository` hidratan `permisos` desde junction tras el SELECT. `Role::fromArray()` mantiene soporte in-memory.
+
+### Removed
+- **Columna `roles.permisos`** (JSON TEXT). Ya no existe en la BD viva ni en schema.sql.
+
+### Fixed
+- Permisos huerfanos `inventory.receiving.plan` y `inventory.receiving.confirm` (sin endpoint activo) removidos de roles y desactivados.
+
 ## [1.13.41] - 2026-10-14
 
 **Indexacion BD: indices compuestos (tenant_id, fecha) para list endpoints.** Los listados de movements, shipments, deliveries, incidents, inventory_counts, reservations, picking_operations, return_operations y stock_ledger ordenan y filtran por `tenant_id` + columna de fecha. Sin indice compuesto, cada request ejecutaba un filesort sobre todas las filas del tenant. Ahora MySQL usa `idx_tenant_fecha` y el ordenado se resuelve en el indice. Anadido indice en `roles(tipo, activo)` para el filtro del seeder.

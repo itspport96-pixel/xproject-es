@@ -171,42 +171,32 @@ final class AuditPermissionSeeder
     private function syncRolePermissions(string $nombre, array $required): bool
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, permisos FROM roles WHERE nombre = :nombre AND tipo = ' . "'BUILT_IN'" . ' AND deleted_at IS NULL'
+            'SELECT id FROM roles WHERE nombre = :nombre AND tipo = ' . "'BUILT_IN'" . ' AND deleted_at IS NULL'
         );
         $stmt->execute(['nombre' => $nombre]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $roleId = $stmt->fetchColumn();
 
-        if ($row === false) {
+        if ($roleId === false) {
             return false;
         }
 
-        $current = $row['permisos'] ?? null;
-        $decoded = is_string($current) ? json_decode($current, true) : $current;
+        // Permisos actuales desde junction
+        $jStmt = $this->pdo->prepare(
+            'SELECT p.identificador
+             FROM role_permissions rp
+             INNER JOIN permissions p ON p.id = rp.permission_id
+             WHERE rp.role_id = :rid'
+        );
+        $jStmt->execute(['rid' => $roleId]);
+        $current = $jStmt->fetchAll(PDO::FETCH_COLUMN);
 
-        if (!is_array($decoded)) {
-            $decoded = [];
-        }
-
-        $decoded = array_values(array_map('strval', $decoded));
-        $missing = array_values(array_diff($required, $decoded));
+        $missing = array_values(array_diff($required, $current));
 
         if ($missing === []) {
             return false;
         }
 
-        $merged = array_values(array_unique(array_merge($decoded, $missing)));
-        sort($merged);
-
-        $update = $this->pdo->prepare(
-            'UPDATE roles SET permisos = :permisos, updated_at = CURRENT_TIMESTAMP WHERE id = :id'
-        );
-        $update->execute([
-            'permisos' => json_encode($merged, JSON_UNESCAPED_UNICODE),
-            'id' => $row['id'],
-        ]);
-
-        // Sincronizar junction role_permissions
-        $this->syncJunctionPermissions($row['id'], $merged);
+        $this->syncJunctionPermissions((string) $roleId, array_merge($current, $missing));
 
         return true;
     }

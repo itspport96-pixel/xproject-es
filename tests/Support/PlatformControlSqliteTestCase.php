@@ -148,8 +148,8 @@ abstract class PlatformControlSqliteTestCase extends TestCase
         ?string $tenantId = null
     ): string {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO roles (id, nombre, descripcion, tipo, tenant_id, activo, permisos, created_at, updated_at)
-             VALUES (:id, :nombre, NULL, :tipo, :tenant_id, :activo, :permisos, :now, :now)'
+            'INSERT INTO roles (id, nombre, descripcion, tipo, tenant_id, activo, created_at, updated_at)
+             VALUES (:id, :nombre, NULL, :tipo, :tenant_id, :activo, :now, :now)'
         );
         $stmt->execute([
             'id' => $id,
@@ -157,17 +157,23 @@ abstract class PlatformControlSqliteTestCase extends TestCase
             'tipo' => $tipo,
             'tenant_id' => $tipo === 'BUILT_IN' ? null : $tenantId,
             'activo' => $activo ? 1 : 0,
-            'permisos' => json_encode(array_values($permisos), JSON_UNESCAPED_UNICODE),
             'now' => gmdate('Y-m-d H:i:s'),
         ]);
 
-        // Junction role_permissions: resolver identificador -> permission_id
+        // Junction role_permissions: sólo si el permiso ya existe en la tabla
+        // (los tests de seeders la crean vacía; el seeder la llena después
+        // y sincroniza la junction con sus propios IDs).
         foreach ($permisos as $ident) {
-            $permId = 'perm-' . str_replace('.', '-', $ident);
+            $q = $this->pdo->prepare('SELECT id FROM permissions WHERE identificador = ?');
+            $q->execute([$ident]);
+            $permId = $q->fetchColumn();
+            if ($permId === false) {
+                continue;
+            }
             $stmt = $this->pdo->prepare(
                 'INSERT OR IGNORE INTO role_permissions (role_id, permission_id) VALUES (:rid, :pid)'
             );
-            $stmt->execute(['rid' => $id, 'pid' => $permId]);
+            $stmt->execute(['rid' => $id, 'pid' => (string) $permId]);
         }
 
         return $id;
@@ -346,7 +352,6 @@ abstract class PlatformControlSqliteTestCase extends TestCase
                 tipo TEXT DEFAULT \'CUSTOM\',
                 tenant_id TEXT,
                 activo INTEGER DEFAULT 1,
-                permisos TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 deleted_at TEXT,

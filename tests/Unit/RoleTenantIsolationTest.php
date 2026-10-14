@@ -44,6 +44,9 @@ final class RoleTenantIsolationTest extends PlatformControlSqliteTestCase
     {
         parent::setUp();
 
+        // Permiso base: debe existir ANTES de seedRole para que junction pueda poblarse
+        $this->seedPermission('users.user.view');
+
         $this->seedRole('r-bi-admin', 'ADMIN', ['users.user.view'], 'BUILT_IN');
         $this->seedRole('r-bi-manager', 'MANAGER', ['users.user.view'], 'BUILT_IN');
         $this->seedRole('r-bi-user', 'USER', ['users.user.view'], 'BUILT_IN');
@@ -178,8 +181,8 @@ final class RoleTenantIsolationTest extends PlatformControlSqliteTestCase
         // rol nuevo del mismo tenant puede reutilizarlo (id nuevo).
         $this->pdo
             ->prepare(
-                'INSERT INTO roles (id, nombre, tipo, tenant_id, activo, permisos, created_at, updated_at)
-                 VALUES (:id, :nombre, :tipo, :tenant, 1, NULL, :now, :now)'
+                'INSERT INTO roles (id, nombre, tipo, tenant_id, activo, created_at, updated_at)
+                 VALUES (:id, :nombre, :tipo, :tenant, 1, :now, :now)'
             )
             ->execute([
                 'id' => 'r-propio-v2',
@@ -199,8 +202,8 @@ final class RoleTenantIsolationTest extends PlatformControlSqliteTestCase
         $this->expectException(\PDOException::class);
 
         $this->pdo->prepare(
-            'INSERT INTO roles (id, nombre, tipo, tenant_id, activo, permisos, created_at, updated_at)
-             VALUES (:id, :nombre, :tipo, :tenant, 1, NULL, :now, :now)'
+            'INSERT INTO roles (id, nombre, tipo, tenant_id, activo, created_at, updated_at)
+             VALUES (:id, :nombre, :tipo, :tenant, 1, :now, :now)'
         )->execute([
             'id' => 'r-idx',
             'nombre' => 'ROL PROPIO',
@@ -213,8 +216,8 @@ final class RoleTenantIsolationTest extends PlatformControlSqliteTestCase
     public function testIndiceUnicoPermiteMismoNombreEnOtroTenant(): void
     {
         $this->pdo->prepare(
-            'INSERT INTO roles (id, nombre, tipo, tenant_id, activo, permisos, created_at, updated_at)
-             VALUES (:id, :nombre, :tipo, :tenant, 1, NULL, :now, :now)'
+            'INSERT INTO roles (id, nombre, tipo, tenant_id, activo, created_at, updated_at)
+             VALUES (:id, :nombre, :tipo, :tenant, 1, :now, :now)'
         )->execute([
             'id' => 'r-idx-ok',
             'nombre' => 'ROL PROPIO',
@@ -304,7 +307,7 @@ final class RoleTenantIsolationTest extends PlatformControlSqliteTestCase
         );
 
         $this->assertSame(
-            '["users.user.view"]',
+            ['users.user.view'],
             $this->roleRow('r-ajeno')['permisos'],
             'Los permisos del rol ajeno no cambian'
         );
@@ -475,6 +478,17 @@ final class RoleTenantIsolationTest extends PlatformControlSqliteTestCase
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $this->assertIsArray($row, "La fila {$id} debe existir");
+
+        // Hidratar permisos desde junction (N5e)
+        $jStmt = $this->pdo->prepare(
+            'SELECT p.identificador
+             FROM role_permissions rp
+             INNER JOIN permissions p ON p.id = rp.permission_id
+             WHERE rp.role_id = :rid
+             ORDER BY p.identificador'
+        );
+        $jStmt->execute(['rid' => $id]);
+        $row['permisos'] = $jStmt->fetchAll(PDO::FETCH_COLUMN);
 
         return $row;
     }

@@ -216,7 +216,7 @@ final class AuthorizationService
     private function fetchRoles(string $userId, string $tenantId, bool $porGrupo): array
     {
         if ($porGrupo) {
-            $sql = "SELECT r.id, r.nombre, r.tipo, r.activo, r.permisos,
+            $sql = "SELECT r.id, r.nombre, r.tipo, r.activo,
                            ug.id AS group_id, ug.nombre AS group_name
                     FROM group_members gm
                     INNER JOIN group_roles gr ON gr.group_id = gm.group_id
@@ -233,7 +233,7 @@ final class AuthorizationService
                     ORDER BY ug.nombre ASC, r.nombre ASC";
             $params = ['uid' => $userId, 'tid' => $tenantId, 'gtid' => $tenantId];
         } else {
-            $sql = "SELECT r.id, r.nombre, r.tipo, r.activo, r.permisos,
+            $sql = "SELECT r.id, r.nombre, r.tipo, r.activo,
                            ra.fecha_expiracion
                     FROM role_assignments ra
                     INNER JOIN roles r ON r.id = ra.role_id
@@ -248,8 +248,45 @@ final class AuthorizationService
 
         $stmt = $this->db->getConnection()->prepare($sql);
         $stmt->execute($params);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        // Hidratar permisos desde junction role_permissions (N5e)
+        $roleIds = array_map(fn(array $r) => (string) $r['id'], $rows);
+        $permMap = $this->fetchRolePermissionsMap($roleIds);
+        foreach ($rows as &$row) {
+            $row['permisos'] = $permMap[(string) $row['id']] ?? [];
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
+     * @param string[] $roleIds
+     * @return array<string, string[]> mapa roleId => identificadores activos
+     */
+    private function fetchRolePermissionsMap(array $roleIds): array
+    {
+        if ($roleIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($roleIds), '?'));
+        $sql = "SELECT rp.role_id, p.identificador
+                FROM role_permissions rp
+                INNER JOIN permissions p ON p.id = rp.permission_id
+                WHERE rp.role_id IN ({$placeholders})
+                  AND p.activo = 1
+                ORDER BY p.identificador ASC";
+
+        $stmt = $this->db->getConnection()->prepare($sql);
+        $stmt->execute(array_values($roleIds));
+
+        $map = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $map[(string) $row['role_id']][] = (string) $row['identificador'];
+        }
+        return $map;
     }
 
     /**

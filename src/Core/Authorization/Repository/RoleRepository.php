@@ -16,7 +16,7 @@ use PDOException;
  * `roles.tenant_id` NULL identifica a los BUILT_IN (globales) y un valor
  * concreto a los CUSTOM de ese tenant. Los métodos con $tenantId sólo
  * devuelven roles visibles desde ese tenant (BUILT_IN + propio tenant).
- * El campo `permisos` es un JSON array de strings (identificadores).
+ * Los permisos viven en la junction `role_permissions` (N5e).
  */
 final class RoleRepository implements RoleRepositoryInterface
 {
@@ -45,7 +45,11 @@ final class RoleRepository implements RoleRepositoryInterface
         $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $row ? Role::fromArray($row) : null;
+        if (!$row) {
+            return null;
+        }
+        $row['permisos'] = $this->fetchPermisos([$id])[$id] ?? [];
+        return Role::fromArray($row);
     }
 
     public function findByNombre(string $nombre, ?string $tenantId = null): ?Role
@@ -62,7 +66,11 @@ final class RoleRepository implements RoleRepositoryInterface
         $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $row ? Role::fromArray($row) : null;
+        if (!$row) {
+            return null;
+        }
+        $row['permisos'] = $this->fetchPermisos([(string) $row['id']])[(string) $row['id']] ?? [];
+        return Role::fromArray($row);
     }
 
     /**
@@ -89,7 +97,7 @@ final class RoleRepository implements RoleRepositoryInterface
         $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Role::fromArray($row), $rows);
+        return $this->hydrateRows($rows);
     }
 
     public function findByTipo(string $tipo): array
@@ -99,7 +107,7 @@ final class RoleRepository implements RoleRepositoryInterface
         $stmt->execute(['tipo' => $tipo]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Role::fromArray($row), $rows);
+        return $this->hydrateRows($rows);
     }
 
     public function findByPermisos(array $permissionIds): array
@@ -130,12 +138,57 @@ final class RoleRepository implements RoleRepositoryInterface
         $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Role::fromArray($row), $rows);
+        return $this->hydrateRows($rows);
     }
 
     public function getBuiltInRoles(): array
     {
         return $this->findByTipo(Role::TYPE_BUILT_IN);
+    }
+
+    /**
+     * Hidrata el campo 'permisos' de cada fila desde la junction
+     * role_permissions (permisos identificadores activos), y devuelve
+     * los roles como entidades.
+     */
+    private function hydrateRows(array $rows): array
+    {
+        $ids = array_map(fn(array $r) => (string) $r['id'], $rows);
+        $permMap = $this->fetchPermisos($ids);
+
+        return array_map(function (array $row) use ($permMap) {
+            $id = (string) $row['id'];
+            $row['permisos'] = $permMap[$id] ?? [];
+            return Role::fromArray($row);
+        }, $rows);
+    }
+
+    /**
+     * @param string[] $roleIds
+     * @return array<string, string[]> mapa roleId => identificadores activos
+     */
+    private function fetchPermisos(array $roleIds): array
+    {
+        if ($roleIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($roleIds), '?'));
+        $sql = "SELECT rp.role_id, p.identificador
+                FROM role_permissions rp
+                INNER JOIN permissions p ON p.id = rp.permission_id
+                WHERE rp.role_id IN ({$placeholders})
+                  AND p.activo = 1
+                ORDER BY p.identificador ASC";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(array_values($roleIds));
+
+        $map = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $map[(string) $row['role_id']][] = (string) $row['identificador'];
+        }
+        return $map;
     }
 
     // ========================================================================
@@ -148,8 +201,8 @@ final class RoleRepository implements RoleRepositoryInterface
             throw new AuthorizationException("El rol '{$role->nombre()}' ya existe", 409);
         }
 
-        $sql = "INSERT INTO roles (id, nombre, descripcion, tipo, tenant_id, activo, permisos, created_at, updated_at)
-                VALUES (:id, :nombre, :descripcion, :tipo, :tenant_id, :activo, :permisos, :created_at, :updated_at)";
+        $sql = "INSERT INTO roles (id, nombre, descripcion, tipo, tenant_id, activo, created_at, updated_at)
+                VALUES (:id, :nombre, :descripcion, :tipo, :tenant_id, :activo, :created_at, :updated_at)";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
@@ -159,7 +212,6 @@ final class RoleRepository implements RoleRepositoryInterface
             'tipo'        => $role->tipo(),
             'tenant_id'   => $role->tenantId(),
             'activo'      => $role->activo() ? 1 : 0,
-            'permisos'    => json_encode($role->permisos(), JSON_UNESCAPED_UNICODE),
             'created_at'  => $role->createdAt()->format('Y-m-d H:i:s'),
             'updated_at'  => $role->updatedAt()?->format('Y-m-d H:i:s'),
         ]);
@@ -177,7 +229,6 @@ final class RoleRepository implements RoleRepositoryInterface
                 SET nombre = :nombre,
                     descripcion = :descripcion,
                     activo = :activo,
-                    permisos = :permisos,
                     updated_at = :updated_at
                 WHERE id = :id";
 
@@ -187,7 +238,6 @@ final class RoleRepository implements RoleRepositoryInterface
             'nombre'      => $role->nombre(),
             'descripcion' => $role->descripcion(),
             'activo'      => $role->activo() ? 1 : 0,
-            'permisos'    => json_encode($role->permisos(), JSON_UNESCAPED_UNICODE),
             'updated_at'  => $role->updatedAt()?->format('Y-m-d H:i:s'),
         ]);
 

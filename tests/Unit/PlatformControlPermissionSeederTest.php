@@ -51,11 +51,17 @@ final class PlatformControlPermissionSeederTest extends PlatformControlSqliteTes
      */
     private function rolePermissions(string $nombre): array
     {
-        $stmt = $this->pdo->prepare('SELECT permisos FROM roles WHERE nombre = :nombre');
+        $stmt = $this->pdo->prepare(
+            'SELECT p.identificador
+             FROM role_permissions rp
+             INNER JOIN permissions p ON p.id = rp.permission_id
+             INNER JOIN roles r ON r.id = rp.role_id
+             WHERE r.nombre = :nombre
+             ORDER BY p.identificador'
+        );
         $stmt->execute(['nombre' => $nombre]);
-        $json = $stmt->fetchColumn();
 
-        return $json === false ? [] : (array) json_decode((string) $json, true);
+        return $stmt->fetchAll(\PDO::FETCH_COLUMN);
     }
 
     /**
@@ -271,6 +277,11 @@ final class PlatformControlPermissionSeederTest extends PlatformControlSqliteTes
 
     public function testNoModificaRolesQueYaEstanCompletos(): void
     {
+        // Sembrar permisos ANTES de seedRole para que junction pueda poblarse
+        foreach (PlatformControlPermissionSeeder::PERMISSIONS as $def) {
+            $this->seedPermission($def[0]);
+        }
+
         foreach (['ADMIN', 'MANAGER', 'USER', 'VIEWER'] as $nombre) {
             $this->seedRole(
                 'role-' . strtolower($nombre),
@@ -283,11 +294,14 @@ final class PlatformControlPermissionSeederTest extends PlatformControlSqliteTes
         $result = $this->seeder->seed();
 
         $this->assertSame(0, $result['roles_updated']);
-        $this->assertSame(12, $result['permissions_created']);
+        $this->assertSame(0, $result['permissions_created'], 'Los 12 permisos ya existen');
     }
 
     public function testAnadeSoloLoQueFaltaSinBorrarLoPreexistente(): void
     {
+        // Permisos preexistentes: deben existir ANTES de seedRole
+        $this->seedPermission('inventory.stock.view');
+        $this->seedPermission('audit.view');
         $this->seedRole('role-admin', 'ADMIN', ['inventory.stock.view', 'audit.view'], 'BUILT_IN');
 
         $result = $this->seeder->seed();

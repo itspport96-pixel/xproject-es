@@ -52,7 +52,7 @@ class UserRepository implements UserRepositoryInterface
 
     public function getUserRoles(string $userId, string $tenantId): array
     {
-        $sql = "SELECT r.id, r.nombre, r.tipo, r.activo, r.permisos
+        $sql = "SELECT r.id, r.nombre, r.tipo, r.activo
                 FROM roles r
                 INNER JOIN role_assignments ra ON ra.role_id = r.id
                 WHERE ra.user_id = ?

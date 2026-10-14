@@ -87,7 +87,7 @@ final class UserPreferencesEndpointTest extends TestCase
         $this->pdo->exec(
             "CREATE TABLE roles (
                 id TEXT PRIMARY KEY, nombre TEXT, tipo TEXT, tenant_id TEXT,
-                activo INTEGER DEFAULT 1, permisos TEXT, deleted_at TEXT
+                activo INTEGER DEFAULT 1, deleted_at TEXT
             )"
         );
         $this->pdo->exec(

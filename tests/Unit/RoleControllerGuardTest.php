@@ -186,8 +186,7 @@ final class RoleControllerGuardTest extends PlatformControlSqliteTestCase
         );
 
         $row = $this->roleRow('role-admin');
-        $permisos = (array) json_decode((string) $row['permisos'], true);
-        $this->assertSame(['users.user.view', 'users.user.status'], $permisos);
+        $this->assertSame(['users.user.status', 'users.user.view'], $row['permisos']);
     }
 
     public function testElRolAdminNoSePuedeModificarSusPermisosPorLaApi(): void
@@ -211,8 +210,7 @@ final class RoleControllerGuardTest extends PlatformControlSqliteTestCase
         }
 
         $row = $this->roleRow('role-admin');
-        $permisos = (array) json_decode((string) $row['permisos'], true);
-        $this->assertSame(['users.user.view', 'users.user.status'], $permisos);
+        $this->assertSame(['users.user.status', 'users.user.view'], $row['permisos']);
     }
 
     public function testNoSePuedeEliminarUnRolBuiltIn(): void
@@ -347,6 +345,17 @@ final class RoleControllerGuardTest extends PlatformControlSqliteTestCase
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         $this->assertIsArray($row, "El rol {$id} no existe");
+
+        // Hidratar permisos desde junction (N5e)
+        $jStmt = $this->pdo->prepare(
+            'SELECT p.identificador
+             FROM role_permissions rp
+             INNER JOIN permissions p ON p.id = rp.permission_id
+             WHERE rp.role_id = :rid
+             ORDER BY p.identificador'
+        );
+        $jStmt->execute(['rid' => $id]);
+        $row['permisos'] = $jStmt->fetchAll(\PDO::FETCH_COLUMN);
 
         return $row;
     }

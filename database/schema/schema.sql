@@ -46,7 +46,6 @@ CREATE TABLE `roles` (
   `tipo` enum('BUILT_IN','CUSTOM') DEFAULT 'CUSTOM',
   `tenant_id` char(36) DEFAULT NULL,
   `activo` tinyint(4) DEFAULT 1,
-  `permisos` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`permisos`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL,
