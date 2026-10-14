@@ -253,9 +253,13 @@
             const response = await global.HttpClient.patch('/users/me', data, { requiresAuth: true });
             const result = response && response.data ? response.data : response;
 
-            // Actualizar usuario en AuthState si existe
+            // MERGE de los campos actualizados sobre el usuario existente.
+            // NO reemplazar: result.user no trae roles/permisos (eso viene
+            // de /auth/me). Reemplazar causaría perdida de privilegios en UI.
             if (result && result.user && global.AuthState && typeof global.AuthState.updateUser === 'function') {
-                global.AuthState.updateUser(result.user);
+                const current = global.AuthState.getUser() || {};
+                const merged = { ...current, ...result.user };
+                global.AuthState.updateUser(merged);
             }
 
             showToast('success', t('profile.title'), t('profile.success_profile'));
