@@ -109,19 +109,22 @@ final class RoleRepository implements RoleRepositoryInterface
         }
 
         // Busca roles que contengan AL MENOS UNO de los permisos indicados.
-        // MariaDB: JSON_CONTAINS(permisos, '"inventory.item.view"')
+        // Via junction role_permissions + permissions (identificador).
         $conditions = [];
         $params = [];
         foreach ($permissionIds as $i => $pid) {
-            $conditions[] = "JSON_CONTAINS(permisos, :pid{$i})";
-            $params["pid{$i}"] = '"' . $pid . '"';
+            $conditions[] = "p.identificador = :pid{$i}";
+            $params["pid{$i}"] = $pid;
         }
 
-        $sql = "SELECT * FROM roles
-                WHERE activo = 1
-                  AND deleted_at IS NULL
+        $sql = "SELECT DISTINCT r.*
+                FROM roles r
+                INNER JOIN role_permissions rp ON rp.role_id = r.id
+                INNER JOIN permissions p ON p.id = rp.permission_id
+                WHERE r.activo = 1
+                  AND r.deleted_at IS NULL
                   AND (" . implode(' OR ', $conditions) . ")
-                ORDER BY nombre ASC";
+                ORDER BY r.nombre ASC";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -160,6 +163,8 @@ final class RoleRepository implements RoleRepositoryInterface
             'created_at'  => $role->createdAt()->format('Y-m-d H:i:s'),
             'updated_at'  => $role->updatedAt()?->format('Y-m-d H:i:s'),
         ]);
+
+        $this->syncJunctionPermissions($role->id(), $role->permisos());
     }
 
     public function update(Role $role): void
@@ -185,6 +190,32 @@ final class RoleRepository implements RoleRepositoryInterface
             'permisos'    => json_encode($role->permisos(), JSON_UNESCAPED_UNICODE),
             'updated_at'  => $role->updatedAt()?->format('Y-m-d H:i:s'),
         ]);
+
+        $this->syncJunctionPermissions($role->id(), $role->permisos());
+    }
+
+    private function syncJunctionPermissions(string $roleId, array $identifiers): void
+    {
+        // Map identificador -> permission_id
+        $permMap = [];
+        $rows = $this->pdo->query('SELECT id, identificador FROM permissions')->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $r) {
+            $permMap[$r['identificador']] = $r['id'];
+        }
+
+        // Delete existing junction rows
+        $del = $this->pdo->prepare('DELETE FROM role_permissions WHERE role_id = :rid');
+        $del->execute(['rid' => $roleId]);
+
+        // Insert current permissions
+        $insert = $this->pdo->prepare(
+            'INSERT INTO role_permissions (role_id, permission_id) VALUES (:rid, :pid)'
+        );
+        foreach ($identifiers as $ident) {
+            if (isset($permMap[$ident])) {
+                $insert->execute(['rid' => $roleId, 'pid' => $permMap[$ident]]);
+            }
+        }
     }
 
     public function softDelete(string $id, ?string $tenantId = null): void

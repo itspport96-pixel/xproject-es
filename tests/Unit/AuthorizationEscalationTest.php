@@ -207,7 +207,7 @@ final class AuthorizationEscalationTest extends PlatformControlSqliteTestCase
     {
         $permisos = $this->authz->getRolePermissions('role-manager');
 
-        $this->assertSame([self::P_VIEW, self::P_CREATE], $permisos);
+        $this->assertSame([self::P_CREATE, self::P_VIEW], $permisos);
         $this->assertSame([], $this->authz->getRolePermissions('role-inexistente'));
     }
 

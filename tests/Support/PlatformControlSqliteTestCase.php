@@ -161,6 +161,15 @@ abstract class PlatformControlSqliteTestCase extends TestCase
             'now' => gmdate('Y-m-d H:i:s'),
         ]);
 
+        // Junction role_permissions: resolver identificador -> permission_id
+        foreach ($permisos as $ident) {
+            $permId = 'perm-' . str_replace('.', '-', $ident);
+            $stmt = $this->pdo->prepare(
+                'INSERT OR IGNORE INTO role_permissions (role_id, permission_id) VALUES (:rid, :pid)'
+            );
+            $stmt->execute(['rid' => $id, 'pid' => $permId]);
+        }
+
         return $id;
     }
 
@@ -343,6 +352,11 @@ abstract class PlatformControlSqliteTestCase extends TestCase
                 deleted_at TEXT,
                 nombre_activo TEXT GENERATED ALWAYS AS (CASE WHEN deleted_at IS NULL THEN nombre ELSE NULL END) STORED,
                 UNIQUE (tenant_id, nombre_activo)
+            )',
+            'CREATE TABLE role_permissions (
+                role_id TEXT NOT NULL,
+                permission_id TEXT NOT NULL,
+                PRIMARY KEY (role_id, permission_id)
             )',
             'CREATE TABLE users (
                 id TEXT PRIMARY KEY,

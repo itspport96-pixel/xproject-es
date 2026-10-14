@@ -254,7 +254,35 @@ final class PlatformControlPermissionSeeder
             'id' => $row['id'],
         ]);
 
+        // Sincronizar junction role_permissions
+        $this->syncJunctionPermissions($row['id'], $merged);
+
         return true;
+    }
+
+    private function syncJunctionPermissions(string $roleId, array $identifiers): void
+    {
+        $permMap = [];
+        $rows = $this->pdo->query('SELECT id, identificador FROM permissions')->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $r) {
+            $permMap[$r['identificador']] = $r['id'];
+        }
+
+        $exists = $this->pdo->prepare(
+            'SELECT 1 FROM role_permissions WHERE role_id = :rid AND permission_id = :pid'
+        );
+        $insert = $this->pdo->prepare(
+            'INSERT INTO role_permissions (role_id, permission_id) VALUES (:rid, :pid)'
+        );
+        foreach ($identifiers as $ident) {
+            if (!isset($permMap[$ident])) {
+                continue;
+            }
+            $exists->execute(['rid' => $roleId, 'pid' => $permMap[$ident]]);
+            if ($exists->fetchColumn() === false) {
+                $insert->execute(['rid' => $roleId, 'pid' => $permMap[$ident]]);
+            }
+        }
     }
 
     private function generateUuid(): string

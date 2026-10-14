@@ -66,21 +66,20 @@ class UserRepository implements UserRepositoryInterface
 
     public function getUserPermissions(string $userId, string $tenantId): array
     {
-        // CORRECCION: r.permisos almacena IDENTIFICADORES (ej: "inventory.item.view"),
-        // no UUIDs. Se compara contra p.identificador, no contra p.id.
         $sql = "SELECT DISTINCT p.identificador
                 FROM permissions p
                 WHERE p.activo = 1
                 AND (
-                    -- Permisos via roles asignados directamente
+                    -- Permisos via roles asignados directamente (role_permissions junction)
                     EXISTS (
                         SELECT 1 FROM role_assignments ra
                         INNER JOIN roles r ON r.id = ra.role_id
+                        INNER JOIN role_permissions rp ON rp.role_id = r.id
                         WHERE ra.user_id = ?
                           AND ra.tenant_id = ?
                           AND r.activo = 1
                           AND (ra.fecha_expiracion IS NULL OR ra.fecha_expiracion > NOW())
-                          AND JSON_CONTAINS(r.permisos, JSON_QUOTE(p.identificador))
+                          AND rp.permission_id = p.id
                     )
                     OR
                     -- Permisos via grupos (grupo activo y no borrado, v1.11.0)
@@ -88,13 +87,14 @@ class UserRepository implements UserRepositoryInterface
                         SELECT 1 FROM group_members gm
                         INNER JOIN group_roles gr ON gr.group_id = gm.group_id
                         INNER JOIN roles r ON r.id = gr.role_id
+                        INNER JOIN role_permissions rp ON rp.role_id = r.id
                         INNER JOIN user_groups ug ON ug.id = gm.group_id
                         WHERE gm.user_id = ?
                           AND ug.tenant_id = ?
                           AND ug.activo = 1
                           AND ug.deleted_at IS NULL
                           AND r.activo = 1
-                          AND JSON_CONTAINS(r.permisos, JSON_QUOTE(p.identificador))
+                          AND rp.permission_id = p.id
                     )
                     OR
                     -- Permisos temporales activos

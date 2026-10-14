@@ -48,6 +48,13 @@ final class InventoryPermissionSeederTest extends InventorySqliteTestCase
                 deleted_at TEXT
             )'
         );
+        $this->pdo->exec(
+            'CREATE TABLE role_permissions (
+                role_id TEXT NOT NULL,
+                permission_id TEXT NOT NULL,
+                PRIMARY KEY (role_id, permission_id)
+            )'
+        );
 
         $this->seeder = new InventoryPermissionSeeder($this->pdo);
     }

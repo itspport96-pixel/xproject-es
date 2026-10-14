@@ -279,24 +279,14 @@ final class PermissionRepository implements PermissionRepositoryInterface
 
     public function isAssignedToAnyRole(string $permissionId): bool
     {
-        // Los permisos asignados viven en roles.permisos como JSON array de identificadores.
-        // Primero obtenemos el identificador del permiso por su ID.
-        $sql = "SELECT identificador FROM permissions WHERE id = :id";
+        // Los permisos asignados viven en la junction role_permissions.
+        $sql = "SELECT COUNT(*) FROM role_permissions rp
+                INNER JOIN roles r ON r.id = rp.role_id
+                WHERE rp.permission_id = :pid
+                  AND r.activo = 1
+                  AND r.deleted_at IS NULL";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(['id' => $permissionId]);
-        $identificador = $stmt->fetchColumn();
-
-        if ($identificador === false) {
-            return false;
-        }
-
-        // Busca roles activos que contengan ese identificador en su JSON
-        $sql = "SELECT COUNT(*) FROM roles
-                WHERE activo = 1
-                  AND deleted_at IS NULL
-                  AND JSON_CONTAINS(permisos, :value)";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(['value' => '"' . $identificador . '"']);
+        $stmt->execute(['pid' => $permissionId]);
         return (int) $stmt->fetchColumn() > 0;
     }
 }
