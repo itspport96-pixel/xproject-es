@@ -248,49 +248,6 @@ CREATE TABLE `inventory_counts` (
   CONSTRAINT `inventory_counts_ibfk_3` FOREIGN KEY (`usuario_responsable_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `notification_logs`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `notification_logs` (
-  `id` char(36) NOT NULL,
-  `tenant_id` char(36) NOT NULL,
-  `tipo_evento` varchar(100) DEFAULT NULL,
-  `usuario_id_destino` char(36) DEFAULT NULL,
-  `canal` enum('EMAIL','SMS','IN_APP','WEBHOOK') DEFAULT 'EMAIL',
-  `contenido` text DEFAULT NULL,
-  `estado` enum('ENVIADO','FALLIDO','PENDIENTE','REENVIANDO') DEFAULT 'PENDIENTE',
-  `intentos` int(11) DEFAULT 0,
-  `proxima_retento` timestamp NULL DEFAULT NULL,
-  `respuesta_servicio` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`respuesta_servicio`)),
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_tenant_timestamp` (`tenant_id`,`created_at`),
-  KEY `usuario_id_destino` (`usuario_id_destino`),
-  CONSTRAINT `notification_logs_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
-  CONSTRAINT `notification_logs_ibfk_2` FOREIGN KEY (`usuario_id_destino`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `notification_preferences`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `notification_preferences` (
-  `id` char(36) NOT NULL,
-  `tenant_id` char(36) NOT NULL,
-  `usuario_id` char(36) NOT NULL,
-  `tipo_evento` varchar(100) DEFAULT NULL,
-  `canal` enum('EMAIL','SMS','IN_APP','WEBHOOK') DEFAULT 'EMAIL',
-  `habilitado` tinyint(4) DEFAULT 1,
-  `frecuencia` enum('IMMEDIATE','DIGEST_DAILY','DIGEST_WEEKLY','NEVER') DEFAULT 'IMMEDIATE',
-  `criterios` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`criterios`)),
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_tenant_usuario` (`tenant_id`,`usuario_id`),
-  KEY `usuario_id` (`usuario_id`),
-  CONSTRAINT `notification_preferences_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
-  CONSTRAINT `notification_preferences_ibfk_2` FOREIGN KEY (`usuario_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `products`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
