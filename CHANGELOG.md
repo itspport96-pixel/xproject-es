@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.44] - 2026-10-14
+
+**Rollback del cifrado PII de usuarios: se revierte a texto plano.** El cifrado AES-256-GCM de PII (email, nombre, apellido, telefono en users; destinatario/conductor en shipments; JSON en audit_logs) se revierte porque rompe busquedas LIKE, ORDER BY y complicaba la plataforma sin beneficio operativo. Los datos en BD viva se descifraron primero (1762 filas) y luego el codigo de cifrado se elimino de todos los repositorios y servicios. La normalizacion BD (junction role_permissions, FKs, indices) se **conserva** — es independiente del cifrado.
+
+### Changed
+- **Revertidos a texto plano**: `UserService` (create/update/updateMe sin encryptField), `UserRepository` (findByEmail sin blind index, sin decryptRow), `TemporaryPermissionRepository` (sin decryptEmails), `UserGroupRepository` (sin decrypt en listMembers), `AuthController` (sin EncryptionService), `TenantRepository`, `TenantService`, `ShipmentRepository`, `DeliveryRepository`, `IncidentRepository`, `AuditLogQueryService`, `PdoAuditPort`, `RateLimitRepository`, `SecretsVaultService`, y los QueryServices de Inventory.
+- **`UserRepository::getUserPermissions`** ahora usa junction `role_permissions` (conservado de N5e) en vez de `JSON_CONTAINS(r.permisos, ...)` — la columna `roles.permisos` ya no existe.
+- **`bootstrap.php`**: UserRepository ya no recibe BlindIndexService/EncryptionService; TemporaryPermissionRepository y UserGroupRepository registrados sin EncryptionService.
+
+### Data
+- Descifrados 1762 filas en BD viva: users (6), shipments (29), deliveries (12), tenants (1), audit_logs JSON (1670), audit_logs user_agent (45). Backup pre-rollback en `database/backups/backup-antes-rollback-cifrado.sql`.
+
 ## [1.13.43] - 2026-10-14
 
 **Fix: temporary-permissions devuelve emails cifrados; asignacion de rol no refleja cambio sin recargar.** Dos bugs reportados en vivo. (1) `TemporaryPermissionRepository` no descifraba `user_email`/`granted_by_email` (AES-256-GCM) al hidratar filas: la API devolvía el ciphertext base64 en crudo. (2) Al asignar/quitar rol o membresia de grupo al usuario actual de la sesion, el frontend no refrescaba `AuthState` — el sidebar y la UI conservaban los roles viejos hasta recargar la pagina.

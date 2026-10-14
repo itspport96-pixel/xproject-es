@@ -67,9 +67,7 @@ $container->singleton('password_hasher', fn() => new App\Core\Authentication\Ser
 $container->singleton(
     App\Core\Authentication\Repository\UserRepositoryInterface::class,
     fn($c) => new App\Core\Authentication\Repository\UserRepository(
-        $c->get('database'),
-        $c->get(App\Core\Security\Service\BlindIndexService::class),
-        $c->get(App\Core\Security\Service\EncryptionService::class)
+        $c->get('database')
     )
 );
 

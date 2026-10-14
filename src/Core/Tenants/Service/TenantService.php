@@ -6,8 +6,6 @@ namespace App\Core\Tenants\Service;
 
 use App\Core\Authentication\Repository\UserRepositoryInterface;
 use App\Core\Authentication\Service\PasswordHasher;
-use App\Core\Security\Service\BlindIndexService;
-use App\Core\Security\Service\EncryptionService;
 use App\Core\Tenants\Entity\Tenant;
 use App\Core\Tenants\Exception\TenantException;
 use App\Core\Tenants\Repository\TenantRepositoryInterface;
@@ -36,8 +34,6 @@ final class TenantService
     private PasswordHasher $hasher;
     private DatabaseService $db;
     private RedisService $redis;
-    private ?BlindIndexService $blindIndex;
-    private ?EncryptionService $encryption;
 
     private const CACHE_PREFIX = 'tenant:';
     private const CACHE_TTL = 300; // 5 minutos
@@ -48,9 +44,7 @@ final class TenantService
         ?UserRepositoryInterface $userRepo = null,
         ?PasswordHasher $hasher = null,
         ?DatabaseService $db = null,
-        ?RedisService $redis = null,
-        ?BlindIndexService $blindIndex = null,
-        ?EncryptionService $encryption = null
+        ?RedisService $redis = null
     ) {
         $container = Container::getInstance();
         $this->tenants = $tenants ?? $container->get(TenantRepositoryInterface::class);
@@ -59,8 +53,6 @@ final class TenantService
         $this->hasher = $hasher ?? $container->get(PasswordHasher::class);
         $this->db = $db ?? $container->get('database');
         $this->redis = $redis ?? $container->get(RedisService::class);
-        $this->blindIndex = $blindIndex ?? ($container->has(BlindIndexService::class) ? $container->get(BlindIndexService::class) : null);
-        $this->encryption = $encryption ?? ($container->has(EncryptionService::class) ? $container->get(EncryptionService::class) : null);
     }
 
     // ========================================================================
@@ -215,20 +207,19 @@ final class TenantService
             $now = date('Y-m-d H:i:s');
 
             $sql = "INSERT INTO users
-                    (id, tenant_id, email, email_hmac, nombre, apellido, password, estado, telefono, email_verificado, created_at, updated_at)
+                    (id, tenant_id, email, nombre, apellido, password, estado, telefono, email_verificado, created_at, updated_at)
                     VALUES
-                    (:id, :tenant_id, :email, :email_hmac, :nombre, :apellido, :password, 'ACTIVO', :telefono, 1, :created_at, :updated_at)";
+                    (:id, :tenant_id, :email, :nombre, :apellido, :password, 'ACTIVO', :telefono, 1, :created_at, :updated_at)";
 
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 'id'         => $adminUserId,
                 'tenant_id'  => $tenantId,
-                'email'      => $this->encryptField($email),
-                'email_hmac' => $this->blindIndex?->compute($email),
+                'email'      => $email,
                 'nombre'     => trim((string) $adminData['nombre']),
                 'apellido'   => trim((string) $adminData['apellido']),
                 'password'   => $passwordHash,
-                'telefono'   => $this->encryptField(isset($adminData['telefono']) ? trim((string) $adminData['telefono']) : null),
+                'telefono'   => isset($adminData['telefono']) ? trim((string) $adminData['telefono']) : null,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -693,16 +684,5 @@ final class TenantService
         $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
         $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
-    }
-
-    /**
-     * Cifra un campo nullable. Retorna null si el valor es null o vacío.
-     */
-    private function encryptField(?string $value): ?string
-    {
-        if ($value === null || $value === '' || $this->encryption === null) {
-            return $value;
-        }
-        return $this->encryption->encrypt($value);
     }
 }

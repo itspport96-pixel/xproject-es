@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace App\Core\Security\Repository;
 
-use App\Core\Security\Service\EncryptionService;
-use App\Shared\Container\Container;
 use App\Shared\Services\DatabaseService;
 use PDO;
 
@@ -20,21 +18,10 @@ use PDO;
 final class RateLimitRepository
 {
     private PDO $pdo;
-    private ?EncryptionService $encryption;
 
-    public function __construct(DatabaseService $db, ?EncryptionService $encryption = null)
+    public function __construct(DatabaseService $db)
     {
         $this->pdo = $db->getConnection();
-        if ($encryption !== null) {
-            $this->encryption = $encryption;
-        } else {
-            try {
-                $container = Container::getInstance();
-                $this->encryption = $container->has(EncryptionService::class) ? $container->get(EncryptionService::class) : null;
-            } catch (\Throwable) {
-                $this->encryption = null;
-            }
-        }
     }
 
     /**
@@ -81,7 +68,7 @@ final class RateLimitRepository
             'id' => $this->generateUuid(),
             'tenant_id' => $tenantId,
             'usuario_id' => $userId,
-            'ip_address' => $this->encryption?->encrypt($ipAddress) ?? $ipAddress,
+            'ip_address' => $ipAddress,
             'endpoint' => $endpoint,
             'requests_contados' => $requestsContados,
             'limite' => $limite,

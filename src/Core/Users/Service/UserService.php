@@ -6,8 +6,6 @@ namespace App\Core\Users\Service;
 
 use App\Core\Authentication\Repository\UserRepositoryInterface;
 use App\Core\Authentication\Service\PasswordHasher;
-use App\Core\Security\Service\BlindIndexService;
-use App\Core\Security\Service\EncryptionService;
 use App\Core\Users\Exception\UserException;
 use App\Core\Users\Exception\UserPreferencesException;
 use App\Shared\Container\Container;
@@ -38,38 +36,16 @@ final class UserService
     private UserRepositoryInterface $users;
     private PasswordHasher $hasher;
     private DatabaseService $db;
-    private ?BlindIndexService $blindIndex;
-    private ?EncryptionService $encryption;
 
     public function __construct(
         ?UserRepositoryInterface $users = null,
         ?PasswordHasher $hasher = null,
-        ?DatabaseService $db = null,
-        ?BlindIndexService $blindIndex = null,
-        ?EncryptionService $encryption = null
+        ?DatabaseService $db = null
     ) {
         $container = Container::getInstance();
         $this->users = $users ?? $container->get(UserRepositoryInterface::class);
         $this->hasher = $hasher ?? $container->get(PasswordHasher::class);
         $this->db = $db ?? $container->get('database');
-        if ($blindIndex !== null) {
-            $this->blindIndex = $blindIndex;
-        } else {
-            try {
-                $this->blindIndex = $container->has(BlindIndexService::class) ? $container->get(BlindIndexService::class) : null;
-            } catch (\Throwable) {
-                $this->blindIndex = null;
-            }
-        }
-        if ($encryption !== null) {
-            $this->encryption = $encryption;
-        } else {
-            try {
-                $this->encryption = $container->has(EncryptionService::class) ? $container->get(EncryptionService::class) : null;
-            } catch (\Throwable) {
-                $this->encryption = null;
-            }
-        }
     }
 
     // ========================================================================
@@ -122,20 +98,19 @@ final class UserService
         // Insertar usuario
         $now = date('Y-m-d H:i:s');
         $sql = "INSERT INTO users
-                (id, tenant_id, email, email_hmac, nombre, apellido, password, estado, telefono, fecha_expiracion_password, created_at, updated_at)
+                (id, tenant_id, email, nombre, apellido, password, estado, telefono, fecha_expiracion_password, created_at, updated_at)
                 VALUES
-                (:id, :tenant_id, :email, :email_hmac, :nombre, :apellido, :password, 'ACTIVO', :telefono, :fecha_expiracion_password, :created_at, :updated_at)";
+                (:id, :tenant_id, :email, :nombre, :apellido, :password, 'ACTIVO', :telefono, :fecha_expiracion_password, :created_at, :updated_at)";
 
         $stmt = $this->db->getConnection()->prepare($sql);
         $stmt->execute([
             'id'         => $id,
             'tenant_id'  => $tenantId,
-            'email'      => $this->encryptField($email),
-            'email_hmac' => $this->blindIndex?->compute($email),
+            'email'      => $email,
             'nombre'     => trim((string) $data['nombre']),
             'apellido'   => trim((string) $data['apellido']),
             'password'   => $passwordHash,
-            'telefono'   => $this->encryptField(isset($data['telefono']) ? trim((string) $data['telefono']) : null),
+            'telefono'   => isset($data['telefono']) ? trim((string) $data['telefono']) : null,
             'fecha_expiracion_password' => $autogenerado ? $this->tempPasswordExpiry() : null,
             'created_at' => $now,
             'updated_at' => $now,
@@ -207,9 +182,6 @@ final class UserService
         $perPage = min(100, max(1, (int) ($filters['per_page'] ?? 20)));
         $offset = ($page - 1) * $perPage;
 
-        $searchTerm = trim((string) ($filters['search'] ?? ''));
-        $searchIsEmail = $searchTerm !== '' && filter_var($searchTerm, FILTER_VALIDATE_EMAIL) !== false;
-
         $where = ['u.tenant_id = :tenant_id'];
         $params = ['tenant_id' => $tenantId];
 
@@ -218,47 +190,13 @@ final class UserService
             $params['estado'] = $filters['estado'];
         }
 
-        // Búsqueda: email se resuelve por HMAC exacto en SQL. Texto libre
-        // (nombre/apellido) no admite LIKE porque las columnas están
-        // cifradas; se filtra en PHP tras descifrar.
-        if ($searchTerm !== '' && $searchIsEmail && $this->blindIndex !== null) {
-            $where[] = 'u.email_hmac = :search_email_hmac';
-            $params['search_email_hmac'] = $this->blindIndex->compute($searchTerm);
-        }
-
-        $whereClause = implode(' AND ', $where);
-
-        if ($searchTerm !== '' && !$searchIsEmail) {
-            // Filtro en PHP: traer todo el tenant y filtrar tras descifrar.
-            $sql = "SELECT u.id, u.tenant_id, u.email, u.email_hmac, u.nombre, u.apellido, u.estado,
-                           u.telefono, u.avatar_url, u.ultimo_login, u.mfa_habilitado,
-                           u.created_at, u.updated_at, u.deleted_at
-                    FROM users u
-                    WHERE {$whereClause} AND u.deleted_at IS NULL
-                    ORDER BY u.created_at DESC";
-            $stmt = $this->db->getConnection()->prepare($sql);
-            $stmt->execute($params);
-            $all = array_map(fn(array $row): array => $this->decryptUserRow($row), $stmt->fetchAll(\PDO::FETCH_ASSOC));
-
-            $term = mb_strtolower($searchTerm);
-            $filtered = array_values(array_filter($all, static function (array $u) use ($term): bool {
-                $nombre = mb_strtolower((string) ($u['nombre'] ?? ''));
-                $apellido = mb_strtolower((string) ($u['apellido'] ?? ''));
-                return str_contains($nombre, $term) || str_contains($apellido, $term);
-            }));
-
-            $total = count($filtered);
-            $data = array_slice($filtered, $offset, $perPage);
-
-            return [
-                'data' => $data,
-                'pagination' => [
-                    'total'    => $total,
-                    'page'     => $page,
-                    'per_page' => $perPage,
-                    'has_next' => ($offset + $perPage) < $total,
-                ],
-            ];
+        if (!empty($filters['search'])) {
+            // PDO con emulación desactivada no permite repetir el mismo placeholder nombrado
+            $where[] = '(u.email LIKE :search1 OR u.nombre LIKE :search2 OR u.apellido LIKE :search3)';
+            $term = '%' . $filters['search'] . '%';
+            $params['search1'] = $term;
+            $params['search2'] = $term;
+            $params['search3'] = $term;
         }
 
         $whereClause = implode(' AND ', $where);
@@ -270,7 +208,7 @@ final class UserService
         $total = (int) $countStmt->fetchColumn();
 
         // Obtener datos
-        $sql = "SELECT u.id, u.tenant_id, u.email, u.email_hmac, u.nombre, u.apellido, u.estado,
+        $sql = "SELECT u.id, u.tenant_id, u.email, u.nombre, u.apellido, u.estado,
                        u.telefono, u.avatar_url, u.ultimo_login, u.mfa_habilitado,
                        u.created_at, u.updated_at, u.deleted_at
                 FROM users u
@@ -286,7 +224,7 @@ final class UserService
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
 
-        $data = array_map(fn(array $row): array => $this->decryptUserRow($row), $stmt->fetchAll(\PDO::FETCH_ASSOC));
+        $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         return [
             'data' => $data,
@@ -335,23 +273,17 @@ final class UserService
                     throw UserException::emailAlreadyExists($newEmail);
                 }
                 $updates[] = 'email = :email';
-                $updates[] = 'email_hmac = :email_hmac';
-                $params['email'] = $this->encryptField($newEmail);
-                $params['email_hmac'] = $this->blindIndex?->compute($newEmail);
+                $params['email'] = $newEmail;
             }
         }
 
-        // Campos simples (telefono se cifra)
-        $simpleFields = ['nombre', 'apellido'];
+        // Campos simples
+        $simpleFields = ['nombre', 'apellido', 'telefono'];
         foreach ($simpleFields as $field) {
             if (isset($data[$field])) {
                 $updates[] = "{$field} = :{$field}";
                 $params[$field] = trim((string) $data[$field]);
             }
-        }
-        if (isset($data['telefono'])) {
-            $updates[] = 'telefono = :telefono';
-            $params['telefono'] = $this->encryptField(trim((string) $data['telefono']));
         }
 
         // Estado
@@ -413,9 +345,7 @@ final class UserService
                     throw UserException::emailAlreadyExists($newEmail);
                 }
                 $updates[] = 'email = :email';
-                $updates[] = 'email_hmac = :email_hmac';
-                $params['email'] = $this->encryptField($newEmail);
-                $params['email_hmac'] = $this->blindIndex?->compute($newEmail);
+                $params['email'] = $newEmail;
                 // Verificación diferida: email nuevo sin confirmar
                 $updates[] = 'email_verificado = 0';
                 $emailChanged = true;
@@ -640,7 +570,7 @@ final class UserService
         }
 
         $sql = "UPDATE users
-                SET estado = 'INACTIVO', deleted_at = NOW(), email_hmac = NULL, updated_at = NOW()
+                SET estado = 'INACTIVO', deleted_at = NOW(), updated_at = NOW()
                 WHERE id = :id AND tenant_id = :tenant_id";
 
         $stmt = $this->db->getConnection()->prepare($sql);
@@ -855,40 +785,6 @@ final class UserService
         }
         unset($user['password']);
         return $user;
-    }
-
-    /**
-     * Cifra un campo nullable. Retorna null si el valor es null o vacío.
-     */
-    private function encryptField(?string $value): ?string
-    {
-        if ($value === null || $value === '' || $this->encryption === null) {
-            return $value;
-        }
-        return $this->encryption->encrypt($value);
-    }
-
-    /**
-     * Descifra campos PII de una fila de users (email, telefono).
-     * Si el valor no está cifrado (pre-migración), lo devuelve tal cual.
-     */
-    private function decryptUserRow(array $row): array
-    {
-        if ($this->encryption === null) {
-            return $row;
-        }
-
-        foreach (['email', 'telefono', 'nombre', 'apellido'] as $field) {
-            if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
-                try {
-                    $row[$field] = $this->encryption->decrypt($row[$field]);
-                } catch (\Throwable) {
-                    // Pre-migración: valor en claro, dejar tal cual.
-                }
-            }
-        }
-
-        return $row;
     }
 
     /**

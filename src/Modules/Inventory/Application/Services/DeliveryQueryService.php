@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Application\Services;
 
-use App\Core\Security\Service\EncryptionService;
-use App\Shared\Container\Container;
 use App\Modules\Inventory\Domain\Entities\Delivery;
 use App\Modules\Inventory\Domain\Exceptions\InventoryException;
 use PDO;
@@ -25,24 +23,11 @@ final class DeliveryQueryService
     /** Tope de filas por página (spec: per_page máximo 100). */
     private const MAX_PER_PAGE = 100;
 
-    private const PII_FIELDS = ['destinatario_real', 'firma_comprobante', 'observaciones'];
-
     private PDO $pdo;
-    private ?EncryptionService $encryption;
 
-    public function __construct(PDO $pdo, ?EncryptionService $encryption = null)
+    public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
-        if ($encryption !== null) {
-            $this->encryption = $encryption;
-        } else {
-            try {
-                $container = Container::getInstance();
-                $this->encryption = $container->has(EncryptionService::class) ? $container->get(EncryptionService::class) : null;
-            } catch (\Throwable) {
-                $this->encryption = null;
-            }
-        }
     }
 
     /**
@@ -194,7 +179,6 @@ final class DeliveryQueryService
      */
     private function mapRow(array $row): array
     {
-        $row = $this->decryptPii($row);
         return [
             'delivery_id' => $row['delivery_id'],
             'shipment_id' => $row['shipment_id'],
@@ -211,22 +195,6 @@ final class DeliveryQueryService
             'timestamp_entrega' => $row['timestamp_entrega'],
             'fecha_creacion' => $row['fecha_creacion'],
         ];
-    }
-
-    private function decryptPii(array $row): array
-    {
-        if ($this->encryption === null) {
-            return $row;
-        }
-        foreach (self::PII_FIELDS as $field) {
-            if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
-                try {
-                    $row[$field] = $this->encryption->decrypt($row[$field]);
-                } catch (\Throwable) {
-                }
-            }
-        }
-        return $row;
     }
 
     /**

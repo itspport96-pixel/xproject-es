@@ -4,35 +4,23 @@ declare(strict_types=1);
 
 namespace App\Core\Authentication\Repository;
 
-use App\Core\Security\Service\BlindIndexService;
-use App\Core\Security\Service\EncryptionService;
 use App\Shared\Services\DatabaseService;
 
 class UserRepository implements UserRepositoryInterface
 {
     private DatabaseService $db;
-    private ?BlindIndexService $blindIndex;
-    private ?EncryptionService $encryption;
 
-    public function __construct(
-        DatabaseService $db,
-        ?BlindIndexService $blindIndex = null,
-        ?EncryptionService $encryption = null
-    ) {
+    public function __construct(DatabaseService $db)
+    {
         $this->db = $db;
-        $this->blindIndex = $blindIndex;
-        $this->encryption = $encryption;
     }
 
     public function findByEmail(string $email, string $tenantId): ?array
     {
-        // Blind index: busca por HMAC del email en vez del email en claro.
-        $hmac = $this->blindIndex?->compute($email) ?? $email;
         $sql = "SELECT * FROM users
-                WHERE email_hmac = ? AND tenant_id = ? AND deleted_at IS NULL
+                WHERE email = ? AND tenant_id = ? AND deleted_at IS NULL
                 LIMIT 1";
-        $row = $this->db->fetch($sql, [$hmac, $tenantId]);
-        return $row ? $this->decryptRow($row) : null;
+        return $this->db->fetch($sql, [$email, $tenantId]);
     }
 
     public function findById(string $id, string $tenantId): ?array
@@ -40,8 +28,7 @@ class UserRepository implements UserRepositoryInterface
         $sql = "SELECT * FROM users
                 WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL
                 LIMIT 1";
-        $row = $this->db->fetch($sql, [$id, $tenantId]);
-        return $row ? $this->decryptRow($row) : null;
+        return $this->db->fetch($sql, [$id, $tenantId]);
     }
 
     public function updateLastLogin(string $userId): bool
@@ -87,8 +74,8 @@ class UserRepository implements UserRepositoryInterface
                         SELECT 1 FROM group_members gm
                         INNER JOIN group_roles gr ON gr.group_id = gm.group_id
                         INNER JOIN roles r ON r.id = gr.role_id
-                        INNER JOIN role_permissions rp ON rp.role_id = r.id
                         INNER JOIN user_groups ug ON ug.id = gm.group_id
+                        INNER JOIN role_permissions rp ON rp.role_id = r.id
                         WHERE gm.user_id = ?
                           AND ug.tenant_id = ?
                           AND ug.activo = 1
@@ -144,28 +131,5 @@ class UserRepository implements UserRepositoryInterface
                 WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL";
 
         return $this->db->query($sql, [$passwordHash, $userId, $tenantId])->rowCount() > 0;
-    }
-
-    /**
-     * Descifra campos PII de una fila de users (email, telefono).
-     * Si el valor no está cifrado (pre-migración), lo devuelve tal cual.
-     */
-    private function decryptRow(array $row): array
-    {
-        if ($this->encryption === null) {
-            return $row;
-        }
-
-        foreach (['email', 'telefono', 'nombre', 'apellido'] as $field) {
-            if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
-                try {
-                    $row[$field] = $this->encryption->decrypt($row[$field]);
-                } catch (\Throwable) {
-                    // Pre-migración: valor en claro, dejar tal cual.
-                }
-            }
-        }
-
-        return $row;
     }
 }
