@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.36] - 2026-10-14
+
+**Perfil de usuario con auto-edición de datos personales (nombre, apellido, email).** UI reestructurada con tabs horizontales para escalar a MFA y otras configuraciones futuras. Verificación de email diferida (flag `email_verificado` se resetea al cambiar email; flujo SMTP pendiente de configuración del tenant).
+
+### Added
+
+- **`PATCH /api/users/me`** (`routes/api.php` + `UserController::updateMe`): auto-edición de perfil sin PermissionMiddleware (cualquier usuario autenticado se edita a sí mismo). Sólo admite `nombre`, `apellido`, `email`. Cambio de email requiere `password_actual` (verificación de identidad). Auditado como `user.profile.update`.
+- **`UserService::updateMe()`**: valida y actualiza nombre/apellido/email; resetea `email_verificado=0` si el email cambia (verificación diferida). No admite estado, teléfono ni otros campos (eso es para admin vía `PATCH /users/{id}`).
+- **`UserService::findByIdWithPassword()`**: obtiene usuario con hash del password para verificación de credenciales (uso interno, nunca en API responses).
+- **`UserService::validateNombre()` y `validateApellido()`**: validaciones de longitud y vacío.
+- **`UserController::resolveHasher()`**: resuelve `password_hasher` del Container.
+- **UI Profile con tabs** (`profile.js`): tres tabs horizontales — Datos personales, Seguridad, Preferencias. Tab personal tiene form de nombre/apellido/email; muestra campo de password actual sólo si el email cambia. Infraestructura preparada para futuro tab MFA.
+- **i18n**: 24 claves `profile.*` (tabs, labels, placeholders, help, botones, mensajes) en 4 locales; 3 claves `api_errors.users.*` (no_fields_to_update, password_required_for_email, password_incorrect).
+
+### Changed
+
+- **`profile.js`**: reescrito con patrón de tabs usando `.tabs`/`.tab` de `components.css`. Reutiliza `HttpClient.patch()` (no fetch directo). `AuthState.updateUser()` para refrescar datos del usuario tras guardar.
+
+### Notes
+
+- **Verificación de email diferida**: al cambiar email, `email_verificado` se pone en `false`. El flujo de confirmación por email (SMTP) se implementará cuando el admin configure el servicio de email del tenant. Mientras tanto, el flag sirve como señal para admins de qué emails están sin verificar.
+- **Futuro MFA**: la UI de perfil está preparada para añadir un tab `mfa` sin reestructurar.
+
+### Verified
+
+- `composer test` 944/944; `check-i18n` 0 errores; `check-schema-drift` SIN DRIFT; `check-data-integrity` DATOS CONSISTENTES.
+- Smoke v162 (89 OK) y v171 (105 OK).
+- API en vivo: `PATCH /users/me` con cambio de nombre OK; cambio de email sin password → 400 password_actual required; cambio de email con password OK y `email_verificado=0`.
+
 ## [1.13.35] - 2026-10-14
 
 **Migración de mensajes de excepción del backend a catálogo i18n traducido (`api_errors`).** El soporte puede ver los mensajes de error en su idioma. Se elimina el código muerto `ErrorHandler.php` y `tools/i18n-fragments`.

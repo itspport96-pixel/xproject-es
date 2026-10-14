@@ -147,6 +147,16 @@ final class UserService
     }
 
     /**
+     * Busca un usuario por id INCLUYendo el hash del password.
+     * Uso interno exclusivo: verificación de credenciales (cambio de email
+     * desde el perfil, change-password, etc). Nunca exponer en API responses.
+     */
+    public function findByIdWithPassword(string $id, string $tenantId): ?array
+    {
+        return $this->users->findById($id, $tenantId);
+    }
+
+    /**
      * Busca un usuario por email dentro de un tenant.
      */
     public function findByEmail(string $email, string $tenantId): ?array
@@ -295,6 +305,82 @@ final class UserService
         $stmt->execute($params);
 
         return $this->sanitizeUser($this->users->findById($id, $tenantId));
+    }
+
+    // ========================================================================
+    // AUTO-EDICIÓN DE PERFIL (PATCH /api/users/me)
+    // ========================================================================
+
+    /**
+     * Actualiza el perfil propio del usuario (nombre, apellido, email).
+     *
+     * A diferencia de update() (admin), este método:
+     * - Sólo admite nombre, apellido y email (no estado, teléfono, etc.)
+     * - Resetea email_verificado a false si el email cambia (verificación
+     *   diferida: el flujo SMTP se implementará cuando el tenant lo configure)
+     * - La verificación de password_actual se hace en el controller
+     *
+     * @param array $input Campos a actualizar: nombre?, apellido?, email?
+     * @return array Usuario actualizado (sanitizado, sin password)
+     * @throws UserException 404 si no existe, 400 si datos inválidos,
+     *         409 si el email ya está en uso
+     */
+    public function updateMe(string $userId, string $tenantId, array $input): array
+    {
+        $user = $this->users->findById($userId, $tenantId);
+        if ($user === null) {
+            throw UserException::userNotFound($userId);
+        }
+
+        $updates = [];
+        $params = ['id' => $userId, 'tenant_id' => $tenantId];
+        $emailChanged = false;
+
+        // Email
+        if (isset($input['email'])) {
+            $newEmail = strtolower(trim((string) $input['email']));
+            if ($newEmail !== $user['email']) {
+                $this->validateEmail($newEmail);
+                if ($this->users->findByEmail($newEmail, $tenantId) !== null) {
+                    throw UserException::emailAlreadyExists($newEmail);
+                }
+                $updates[] = 'email = :email';
+                $params['email'] = $newEmail;
+                // Verificación diferida: email nuevo sin confirmar
+                $updates[] = 'email_verificado = 0';
+                $emailChanged = true;
+            }
+        }
+
+        // Nombre
+        if (isset($input['nombre'])) {
+            $nombre = trim((string) $input['nombre']);
+            $this->validateNombre($nombre);
+            $updates[] = 'nombre = :nombre';
+            $params['nombre'] = $nombre;
+        }
+
+        // Apellido
+        if (isset($input['apellido'])) {
+            $apellido = trim((string) $input['apellido']);
+            $this->validateApellido($apellido);
+            $updates[] = 'apellido = :apellido';
+            $params['apellido'] = $apellido;
+        }
+
+        if (empty($updates)) {
+            return $this->sanitizeUser($user);
+        }
+
+        $updates[] = 'updated_at = :updated_at';
+        $params['updated_at'] = date('Y-m-d H:i:s');
+
+        $sql = 'UPDATE users SET ' . implode(', ', $updates)
+             . ' WHERE id = :id AND tenant_id = :tenant_id';
+        $stmt = $this->db->getConnection()->prepare($sql);
+        $stmt->execute($params);
+
+        return $this->sanitizeUser($this->users->findById($userId, $tenantId));
     }
 
     // ========================================================================
@@ -629,6 +715,28 @@ final class UserService
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw (new UserException('Email inválido', 0, null, 'email'))->withMessageKey('users.email_invalid');
+        }
+    }
+
+    private function validateNombre(string $nombre): void
+    {
+        $nombre = trim($nombre);
+        if ($nombre === '') {
+            throw (new UserException('Nombre no puede estar vacío', 0, null, 'nombre'))->withMessageKey('users.nombre_required');
+        }
+        if (strlen($nombre) > 100) {
+            throw (new UserException('Nombre excede longitud máxima (100)', 0, null, 'nombre'))->withMessageKey('users.nombre_max_length');
+        }
+    }
+
+    private function validateApellido(string $apellido): void
+    {
+        $apellido = trim($apellido);
+        if ($apellido === '') {
+            throw (new UserException('Apellido no puede estar vacío', 0, null, 'apellido'))->withMessageKey('users.apellido_required');
+        }
+        if (strlen($apellido) > 100) {
+            throw (new UserException('Apellido excede longitud máxima (100)', 0, null, 'apellido'))->withMessageKey('users.apellido_max_length');
         }
     }
 

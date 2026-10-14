@@ -97,6 +97,16 @@ $router->get('/api/users', [UserController::class, 'index'], [
     RateLimitMiddleware::class . ':api',
 ]);
 
+// PATCH /api/users/me (v1.13.36): auto-edición de perfil (nombre, apellido,
+// email). Sin PermissionMiddleware: cada usuario se edita a sí mismo.
+// Cambio de email requiere password_actual. Declarada antes de /users/{id}.
+$router->patch('/api/users/me', [UserController::class, 'updateMe'], [
+    AuditMiddleware::class,
+    AuthenticationMiddleware::class,
+    TenantMiddleware::class,
+    RateLimitMiddleware::class . ':api',
+]);
+
 // GET /api/users/me/preferences (v1.10.3): preferencias del propio usuario.
 // Sin PermissionMiddleware de modulo: cada usuario lee/sucribe las suyas
 // (claims de tenant + user_id). Declarada antes de /api/users/{id} para que

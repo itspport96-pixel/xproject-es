@@ -169,7 +169,31 @@
       "fr": "Français"
     },
     "password_module_unavailable": "auth/password no disponible",
-    "language_body": "El idioma se aplica a toda la interfaz y se guarda en tu perfil."
+    "language_body": "El idioma se aplica a toda la interfaz y se guarda en tu perfil.",
+    "tab_personal": "Datos personales",
+    "tab_security": "Seguridad",
+    "tab_prefs": "Preferencias",
+    "section_personal": "Datos personales",
+    "personal_body": "Actualiza tu nombre y email. El cambio de email requiere tu contraseña.",
+    "label_nombre": "Nombre",
+    "label_apellido": "Apellido",
+    "label_email": "Email",
+    "label_password_actual": "Contraseña actual",
+    "placeholder_nombre": "Tu nombre",
+    "placeholder_apellido": "Tu apellido",
+    "placeholder_email": "tu@email.com",
+    "placeholder_password": "Ingresa tu contraseña actual",
+    "help_email_change": "Si cambias el email, deberás verificarlo en el futuro.",
+    "help_password_email": "Requerida solo si cambias el email.",
+    "btn_save": "Guardar cambios",
+    "btn_saving": "Guardando...",
+    "success_profile": "Perfil actualizado correctamente",
+    "error_nothing_changed": "No hay cambios para guardar",
+    "field_required": "Este campo es requerido",
+    "email_invalid": "Email inválido",
+    "password_required_for_email": "La contraseña es requerida para cambiar el email",
+    "password_incorrect": "La contraseña actual no coincide",
+    "email_in_use": "Este email ya está en uso"
   },
   "inventory": {
     "stock": {
@@ -2072,7 +2096,10 @@
       "apellido_max_length": "Apellido excede longitud máxima (100)",
       "password_hash_required": "Password hash no puede estar vacío",
       "password_hash_invalid": "Password hash inválido (debe ser bcrypt o argon2)",
-      "preference_invalid_value": "Valor de preferencia inválido en '{field}': {value}. Permitidos: {allowed}."
+      "preference_invalid_value": "Valor de preferencia inválido en '{field}': {value}. Permitidos: {allowed}.",
+      "no_fields_to_update": "No hay campos para actualizar",
+      "password_required_for_email": "Password actual requerido para cambiar email",
+      "password_incorrect": "La contraseña actual no coincide"
     },
     "roles": {
       "role_not_found": "El rol con ID '{id}' no existe.",

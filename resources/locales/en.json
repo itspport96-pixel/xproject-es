@@ -169,7 +169,31 @@
       "fr": "Français"
     },
     "password_module_unavailable": "auth/password not available",
-    "language_body": "The language applies to the whole interface and is saved to your profile."
+    "language_body": "The language applies to the whole interface and is saved to your profile.",
+    "tab_personal": "Personal data",
+    "tab_security": "Security",
+    "tab_prefs": "Preferences",
+    "section_personal": "Personal data",
+    "personal_body": "Update your name and email. Email change requires your password.",
+    "label_nombre": "First name",
+    "label_apellido": "Last name",
+    "label_email": "Email",
+    "label_password_actual": "Current password",
+    "placeholder_nombre": "Your first name",
+    "placeholder_apellido": "Your last name",
+    "placeholder_email": "your@email.com",
+    "placeholder_password": "Enter your current password",
+    "help_email_change": "If you change the email, you will need to verify it in the future.",
+    "help_password_email": "Required only if you change the email.",
+    "btn_save": "Save changes",
+    "btn_saving": "Saving...",
+    "success_profile": "Profile updated successfully",
+    "error_nothing_changed": "No changes to save",
+    "field_required": "This field is required",
+    "email_invalid": "Invalid email",
+    "password_required_for_email": "Password is required to change email",
+    "password_incorrect": "Current password does not match",
+    "email_in_use": "This email is already in use"
   },
   "inventory": {
     "stock": {
@@ -2072,7 +2096,10 @@
       "apellido_max_length": "Last name exceeds maximum length (100)",
       "password_hash_required": "Password hash cannot be empty",
       "password_hash_invalid": "Invalid password hash (must be bcrypt or argon2)",
-      "preference_invalid_value": "Invalid preference value in '{field}': {value}. Allowed: {allowed}."
+      "preference_invalid_value": "Invalid preference value in '{field}': {value}. Allowed: {allowed}.",
+      "no_fields_to_update": "No fields to update",
+      "password_required_for_email": "Current password required to change email",
+      "password_incorrect": "Current password does not match"
     },
     "roles": {
       "role_not_found": "Role with ID '{id}' does not exist.",

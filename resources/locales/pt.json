@@ -169,7 +169,31 @@
       "fr": ""
     },
     "password_module_unavailable": "",
-    "language_body": ""
+    "language_body": "",
+    "tab_personal": "Dados pessoais",
+    "tab_security": "Segurança",
+    "tab_prefs": "Preferências",
+    "section_personal": "Dados pessoais",
+    "personal_body": "Atualize seu nome e email. Mudança de email requer sua senha.",
+    "label_nombre": "Nome",
+    "label_apellido": "Sobrenome",
+    "label_email": "Email",
+    "label_password_actual": "Senha atual",
+    "placeholder_nombre": "Seu nome",
+    "placeholder_apellido": "Seu sobrenome",
+    "placeholder_email": "seu@email.com",
+    "placeholder_password": "Digite sua senha atual",
+    "help_email_change": "Se você mudar o email, precisará verificá-lo no futuro.",
+    "help_password_email": "Necessária apenas se você mudar o email.",
+    "btn_save": "Salvar alterações",
+    "btn_saving": "Salvando...",
+    "success_profile": "Perfil atualizado com sucesso",
+    "error_nothing_changed": "Nenhuma alteração para salvar",
+    "field_required": "Este campo é obrigatório",
+    "email_invalid": "Email inválido",
+    "password_required_for_email": "A senha é necessária para mudar o email",
+    "password_incorrect": "A senha atual não corresponde",
+    "email_in_use": "Este email já está em uso"
   },
   "inventory": {
     "stock": {
@@ -2072,7 +2096,10 @@
       "apellido_max_length": "",
       "password_hash_required": "",
       "password_hash_invalid": "",
-      "preference_invalid_value": ""
+      "preference_invalid_value": "",
+      "no_fields_to_update": "",
+      "password_required_for_email": "",
+      "password_incorrect": ""
     },
     "roles": {
       "role_not_found": "",

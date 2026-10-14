@@ -23,6 +23,7 @@ final class UserController
     private ?AuditLogger $audit;
     private ?SessionRevokerService $sessions;
     private ?DatabaseService $db;
+    private ?\App\Core\Authentication\Service\PasswordHasher $hasher;
     private ?IdempotencyService $idem;
 
     public function __construct(
@@ -31,7 +32,8 @@ final class UserController
         ?AuthorizationService $authz = null,
         ?AuditLogger $audit = null,
         ?SessionRevokerService $sessions = null,
-        ?DatabaseService $db = null
+        ?DatabaseService $db = null,
+        ?\App\Core\Authentication\Service\PasswordHasher $hasher = null
     ) {
         $container = Container::getInstance();
         $this->userService = $userService ?? $container->get(UserService::class);
@@ -42,6 +44,7 @@ final class UserController
             : null);
         $this->sessions = $sessions;
         $this->db = $db;
+        $this->hasher = $hasher;
         $this->idem = null;
     }
 
@@ -115,6 +118,95 @@ final class UserController
         ]);
 
         return ['status' => 200, 'data' => ['preferencias' => $preferencias]];
+    }
+
+    // ========================================================================
+    // PATCH /api/users/me  (v1.13.36)
+    // ========================================================================
+
+    /**
+     * Auto-edición de perfil: nombre, apellido y email del usuario autenticado.
+     *
+     * Reglas:
+     * - Sin PermissionMiddleware: cada usuario se edita a sí mismo.
+     * - Cambio de email requiere password_actual (verificación de identidad).
+     * - Al cambiar email, email_verificado se resetea a false (verificación
+     *   diferida: el flujo de confirmación por SMTP se implementará cuando
+     *   el tenant configure el servicio de email).
+     * - No se permite cambiar tenant_id ni estado desde aquí.
+     */
+    public function updateMe(array $request = []): array
+    {
+        $claims = $this->requireAuthenticated();
+        $userId = (string) $claims['user_id'];
+        $tenantId = (string) $claims['tenant_id'];
+
+        // Obtener usuario CON password hash para verificación de email
+        $beforeWithPassword = $this->userService->findByIdWithPassword($userId, $tenantId);
+        if ($beforeWithPassword === null) {
+            throw UserException::userNotFound($userId);
+        }
+        // Versión sanitizada para auditoría y respuesta
+        $before = $this->userService->findById($userId, $tenantId);
+
+        $data = $this->getInputData();
+
+        // Campos permitidos para auto-edición
+        $allowed = ['nombre', 'apellido', 'email', 'password_actual'];
+        $input = array_intersect_key($data, array_flip($allowed));
+
+        if (empty($input)) {
+            throw (new HttpException('No hay campos para actualizar', 400))
+                ->withMessageKey('users.no_fields_to_update');
+        }
+
+        // Cambio de email: requiere password_actual
+        $newEmail = isset($input['email']) ? strtolower(trim((string) $input['email'])) : null;
+        $emailChanged = $newEmail !== null && $newEmail !== $beforeWithPassword['email'];
+
+        if ($emailChanged) {
+            $passwordActual = isset($input['password_actual']) ? (string) $input['password_actual'] : '';
+            if ($passwordActual === '') {
+                throw UserException::requiredField('password_actual');
+            }
+
+            // Verificar password actual
+            $hasher = $this->resolveHasher();
+            if (!$hasher->verify($passwordActual, $beforeWithPassword['password'])) {
+                throw new UserException(
+                    'La contraseña actual no coincide.',
+                    400,
+                    null,
+                    'password_actual'
+                );
+            }
+        }
+
+        // No enviar password_actual al service (no es un campo a actualizar)
+        unset($input['password_actual']);
+
+        $user = $this->userService->updateMe($userId, $tenantId, $input);
+
+        $this->auditEvent('user.profile.update', 'UPDATE', $request, $claims, [
+            'entidad_id' => $userId,
+            'recurso' => 'user.profile',
+            'valores_anteriores' => [
+                'nombre' => $before['nombre'],
+                'apellido' => $before['apellido'],
+                'email' => $before['email'],
+            ],
+            'valores_nuevos' => [
+                'nombre' => $user['nombre'] ?? null,
+                'apellido' => $user['apellido'] ?? null,
+                'email' => $user['email'] ?? null,
+            ],
+            'detalles_adicionales' => [
+                'email_changed' => $emailChanged,
+                'email_verified_reset' => $emailChanged,
+            ],
+        ]);
+
+        return ['status' => 200, 'data' => ['user' => $user]];
     }
 
     // ========================================================================
@@ -626,6 +718,11 @@ final class UserController
     private function resolveSessions(): SessionRevokerService
     {
         return $this->sessions ??= Container::getInstance()->get(SessionRevokerService::class);
+    }
+
+    private function resolveHasher(): \App\Core\Authentication\Service\PasswordHasher
+    {
+        return $this->hasher ??= Container::getInstance()->get('password_hasher');
     }
 
     /**
