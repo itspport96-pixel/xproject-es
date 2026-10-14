@@ -35,7 +35,8 @@ final class TemporaryPermissionException extends HttpException
 
     public static function notFound(string $message = 'Permiso temporal no encontrado', ?string $field = null): self
     {
-        return new self($message, 404, $field, 'not_found');
+        return (new self($message, 404, $field, 'not_found'))
+            ->withMessageKey('temp_perm.not_found');
     }
 
     public static function conflict(string $message = 'Conflict', ?string $field = null): self
@@ -50,7 +51,8 @@ final class TemporaryPermissionException extends HttpException
 
     public static function unauthorized(string $message = 'No autorizado'): self
     {
-        return new self($message, 401, null, 'authentication');
+        return (new self($message, 401, null, 'authentication'))
+            ->withMessageKey('common.unauthorized');
     }
 
     public function getField(): ?string

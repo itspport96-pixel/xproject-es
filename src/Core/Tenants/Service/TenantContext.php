@@ -50,7 +50,7 @@ final class TenantContext
     {
         $tenantId = trim($tenantId);
         if ($tenantId === '') {
-            throw new TenantException('El tenant_id no puede estar vacío.', 400);
+            throw (new TenantException('El tenant_id no puede estar vacío.', 400))->withMessageKey('tenants.tenant_id_required');
         }
 
         $this->tenantId = $tenantId;
@@ -80,7 +80,7 @@ final class TenantContext
     public function getTenantId(): string
     {
         if ($this->tenantId === null) {
-            throw new TenantException('El contexto de tenant no ha sido inicializado.', 400);
+            throw (new TenantException('El contexto de tenant no ha sido inicializado.', 400))->withMessageKey('tenants.context_not_initialized');
         }
 
         return $this->tenantId;

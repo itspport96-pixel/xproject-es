@@ -437,13 +437,13 @@ final class User
     {
         $email = trim($email);
         if ($email === '') {
-            throw new UserException('Email no puede estar vacío');
+            throw (new UserException('Email no puede estar vacío'))->withMessageKey('users.email_required');
         }
         if (strlen($email) > 255) {
-            throw new UserException('Email excede longitud máxima (255)');
+            throw (new UserException('Email excede longitud máxima (255)'))->withMessageKey('users.email_max_length');
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new UserException('Email inválido');
+            throw (new UserException('Email inválido'))->withMessageKey('users.email_invalid');
         }
     }
 
@@ -451,10 +451,10 @@ final class User
     {
         $nombre = trim($nombre);
         if ($nombre === '') {
-            throw new UserException('Nombre no puede estar vacío');
+            throw (new UserException('Nombre no puede estar vacío'))->withMessageKey('users.nombre_required');
         }
         if (strlen($nombre) > 100) {
-            throw new UserException('Nombre excede longitud máxima (100)');
+            throw (new UserException('Nombre excede longitud máxima (100)'))->withMessageKey('users.nombre_max_length');
         }
     }
 
@@ -462,21 +462,21 @@ final class User
     {
         $apellido = trim($apellido);
         if ($apellido === '') {
-            throw new UserException('Apellido no puede estar vacío');
+            throw (new UserException('Apellido no puede estar vacío'))->withMessageKey('users.apellido_required');
         }
         if (strlen($apellido) > 100) {
-            throw new UserException('Apellido excede longitud máxima (100)');
+            throw (new UserException('Apellido excede longitud máxima (100)'))->withMessageKey('users.apellido_max_length');
         }
     }
 
     private static function validatePasswordHash(string $hash): void
     {
         if ($hash === '') {
-            throw new UserException('Password hash no puede estar vacío');
+            throw (new UserException('Password hash no puede estar vacío'))->withMessageKey('users.password_hash_required');
         }
         // Acepta bcrypt ($2y$) o argon2 ($argon2*)
         if (!str_starts_with($hash, '$2y$') && !str_starts_with($hash, '$argon2')) {
-            throw new UserException('Password hash inválido (debe ser bcrypt o argon2)');
+            throw (new UserException('Password hash inválido (debe ser bcrypt o argon2)'))->withMessageKey('users.password_hash_invalid');
         }
     }
 

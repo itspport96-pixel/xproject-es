@@ -100,12 +100,12 @@ final class LocationController
 
         $codigo = $params['codigo'] ?? '';
         if ($codigo === '') {
-            throw new HttpException('Código de ubicación requerido', 400);
+            throw (new HttpException('Código de ubicación requerido', 400))->withMessageKey('common.codigo_ubicacion_requerido');
         }
 
         $location = $this->service->findByCodigo($codigo);
         if ($location === null) {
-            throw HttpException::notFound('Ubicación no encontrada');
+            throw (new HttpException('Ubicación no encontrada', 404))->withMessageKey('common.location_not_found');
         }
 
         return $this->json(200, ['location' => $location]);
@@ -134,7 +134,7 @@ final class LocationController
 
         $jerarquia = $params['jerarquia'] ?? '';
         if ($jerarquia === '') {
-            throw new HttpException('Jerarquía requerida', 400);
+            throw (new HttpException('Jerarquía requerida', 400))->withMessageKey('common.jerarquia_requerida');
         }
 
         $locations = $this->service->findChildren($jerarquia);
@@ -152,12 +152,12 @@ final class LocationController
 
         $id = $params['id'] ?? '';
         if ($id === '') {
-            throw new HttpException('ID de ubicación requerido', 400);
+            throw (new HttpException('ID de ubicación requerido', 400))->withMessageKey('common.id_ubicacion_requerido');
         }
 
         $location = $this->service->findById($id);
         if ($location === null) {
-            throw HttpException::notFound('Ubicación no encontrada');
+            throw (new HttpException('Ubicación no encontrada', 404))->withMessageKey('common.location_not_found');
         }
 
         return $this->json(200, ['location' => $location]);
@@ -197,7 +197,7 @@ final class LocationController
 
         $id = $params['id'] ?? '';
         if ($id === '') {
-            throw new HttpException('ID de ubicación requerido', 400);
+            throw (new HttpException('ID de ubicación requerido', 400))->withMessageKey('common.id_ubicacion_requerido');
         }
 
         $before = $this->service->findById($id);
@@ -224,7 +224,7 @@ final class LocationController
 
         $id = $params['id'] ?? '';
         if ($id === '') {
-            throw new HttpException('ID de ubicación requerido', 400);
+            throw (new HttpException('ID de ubicación requerido', 400))->withMessageKey('common.id_ubicacion_requerido');
         }
 
         $before = $this->service->findById($id);
@@ -254,7 +254,7 @@ final class LocationController
 
         $id = $params['id'] ?? '';
         if ($id === '') {
-            throw new HttpException('ID de ubicación requerido', 400);
+            throw (new HttpException('ID de ubicación requerido', 400))->withMessageKey('common.id_ubicacion_requerido');
         }
 
         $location = $this->service->activate($id);
@@ -277,7 +277,7 @@ final class LocationController
 
         $id = $params['id'] ?? '';
         if ($id === '') {
-            throw new HttpException('ID de ubicación requerido', 400);
+            throw (new HttpException('ID de ubicación requerido', 400))->withMessageKey('common.id_ubicacion_requerido');
         }
 
         $location = $this->service->deactivate($id);
@@ -339,7 +339,7 @@ final class LocationController
         $claims = $request['user'] ?? null;
 
         if (!is_array($claims) || empty($claims['user_id']) || empty($claims['tenant_id'])) {
-            throw new HttpException('No autorizado', 401);
+            throw (new HttpException('No autorizado', 401))->withMessageKey('common.unauthorized');
         }
 
         return $claims;

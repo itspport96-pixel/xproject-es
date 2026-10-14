@@ -115,7 +115,7 @@ final class TenantController
         $filteredData = array_intersect_key($data, array_flip($allowedFields));
 
         if (empty($filteredData)) {
-            throw new HttpException('No se proporcionaron campos válidos para actualizar', 400);
+            throw (new HttpException('No se proporcionaron campos válidos para actualizar', 400))->withMessageKey('common.no_valid_fields');
         }
 
         try {
@@ -165,11 +165,11 @@ final class TenantController
         $claims = $request['user'] ?? null;
 
         if (!is_array($claims) || empty($claims['user_id']) || empty($claims['tenant_id'])) {
-            throw new HttpException('No autorizado', 401);
+            throw (new HttpException('No autorizado', 401))->withMessageKey('common.unauthorized');
         }
 
         if (!$this->authz->hasAdminRole((string) $claims['user_id'], (string) $claims['tenant_id'])) {
-            throw new HttpException('Se requiere rol ADMIN para gestionar el tenant', 403);
+            throw (new HttpException('Se requiere rol ADMIN para gestionar el tenant', 403))->withMessageKey('tenants.admin_required');
         }
 
         return $claims;

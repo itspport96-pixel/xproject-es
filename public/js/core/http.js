@@ -52,6 +52,11 @@
             ...customHeaders
         };
 
+        // Locale actual para que el backend traduzca mensajes de error
+        if (global.i18n && typeof global.i18n.getLocale === 'function') {
+            headers['X-Locale'] = global.i18n.getLocale();
+        }
+
         if (requiresAuth) {
             const token = global.Storage && global.Storage.getToken();
             if (token) {

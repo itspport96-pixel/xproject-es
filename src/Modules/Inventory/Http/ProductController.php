@@ -106,12 +106,12 @@ final class ProductController
 
         $sku = $params['sku'] ?? '';
         if ($sku === '') {
-            throw new HttpException('SKU requerido', 400);
+            throw (new HttpException('SKU requerido', 400))->withMessageKey('common.sku_required');
         }
 
         $product = $this->service->findBySku($sku);
         if ($product === null) {
-            throw HttpException::notFound('Producto no encontrado');
+            throw (new HttpException('Producto no encontrado', 404))->withMessageKey('common.product_not_found');
         }
 
         return $this->json(200, ['product' => $product]);
@@ -127,12 +127,12 @@ final class ProductController
 
         $id = $params['id'] ?? '';
         if ($id === '') {
-            throw new HttpException('ID de producto requerido', 400);
+            throw (new HttpException('ID de producto requerido', 400))->withMessageKey('common.id_producto_requerido');
         }
 
         $product = $this->service->findById($id);
         if ($product === null) {
-            throw HttpException::notFound('Producto no encontrado');
+            throw (new HttpException('Producto no encontrado', 404))->withMessageKey('common.product_not_found');
         }
 
         return $this->json(200, ['product' => $product]);
@@ -172,7 +172,7 @@ final class ProductController
 
         $id = $params['id'] ?? '';
         if ($id === '') {
-            throw new HttpException('ID de producto requerido', 400);
+            throw (new HttpException('ID de producto requerido', 400))->withMessageKey('common.id_producto_requerido');
         }
 
         $before = $this->service->findById($id);
@@ -199,7 +199,7 @@ final class ProductController
 
         $id = $params['id'] ?? '';
         if ($id === '') {
-            throw new HttpException('ID de producto requerido', 400);
+            throw (new HttpException('ID de producto requerido', 400))->withMessageKey('common.id_producto_requerido');
         }
 
         $before = $this->service->findById($id);
@@ -229,7 +229,7 @@ final class ProductController
 
         $id = $params['id'] ?? '';
         if ($id === '') {
-            throw new HttpException('ID de producto requerido', 400);
+            throw (new HttpException('ID de producto requerido', 400))->withMessageKey('common.id_producto_requerido');
         }
 
         $product = $this->service->activate($id);
@@ -252,7 +252,7 @@ final class ProductController
 
         $id = $params['id'] ?? '';
         if ($id === '') {
-            throw new HttpException('ID de producto requerido', 400);
+            throw (new HttpException('ID de producto requerido', 400))->withMessageKey('common.id_producto_requerido');
         }
 
         $product = $this->service->deactivate($id);
@@ -314,7 +314,7 @@ final class ProductController
         $claims = $request['user'] ?? null;
 
         if (!is_array($claims) || empty($claims['user_id']) || empty($claims['tenant_id'])) {
-            throw new HttpException('No autorizado', 401);
+            throw (new HttpException('No autorizado', 401))->withMessageKey('common.unauthorized');
         }
 
         return $claims;

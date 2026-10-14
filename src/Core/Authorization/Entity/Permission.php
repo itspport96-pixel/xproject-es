@@ -218,7 +218,7 @@ final class Permission
     {
         $identificador = trim($identificador);
         if ($identificador === '') {
-            throw new AuthorizationException('El identificador del permiso no puede estar vacío', 400);
+            throw (new AuthorizationException('El identificador del permiso no puede estar vacío', 400))->withMessageKey('roles.permission_identifier_required');
         }
         if (strlen($identificador) > self::MAX_IDENTIFICADOR_LENGTH) {
             throw new AuthorizationException("El identificador excede longitud máxima (" . self::MAX_IDENTIFICADOR_LENGTH . ")", 400);
@@ -232,7 +232,7 @@ final class Permission
     {
         $nombre = trim($nombre);
         if ($nombre === '') {
-            throw new AuthorizationException('El nombre del permiso no puede estar vacío', 400);
+            throw (new AuthorizationException('El nombre del permiso no puede estar vacío', 400))->withMessageKey('roles.permission_name_required');
         }
         if (strlen($nombre) > self::MAX_NOMBRE_LENGTH) {
             throw new AuthorizationException("El nombre excede longitud máxima (" . self::MAX_NOMBRE_LENGTH . ")", 400);

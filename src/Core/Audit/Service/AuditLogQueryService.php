@@ -118,7 +118,8 @@ final class AuditLogQueryService
         if (($value = $this->stringFilter($filters, 'resultado')) !== null) {
             $resultado = strtoupper($value);
             if (!in_array($resultado, self::RESULTADOS, true)) {
-                throw HttpException::badRequest("Filtro 'resultado' inválido: debe ser SUCCESS o FAILURE");
+                throw (new HttpException("Filtro 'resultado' inválido: debe ser SUCCESS o FAILURE", 400))
+                    ->withMessageKey('common.filtro_resultado_invalido');
             }
             $where[] = 'resultado = :resultado';
             $params['resultado'] = $resultado;

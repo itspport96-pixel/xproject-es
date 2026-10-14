@@ -53,7 +53,7 @@ final class Role
         if ($tipo === self::TYPE_BUILT_IN) {
             $tenantId = null;
         } elseif ($tenantId === null || trim($tenantId) === '') {
-            throw new AuthorizationException('Un rol CUSTOM requiere un tenant_id', 400);
+            throw (new AuthorizationException('Un rol CUSTOM requiere un tenant_id', 400))->withMessageKey('roles.custom_requires_tenant');
         }
 
         return new self(
@@ -192,7 +192,7 @@ final class Role
     public function softDelete(): void
     {
         if ($this->isBuiltIn()) {
-            throw new AuthorizationException('No se puede eliminar un rol BUILT_IN', 403);
+            throw (new AuthorizationException('No se puede eliminar un rol BUILT_IN', 403))->withMessageKey('roles.cannot_delete_built_in');
         }
         $this->deletedAt = new DateTimeImmutable();
         $this->activo = false;
@@ -266,13 +266,13 @@ final class Role
     {
         $nombre = trim($nombre);
         if ($nombre === '') {
-            throw new AuthorizationException('El nombre del rol no puede estar vacío', 400);
+            throw (new AuthorizationException('El nombre del rol no puede estar vacío', 400))->withMessageKey('roles.name_required_entity');
         }
         if (strlen($nombre) > self::MAX_NOMBRE_LENGTH) {
-            throw new AuthorizationException('El nombre del rol excede longitud máxima (100)', 400);
+            throw (new AuthorizationException('El nombre del rol excede longitud máxima (100)', 400))->withMessageKey('roles.name_max_length');
         }
         if (!preg_match('/^[A-Z0-9_\- ]+$/i', $nombre)) {
-            throw new AuthorizationException('El nombre del rol solo permite letras, números, espacios, guiones y guiones bajos', 400);
+            throw (new AuthorizationException('El nombre del rol solo permite letras, números, espacios, guiones y guiones bajos', 400))->withMessageKey('roles.name_invalid_chars');
         }
     }
 
@@ -282,7 +282,7 @@ final class Role
             return;
         }
         if (strlen($descripcion) > self::MAX_DESCRIPCION_LENGTH) {
-            throw new AuthorizationException('La descripción excede longitud máxima (500)', 400);
+            throw (new AuthorizationException('La descripción excede longitud máxima (500)', 400))->withMessageKey('roles.description_max_length');
         }
     }
 
@@ -304,7 +304,7 @@ final class Role
     {
         $permissionId = trim($permissionId);
         if ($permissionId === '') {
-            throw new AuthorizationException('El identificador de permiso no puede estar vacío', 400);
+            throw (new AuthorizationException('El identificador de permiso no puede estar vacío', 400))->withMessageKey('roles.permission_id_required');
         }
         if (!preg_match('/^[a-z0-9]+\.[a-z0-9_]+\.[a-z0-9_]+$/', $permissionId)) {
             throw new AuthorizationException("Formato de permiso inválido: '{$permissionId}' (esperado: modulo.recurso.accion)", 400);
@@ -314,7 +314,7 @@ final class Role
     private function ensureMutable(): void
     {
         if ($this->isBuiltIn()) {
-            throw new AuthorizationException('Los roles BUILT_IN no pueden ser modificados', 403);
+            throw (new AuthorizationException('Los roles BUILT_IN no pueden ser modificados', 403))->withMessageKey('roles.cannot_modify_built_in');
         }
     }
 

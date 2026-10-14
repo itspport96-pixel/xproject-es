@@ -100,7 +100,7 @@ final class IncidentController
         $incidentId = trim((string) ($params['id'] ?? ''));
 
         if ($incidentId === '') {
-            throw new HttpException('Ruta inválida', 404);
+            throw (new HttpException('Ruta inválida', 404))->withMessageKey('common.ruta_invalida');
         }
 
         $service = $this->queryService ?? Container::getInstance()->get(IncidentQueryService::class);
@@ -139,7 +139,7 @@ final class IncidentController
         $incidentId = trim((string) ($params['id'] ?? ''));
 
         if ($incidentId === '') {
-            throw new HttpException('Ruta inválida', 404);
+            throw (new HttpException('Ruta inválida', 404))->withMessageKey('common.ruta_invalida');
         }
 
         $key = $this->idempotencyKey($request, false);
@@ -166,7 +166,7 @@ final class IncidentController
         $incidentId = trim((string) ($params['id'] ?? ''));
 
         if ($incidentId === '') {
-            throw new HttpException('Ruta inválida', 404);
+            throw (new HttpException('Ruta inválida', 404))->withMessageKey('common.ruta_invalida');
         }
 
         $key = $this->idempotencyKey($request, false);

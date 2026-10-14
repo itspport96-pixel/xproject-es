@@ -73,60 +73,65 @@ final class UserException extends HttpException
 
     public static function emailAlreadyExists(string $email): self
     {
-        return new self(
+        return (new self(
             "El email '{$email}' ya está registrado en este tenant.",
             400,
             null,
             'email',
             self::CATEGORY_VALIDATION
-        );
+        ))->withMessageKey('users.email_already_exists', ['email' => $email]);
     }
 
     public static function userNotFound(string $userId): self
     {
-        return new self(
+        return (new self(
             "El usuario con ID '{$userId}' no existe.",
             404,
             null,
             'id',
             self::CATEGORY_NOT_FOUND
-        );
+        ))->withMessageKey('users.user_not_found', ['id' => $userId]);
     }
 
     public static function requiredField(string $field): self
     {
-        return new self(
+        return (new self(
             "El campo '{$field}' es obligatorio.",
             400,
             null,
             $field,
             self::CATEGORY_VALIDATION
-        );
+        ))->withMessageKey('users.required_field', ['field' => $field]);
     }
 
     public static function invalidCredentials(): self
     {
-        return new self('Credenciales inválidas.', 401, null, null, self::CATEGORY_AUTH);
+        return (new self('Credenciales inválidas.', 401, null, null, self::CATEGORY_AUTH))
+            ->withMessageKey('auth.invalid_credentials');
     }
 
     public static function accountSuspended(): self
     {
-        return new self('La cuenta de usuario se encuentra suspendida.', 403, null, null, self::CATEGORY_FORBIDDEN);
+        return (new self('La cuenta de usuario se encuentra suspendida.', 403, null, null, self::CATEGORY_FORBIDDEN))
+            ->withMessageKey('auth.account_suspended');
     }
 
     public static function accountInactive(): self
     {
-        return new self('La cuenta de usuario no está activa.', 403, null, null, self::CATEGORY_FORBIDDEN);
+        return (new self('La cuenta de usuario no está activa.', 403, null, null, self::CATEGORY_FORBIDDEN))
+            ->withMessageKey('auth.account_inactive');
     }
 
     public static function passwordMismatch(): self
     {
-        return new self('La contraseña proporcionada no coincide.', 400, null, 'password', self::CATEGORY_VALIDATION);
+        return (new self('La contraseña proporcionada no coincide.', 400, null, 'password', self::CATEGORY_VALIDATION))
+            ->withMessageKey('auth.password_mismatch');
     }
 
     public static function emailNotVerified(): self
     {
-        return new self('El email del usuario no ha sido verificado.', 403, null, null, self::CATEGORY_FORBIDDEN);
+        return (new self('El email del usuario no ha sido verificado.', 403, null, null, self::CATEGORY_FORBIDDEN))
+            ->withMessageKey('auth.email_not_verified');
     }
 
     /**
@@ -136,13 +141,13 @@ final class UserException extends HttpException
      */
     public static function roleNotDirect(): self
     {
-        return new self(
+        return (new self(
             'El rol no está asignado directamente al usuario; si es heredado de un grupo, quítalo desde el grupo.',
             409,
             null,
             null,
             self::CATEGORY_CONFLICT,
             'ROLE_NOT_DIRECT'
-        );
+        ))->withMessageKey('users.role_not_direct');
     }
 }

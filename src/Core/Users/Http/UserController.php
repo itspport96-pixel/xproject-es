@@ -128,12 +128,12 @@ final class UserController
         $userId = $params['id'] ?? null;
 
         if (!$userId) {
-            throw new HttpException('ID de usuario requerido', 400);
+            throw (new HttpException('ID de usuario requerido', 400))->withMessageKey('common.id_usuario_requerido');
         }
 
         $user = $this->userService->findById($userId, $tenantId);
         if (!$user) {
-            throw new HttpException('Usuario no encontrado', 404);
+            throw (new HttpException('Usuario no encontrado', 404))->withMessageKey('users.user_not_found');
         }
 
         return ['status' => 200, 'data' => ['user' => $user]];
@@ -223,7 +223,7 @@ final class UserController
         $userId = $params['id'] ?? null;
 
         if (!$userId) {
-            throw new HttpException('ID de usuario requerido', 400);
+            throw (new HttpException('ID de usuario requerido', 400))->withMessageKey('common.id_usuario_requerido');
         }
 
         $before = $this->userService->findById((string) $userId, $tenantId);
@@ -278,7 +278,7 @@ final class UserController
         $userId = (string) ($params['id'] ?? '');
 
         if ($userId === '') {
-            throw new HttpException('ID de usuario requerido', 400);
+            throw (new HttpException('ID de usuario requerido', 400))->withMessageKey('common.id_usuario_requerido');
         }
 
         if ($userId === $actorId) {
@@ -338,7 +338,7 @@ final class UserController
         $userId = (string) ($params['id'] ?? '');
 
         if ($userId === '') {
-            throw new HttpException('ID de usuario requerido', 400);
+            throw (new HttpException('ID de usuario requerido', 400))->withMessageKey('common.id_usuario_requerido');
         }
 
         $data = $this->getInputData();
@@ -408,7 +408,7 @@ final class UserController
         $userId = (string) ($params['id'] ?? '');
 
         if ($userId === '') {
-            throw new HttpException('ID de usuario requerido', 400);
+            throw (new HttpException('ID de usuario requerido', 400))->withMessageKey('common.id_usuario_requerido');
         }
 
         if ($userId === $actorId) {
@@ -460,7 +460,7 @@ final class UserController
         $roleId = $data['role_id'] ?? null;
 
         if (!$userId || !$roleId) {
-            throw new HttpException('ID de usuario y role_id son requeridos', 400);
+            throw (new HttpException('ID de usuario y role_id son requeridos', 400))->withMessageKey('common.id_usuario_role_id_required');
         }
 
         $target = $this->userService->findById((string) $userId, $tenantId);
@@ -506,7 +506,7 @@ final class UserController
         $roleId = $params['roleId'] ?? null;
 
         if (!$userId || !$roleId) {
-            throw new HttpException('ID de usuario y roleId son requeridos', 400);
+            throw (new HttpException('ID de usuario y roleId son requeridos', 400))->withMessageKey('common.id_usuario_roleId_required');
         }
 
         $target = $this->userService->findById((string) $userId, $tenantId);
@@ -561,7 +561,7 @@ final class UserController
         $userId = $params['id'] ?? null;
 
         if (!$userId) {
-            throw new HttpException('ID de usuario requerido', 400);
+            throw (new HttpException('ID de usuario requerido', 400))->withMessageKey('common.id_usuario_requerido');
         }
 
         $roles = $this->authz->getUserRolesWithOrigin((string) $userId, (string) $tenantId);
@@ -638,17 +638,17 @@ final class UserController
         $token = $this->extractBearerToken();
 
         if ($token === '') {
-            throw new HttpException('No autenticado', 401);
+            throw (new HttpException('No autenticado', 401))->withMessageKey('auth.not_authenticated');
         }
 
         try {
             $claims = (array) $this->jwt->decodeToken($token);
         } catch (\Throwable $e) {
-            throw new HttpException('Token inválido o expirado', 401);
+            throw (new HttpException('Token inválido o expirado', 401))->withMessageKey('auth.token_invalid');
         }
 
         if (empty($claims['tenant_id']) || empty($claims['user_id'])) {
-            throw new HttpException('Claims incompletos', 401);
+            throw (new HttpException('Claims incompletos', 401))->withMessageKey('auth.claims_incomplete');
         }
 
         return $claims;

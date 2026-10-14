@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.35] - 2026-10-14
+
+**Migración de mensajes de excepción del backend a catálogo i18n traducido (`api_errors`).** El soporte puede ver los mensajes de error en su idioma. Se elimina el código muerto `ErrorHandler.php` y `tools/i18n-fragments`.
+
+### Added
+
+- **`src/Shared/Services/ErrorCatalog.php`**: traductor de claves `api_errors` desde `resources/locales/{locale}.json` con fallback a `es` y soporte de parámetros `{0}`/`{name}`.
+- **`HttpException::withMessageKey()`**: método fluent para adjuntar `messageKey` + `messageParams` a cualquier excepción HTTP.
+- **Header `X-Locale`**: `public/js/core/http.js` envía el locale actual en cada petición; `public/index.php` lo resuelve (`X-Locale` → `Accept-Language` → `es`).
+- **`api_errors` en 4 locales**: ~200 claves de catálogo (es/en llenos; fr/pt vacíos para conversión manual). Grupos: `common`, `auth`, `users`, `roles`, `permissions`, `groups`, `tenants`, `security`, `inventory.*`.
+- **`AuthController::jsonError()`**: acepta `messageKey` opcional y traduce vía `ErrorCatalog` (26 llamadas migradas: login, refresh, authenticate).
+
+### Changed
+
+- **~80 factories de excepciones** migradas en `InventoryException`, `UserException`, `AuthorizationException`, `GroupException`, `SecurityException`, `TenantException`, `TemporaryPermissionException`, `UserPreferencesException`, `PasswordChangeRequiredException`.
+- **~70 `throw` en controllers/services/entities** migrados a `->withMessageKey(...)`: UserController, RoleController, PermissionController, GroupController, TenantController, ProductController, LocationController, IncidentController, UserService, TenantService, TenantContext, AuthorizationService, IdempotencyService, User/Role/Permission/Secret entities, AuthController.
+- **`UI.errorMessage()`** (`actions.js`): prioriza el `message` traducido del API sobre el mapping genérico por category/status.
+- **`check-i18n.php`**: excluye claves `api_errors.*` del aviso de "clave sin uso" (se usan en PHP vía `withMessageKey`, no en `t()` de JS).
+
+### Removed
+
+- **`src/Shared/Http/ErrorHandler.php`**: código muerto (380 líneas, nunca registrado como handler real; el handler está en `public/index.php`).
+- **`tools/i18n-fragments/`**: 20 JSON obsoletos de la migración i18n inicial.
+- **Pendientes resueltos**: `database/schema/schema.sql` (2 comentarios de columnas reservadas del revert) y `tools/smoke/capturas-permissions/*.png` (restaurados al HEAD).
+
+### Verified
+
+- `composer test` 944/944; `check-i18n` 0 errores; `check-schema-drift` SIN DRIFT; `check-data-integrity` DATOS CONSISTENTES.
+- Smoke v162 (89 OK) y v171 (105 OK).
+- API en vivo: `GET /inventory/products/99999` con `X-Locale: en` → "Product not found"; `POST /auth/login` inválido con `X-Locale: en` → "Invalid credentials"; `fr` fallback a es.
+
 ## [1.13.34] - 2026-10-14
 
 **Reestructuración de idiomas: es + en completos; fr + pt listos pero vacíos.** Escaneo i18n del frontend: 0 literales en español fuera de `t()` (todas las vistas migradas). Se dejan las claves de fr/pt preparadas para conversión manual por el usuario.

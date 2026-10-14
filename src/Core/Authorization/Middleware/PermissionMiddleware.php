@@ -57,7 +57,7 @@ final class PermissionMiddleware
         $claims = $request['user'] ?? null;
 
         if (!is_array($claims) || empty($claims['user_id']) || empty($claims['tenant_id'])) {
-            throw new HttpException('No autorizado: faltan claims de usuario', 401);
+            throw (new HttpException('No autorizado: faltan claims de usuario', 401))->withMessageKey('auth.missing_user_claims');
         }
 
         $userId = (string) $claims['user_id'];

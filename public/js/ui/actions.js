@@ -82,6 +82,16 @@
     function errorMessage(err) {
         if (!err) return t('ui.error_generic');
 
+        // El backend ya devuelve el mensaje traducido (api_errors + X-Locale).
+        // Si hay message especifica del API, se prioriza sobre el mapping
+        // generico por category/status (que perderia el detalle).
+        const apiMessage = (err.message && String(err.message).trim() !== '') ? String(err.message) : '';
+        const isGenericApi = !apiMessage
+            || apiMessage === 'Internal server error'
+            || apiMessage === 'Internal Server Error'
+            || /^HTTP \d+$/.test(apiMessage);
+        if (apiMessage && !isGenericApi) return apiMessage;
+
         const body = (err.data && typeof err.data === 'object') ? err.data : null;
         const inner = (body && body.data && typeof body.data === 'object') ? body.data : null;
         const category = (inner && inner.category) || (body && body.category) || '';
@@ -110,7 +120,7 @@
         if (typeof status === 'number' && status >= 500) return t('errors.server');
         if (!status) return t('errors.network');
 
-        return (err.message && String(err.message).trim() !== '') ? String(err.message) : t('ui.error_generic');
+        return apiMessage || t('ui.error_generic');
     }
 
     /**

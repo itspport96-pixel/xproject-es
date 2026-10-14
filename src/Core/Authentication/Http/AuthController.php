@@ -73,7 +73,7 @@ class AuthController
             $this->rateLimiter->attempt($rateLimitKey, 5, 300);
         } catch (SecurityException $e) {
             usleep(random_int(50000, 150000));
-            return $this->jsonError('Demasiados intentos. Espera unos minutos.', 429);
+            return $this->jsonError('Demasiados intentos. Espera unos minutos.', 429, 'auth.rate_limited');
         }
 
         $raw = file_get_contents('php://input');
@@ -84,19 +84,19 @@ class AuthController
         $tenantId = $this->sanitizer->sanitizeString((string) ($data['tenant_id'] ?? ''));
 
         if ($email === '' || $password === '') {
-            return $this->jsonError('Email y password son obligatorios', 400);
+            return $this->jsonError('Email y password son obligatorios', 400, 'auth.email_password_required');
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             usleep(random_int(50000, 150000));
-            return $this->jsonError('Credenciales inválidas', 401);
+            return $this->jsonError('Credenciales inválidas', 401, 'auth.invalid_credentials');
         }
 
         if ($tenantId === '') {
             $tenantId = $this->deduceTenantIdFromEmail($email);
             if ($tenantId === null) {
                 usleep(random_int(50000, 150000));
-                return $this->jsonError('Credenciales inválidas', 401);
+                return $this->jsonError('Credenciales inválidas', 401, 'auth.invalid_credentials');
             }
         }
 
@@ -112,7 +112,7 @@ class AuthController
             $this->rateLimiter->attempt($accountKey, 3, 300);
         } catch (SecurityException $e) {
             usleep(random_int(50000, 150000));
-            return $this->jsonError('Demasiados intentos. Espera unos minutos.', 429);
+            return $this->jsonError('Demasiados intentos. Espera unos minutos.', 429, 'auth.rate_limited');
         }
 
         $user = $this->users->findByEmail($email, $tenantId);
@@ -127,7 +127,7 @@ class AuthController
                 'razon_fallo' => 'Credenciales inválidas',
             ], $email);
             usleep(random_int(50000, 150000));
-            return $this->jsonError('Credenciales inválidas', 401);
+            return $this->jsonError('Credenciales inválidas', 401, 'auth.invalid_credentials');
         }
 
         if (!$this->users->isActive($user['id'], $tenantId)) {
@@ -135,7 +135,7 @@ class AuthController
                 'resultado' => 'FAILURE',
                 'razon_fallo' => 'Cuenta inactiva o suspendida',
             ], $email);
-            return $this->jsonError('Cuenta inactiva o suspendida', 403);
+            return $this->jsonError('Cuenta inactiva o suspendida', 403, 'auth.account_inactive');
         }
 
         // Password temporal / cambio de contraseña obligatorio (v1.11.0):
@@ -152,7 +152,8 @@ class AuthController
                 ], $email);
                 return $this->jsonError(
                     'El password temporal ha expirado; contacta con un administrador para reiniciarlo',
-                    403
+                    403,
+                    'auth.temp_password_expired'
                 );
             }
         }
@@ -162,7 +163,7 @@ class AuthController
                 'resultado' => 'FAILURE',
                 'razon_fallo' => 'El tenant no está activo',
             ], $email);
-            return $this->jsonError('El tenant no está activo', 403);
+            return $this->jsonError('El tenant no está activo', 403, 'auth.tenant_inactive');
         }
 
         $this->rateLimiter->clear($rateLimitKey);
@@ -235,17 +236,17 @@ class AuthController
         $refreshToken = trim(is_string($data['refresh_token'] ?? null) ? (string) $data['refresh_token'] : '');
 
         if ($refreshToken === '') {
-            return $this->jsonError('Refresh token requerido', 400);
+            return $this->jsonError('Refresh token requerido', 400, 'auth.refresh_token_required');
         }
 
         try {
             $decoded = (array) $this->jwt->decodeToken($refreshToken);
         } catch (\Throwable $e) {
-            return $this->jsonError('Refresh token inválido o expirado', 401);
+            return $this->jsonError('Refresh token inválido o expirado', 401, 'auth.refresh_invalid');
         }
 
         if (($decoded['type'] ?? '') !== 'refresh') {
-            return $this->jsonError('Tipo de token inválido', 401);
+            return $this->jsonError('Tipo de token inválido', 401, 'auth.token_type_invalid');
         }
 
         $userId = $this->sanitizer->sanitizeString((string) ($decoded['user_id'] ?? ''));
@@ -254,17 +255,17 @@ class AuthController
         $sessionId = $this->sanitizer->sanitizeString((string) ($decoded['fam'] ?? ''));
 
         if ($userId === '' || $tenantId === '' || $refreshJti === '' || $sessionId === '') {
-            return $this->jsonError('Claims incompletos', 401);
+            return $this->jsonError('Claims incompletos', 401, 'auth.claims_incomplete');
         }
 
         $user = $this->users->findById($userId, $tenantId);
         if ($user === null || !$this->users->isActive($userId, $tenantId)) {
-            return $this->jsonError('Usuario no válido', 401);
+            return $this->jsonError('Usuario no válido', 401, 'auth.user_invalid');
         }
 
         $stored = $this->findRefreshToken($refreshJti, $userId, $tenantId);
         if ($stored === null) {
-            return $this->jsonError('Refresh token inválido', 401);
+            return $this->jsonError('Refresh token inválido', 401, 'auth.refresh_invalid');
         }
 
         if ((int) $stored['used'] === 1 || (int) $stored['revoked'] === 1) {
@@ -281,17 +282,17 @@ class AuthController
                 'detalles_adicionales' => ['motivo' => 'reuse', 'family_id' => $sessionId],
             ]);
 
-            return $this->jsonError('Refresh token inválido', 401);
+            return $this->jsonError('Refresh token inválido', 401, 'auth.refresh_invalid');
         }
 
         if ($stored['expires_at'] < date('Y-m-d H:i:s')) {
             $this->revokeFamily($sessionId, 'expired');
-            return $this->jsonError('Refresh token expirado', 401);
+            return $this->jsonError('Refresh token expirado', 401, 'auth.refresh_expired');
         }
 
         if (!$this->sessionIsActive($sessionId)) {
             $this->revokeFamily($sessionId, 'inactivity');
-            return $this->jsonError('Sesión expirada por inactividad', 401);
+            return $this->jsonError('Sesión expirada por inactividad', 401, 'auth.session_expired_inactivity');
         }
 
         $newRefreshJti = $this->rotateRefreshToken($refreshJti, $sessionId, $userId, $tenantId);
@@ -356,7 +357,7 @@ class AuthController
     {
         $claims = $request['user'] ?? null;
         if (!is_array($claims) || empty($claims['user_id']) || empty($claims['tenant_id'])) {
-            return $this->jsonError('No autenticado', 401);
+            return $this->jsonError('No autenticado', 401, 'auth.not_authenticated');
         }
 
         $userId = (string) $claims['user_id'];
@@ -432,34 +433,34 @@ class AuthController
         }
 
         if ($token === '') {
-            return $this->jsonError('No autenticado', 401);
+            return $this->jsonError('No autenticado', 401, 'auth.not_authenticated');
         }
 
         try {
             $claims = (array) $this->jwt->decodeToken($token);
         } catch (\Throwable $e) {
-            return $this->jsonError('Token inválido', 401);
+            return $this->jsonError('Token inválido', 401, 'auth.token_invalid');
         }
 
         // Defensa en profundidad (misma semántica que AuthenticationMiddleware)
         if (($claims['type'] ?? 'access') !== 'access') {
-            return $this->jsonError('Tipo de token inválido', 401);
+            return $this->jsonError('Tipo de token inválido', 401, 'auth.token_type_invalid');
         }
 
         $userId = (string) ($claims['user_id'] ?? '');
         $tenantId = (string) ($claims['tenant_id'] ?? '');
 
         if ($userId === '' || $tenantId === '') {
-            return $this->jsonError('Claims incompletos', 401);
+            return $this->jsonError('Claims incompletos', 401, 'auth.claims_incomplete');
         }
 
         $user = $this->users->findById($userId, $tenantId);
         if ($user === null) {
-            return $this->jsonError('Usuario no encontrado', 404);
+            return $this->jsonError('Usuario no encontrado', 404, 'auth.user_not_found');
         }
 
         if (!$this->users->isActive($userId, $tenantId)) {
-            return $this->jsonError('Usuario inactivo o eliminado', 401);
+            return $this->jsonError('Usuario inactivo o eliminado', 401, 'auth.user_inactive');
         }
 
         // v1.12.1: /auth/me deja de leer los claims del token (que podrian
@@ -705,8 +706,18 @@ class AuthController
         return ['status' => $status, 'data' => $data];
     }
 
-    private function jsonError(string $message, int $status): array
+    private function jsonError(string $message, int $status, ?string $messageKey = null): array
     {
+        if ($messageKey !== null) {
+            $message = \App\Shared\Services\ErrorCatalog::translate($messageKey, [], $this->resolveLocale());
+        }
         return ['status' => $status, 'error' => $message];
+    }
+
+    private function resolveLocale(): string
+    {
+        $header = $_SERVER['HTTP_X_LOCALE'] ?? $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? 'es';
+        $locale = strtolower(substr((string) $header, 0, 2));
+        return in_array($locale, ['es', 'en', 'pt', 'fr'], true) ? $locale : 'es';
     }
 }

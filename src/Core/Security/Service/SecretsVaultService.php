@@ -274,7 +274,7 @@ final class SecretsVaultService
         }
 
         if ($nuevoValorPlano === '') {
-            throw new SecurityException('El nuevo valor no puede estar vacío', 400);
+            throw (new SecurityException('El nuevo valor no puede estar vacío', 400))->withMessageKey('security.secret_value_required');
         }
 
         // Encriptar nuevo valor
@@ -398,7 +398,7 @@ final class SecretsVaultService
         }
 
         if (strlen((string) $data['valor']) > 5000) {
-            throw new SecurityException('El valor excede longitud máxima (5000 caracteres)', 400);
+            throw (new SecurityException('El valor excede longitud máxima (5000 caracteres)', 400))->withMessageKey('security.secret_value_max_length');
         }
     }
 

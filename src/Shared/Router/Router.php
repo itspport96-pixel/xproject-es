@@ -186,7 +186,7 @@ final class Router
         if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
             // Tope de tamaño de payload (DoS de memoria)
             if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 1048576) {
-                throw new HttpException('Payload demasiado grande (máximo 1MB)', 413);
+                throw (new HttpException('Payload demasiado grande (máximo 1MB)', 413))->withMessageKey('common.payload_too_large');
             }
             $rawBody = (string) file_get_contents('php://input');
             if (str_contains($contentType, 'application/json') && $rawBody !== '') {

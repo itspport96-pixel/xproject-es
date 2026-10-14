@@ -214,7 +214,7 @@ final class Secret
     public function habilitarRotacion(int $days = 90): void
     {
         if ($days <= 0) {
-            throw new SecurityException('Los días de rotación deben ser mayores a 0', 400);
+            throw (new SecurityException('Los días de rotación deben ser mayores a 0', 400))->withMessageKey('security.rotation_days_invalid');
         }
         $this->rotacionRequerida = true;
         $this->proximaRotacion = (new DateTimeImmutable())->modify("+{$days} days");
@@ -372,7 +372,7 @@ final class Secret
     {
         $nombre = trim($nombre);
         if ($nombre === '') {
-            throw new SecurityException('El nombre del secreto no puede estar vacío', 400);
+            throw (new SecurityException('El nombre del secreto no puede estar vacío', 400))->withMessageKey('security.secret_name_required');
         }
         if (strlen($nombre) > self::MAX_NOMBRE_LENGTH) {
             throw new SecurityException(
@@ -402,7 +402,7 @@ final class Secret
     private static function validateValorEncriptado(string $valor): void
     {
         if ($valor === '') {
-            throw new SecurityException('El valor encriptado no puede estar vacío', 400);
+            throw (new SecurityException('El valor encriptado no puede estar vacío', 400))->withMessageKey('security.secret_encrypted_required');
         }
         if (strlen($valor) > self::MAX_VALOR_LENGTH) {
             throw new SecurityException(

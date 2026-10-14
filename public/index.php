@@ -14,6 +14,7 @@ $container = require dirname(__DIR__) . '/bootstrap.php';
 
 use App\Shared\Container\Container;
 use App\Shared\Exceptions\HttpException;
+use App\Shared\Services\ErrorCatalog;
 use App\Core\Authentication\Service\PasswordHasher;
 use App\Core\Authentication\Repository\UserRepository;
 use App\Core\Security\Middleware\SecurityHeadersMiddleware;
@@ -69,9 +70,9 @@ set_exception_handler(function (Throwable $e) use ($container) {
         }
 
         if ($isAuthError) {
-            $message = 'No autenticado o sesión expirada';
+            $message = resolveErrorMessage($e, 'auth.session_expired', 'No autenticado o sesión expirada');
         } elseif ($e instanceof HttpException || $e instanceof \App\Shared\Exceptions\SecurityException) {
-            $message = $e->getMessage() !== '' ? $e->getMessage() : 'Internal server error';
+            $message = resolveErrorMessage($e, null, $e->getMessage() !== '' ? $e->getMessage() : 'Internal server error');
         } else {
             $message = 'Internal server error';
         }
@@ -108,6 +109,61 @@ function isApiRequest(): bool
     $uri = $_SERVER['REQUEST_URI'] ?? '/';
     $path = parse_url($uri, PHP_URL_PATH) ?: '/';
     return str_contains($path, '/api/');
+}
+
+/**
+ * Locale del request para mensajes de error: X-Locale del frontend,
+ * Accept-Language del navegador, o es.
+ */
+function resolveRequestLocale(): string
+{
+    $xLocale = strtolower(trim($_SERVER['HTTP_X_LOCALE'] ?? ''));
+    if ($xLocale !== '' && in_array($xLocale, ['es', 'en', 'pt', 'fr'], true)) {
+        return $xLocale;
+    }
+
+    $accept = strtolower(trim($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''));
+    if ($accept !== '') {
+        foreach (explode(',', $accept) as $part) {
+            $code = strtolower(trim(explode(';', $part)[0]));
+            if (in_array($code, ['es', 'en', 'pt', 'fr'], true)) {
+                return $code;
+            }
+            if (str_starts_with($code, 'es')) {
+                return 'es';
+            }
+            if (str_starts_with($code, 'en')) {
+                return 'en';
+            }
+        }
+    }
+
+    return 'es';
+}
+
+/**
+ * Resuelve el mensaje de una excepcion: si tiene messageKey, busca en el
+ * catalogo api_errors del locale del request; si no hay entrada (o el valor
+ * esta vacio, fr/pt pendientes), cae al fallback (mensaje en espanol del
+ * throw o el texto indicado).
+ */
+function resolveErrorMessage(Throwable $e, ?string $defaultKey, string $fallback): string
+{
+    $key = method_exists($e, 'getMessageKey') ? $e->getMessageKey() : null;
+    $params = method_exists($e, 'getMessageParams') ? $e->getMessageParams() : [];
+
+    if ($key === null && $defaultKey !== null) {
+        $key = $defaultKey;
+    }
+
+    if ($key !== null) {
+        $translated = ErrorCatalog::translate($key, $params, resolveRequestLocale());
+        if ($translated !== null && $translated !== '') {
+            return $translated;
+        }
+    }
+
+    return $fallback;
 }
 
 // Los detalles internos (clase, archivo, línea, traza) sólo salen con

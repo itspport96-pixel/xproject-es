@@ -611,10 +611,10 @@ final class UserService
         $this->validateEmail((string) $data['email']);
 
         if (strlen((string) $data['nombre']) > 100) {
-            throw new UserException('Nombre excede longitud máxima (100)', 0, null, 'nombre');
+            throw (new UserException('Nombre excede longitud máxima (100)', 0, null, 'nombre'))->withMessageKey('users.nombre_max_length');
         }
         if (strlen((string) $data['apellido']) > 100) {
-            throw new UserException('Apellido excede longitud máxima (100)', 0, null, 'apellido');
+            throw (new UserException('Apellido excede longitud máxima (100)', 0, null, 'apellido'))->withMessageKey('users.apellido_max_length');
         }
     }
 
@@ -622,13 +622,13 @@ final class UserService
     {
         $email = trim($email);
         if ($email === '') {
-            throw new UserException('Email no puede estar vacío', 0, null, 'email');
+            throw (new UserException('Email no puede estar vacío', 0, null, 'email'))->withMessageKey('users.email_required');
         }
         if (strlen($email) > 255) {
-            throw new UserException('Email excede longitud máxima (255)', 0, null, 'email');
+            throw (new UserException('Email excede longitud máxima (255)', 0, null, 'email'))->withMessageKey('users.email_max_length');
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new UserException('Email inválido', 0, null, 'email');
+            throw (new UserException('Email inválido', 0, null, 'email'))->withMessageKey('users.email_invalid');
         }
     }
 
@@ -650,16 +650,16 @@ final class UserService
     private function validatePasswordStrength(string $password): void
     {
         if (strlen($password) < 8) {
-            throw new UserException('El password debe tener mínimo 8 caracteres', 0, null, 'password');
+            throw (new UserException('El password debe tener mínimo 8 caracteres', 0, null, 'password'))->withMessageKey('auth.password_min_length');
         }
         if (!preg_match('/[A-Z]/', $password)) {
-            throw new UserException('El password debe contener al menos una mayúscula', 0, null, 'password');
+            throw (new UserException('El password debe contener al menos una mayúscula', 0, null, 'password'))->withMessageKey('auth.password_uppercase');
         }
         if (!preg_match('/[a-z]/', $password)) {
-            throw new UserException('El password debe contener al menos una minúscula', 0, null, 'password');
+            throw (new UserException('El password debe contener al menos una minúscula', 0, null, 'password'))->withMessageKey('auth.password_lowercase');
         }
         if (!preg_match('/[0-9]/', $password)) {
-            throw new UserException('El password debe contener al menos un número', 0, null, 'password');
+            throw (new UserException('El password debe contener al menos un número', 0, null, 'password'))->withMessageKey('auth.password_digit');
         }
     }
 

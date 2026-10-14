@@ -41,10 +41,10 @@ final class PermissionController
         $soloActivos = (($query['include_inactive'] ?? 'false') !== 'true');
 
         if ($modulo !== '' && $criticidad !== '') {
-            throw new HttpException('Los filtros modulo y criticidad son excluyentes', 400);
+            throw (new HttpException('Los filtros modulo y criticidad son excluyentes', 400))->withMessageKey('roles.filters_exclusive');
         }
         if ($criticidad !== '' && !in_array($criticidad, Permission::VALID_CRITICIDADES, true)) {
-            throw new HttpException('Criticidad inválida', 400);
+            throw (new HttpException('Criticidad inválida', 400))->withMessageKey('roles.criticidad_invalida');
         }
 
         $permisos = $this->permissions->findAll($soloActivos);
@@ -78,12 +78,12 @@ final class PermissionController
         $id = $params['id'] ?? null;
 
         if (!$id) {
-            throw new HttpException('ID de permiso requerido', 400);
+            throw (new HttpException('ID de permiso requerido', 400))->withMessageKey('common.id_permiso_requerido');
         }
 
         $permission = $this->permissions->findById((string) $id);
         if ($permission === null) {
-            throw new HttpException('Permiso no encontrado', 404);
+            throw (new HttpException('Permiso no encontrado', 404))->withMessageKey('roles.permission_not_found');
         }
 
         return $this->json(200, ['permission' => $permission->toArray()]);
@@ -98,7 +98,7 @@ final class PermissionController
         $claims = $request['user'] ?? null;
 
         if (!is_array($claims) || empty($claims['user_id']) || empty($claims['tenant_id'])) {
-            throw new HttpException('No autorizado', 401);
+            throw (new HttpException('No autorizado', 401))->withMessageKey('common.unauthorized');
         }
 
         return $claims;

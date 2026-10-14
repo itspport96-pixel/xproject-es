@@ -79,17 +79,18 @@ final class IdempotencyService
         $row = $this->find($tenantId, $key, $operacion);
 
         if ($row === null) {
-            throw HttpException::conflict('La clave de idempotencia no está disponible, reintente.');
+            throw (new HttpException('La clave de idempotencia no está disponible, reintente.', 409))
+                ->withMessageKey('common.idempotency_unavailable');
         }
 
         if (!hash_equals((string) $row['request_hash'], $requestHash)) {
-            throw HttpException::conflict(
-                'La clave de idempotencia ya fue usada con una carga útil distinta.'
-            );
+            throw (new HttpException('La clave de idempotencia ya fue usada con una carga útil distinta.', 409))
+                ->withMessageKey('common.idempotency_payload_mismatch');
         }
 
         if ($row['response_json'] === null || $row['http_status'] === null) {
-            throw HttpException::conflict('La operación asociada a esta clave sigue en curso.');
+            throw (new HttpException('La operación asociada a esta clave sigue en curso.', 409))
+                ->withMessageKey('common.idempotency_in_progress');
         }
 
         $stored = json_decode((string) $row['response_json'], true);

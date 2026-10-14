@@ -432,10 +432,15 @@ foreach ($used as $info) {
 
 // ---------------------------------------------------------------------------
 // 4) Aviso: claves de es.json no referenciadas (no fatal)
+//    Se excluyen api_errors.* (catálogo de mensajes del backend, se usan
+//    en PHP vía ErrorCatalog::translate y withMessageKey, no en t() de JS).
 // ---------------------------------------------------------------------------
 
 $unused = array_diff_key($esKeys, $used);
 foreach (array_keys($unused) as $k) {
+    if (str_starts_with($k, 'api_errors.')) {
+        continue;
+    }
     echo "AVISO: clave sin uso en el codigo: '$k'\n";
 }
 

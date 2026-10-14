@@ -24,7 +24,7 @@ final class PasswordChangeRequiredException extends HttpException
         string $message = 'Debes cambiar tu contraseña antes de continuar.',
         ?Throwable $previous = null
     ) {
-        parent::__construct($message, 403, $previous);
+        parent::__construct($message, 403, $previous, [], null, 'auth.password_change_required');
     }
 
     public function getField(): string

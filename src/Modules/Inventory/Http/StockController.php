@@ -174,7 +174,7 @@ final class StockController
         $claims = $request['user'] ?? null;
 
         if (!is_array($claims) || empty($claims['user_id']) || empty($claims['tenant_id'])) {
-            throw new HttpException('No autorizado', 401);
+            throw (new HttpException('No autorizado', 401))->withMessageKey('common.unauthorized');
         }
 
         return $claims;

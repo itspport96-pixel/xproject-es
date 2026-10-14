@@ -327,15 +327,13 @@ final class AuthorizationService
         $targetPerms = $this->getUserPermissions($targetId, $tenantId);
 
         if (array_diff($targetPerms, $actorPerms) !== []) {
-            throw HttpException::forbidden(
-                'El usuario no tiene al menos los permisos efectivos del usuario afectado.'
-            );
+            throw (new HttpException('El usuario no tiene al menos los permisos efectivos del usuario afectado.', 403))
+                ->withMessageKey('common.permission_escalation');
         }
 
         if ($this->hasAdminRole($targetId, $tenantId) && !$this->hasAdminRole($actorId, $tenantId)) {
-            throw HttpException::forbidden(
-                'Sólo un usuario con rol ADMIN puede actuar sobre otro usuario con rol ADMIN.'
-            );
+            throw (new HttpException('Sólo un usuario con rol ADMIN puede actuar sobre otro usuario con rol ADMIN.', 403))
+                ->withMessageKey('common.admin_on_admin');
         }
     }
 
@@ -351,9 +349,8 @@ final class AuthorizationService
         $actorPerms = $this->getUserPermissions($actorId, $tenantId);
 
         if (array_diff($rolePerms, $actorPerms) !== []) {
-            throw HttpException::forbidden(
-                'El rol a asignar contiene permisos que el usuario no posee.'
-            );
+            throw (new HttpException('El rol a asignar contiene permisos que el usuario no posee.', 403))
+                ->withMessageKey('common.role_permission_escalation');
         }
     }
 

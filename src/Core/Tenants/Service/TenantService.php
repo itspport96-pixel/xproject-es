@@ -227,7 +227,7 @@ final class TenantService
             // 3. Asignar rol ADMIN al usuario
             $adminRoleId = $this->getBuiltInRoleId('ADMIN');
             if ($adminRoleId === null) {
-                throw new TenantException('El rol BUILT_IN ADMIN no existe en el sistema', 500);
+                throw (new TenantException('El rol BUILT_IN ADMIN no existe en el sistema', 500))->withMessageKey('tenants.admin_role_missing');
             }
 
             $sql = "INSERT INTO role_assignments
@@ -593,11 +593,11 @@ final class TenantService
         }
 
         if (strlen((string) $data['nombre_publico']) > 255) {
-            throw new TenantException('nombre_publico excede longitud máxima (255)', 400);
+            throw (new TenantException('nombre_publico excede longitud máxima (255)', 400))->withMessageKey('tenants.nombre_publico_max_length');
         }
 
         if (strlen((string) $data['nombre_interno']) > 255) {
-            throw new TenantException('nombre_interno excede longitud máxima (255)', 400);
+            throw (new TenantException('nombre_interno excede longitud máxima (255)', 400))->withMessageKey('tenants.nombre_interno_max_length');
         }
 
         if (!empty($data['email_contacto']) && !filter_var($data['email_contacto'], FILTER_VALIDATE_EMAIL)) {
@@ -615,11 +615,11 @@ final class TenantService
         }
 
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            throw new TenantException('Email del admin inválido', 400);
+            throw (new TenantException('Email del admin inválido', 400))->withMessageKey('tenants.admin_email_invalid');
         }
 
         if (strlen((string) $data['password']) < 8) {
-            throw new TenantException('Password del admin debe tener mínimo 8 caracteres', 400);
+            throw (new TenantException('Password del admin debe tener mínimo 8 caracteres', 400))->withMessageKey('tenants.admin_password_min_length');
         }
     }
 

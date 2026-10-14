@@ -71,12 +71,12 @@ final class RoleController
         $id = $params['id'] ?? null;
 
         if (!$id) {
-            throw new HttpException('ID de rol requerido', 400);
+            throw (new HttpException('ID de rol requerido', 400))->withMessageKey('common.id_rol_requerido');
         }
 
         $role = $this->roles->findById($id, (string) $claims['tenant_id']);
         if ($role === null) {
-            throw new HttpException('Rol no encontrado', 404);
+            throw (new HttpException('Rol no encontrado', 404))->withMessageKey('roles.role_not_found');
         }
 
         return $this->json(200, ['role' => $role->toArray()]);
@@ -92,12 +92,12 @@ final class RoleController
         $id = $params['id'] ?? null;
 
         if (!$id) {
-            throw new HttpException('ID de rol requerido', 400);
+            throw (new HttpException('ID de rol requerido', 400))->withMessageKey('common.id_rol_requerido');
         }
 
         $role = $this->roles->findById($id, (string) $claims['tenant_id']);
         if ($role === null) {
-            throw new HttpException('Rol no encontrado', 404);
+            throw (new HttpException('Rol no encontrado', 404))->withMessageKey('roles.role_not_found');
         }
 
         return $this->json(200, [
@@ -126,7 +126,7 @@ final class RoleController
         $tenantId    = (string) $claims['tenant_id'];
 
         if ($nombre === '') {
-            throw new HttpException('El nombre del rol es obligatorio', 400);
+            throw (new HttpException('El nombre del rol es obligatorio', 400))->withMessageKey('roles.name_required');
         }
 
         // Unicidad en el ámbito visible: BUILT_IN (cualquier tenant) + este tenant
@@ -165,12 +165,12 @@ final class RoleController
         $id = $params['id'] ?? null;
 
         if (!$id) {
-            throw new HttpException('ID de rol requerido', 400);
+            throw (new HttpException('ID de rol requerido', 400))->withMessageKey('common.id_rol_requerido');
         }
 
         $role = $this->roles->findById($id, (string) $claims['tenant_id']);
         if ($role === null) {
-            throw new HttpException('Rol no encontrado', 404);
+            throw (new HttpException('Rol no encontrado', 404))->withMessageKey('roles.role_not_found');
         }
 
         $data = $request['body'] ?? [];
@@ -178,14 +178,14 @@ final class RoleController
 
         // Guard: los roles BUILT_IN no son renombrables (spec §5.1).
         if (isset($data['nombre']) && $role->isBuiltIn()) {
-            throw new HttpException('Los roles BUILT_IN no pueden ser renombrados', 403);
+            throw (new HttpException('Los roles BUILT_IN no pueden ser renombrados', 403))->withMessageKey('roles.cannot_rename_built_in');
         }
 
         // Guard: el rol ADMIN no puede desactivarse (perdería todos sus permisos
         // efectivos; extensión de la regla "ADMIN no puede perder permisos").
         if ($role->nombre() === Role::BUILT_IN_ADMIN
             && array_key_exists('activo', $data) && !(bool) $data['activo']) {
-            throw new HttpException('El rol ADMIN no puede desactivarse', 403);
+            throw (new HttpException('El rol ADMIN no puede desactivarse', 403))->withMessageKey('roles.admin_cannot_deactivate');
         }
 
         // Solo se puede modificar nombre y descripción de roles CUSTOM
@@ -225,12 +225,12 @@ final class RoleController
         $id = $params['id'] ?? null;
 
         if (!$id) {
-            throw new HttpException('ID de rol requerido', 400);
+            throw (new HttpException('ID de rol requerido', 400))->withMessageKey('common.id_rol_requerido');
         }
 
         $role = $this->roles->findById($id, (string) $claims['tenant_id']);
         if ($role === null) {
-            throw new HttpException('Rol no encontrado', 404);
+            throw (new HttpException('Rol no encontrado', 404))->withMessageKey('roles.role_not_found');
         }
 
         $permisos = (array) ($request['body']['permisos'] ?? []);
@@ -241,7 +241,7 @@ final class RoleController
         if ($role->nombre() === Role::BUILT_IN_ADMIN) {
             $perdidos = array_diff($before, $permisos);
             if ($perdidos !== []) {
-                throw new HttpException('El rol ADMIN no puede perder permisos', 403);
+                throw (new HttpException('El rol ADMIN no puede perder permisos', 403))->withMessageKey('roles.admin_cannot_lose_permissions');
             }
         }
 
@@ -271,12 +271,12 @@ final class RoleController
         $id = $params['id'] ?? null;
 
         if (!$id) {
-            throw new HttpException('ID de rol requerido', 400);
+            throw (new HttpException('ID de rol requerido', 400))->withMessageKey('common.id_rol_requerido');
         }
 
         $role = $this->roles->findById($id, (string) $claims['tenant_id']);
         if ($role === null) {
-            throw new HttpException('Rol no encontrado', 404);
+            throw (new HttpException('Rol no encontrado', 404))->withMessageKey('roles.role_not_found');
         }
 
         $this->roles->softDelete($id, (string) $claims['tenant_id']);
@@ -310,7 +310,7 @@ final class RoleController
         $claims = $request['user'] ?? null;
 
         if (!is_array($claims) || empty($claims['user_id']) || empty($claims['tenant_id'])) {
-            throw new HttpException('No autorizado', 401);
+            throw (new HttpException('No autorizado', 401))->withMessageKey('common.unauthorized');
         }
 
         return $claims;
@@ -332,7 +332,7 @@ final class RoleController
         $claims = $this->requireAuthenticated($request);
 
         if (!$this->auth->hasAdminRole((string) $claims['user_id'], (string) $claims['tenant_id'])) {
-            throw new HttpException('Se requiere rol ADMIN para gestionar roles', 403);
+            throw (new HttpException('Se requiere rol ADMIN para gestionar roles', 403))->withMessageKey('roles.admin_required');
         }
 
         return $claims;

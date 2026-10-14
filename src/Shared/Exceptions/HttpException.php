@@ -12,17 +12,23 @@ class HttpException extends RuntimeException
     private int $statusCode;
     private array $headers;
     private mixed $payload;
+    private ?string $messageKey;
+    private array $messageParams;
 
     public function __construct(
         string $message = '',
         int $statusCode = 500,
         ?Throwable $previous = null,
         array $headers = [],
-        mixed $payload = null
+        mixed $payload = null,
+        ?string $messageKey = null,
+        array $messageParams = []
     ) {
         $this->statusCode = $statusCode;
         $this->headers = $headers;
         $this->payload = $payload;
+        $this->messageKey = $messageKey;
+        $this->messageParams = $messageParams;
 
         parent::__construct($message, $statusCode, $previous);
     }
@@ -40,6 +46,26 @@ class HttpException extends RuntimeException
     public function getPayload(): mixed
     {
         return $this->payload;
+    }
+
+    /** Clave del catalogo api_errors (null = mensaje hardcodeado sin i18n). */
+    public function getMessageKey(): ?string
+    {
+        return $this->messageKey;
+    }
+
+    /** Placeholders {nombre} para el messageKey. */
+    public function getMessageParams(): array
+    {
+        return $this->messageParams;
+    }
+
+    /** Asocia messageKey + params (fluent, para factories). */
+    public function withMessageKey(string $key, array $params = []): static
+    {
+        $this->messageKey = $key;
+        $this->messageParams = $params;
+        return $this;
     }
 
     public static function notFound(string $message = 'Not Found'): self

@@ -250,7 +250,7 @@ final class CountController
         $countId = trim((string) ($params['id'] ?? ''));
 
         if ($countId === '') {
-            throw new HttpException('Ruta inválida', 404);
+            throw (new HttpException('Ruta inválida', 404))->withMessageKey('common.ruta_invalida');
         }
 
         return $countId;

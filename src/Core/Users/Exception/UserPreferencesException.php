@@ -49,11 +49,11 @@ final class UserPreferencesException extends HttpException
 
     public static function userNotFound(string $userId): self
     {
-        return new self(
+        return (new self(
             "El usuario con ID '{$userId}' no existe.",
             404,
             self::CATEGORY_NOT_FOUND
-        );
+        ))->withMessageKey('users.user_not_found', ['id' => $userId]);
     }
 
     public static function invalidValue(string $field, mixed $value, array $permitidos): self
@@ -62,11 +62,15 @@ final class UserPreferencesException extends HttpException
             ? "'{$value}'"
             : json_encode($value, JSON_UNESCAPED_UNICODE);
 
-        return new self(
+        return (new self(
             "Valor de preferencia inválido en '{$field}': {$render}. Permitidos: " . implode(', ', $permitidos) . '.',
             400,
             self::CATEGORY_VALIDATION,
             $field
-        );
+        ))->withMessageKey('users.preference_invalid_value', [
+            'field' => $field,
+            'value' => $render,
+            'allowed' => implode(', ', $permitidos),
+        ]);
     }
 }
