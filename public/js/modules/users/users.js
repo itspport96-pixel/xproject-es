@@ -1164,6 +1164,7 @@
             await global.HttpClient.delete(
                 '/groups/' + encodeURIComponent(groupId) + '/members/' + encodeURIComponent(modal.id)
             );
+            refreshSelfIfNeeded(modal.id);
             modal.confirmGroup = null;
             modal.roles = null;
             renderModal();
@@ -1193,6 +1194,21 @@
         return (inner && inner.error_code) || (body && body.error_code) || '';
     }
 
+    /**
+     * Tras mutar roles de un usuario, refresca el estado global
+     * AuthState si el afectado es el usuario actual de la sesion:
+     * el backend invalida la cache Redis y /auth/me devuelve los
+     * permisos nuevos, pero sin este refresh el sidebar y la UI
+     * conservan los roles viejos hasta recargar la pagina.
+     */
+    function refreshSelfIfNeeded(userId) {
+        if (!global.AuthState || typeof global.AuthState.refreshUser !== 'function') return;
+        const currentId = global.AuthState.getUserId && global.AuthState.getUserId();
+        if (currentId && String(currentId) === String(userId)) {
+            global.AuthState.refreshUser().catch(function () {});
+        }
+    }
+
     async function assignRole() {
         const modal = state.modal;
         const root = getModalRoot();
@@ -1210,6 +1226,7 @@
             await global.HttpClient.post('/users/' + encodeURIComponent(modal.id) + '/roles', {
                 role_id: roleId
             });
+            refreshSelfIfNeeded(modal.id);
             const recargado = await loadUserRoles(modal.id);
             if (recargado) {
                 UI.toast('success', t('users.roles.title'), t('users.roles.assigned'));
@@ -1235,6 +1252,7 @@
             await global.HttpClient.delete(
                 '/users/' + encodeURIComponent(modal.id) + '/roles/' + encodeURIComponent(roleId)
             );
+            refreshSelfIfNeeded(modal.id);
             // Estado real desde el servidor antes de confirmar el exito.
             const recargado = await loadUserRoles(modal.id);
             if (recargado) {

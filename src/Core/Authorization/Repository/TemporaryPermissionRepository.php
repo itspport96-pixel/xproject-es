@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Core\Authorization\Repository;
 
 use App\Core\Authorization\Entity\TemporaryPermission;
+use App\Core\Security\Service\EncryptionService;
 use App\Shared\Services\DatabaseService;
 
 /**
@@ -13,10 +14,12 @@ use App\Shared\Services\DatabaseService;
 final class TemporaryPermissionRepository implements TemporaryPermissionRepositoryInterface
 {
     private DatabaseService $db;
+    private ?EncryptionService $encryption;
 
-    public function __construct(DatabaseService $db)
+    public function __construct(DatabaseService $db, ?EncryptionService $encryption = null)
     {
         $this->db = $db;
+        $this->encryption = $encryption;
     }
 
     public function findAll(
@@ -58,7 +61,13 @@ final class TemporaryPermissionRepository implements TemporaryPermissionReposito
         }
         $stmt->execute();
 
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        foreach ($rows as &$row) {
+            $this->decryptEmails($row);
+        }
+        unset($row);
+
+        return $rows;
     }
 
     public function count(string $tenantId, ?string $userId = null, bool $soloVigentes = true): int
@@ -120,7 +129,11 @@ final class TemporaryPermissionRepository implements TemporaryPermissionReposito
         $stmt->execute(['id' => $id, 'tid' => $tenantId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        return $row === false ? null : $row;
+        if ($row === false) {
+            return null;
+        }
+        $this->decryptEmails($row);
+        return $row;
     }
 
     public function save(TemporaryPermission $temporaryPermission): void
@@ -193,5 +206,26 @@ final class TemporaryPermissionRepository implements TemporaryPermissionReposito
         $stmt->execute($params);
 
         return ((int) $stmt->fetchColumn()) > 0;
+    }
+
+    /**
+     * Descifra los emails cifrados (AES-256-GCM) en la fila.
+     * users.email y granted_by_email pueden venir cifrados desde la BD.
+     */
+    private function decryptEmails(array &$row): void
+    {
+        if ($this->encryption === null) {
+            return;
+        }
+
+        foreach (['user_email', 'granted_by_email'] as $field) {
+            if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
+                try {
+                    $row[$field] = $this->encryption->decrypt($row[$field]);
+                } catch (\Throwable) {
+                    // Pre-migración: valor en claro, dejar tal cual.
+                }
+            }
+        }
     }
 }

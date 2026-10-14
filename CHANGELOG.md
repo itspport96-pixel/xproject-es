@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.43] - 2026-10-14
+
+**Fix: temporary-permissions devuelve emails cifrados; asignacion de rol no refleja cambio sin recargar.** Dos bugs reportados en vivo. (1) `TemporaryPermissionRepository` no descifraba `user_email`/`granted_by_email` (AES-256-GCM) al hidratar filas: la API devolvía el ciphertext base64 en crudo. (2) Al asignar/quitar rol o membresia de grupo al usuario actual de la sesion, el frontend no refrescaba `AuthState` — el sidebar y la UI conservaban los roles viejos hasta recargar la pagina.
+
+### Fixed
+- **`TemporaryPermissionRepository`**: constructor acepta `EncryptionService` opcional; `decryptEmails()` descifra `user_email` y `granted_by_email` tras `findAll()` y `findById()`. Fallback al valor en claro si falla. `bootstrap.php` inyecta `EncryptionService` en el container.
+- **Frontend roles**: `users.js` (`assignRole`, `removeRole`, `submitRemoveGroup`) y `groups.js` (`addMember`, `removeMember`) llaman `AuthState.refreshUser()` si el usuario afectado es el de la sesion actual — el sidebar y permisos se actualizan sin recargar.
+
 ## [1.13.42] - 2026-10-14
 
 **Normalizacion BD (N1-N5): integridad referencial, limpieza de tablas muertas y migracion de roles.permisos JSON a junction role_permissions.** Bloque completo de normalizacion de esquema. Tablas muertas dropeadas (notification_logs, notification_preferences, receiving_documents, receiving_document_lines). FKs anadidas a picking_operations, movements (self-FK), idempotency_keys. secrets_vault UNIQUE pasa a (tenant_id, nombre). roles.permisos (JSON array de identificadores) reemplazado por tabla junction role_permissions (role_id, permission_id) con FKs CASCADE — contrato API `permisos: string[]` sin cambios.

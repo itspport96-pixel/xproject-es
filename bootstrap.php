@@ -86,7 +86,12 @@ $container->singleton(
 );
 $container->singleton(
     App\Core\Authorization\Repository\TemporaryPermissionRepositoryInterface::class,
-    fn($c) => new App\Core\Authorization\Repository\TemporaryPermissionRepository($c->get('database'))
+    fn($c) => new App\Core\Authorization\Repository\TemporaryPermissionRepository(
+        $c->get('database'),
+        $c->has(App\Core\Security\Service\EncryptionService::class)
+            ? $c->get(App\Core\Security\Service\EncryptionService::class)
+            : null
+    )
 );
 
 // ============================================

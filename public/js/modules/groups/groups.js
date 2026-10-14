@@ -618,6 +618,10 @@
 
         try {
             await global.HttpClient.post('/groups/' + encodeURIComponent(detail.id) + '/members', { user_id: userId });
+            if (global.AuthState && typeof global.AuthState.refreshUser === 'function') {
+                const cur = global.AuthState.getUserId && global.AuthState.getUserId();
+                if (cur && String(cur) === String(userId)) global.AuthState.refreshUser().catch(function () {});
+            }
             state.modal = { mode: 'detail' };
             renderModal();
             const recargado = await loadDetail();
@@ -654,6 +658,10 @@
 
         try {
             await global.HttpClient.delete('/groups/' + encodeURIComponent(detail.id) + '/members/' + encodeURIComponent(userId));
+            if (global.AuthState && typeof global.AuthState.refreshUser === 'function') {
+                const cur = global.AuthState.getUserId && global.AuthState.getUserId();
+                if (cur && String(cur) === String(userId)) global.AuthState.refreshUser().catch(function () {});
+            }
             const recargado = await loadDetail();
             if (recargado) {
                 UI.toast('success', t('groups.members.remove'), t('groups.members.removed'));
