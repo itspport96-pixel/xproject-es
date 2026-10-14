@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.37] - 2026-10-14
+
+**Cifrado AES-256-GCM de PII en audit_logs (ip_address, user_agent).** Los datos de auditoría ahora se almacenan cifrados en la BD viva; la API los descifra al servirlos. Un cibercriminal con acceso a la BD ve texto cifrado, no IPs ni user agents reales.
+
+### Added
+
+- **`bin/encrypt-audit-backfill.php`**: script de backfill que cifra datos existentes en `audit_logs`. Soporta `--dry-run`. Ejecutado contra la BD viva: 1529 filas cifradas, 0 en claro.
+- **`PdoAuditPort::encryptSensitiveFields()`**: cifra `ip_address` y `user_agent` antes del INSERT. El cifrado ocurre DESPUÉS de que `AuditLogger` calcula `hash_integridad`, de modo que el hash protege el contenido lógico y el cifrado protege el almacenamiento.
+- **`AuditLogQueryService::decryptField()`**: descifra `ip_address` y `user_agent` al servir la API. Si el valor no está cifrado (datos pre-migración), lo devuelve tal cual (fallback seguro).
+
+### Changed
+
+- **`PdoAuditPort`**: constructor acepta `?EncryptionService $encryption = null`. Si es null (tests SQLite), no cifra.
+- **`AuditLogQueryService`**: constructor acepta `?EncryptionService $encryption = null`. Misma lógica de fallback.
+- **`bootstrap.php`**: inyecta `EncryptionService` en `AuditPort` y `AuditLogQueryService`.
+- **`audit_logs.ip_address`**: columna ampliada de `varchar(45)` a `varchar(255)` (el ciphertext base64 es más largo que la IP en claro).
+- **`database/schema/schema.sql`**: regenerado con el ALTER.
+
+### Notes
+
+- **Hash chain intacta**: `hash_integridad` se calcula sobre el contenido en claro; el cifrado es una capa de almacenamiento. La verificación de hash opera sobre el contenido descifrado.
+- **Campos NO cifrados en este sprint** (por uso en WHERE/ORDER BY/generated columns): `users.email`, `users.nombre`, `users.apellido`, `tenants.nombre_interno`, `tenants.nombre_publico`. Requieren blind index (HMAC) para búsqueda — Sprint 2.
+- **Campos pendientes de cifrar**: `users.telefono`, `tenants.telefono`, `tenants.email_contacto`, `shipments.destino_direccion`, `shipments.destinatario_nombre`, `shipments.conductor_nombre`, `rate_limit_log.ip_address`, `refresh_tokens.ip_address`, `secrets_access_log.ip_address`.
+
+### Verified
+
+- `php bin/check-schema-drift.php` → SIN DRIFT
+- `php bin/check-data-integrity.php` → DATOS CONSISTENTES
+- `composer test` → 944/944 OK
+- `node tools/smoke/smoke-v162.mjs` → 89 OK, 0 FAIL
+- `node tools/smoke/smoke-v171.mjs` → 105 OK, 0 FAIL
+- API en vivo: `GET /audit/logs` devuelve IPs y user agents descifrados correctamente
+- BD viva: 1529/1529 filas con ip_address cifrado, 0 en claro
+- Nuevo log generado via API se guarda cifrado en BD
+
 ## [1.13.36] - 2026-10-14
 
 **Perfil de usuario con auto-edición de datos personales (nombre, apellido, email).** UI reestructurada con tabs horizontales para escalar a MFA y otras configuraciones futuras. Verificación de email diferida (flag `email_verificado` se resetea al cambiar email; flujo SMTP pendiente de configuración del tenant).

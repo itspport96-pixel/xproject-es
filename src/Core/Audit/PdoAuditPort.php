@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Core\Audit;
 
+use App\Core\Security\Service\EncryptionService;
 use App\Shared\Services\DatabaseService;
 use PDO;
 
@@ -39,8 +40,10 @@ final class PdoAuditPort implements AuditPort
         'hash_integridad',
     ];
 
-    public function __construct(private readonly DatabaseService $db)
-    {
+    public function __construct(
+        private readonly DatabaseService $db,
+        private readonly ?EncryptionService $encryption = null
+    ) {
     }
 
     public function transaction(string $tenantId, callable $callback): mixed
@@ -72,6 +75,8 @@ final class PdoAuditPort implements AuditPort
 
     public function insert(array $row): void
     {
+        $row = $this->encryptSensitiveFields($row);
+
         $columns = array_values(array_intersect(self::COLUMNS, array_keys($row)));
         if ($columns === []) {
             throw new \InvalidArgumentException('PdoAuditPort::insert requiere al menos una columna válida');
@@ -88,6 +93,29 @@ final class PdoAuditPort implements AuditPort
         }
 
         $this->db->query($sql, $params);
+    }
+
+    /**
+     * Cifra campos sensibles (PII) antes de persistir.
+     *
+     * Se cifra DESPUÉS de que AuditLogger calcula hash_integridad, de modo que
+     * el hash protege el contenido lógico y el cifrado protege el almacenamiento.
+     * Al leer, AuditLogQueryService descifra y la verificación de hash opera
+     * sobre el contenido descifrado.
+     */
+    private function encryptSensitiveFields(array $row): array
+    {
+        if ($this->encryption === null) {
+            return $row;
+        }
+
+        foreach (['ip_address', 'user_agent'] as $field) {
+            if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
+                $row[$field] = $this->encryption->encrypt($row[$field]);
+            }
+        }
+
+        return $row;
     }
 
     /**

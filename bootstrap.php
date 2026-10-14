@@ -206,7 +206,7 @@ $container->singleton(
 // ============================================
 $container->singleton(
     App\Core\Audit\AuditPort::class,
-    fn($c) => new App\Core\Audit\PdoAuditPort($c->get('database'))
+    fn($c) => new App\Core\Audit\PdoAuditPort($c->get('database'), $c->get(App\Core\Security\Service\EncryptionService::class))
 );
 
 $container->singleton(
@@ -219,7 +219,7 @@ $container->singleton(
 
 $container->singleton(
     App\Core\Audit\Service\AuditLogQueryService::class,
-    fn($c) => new App\Core\Audit\Service\AuditLogQueryService($c->get('database'))
+    fn($c) => new App\Core\Audit\Service\AuditLogQueryService($c->get('database'), $c->get(App\Core\Security\Service\EncryptionService::class))
 );
 
 // ============================================

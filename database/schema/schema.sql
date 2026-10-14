@@ -158,7 +158,7 @@ CREATE TABLE `audit_logs` (
   `valores_nuevos` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`valores_nuevos`)),
   `resultado` enum('SUCCESS','FAILURE') DEFAULT 'SUCCESS',
   `razon_fallo` text DEFAULT NULL,
-  `ip_address` varchar(45) DEFAULT NULL,
+  `ip_address` varchar(255) DEFAULT NULL,
   `user_agent` text DEFAULT NULL,
   `dispositivo_id` varchar(255) DEFAULT NULL,
   `timestamp` timestamp(6) NOT NULL DEFAULT current_timestamp(6),
@@ -363,7 +363,6 @@ CREATE TABLE `rate_limit_log` (
   CONSTRAINT `rate_limit_log_ibfk_2` FOREIGN KEY (`usuario_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
--- receiving_documents: reservada, sin uso actual (revert v1.13.33; datos conservados en la BD viva)
 DROP TABLE IF EXISTS `receiving_documents`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -662,7 +661,6 @@ CREATE TABLE `picking_operations` (
   CONSTRAINT `picking_operations_ibfk_4` FOREIGN KEY (`ubicacion_preparacion_id`) REFERENCES `locations` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
--- receiving_document_lines: reservada, sin uso actual (revert v1.13.33; datos conservados en la BD viva)
 DROP TABLE IF EXISTS `receiving_document_lines`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;

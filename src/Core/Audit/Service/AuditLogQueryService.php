@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Core\Audit\Service;
 
+use App\Core\Security\Service\EncryptionService;
 use App\Shared\Exceptions\HttpException;
 use App\Shared\Services\DatabaseService;
 
@@ -29,8 +30,10 @@ final class AuditLogQueryService
     private const DEFAULT_PER_PAGE = 25;
     private const MAX_PER_PAGE = 100;
 
-    public function __construct(private readonly DatabaseService $db)
-    {
+    public function __construct(
+        private readonly DatabaseService $db,
+        private readonly ?EncryptionService $encryption = null
+    ) {
     }
 
     /**
@@ -199,8 +202,8 @@ final class AuditLogQueryService
             'valores_nuevos' => $this->decodeJson($row['valores_nuevos'] ?? null),
             'resultado' => $row['resultado'],
             'razon_fallo' => $row['razon_fallo'],
-            'ip_address' => $row['ip_address'],
-            'user_agent' => $row['user_agent'],
+            'ip_address' => $this->decryptField($row['ip_address'] ?? null),
+            'user_agent' => $this->decryptField($row['user_agent'] ?? null),
             'request_id' => $row['request_id'],
             'timestamp' => $row['timestamp'],
             'duracion_operacion' => $row['duracion_operacion'] === null ? null : (int) $row['duracion_operacion'],
@@ -208,6 +211,24 @@ final class AuditLogQueryService
             'prev_hash' => $prevHash,
             'hash_integridad' => $row['hash_integridad'],
         ];
+    }
+
+    /**
+     * Descifra un campo cifrado con EncryptionService.
+     * Si el valor no está cifrado (datos pre-migración), lo devuelve tal cual.
+     */
+    private function decryptField(?string $value): ?string
+    {
+        if ($value === null || $value === '' || $this->encryption === null) {
+            return $value;
+        }
+
+        try {
+            return $this->encryption->decrypt($value);
+        } catch (\Throwable) {
+            // Datos pre-migración (en claro) o valor no cifrado: devolver tal cual.
+            return $value;
+        }
     }
 
     private function decodeJson(mixed $value): mixed
