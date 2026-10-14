@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.34] - 2026-10-14
+
+**Reestructuración de idiomas: es + en completos; fr + pt listos pero vacíos.** Escaneo i18n del frontend: 0 literales en español fuera de `t()` (todas las vistas migradas). Se dejan las claves de fr/pt preparadas para conversión manual por el usuario.
+
+### Changed
+
+- **`resources/locales/fr.json` y `pt.json`**: 1515 valores vaciados (claves conservadas, valores `""`). El usuario rellenará las traducciones cuando lo considere.
+- **`resources/locales/en.json`**: 3 valores corregidos que aún estaban en español: `inventory.movements.filters.reason_placeholder` → `RELOCATION, ...`, `inventory.deliveries.placeholders.signature` → `https://signature.example/receipt`, `inventory.picking.messages.unit_selected_message` → `{barcode} · {producto}` (placeholder `{producto}` debe coincidir con es.json).
+- **`public/js/core/i18n.js`**: `t()` trata valor `""` como "traducción pendiente" y cae al español (DEFAULT_LOCALE) en lugar de devolver cadena vacía.
+- **`bin/check-i18n.php`**: la comprobación de placeholders `{..}` se salta cuando el valor en el idioma destino es `""` (pendiente de traducción).
+
+### Verification
+
+- `php bin/check-i18n.php` **OK (0 errores, 6 avisos)**; `composer test` **944/944 OK**; `check-schema-drift` **SIN DRIFT**; `node --check` en `core/i18n.js` OK; `smoke-v162` **89 OK, 0 FAIL**; `smoke-v171` **105 OK, 0 FAIL**; API en vivo `GET /api/locales/{fr,pt}.json` → 1515 claves, 0 con valor; es/en → 1515 con valor. Cache Redis `i18n:locale:*` eliminada.
+
 ## [1.13.33] - 2026-10-14
 
 **Revert total del flujo de recepción planificada** (bloques R1, R2, R2B, R3, v1.13.32 y correcciones asociadas). Recepción vuelve al estado previo: un único formulario "Nueva recepción" (CU-001) contra `POST /inventory/receive`. Motivo: se decide descartar el modelo planificación → recepción contra documento (incluida la pestaña de recepción ciega/contra documento y la adhoc ya revertida en 1.13.31) y conservar sólo el CU-001 clásico. Etiqueta de respaldo del estado previo al revert: `pre-revert-recepcion` (apunta a `334bb52`).

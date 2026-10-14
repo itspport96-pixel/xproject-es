@@ -394,9 +394,14 @@ foreach ($locales as $loc) {
         $errors++;
     }
 
-    // Placeholders {param} idénticos a la fuente
+    // Placeholders {param} idénticos a la fuente. Un valor vacío en el otro
+    // idioma significa "traducción pendiente" (fr/pt listos sin convertir):
+    // se salta la comprobación de placeholders para esa clave.
     foreach ($esKeys as $k => $v) {
         if (!array_key_exists($k, $other)) {
+            continue;
+        }
+        if ($other[$k] === '') {
             continue;
         }
         $a = extractPlaceholders($v);

@@ -218,8 +218,17 @@
   function t(key, params) {
     let value = lookup(dicts[current], key);
 
+    // Valor vacio = traduccion pendiente (fr/pt listos pero sin convertir):
+    // se trata como ausente y se cae al español.
+    if (value === '') {
+      value = undefined;
+    }
+
     if (value === undefined && current !== DEFAULT_LOCALE) {
       value = lookup(dicts[DEFAULT_LOCALE], key);
+      if (value === '') {
+        value = undefined;
+      }
     }
 
     if (value === undefined) {

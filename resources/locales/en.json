@@ -599,7 +599,7 @@
         "origin": "Origin",
         "destination": "Destination",
         "reason": "Reason",
-        "reason_placeholder": "REUBICACION, ...",
+        "reason_placeholder": "RELOCATION, ...",
         "correction": "Correction",
         "all": "All",
         "only_corrections": "Corrections only",
@@ -769,7 +769,7 @@
       },
       "placeholders": {
         "optional": "Optional",
-        "signature": "https://firma.ejemplo/acta"
+        "signature": "https://signature.example/receipt"
       },
       "form": {
         "motivo": "Reason",

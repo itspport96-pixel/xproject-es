@@ -1,2005 +1,2005 @@
 {
   "shell": {
-    "guest": "Invitado",
-    "logout": "Cerrar sesion",
-    "change_password": "Cambiar contraseña",
-    "language": "Idioma",
-    "toggle_menu": "Alternar menú",
-    "toggle_theme": "Alternar tema",
-    "toggle_language": "Selecionar idioma",
-    "account": "Conta",
-    "no_role": "Sin rol",
-    "sidebar_close": "Cerrar menú",
-    "sidebar_menu": "Menú principal",
-    "session_expired": "Sesión expirada",
-    "session_idle": "Se cerro tu sesion por inactividad."
+    "guest": "",
+    "logout": "",
+    "change_password": "",
+    "language": "",
+    "toggle_menu": "",
+    "toggle_theme": "",
+    "toggle_language": "",
+    "account": "",
+    "no_role": "",
+    "sidebar_close": "",
+    "sidebar_menu": "",
+    "session_expired": "",
+    "session_idle": ""
   },
   "ui": {
-    "empty_title": "Sin datos",
-    "error_title": "Erro ao carregar",
-    "retry": "Tentar novamente",
-    "pagination": "Mostrando {shown} de {total} {label}",
-    "records": "registros",
-    "close": "Cerrar",
-    "cancel": "Cancelar",
-    "error_generic": "Error",
-    "error_not_csv": "La respuesta no es un CSV.",
-    "toast_invalid": "Datos inválidos",
-    "toast_session": "Sesión expirada",
-    "toast_forbidden": "Acceso denegado",
-    "toast_not_found": "No encontrado",
-    "toast_conflict": "Conflicto",
-    "toast_rejected": "Operación rechazada",
-    "toast_lang_save_title": "Idioma",
-    "toast_lang_save_failed": "Nao foi possivel salvar o idioma no servidor; ele vale apenas neste navegador.",
-    "row_actions": "Acoes",
+    "empty_title": "",
+    "error_title": "",
+    "retry": "",
+    "pagination": "",
+    "records": "",
+    "close": "",
+    "cancel": "",
+    "error_generic": "",
+    "error_not_csv": "",
+    "toast_invalid": "",
+    "toast_session": "",
+    "toast_forbidden": "",
+    "toast_not_found": "",
+    "toast_conflict": "",
+    "toast_rejected": "",
+    "toast_lang_save_title": "",
+    "toast_lang_save_failed": "",
+    "row_actions": "",
     "picker": {
-      "base": "Basear em",
-      "base_none": "Sem modelo",
-      "readonly_action": "Somente leitura",
-      "clear": "Limpar",
-      "search_placeholder": "Buscar permissao por codigo ou descricao",
-      "only_selected": "Apenas selecionados",
-      "risk": "Risco",
-      "risk_ALL": "Todos os riscos",
-      "risk_CRITICAL": "CRITICAL",
-      "risk_HIGH": "HIGH",
-      "risk_MEDIUM": "MEDIUM",
-      "risk_LOW": "LOW",
-      "select_module_all": "Selecionar todo o grupo",
-      "modules": "Modulos",
-      "module_select": "Modulo",
-      "panel": "Permissoes do modulo",
-      "no_results": "Nenhuma permissao corresponde ao filtro.",
-      "empty": "Nao ha permissoes disponiveis.",
-      "escalation": "Nao pode conceder uma permissao que nao possui.",
-      "note_view": "{code} foi adicionado para que a permissao possa ser usada."
+      "base": "",
+      "base_none": "",
+      "readonly_action": "",
+      "clear": "",
+      "search_placeholder": "",
+      "only_selected": "",
+      "risk": "",
+      "risk_ALL": "",
+      "risk_CRITICAL": "",
+      "risk_HIGH": "",
+      "risk_MEDIUM": "",
+      "risk_LOW": "",
+      "select_module_all": "",
+      "modules": "",
+      "module_select": "",
+      "panel": "",
+      "no_results": "",
+      "empty": "",
+      "escalation": "",
+      "note_view": ""
     }
   },
   "theme": {
-    "action_dark": "Claro",
-    "action_light": "Oscuro",
-    "action_system": "Auto",
-    "title_dark": "Modo claro",
-    "title_light": "Modo oscuro",
-    "title_system": "Auto (sistema)",
-    "current_dark": "Modo escuro",
-    "current_light": "Modo claro",
-    "current_system": "Modo do sistema",
-    "toggle_default": "Cambiar tema",
-    "aria": "Tema actual: {preference}. Click para cambiar.",
-    "synced_title": "Tema sincronizado",
-    "synced_message": "Tema cambiado a {effective} desde otra pestaña"
+    "action_dark": "",
+    "action_light": "",
+    "action_system": "",
+    "title_dark": "",
+    "title_light": "",
+    "title_system": "",
+    "current_dark": "",
+    "current_light": "",
+    "current_system": "",
+    "toggle_default": "",
+    "aria": "",
+    "synced_title": "",
+    "synced_message": ""
   },
   "login": {
-    "tagline": "Gestión de Inventario Multi-Tenant",
-    "email": "Correo electrónico",
-    "password": "Contraseña",
-    "email_placeholder": "tu@empresa.com",
-    "password_placeholder": "Ingresa tu contraseña",
-    "submit": "Iniciar sesión",
-    "submitting": "Iniciando sesión...",
-    "terms": "Al iniciar sesión aceptas los términos de uso.",
-    "error_required_email": "El correo electrónico es obligatorio",
-    "error_invalid_email": "Formato de correo inválido",
-    "error_required_password": "La contraseña es obligatoria",
-    "error_short_password": "La contraseña debe tener al menos 8 caracteres",
-    "welcome": "Bienvenido",
-    "welcome_message": "Hola, {nombre}",
-    "error_generic": "Error al iniciar sesión. Intenta nuevamente.",
-    "error_401": "Credenciales inválidas. Verifica tu correo y contraseña.",
-    "error_403": "Cuenta no activa. Contacta al administrador.",
-    "error_429": "Demasiados intentos. Espera unos minutos.",
-    "error_408": "Tiempo de espera agotado. Verifica tu conexión.",
-    "error_invalid_response": "Respuesta inválida del servidor"
+    "tagline": "",
+    "email": "",
+    "password": "",
+    "email_placeholder": "",
+    "password_placeholder": "",
+    "submit": "",
+    "submitting": "",
+    "terms": "",
+    "error_required_email": "",
+    "error_invalid_email": "",
+    "error_required_password": "",
+    "error_short_password": "",
+    "welcome": "",
+    "welcome_message": "",
+    "error_generic": "",
+    "error_401": "",
+    "error_403": "",
+    "error_429": "",
+    "error_408": "",
+    "error_invalid_response": ""
   },
   "loader": {
-    "loading_module": "Cargando módulo...",
-    "error_title": "Error al cargar módulo",
-    "error_body": "No se pudo cargar el módulo {modulo}.",
-    "retry": "Reintentar",
-    "error_unknown": "Error desconocido",
-    "error_not_registered": "Módulo \"{modulo}\" no registrado",
-    "error_no_global": "Módulo \"{modulo}\" no expuso \"{clave}\" en window"
+    "loading_module": "",
+    "error_title": "",
+    "error_body": "",
+    "retry": "",
+    "error_unknown": "",
+    "error_not_registered": "",
+    "error_no_global": ""
   },
   "router": {
-    "not_found_title": "Ruta no encontrada",
-    "not_found_body": "La página que buscas no existe.",
-    "go_dashboard": "Ir al dashboard",
-    "unavailable_title": "Módulo no disponible",
-    "unavailable_body": "{titulo} está planificado pero aún no está habilitado en esta versión de la plataforma."
+    "not_found_title": "",
+    "not_found_body": "",
+    "go_dashboard": "",
+    "unavailable_title": "",
+    "unavailable_body": ""
   },
   "nav": {
-    "dashboard": "Dashboard",
-    "products": "Productos",
-    "locations": "Ubicaciones",
-    "receiving": "Recepción",
-    "stock": "Stock",
-    "movements": "Movimientos",
-    "reservations": "Reservas",
-    "picking": "Picking",
-    "shipments": "Envíos",
-    "deliveries": "Entregas",
-    "returns": "Devoluciones",
-    "incidents": "Incidencias",
-    "counts": "Conteos",
-    "users": "Usuarios",
-    "roles": "Roles",
-    "groups": "Grupos",
-    "audit": "Auditoría",
-    "settings": "Configuración",
-    "profile": "Perfil",
-    "section_principal": "Principal",
-    "section_inventory": "Inventario",
-    "section_admin": "Administración",
-    "section_system": "Sistema"
+    "dashboard": "",
+    "products": "",
+    "locations": "",
+    "receiving": "",
+    "stock": "",
+    "movements": "",
+    "reservations": "",
+    "picking": "",
+    "shipments": "",
+    "deliveries": "",
+    "returns": "",
+    "incidents": "",
+    "counts": "",
+    "users": "",
+    "roles": "",
+    "groups": "",
+    "audit": "",
+    "settings": "",
+    "profile": "",
+    "section_principal": "",
+    "section_inventory": "",
+    "section_admin": "",
+    "section_system": ""
   },
   "routes": {
-    "login": "Iniciar sesión",
-    "dashboard": "Dashboard",
-    "users": "Usuarios",
-    "roles": "Roles",
-    "groups": "Grupos",
-    "inventory": "Inventario",
-    "locations": "Ubicaciones",
-    "receiving": "Recepción",
-    "stock": "Stock actual",
-    "movements": "Movimientos",
-    "reservations": "Reservas",
-    "picking": "Picking",
-    "shipments": "Envíos",
-    "deliveries": "Entregas",
-    "returns": "Devoluciones",
-    "incidents": "Incidencias",
-    "counts": "Conteos",
-    "audit": "Auditoría",
-    "settings": "Configuración",
-    "profile": "Perfil"
+    "login": "",
+    "dashboard": "",
+    "users": "",
+    "roles": "",
+    "groups": "",
+    "inventory": "",
+    "locations": "",
+    "receiving": "",
+    "stock": "",
+    "movements": "",
+    "reservations": "",
+    "picking": "",
+    "shipments": "",
+    "deliveries": "",
+    "returns": "",
+    "incidents": "",
+    "counts": "",
+    "audit": "",
+    "settings": "",
+    "profile": ""
   },
   "profile": {
-    "title": "Perfil",
-    "subtitle": "Ajustes da sua conta",
-    "section_password": "Alterar palavra-passe",
-    "password_body": "Atualize a sua palavra-passe. Aplicam-se as mesmas regras de segurança do resto da aplicação.",
-    "section_language": "Idioma",
+    "title": "",
+    "subtitle": "",
+    "section_password": "",
+    "password_body": "",
+    "section_language": "",
     "lang": {
-      "es": "Español",
-      "en": "English",
-      "pt": "Português",
-      "fr": "Français"
+      "es": "",
+      "en": "",
+      "pt": "",
+      "fr": ""
     },
-    "password_module_unavailable": "auth/password não disponível",
-    "language_body": "O idioma aplica-se a toda a interface e é guardado no seu perfil."
+    "password_module_unavailable": "",
+    "language_body": ""
   },
   "inventory": {
     "stock": {
-      "title": "Stock actual",
-      "subtitle": "Unidades físicas con cantidades física, reservada, en tránsito y disponible",
-      "units": "unidades",
+      "title": "",
+      "subtitle": "",
+      "units": "",
       "columns": {
-        "barcode": "Barcode",
-        "producto": "Producto",
-        "ubicacion": "Ubicación",
-        "cantidad": "Cantidad",
-        "estado": "Estado",
-        "acciones": "Acciones"
+        "barcode": "",
+        "producto": "",
+        "ubicacion": "",
+        "cantidad": "",
+        "estado": "",
+        "acciones": ""
       },
       "summary": {
-        "unidades": "Unidades",
-        "fisica": "Física",
-        "reservada": "Reservada",
-        "en_transito": "En tránsito",
-        "disponible": "Disponible"
+        "unidades": "",
+        "fisica": "",
+        "reservada": "",
+        "en_transito": "",
+        "disponible": ""
       },
       "states": {
-        "disponible": "Disponible",
-        "reservado": "Reservado",
-        "en_preparacion": "En preparación",
-        "cargado": "Cargado",
-        "en_transito": "En tránsito",
-        "entregado": "Entregado",
-        "devuelto": "Devuelto",
-        "dannado": "Dañado",
-        "bloqueado": "Bloqueado",
-        "perdido": "Perdido"
+        "disponible": "",
+        "reservado": "",
+        "en_preparacion": "",
+        "cargado": "",
+        "en_transito": "",
+        "entregado": "",
+        "devuelto": "",
+        "dannado": "",
+        "bloqueado": "",
+        "perdido": ""
       },
       "filters": {
-        "all_products": "Todos los productos",
-        "all_locations": "Todas las ubicaciones",
-        "all_states": "Todos los estados",
-        "apply": "Filtrar",
-        "clear": "Limpiar",
-        "clear_title": "Limpiar filtros"
+        "all_products": "",
+        "all_locations": "",
+        "all_states": "",
+        "apply": "",
+        "clear": "",
+        "clear_title": ""
       },
       "empty": {
-        "title": "Sin unidades en stock",
-        "message": "No hay unidades que coincidan con los filtros actuales."
+        "title": "",
+        "message": ""
       },
       "row": {
-        "disp": "disp {value}",
-        "res": "· res {value}",
-        "tran": "· trán {value}"
+        "disp": "",
+        "res": "",
+        "tran": ""
       },
       "actions": {
-        "move": "Mover",
-        "reserve": "Reservar",
-        "block": "Bloquear",
-        "unblock": "Desbloquear",
-        "history": "Historial"
+        "move": "",
+        "reserve": "",
+        "block": "",
+        "unblock": "",
+        "history": ""
       },
       "modals": {
-        "cancel": "Cancelar",
-        "unit": "Unidad",
-        "state": "Estado",
-        "optional_placeholder": "Opcional",
+        "cancel": "",
+        "unit": "",
+        "state": "",
+        "optional_placeholder": "",
         "move": {
-          "title": "Mover unidad",
-          "current_location": "Ubicación actual",
-          "destination_label": "Ubicación destino",
-          "destination_hint": "Activas con espacio, sin tipo TRANSITO y distintas de la actual.",
-          "select_destination": "Seleccione una ubicación destino",
-          "no_destinations": "No hay ubicaciones destino disponibles",
-          "no_limit": "sin límite",
-          "reason_label": "Motivo",
-          "reason_placeholder": "REUBICACION (por defecto)",
-          "external_ref_label": "Referencia externa"
+          "title": "",
+          "current_location": "",
+          "destination_label": "",
+          "destination_hint": "",
+          "select_destination": "",
+          "no_destinations": "",
+          "no_limit": "",
+          "reason_label": "",
+          "reason_placeholder": "",
+          "external_ref_label": ""
         },
         "reserve": {
-          "title": "Reservar unidad",
-          "location_label": "Ubicación",
-          "available_label": "Disponible",
-          "quantity_label": "Cantidad a reservar",
-          "quantity_placeholder": "Vacío = total de la unidad",
-          "quantity_hint": "Máximo {max} disponible.",
-          "expiration_label": "Expiración",
-          "expiration_hint": "Opcional. Debe ser posterior a la fecha de reserva.",
-          "order_ref_label": "Referencia de orden"
+          "title": "",
+          "location_label": "",
+          "available_label": "",
+          "quantity_label": "",
+          "quantity_placeholder": "",
+          "quantity_hint": "",
+          "expiration_label": "",
+          "expiration_hint": "",
+          "order_ref_label": ""
         }
       },
       "history": {
-        "title": "Historial de la unidad",
-        "event": "Evento",
-        "movement": "Movimiento",
-        "correction": "Corrección",
-        "cant": "cant {from} → {to}",
-        "by": "por {actor}",
-        "empty_title": "Sin movimientos",
-        "empty_message": "Esta unidad todavía no tiene eventos ni movimientos.",
-        "footer_info": "{total} registro(s) · más reciente primero"
+        "title": "",
+        "event": "",
+        "movement": "",
+        "correction": "",
+        "cant": "",
+        "by": "",
+        "empty_title": "",
+        "empty_message": "",
+        "footer_info": ""
       },
       "messages": {
-        "sending": "Enviando...",
-        "unit_not_found_title": "Unidad no encontrada",
-        "unit_not_found_message": "La unidad ya no existe.",
-        "history_forbidden": "Necesitas inventory.stock.view para ver el historial.",
-        "history_load_error": "No se pudo cargar el historial",
-        "confirm_block": "¿Bloquear esta unidad? No podrá moverse ni reservarse hasta desbloquearla.",
-        "confirm_unblock": "¿Desbloquear esta unidad? Volverá a quedar disponible.",
-        "blocked_title": "Unidad bloqueada",
-        "unblocked_title": "Unidad desbloqueada",
-        "state_with": "Estado: {estado}",
-        "block_error": "No se pudo bloquear la unidad",
-        "unblock_error": "No se pudo desbloquear la unidad",
-        "destination_required": "Seleccione una ubicación destino.",
-        "destination_same": "La ubicación destino debe ser distinta de la actual.",
-        "quantity_positive": "La cantidad debe ser mayor que cero.",
-        "quantity_exceeds": "Supera lo disponible ({available}).",
-        "expiration_invalid": "Indica una fecha y hora válidas.",
-        "expiration_future": "La expiración debe ser posterior a la fecha actual.",
-        "moved_title": "Unidad movida",
-        "moved_message": "Destino {destino}",
-        "moved_correction": "marcado como corrección",
-        "warning_title": "Aviso",
-        "reserved_warning": "La unidad tiene reservas activas.",
-        "move_error": "No se pudo mover la unidad",
-        "reserve_created_title": "Reserva creada",
-        "reserve_created_message": "Unidad {barcode}",
-        "reserve_error": "No se pudo crear la reserva",
-        "capacity_exceeded": "Capacidad excedida",
-        "stock_load_error": "No se pudo cargar el stock"
+        "sending": "",
+        "unit_not_found_title": "",
+        "unit_not_found_message": "",
+        "history_forbidden": "",
+        "history_load_error": "",
+        "confirm_block": "",
+        "confirm_unblock": "",
+        "blocked_title": "",
+        "unblocked_title": "",
+        "state_with": "",
+        "block_error": "",
+        "unblock_error": "",
+        "destination_required": "",
+        "destination_same": "",
+        "quantity_positive": "",
+        "quantity_exceeds": "",
+        "expiration_invalid": "",
+        "expiration_future": "",
+        "moved_title": "",
+        "moved_message": "",
+        "moved_correction": "",
+        "warning_title": "",
+        "reserved_warning": "",
+        "move_error": "",
+        "reserve_created_title": "",
+        "reserve_created_message": "",
+        "reserve_error": "",
+        "capacity_exceeded": "",
+        "stock_load_error": ""
       },
       "permission": {
-        "title": "Sem permissao",
-        "body": "Voce precisa de <code>{permiso}</code> para ver esta tela."
+        "title": "",
+        "body": ""
       }
     },
     "locations": {
-      "title": "Ubicaciones",
-      "subtitle": "Gestión de ubicaciones físicas del almacén",
-      "pagination_label": "ubicaciones",
+      "title": "",
+      "subtitle": "",
+      "pagination_label": "",
       "actions": {
-        "create": "Nueva ubicación",
-        "units": "Unidades",
-        "edit": "Editar",
-        "activate": "Activar",
-        "deactivate": "Desactivar",
-        "delete": "Eliminar"
+        "create": "",
+        "units": "",
+        "edit": "",
+        "activate": "",
+        "deactivate": "",
+        "delete": ""
       },
       "filters": {
-        "search_placeholder": "Buscar código o nombre...",
-        "all_types": "Todos los tipos",
-        "all_states": "Todos los estados",
-        "active": "Activas",
-        "inactive": "Inactivas",
-        "apply": "Filtrar",
-        "clear": "Limpiar"
+        "search_placeholder": "",
+        "all_types": "",
+        "all_states": "",
+        "active": "",
+        "inactive": "",
+        "apply": "",
+        "clear": ""
       },
       "types": {
-        "almacenamiento": "Almacenamiento",
-        "picking": "Picking",
-        "danados": "Dañados",
-        "bloqueados": "Bloqueados",
-        "transito": "Tránsito",
-        "devolucion": "Devolución"
+        "almacenamiento": "",
+        "picking": "",
+        "danados": "",
+        "bloqueados": "",
+        "transito": "",
+        "devolucion": ""
       },
       "columns": {
-        "code": "Código",
-        "name_hierarchy": "Nombre / Jerarquía",
-        "type": "Tipo",
-        "capacity": "Capacidad",
-        "state": "Estado",
-        "created": "Creada",
-        "actions": "Acciones",
-        "barcode": "Barcode",
-        "product": "Producto",
-        "quantity": "Cantidad"
+        "code": "",
+        "name_hierarchy": "",
+        "type": "",
+        "capacity": "",
+        "state": "",
+        "created": "",
+        "actions": "",
+        "barcode": "",
+        "product": "",
+        "quantity": ""
       },
       "states": {
-        "active": "Activa",
-        "inactive": "Inactiva",
-        "no_limit": "Sin límite",
-        "empty_title": "Sin ubicaciones",
-        "empty_body": "No hay ubicaciones para mostrar. Crea la primera.",
-        "units_empty_title": "Ubicación vacía",
-        "units_empty_body": "No hay unidades físicas en esta ubicación."
+        "active": "",
+        "inactive": "",
+        "no_limit": "",
+        "empty_title": "",
+        "empty_body": "",
+        "units_empty_title": "",
+        "units_empty_body": ""
       },
       "modals": {
-        "create_title": "Nueva ubicación",
-        "edit_title": "Editar ubicación",
-        "units_title": "Unidades en {codigo}",
-        "cancel": "Cancelar",
-        "save_changes": "Guardar cambios",
-        "create_submit": "Crear ubicación",
+        "create_title": "",
+        "edit_title": "",
+        "units_title": "",
+        "cancel": "",
+        "save_changes": "",
+        "create_submit": "",
         "fields": {
-          "code": "Código",
-          "type": "Tipo",
-          "name": "Nombre",
-          "hierarchy": "Jerarquía",
-          "capacity": "Capacidad"
+          "code": "",
+          "type": "",
+          "name": "",
+          "hierarchy": "",
+          "capacity": ""
         },
         "placeholders": {
-          "code": "Ej: A-01-02-03",
-          "name": "Etiqueta legible de la ubicación",
-          "hierarchy": "Ej: A-01 (padre de esta ubicación)",
-          "capacity": "Dejar vacío = sin límite"
+          "code": "",
+          "name": "",
+          "hierarchy": "",
+          "capacity": ""
         },
         "hints": {
-          "code": "Único por tenant. Soporta jerarquía con guiones.",
-          "type": "TRANSITO (virtual) no admite capacidad."
+          "code": "",
+          "type": ""
         }
       },
       "messages": {
-        "load_error": "No se pudieron cargar las ubicaciones",
-        "load_units_error": "No se pudieron cargar las unidades",
-        "save_error": "Error al guardar",
-        "saved_updated": "Ubicación actualizada",
-        "saved_created": "Ubicación creada",
-        "activated": "Ubicación activada",
-        "deactivated": "Ubicación desactivada",
-        "toggle_error": "No se pudo cambiar el estado",
-        "delete_confirm": "¿Eliminar esta ubicación? Esta acción es reversible.",
-        "deleted": "Ubicación eliminada",
-        "delete_error": "No se pudo eliminar",
-        "total": "Total",
-        "units_count": "{total} unidad(es)",
-        "available_short": "disp",
-        "truncated": "Sólo se muestran las primeras 100 unidades.",
-        "capacity_no_limit": "sin límite"
+        "load_error": "",
+        "load_units_error": "",
+        "save_error": "",
+        "saved_updated": "",
+        "saved_created": "",
+        "activated": "",
+        "deactivated": "",
+        "toggle_error": "",
+        "delete_confirm": "",
+        "deleted": "",
+        "delete_error": "",
+        "total": "",
+        "units_count": "",
+        "available_short": "",
+        "truncated": "",
+        "capacity_no_limit": ""
       },
       "permission": {
-        "title": "Sem permissao",
-        "body": "Voce precisa de <code>{permiso}</code> para ver esta tela."
+        "title": "",
+        "body": ""
       }
     },
     "products": {
-      "title": "Productos",
-      "subtitle": "Gestión de catálogo de productos",
-      "pagination_label": "productos",
+      "title": "",
+      "subtitle": "",
+      "pagination_label": "",
       "actions": {
-        "create": "+ Nuevo producto",
-        "stock": "Stock",
-        "edit": "Editar",
-        "activate": "Activar",
-        "deactivate": "Desactivar",
-        "delete": "Eliminar"
+        "create": "",
+        "stock": "",
+        "edit": "",
+        "activate": "",
+        "deactivate": "",
+        "delete": ""
       },
       "filters": {
-        "search_placeholder": "Buscar SKU o nombre...",
-        "all_units": "Todas las unidades",
-        "all_states": "Todos los estados",
-        "active": "Activos",
-        "inactive": "Inactivos",
-        "apply": "Filtrar",
-        "clear": "Limpiar"
+        "search_placeholder": "",
+        "all_units": "",
+        "all_states": "",
+        "active": "",
+        "inactive": "",
+        "apply": "",
+        "clear": ""
       },
       "columns": {
-        "sku": "SKU",
-        "nombre": "Nombre",
-        "unidad": "Unidad",
-        "stock_total": "Stock total",
-        "estado": "Estado",
-        "creado": "Creado",
-        "acciones": "Acciones"
+        "sku": "",
+        "nombre": "",
+        "unidad": "",
+        "stock_total": "",
+        "estado": "",
+        "creado": "",
+        "acciones": ""
       },
       "states": {
-        "active": "Activo",
-        "inactive": "Inactivo"
+        "active": "",
+        "inactive": ""
       },
       "empty": {
-        "title": "Sin productos",
-        "message": "No hay productos para mostrar. Crea el primero."
+        "title": "",
+        "message": ""
       },
       "modals": {
-        "edit_title": "Editar producto",
-        "create_title": "Nuevo producto",
+        "edit_title": "",
+        "create_title": "",
         "labels": {
-          "sku": "SKU",
-          "nombre": "Nombre",
-          "unidad": "Unidad de medida",
-          "categoria": "Categoría",
-          "descripcion": "Descripción",
-          "peso": "Peso (kg)",
-          "volumen": "Volumen",
-          "dimensiones": "Dimensiones (LxAxH)"
+          "sku": "",
+          "nombre": "",
+          "unidad": "",
+          "categoria": "",
+          "descripcion": "",
+          "peso": "",
+          "volumen": "",
+          "dimensiones": ""
         },
         "placeholders": {
-          "sku": "Ej: PROD-001",
-          "nombre": "Nombre del producto",
-          "categoria": "Ej: Electrónica",
-          "dimensiones": "Ej: 100x50x30"
+          "sku": "",
+          "nombre": "",
+          "categoria": "",
+          "dimensiones": ""
         },
-        "unit_hint": "KG requiere peso. M3/LT requiere volumen.",
-        "cancel": "Cancelar",
-        "submit_edit": "Guardar cambios",
-        "submit_create": "Crear producto"
+        "unit_hint": "",
+        "cancel": "",
+        "submit_edit": "",
+        "submit_create": ""
       },
       "stock": {
-        "title": "Stock de {sku}",
-        "available": "disp {cantidad}",
-        "empty_title": "Sin stock registrado",
-        "empty_message": "Este producto aún no tiene unidades físicas.",
+        "title": "",
+        "available": "",
+        "empty_title": "",
+        "empty_message": "",
         "columns": {
-          "ubicacion": "Ubicación",
-          "cantidad": "Cantidad",
-          "disponible": "Disponible",
-          "estado": "Estado"
+          "ubicacion": "",
+          "cantidad": "",
+          "disponible": "",
+          "estado": ""
         },
-        "total_label": "Total",
-        "units": "{total} unidad(es)",
-        "truncated": "Sólo se muestran las primeras 100 unidades."
+        "total_label": "",
+        "units": "",
+        "truncated": ""
       },
       "messages": {
-        "load_error": "No se pudieron cargar los productos",
-        "stock_load_error": "No se pudo cargar el stock del producto",
-        "save_error": "Error al guardar",
-        "toggle_error": "No se pudo cambiar el estado",
-        "delete_error": "No se pudo eliminar",
-        "confirm_delete": "¿Eliminar este producto? Esta acción es reversible.",
-        "created": "Producto creado",
-        "updated": "Producto actualizado",
-        "activated": "Producto activado",
-        "deactivated": "Producto desactivado",
-        "deleted": "Producto eliminado"
+        "load_error": "",
+        "stock_load_error": "",
+        "save_error": "",
+        "toggle_error": "",
+        "delete_error": "",
+        "confirm_delete": "",
+        "created": "",
+        "updated": "",
+        "activated": "",
+        "deactivated": "",
+        "deleted": ""
       },
       "permission": {
-        "title": "Sem permissao",
-        "body": "Voce precisa de <code>{permiso}</code> para ver esta tela."
+        "title": "",
+        "body": ""
       }
     },
     "receiving": {
-      "title": "Recepción",
-      "subtitle": "Entrada de inventario: unidad física + ledger + evento en una sola transacción",
-      "card_title": "Nueva recepción",
+      "title": "",
+      "subtitle": "",
+      "card_title": "",
       "labels": {
-        "producto": "Producto",
-        "ubicacion_destino": "Ubicación destino",
-        "cantidad_esperada": "Cantidad esperada",
-        "cantidad_recibida": "Cantidad recibida",
-        "lote": "Lote",
-        "numero_serie": "Número de serie",
-        "rechazo_total": "Rechazo total de la entrega"
+        "producto": "",
+        "ubicacion_destino": "",
+        "cantidad_esperada": "",
+        "cantidad_recibida": "",
+        "lote": "",
+        "numero_serie": "",
+        "rechazo_total": ""
       },
       "selects": {
-        "producto": "Seleccione un producto",
-        "ubicacion": "Seleccione una ubicación"
+        "producto": "",
+        "ubicacion": ""
       },
       "placeholders": {
-        "cantidad_recibida": "Vacío = igual a la esperada",
-        "opcional": "Opcional"
+        "cantidad_recibida": "",
+        "opcional": ""
       },
       "hints": {
-        "producto": "Sólo productos activos del catálogo.",
-        "ubicacion": "Sólo ubicaciones activas. Etiqueta: código (usada / capacidad).",
-        "cantidad_recibida": "Menor que la esperada genera recepción parcial con incidencia.",
-        "rechazo_total": "No entra en stock: no crea unidad ni ledger y abre una incidencia de entrega rechazada con prioridad alta. La cantidad recibida queda en 0."
+        "producto": "",
+        "ubicacion": "",
+        "cantidad_recibida": "",
+        "rechazo_total": ""
       },
       "buttons": {
-        "submit": "Registrar recepción",
-        "submitting": "Registrando..."
+        "submit": "",
+        "submitting": ""
       },
       "options": {
-        "sin_limite": "sin límite",
-        "sin_espacio": " - sin espacio"
+        "sin_limite": "",
+        "sin_espacio": ""
       },
       "result": {
-        "title": "Última recepción",
-        "empty_title": "Sin recepciones en esta sesión",
-        "empty_hint": "El código de barras de la unidad aparecerá aquí."
+        "title": "",
+        "empty_title": "",
+        "empty_hint": ""
       },
       "states": {
-        "rechazada": "Rechazada",
-        "parcial": "Parcial",
-        "completa": "Completa",
-        "sin_unidad": "— sin unidad —"
+        "rechazada": "",
+        "parcial": "",
+        "completa": "",
+        "sin_unidad": ""
       },
       "prioridad": {
-        "alta": "Alta",
-        "normal": "Normal"
+        "alta": "",
+        "normal": ""
       },
       "columns": {
-        "ubicacion": "Ubicación",
-        "estado": "Estado",
-        "discrepancia": "Discrepancia",
-        "codigo_barras": "Código de barras",
-        "sku": "SKU",
-        "esperada": "Esperada",
-        "recibida": "Recibida"
+        "ubicacion": "",
+        "estado": "",
+        "discrepancia": "",
+        "codigo_barras": "",
+        "sku": "",
+        "esperada": "",
+        "recibida": ""
       },
       "messages": {
-        "catalog_error": "No se pudieron cargar productos y ubicaciones",
-        "error_producto_required": "Seleccione un producto.",
-        "error_ubicacion_required": "Seleccione una ubicación destino.",
-        "error_cantidad_esperada": "La cantidad esperada debe ser mayor que cero.",
-        "error_cantidad_recibida": "La cantidad recibida debe ser mayor que cero.",
-        "error_cantidad_recibida_max": "No puede ser mayor que la cantidad esperada.",
-        "submit_error": "No se pudo registrar la recepción",
-        "rechazo_titulo": "Entrega rechazada.",
-        "rechazo_fallback": "No se registró stock; se abrió una incidencia de entrega rechazada.",
-        "parcial_titulo": "Recepción parcial.",
-        "parcial_fallback": "Se registró una incidencia de discrepancia de cantidad.",
-        "evento": "Evento {tipo}",
-        "evento_hash": "· hash {hash}...",
-        "toast_rechazo_titulo": "Entrega rechazada",
-        "toast_rechazo_fallback": "Sin stock; se abrió una incidencia de prioridad alta.",
-        "toast_registrada_titulo": "Recepción registrada",
-        "toast_registrada_mensaje": "{codigo} en {ubicacion}",
-        "error_401_form": "Sesión expirada. Vuelve a iniciar sesión; la clave de idempotencia se conserva.",
-        "error_401_toast": "Vuelve a iniciar sesión para continuar",
-        "error_409_form": "La clave de idempotencia ya se había usado con otros datos. Se generó una nueva clave: revisa el stock antes de reintentar.",
-        "error_409_toast_titulo": "Idempotencia",
-        "error_409_toast": "Clave reutilizada con datos distintos; se generó una nueva",
-        "toast_capacidad": "Capacidad excedida"
+        "catalog_error": "",
+        "error_producto_required": "",
+        "error_ubicacion_required": "",
+        "error_cantidad_esperada": "",
+        "error_cantidad_recibida": "",
+        "error_cantidad_recibida_max": "",
+        "submit_error": "",
+        "rechazo_titulo": "",
+        "rechazo_fallback": "",
+        "parcial_titulo": "",
+        "parcial_fallback": "",
+        "evento": "",
+        "evento_hash": "",
+        "toast_rechazo_titulo": "",
+        "toast_rechazo_fallback": "",
+        "toast_registrada_titulo": "",
+        "toast_registrada_mensaje": "",
+        "error_401_form": "",
+        "error_401_toast": "",
+        "error_409_form": "",
+        "error_409_toast_titulo": "",
+        "error_409_toast": "",
+        "toast_capacidad": ""
       },
       "permission": {
-        "title": "Sem permissao",
-        "body": "Voce precisa de <code>{permiso}</code> para ver esta tela."
+        "title": "",
+        "body": ""
       }
     },
     "movements": {
-      "title": "Movimientos",
-      "subtitle": "Historial de movimientos internos de inventario",
-      "pagination_label": "movimientos",
+      "title": "",
+      "subtitle": "",
+      "pagination_label": "",
       "summary": {
-        "correcciones": "Correcciones",
-        "en_pantalla": "En pantalla"
+        "correcciones": "",
+        "en_pantalla": ""
       },
       "filters": {
-        "unit": "Unidad",
-        "unit_placeholder": "ID de unidad física",
-        "origin": "Origen",
-        "destination": "Destino",
-        "reason": "Motivo",
-        "reason_placeholder": "REUBICACION, ...",
-        "correction": "Corrección",
-        "all": "Todas",
-        "only_corrections": "Sólo correcciones",
-        "no_correction": "Sin corrección",
-        "date_from": "Fecha desde",
-        "date_to": "Fecha hasta",
-        "apply": "Filtrar",
-        "clear": "Limpiar",
-        "clear_title": "Limpiar filtros"
+        "unit": "",
+        "unit_placeholder": "",
+        "origin": "",
+        "destination": "",
+        "reason": "",
+        "reason_placeholder": "",
+        "correction": "",
+        "all": "",
+        "only_corrections": "",
+        "no_correction": "",
+        "date_from": "",
+        "date_to": "",
+        "apply": "",
+        "clear": "",
+        "clear_title": ""
       },
       "columns": {
-        "movimiento": "Movimiento",
-        "fecha": "Fecha",
-        "unidad": "Unidad",
-        "ruta": "Ruta",
-        "motivo": "Motivo",
-        "actor": "Actor",
-        "correccion": "Corrección"
+        "movimiento": "",
+        "fecha": "",
+        "unidad": "",
+        "ruta": "",
+        "motivo": "",
+        "actor": "",
+        "correccion": ""
       },
       "empty": {
-        "title": "Sin movimientos",
-        "message": "No hay movimientos que coincidan con los filtros actuales."
+        "title": "",
+        "message": ""
       },
       "permission": {
-        "title": "Sin permiso",
-        "body": "Necesitas <code>{permiso}</code> para ver los movimientos."
+        "title": "",
+        "body": ""
       },
       "messages": {
-        "forbidden_view": "Necesitas {permiso} para ver los movimientos.",
-        "load_error": "No se pudieron cargar los movimientos"
+        "forbidden_view": "",
+        "load_error": ""
       }
     },
     "reservations": {
-      "title": "Reservas",
-      "subtitle": "Reservas de unidades de inventario",
-      "pagination_label": "reservas",
+      "title": "",
+      "subtitle": "",
+      "pagination_label": "",
       "summary": {
-        "total": "Reservas",
-        "activas": "Activas",
-        "con_vencimiento": "Con vencimiento"
+        "total": "",
+        "activas": "",
+        "con_vencimiento": ""
       },
       "states": {
-        "activa": "ACTIVA",
-        "cancelada": "CANCELADA"
+        "activa": "",
+        "cancelada": ""
       },
       "columns": {
-        "barcode": "Barcode",
-        "producto": "Producto",
-        "reservada": "Reservada",
-        "estado": "Estado",
-        "vencimiento": "Vencimiento",
-        "acciones": "Acciones"
+        "barcode": "",
+        "producto": "",
+        "reservada": "",
+        "estado": "",
+        "vencimiento": "",
+        "acciones": ""
       },
       "actions": {
-        "release": "Liberar"
+        "release": ""
       },
       "empty": {
-        "title": "Sin reservas",
-        "message": "No hay reservas registradas."
+        "title": "",
+        "message": ""
       },
       "permission": {
-        "title": "Sin permiso",
-        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
+        "title": "",
+        "body": ""
       },
       "messages": {
-        "load_error": "No se pudieron cargar las reservas",
-        "forbidden_view": "Necesitas {permiso} para ver las reservas.",
-        "forbidden_release": "Necesitas {permiso} para liberar reservas.",
-        "confirm_release": "¿Liberar esta reserva? La unidad quedará disponible de nuevo.",
-        "released_title": "Reserva liberada",
-        "released_message": "La unidad volvió a estar disponible.",
-        "not_found_title": "Reserva no encontrada",
-        "not_found_message": "La reserva ya no existe.",
-        "release_conflict_title": "No se pudo liberar",
-        "release_conflict_message": "La reserva ya no está activa.",
-        "release_error": "No se pudo liberar la reserva"
+        "load_error": "",
+        "forbidden_view": "",
+        "forbidden_release": "",
+        "confirm_release": "",
+        "released_title": "",
+        "released_message": "",
+        "not_found_title": "",
+        "not_found_message": "",
+        "release_conflict_title": "",
+        "release_conflict_message": "",
+        "release_error": ""
       }
     },
     "deliveries": {
-      "title": "Entregas",
-      "subtitle": "Confirmación de entrega y fallos",
-      "pagination_label": "entregas",
+      "title": "",
+      "subtitle": "",
+      "pagination_label": "",
       "sections": {
-        "en_ruta": "Envíos en ruta",
-        "history": "Historial de entregas"
+        "en_ruta": "",
+        "history": ""
       },
       "actions": {
-        "reload": "Actualizar",
-        "filter": "Filtrar",
-        "clear": "Limpiar",
-        "clear_title": "Limpiar filtros",
-        "confirm": "Confirmar entrega",
-        "failed": "Registrar fallo",
-        "mark_all": "Marcar todas",
-        "unmark_all": "Desmarcar todas",
-        "view_signature": "Ver firma"
+        "reload": "",
+        "filter": "",
+        "clear": "",
+        "clear_title": "",
+        "confirm": "",
+        "failed": "",
+        "mark_all": "",
+        "unmark_all": "",
+        "view_signature": ""
       },
       "filters": {
-        "estado": "Estado",
-        "all_states": "Todos los estados",
-        "shipment": "Envío (id o referencia)",
-        "date_from": "Fecha desde",
-        "date_to": "Fecha hasta"
+        "estado": "",
+        "all_states": "",
+        "shipment": "",
+        "date_from": "",
+        "date_to": ""
       },
       "columns": {
-        "envio": "Envío",
-        "referencia": "Referencia",
-        "destinatario": "Destinatario",
-        "conductor": "Conductor",
-        "items": "Ítems",
-        "creado": "Creado",
-        "acciones": "Acciones",
-        "entrega": "Entrega",
-        "barcode": "Código de barras",
-        "cantidad": "Cantidad",
-        "estado": "Estado",
-        "firma": "Firma",
-        "entregado": "Entregado",
-        "producto": "Producto",
-        "firma_url": "Firma (URL http/https)",
-        "observaciones": "Observaciones",
-        "destinatario_real": "Destinatario real"
+        "envio": "",
+        "referencia": "",
+        "destinatario": "",
+        "conductor": "",
+        "items": "",
+        "creado": "",
+        "acciones": "",
+        "entrega": "",
+        "barcode": "",
+        "cantidad": "",
+        "estado": "",
+        "firma": "",
+        "entregado": "",
+        "producto": "",
+        "firma_url": "",
+        "observaciones": "",
+        "destinatario_real": ""
       },
       "states": {
-        "pendiente": "Pendiente",
-        "entregada": "Entregada",
-        "rechazada": "Rechazada",
-        "parcial": "Parcial"
+        "pendiente": "",
+        "entregada": "",
+        "rechazada": "",
+        "parcial": ""
       },
       "reasons": {
-        "no_disponible": "No disponible",
-        "rechazo": "Rechazo",
-        "acceso_denegado": "Acceso denegado",
-        "otro": "Otro"
+        "no_disponible": "",
+        "rechazo": "",
+        "acceso_denegado": "",
+        "otro": ""
       },
       "summary": {
-        "entregas": "Entregas",
-        "entregadas": "Entregadas",
-        "rechazadas": "Rechazadas",
-        "pendientes": "Pendientes"
+        "entregas": "",
+        "entregadas": "",
+        "rechazadas": "",
+        "pendientes": ""
       },
       "empty": {
-        "en_ruta_title": "Sin envíos en ruta",
-        "en_ruta_message": "No hay envíos con estado EN_RUTA esperando entrega.",
-        "history_title": "Sin entregas",
-        "history_message": "No hay entregas que coincidan con los filtros actuales.",
-        "units_title": "Sin unidades pendientes",
-        "confirm_message": "Este envío no tiene unidades pendientes de entrega.",
-        "failed_message": "Este envío no tiene unidades pendientes que devolver."
+        "en_ruta_title": "",
+        "en_ruta_message": "",
+        "history_title": "",
+        "history_message": "",
+        "units_title": "",
+        "confirm_message": "",
+        "failed_message": ""
       },
       "permission": {
-        "title": "Sin permiso",
-        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla.",
-        "en_ruta_title": "Sin acceso a los envíos",
-        "en_ruta_body": "Necesitas <code>{permiso}</code> para listar los envíos EN_RUTA; la pantalla de entregas no incluye un endpoint propio."
+        "title": "",
+        "body": "",
+        "en_ruta_title": "",
+        "en_ruta_body": ""
       },
       "modals": {
-        "open_error": "No se pudo abrir el envío",
-        "confirm_title": "Confirmar entrega",
-        "failed_title": "Registrar fallo de entrega",
-        "cancel": "Cancelar",
-        "sending": "Enviando...",
-        "context_destinatario": "Destinatario",
-        "context_destino": "Destino",
-        "context_salida": "Salida",
-        "units_count": "Unidades del envío ({count})"
+        "open_error": "",
+        "confirm_title": "",
+        "failed_title": "",
+        "cancel": "",
+        "sending": "",
+        "context_destinatario": "",
+        "context_destino": "",
+        "context_salida": "",
+        "units_count": ""
       },
       "placeholders": {
-        "optional": "Opcional",
-        "signature": "https://firma.ejemplo/acta"
+        "optional": "",
+        "signature": ""
       },
       "form": {
-        "motivo": "Motivo",
-        "select_motivo": "Seleccione un motivo",
-        "observaciones": "Observaciones",
-        "motivo_fallo": "Motivo de fallo para las unidades no marcadas",
-        "hint_unmarked": "Las unidades sin marcar se procesan como fallo de entrega dentro de la misma operación.",
-        "hint_no_units": "Si no marca ninguna unidad, el fallo se aplica a todas las no entregadas del envío.",
-        "affected": "Unidades afectadas ({marcadas} de {total})"
+        "motivo": "",
+        "select_motivo": "",
+        "observaciones": "",
+        "motivo_fallo": "",
+        "hint_unmarked": "",
+        "hint_no_units": "",
+        "affected": ""
       },
       "messages": {
-        "load_shipment_error": "No se pudo cargar el envío",
-        "load_en_ruta_error": "No se pudieron cargar los envíos en ruta",
-        "load_history_error": "No se pudo cargar el historial",
-        "forbidden_view": "Necesitas {permiso} para ver el historial.",
-        "confirm_partial": "Vas a confirmar {marcadas} de {total} unidad(es). Las {sin_marcar} no marcadas se procesarán como fallo de entrega. ¿Continuar?",
-        "confirmed_title": "Entrega confirmada",
-        "failed_title": "Fallo registrado",
-        "shipment_ref": "Envío {id}",
-        "units_delivered": "{count} unidad(es) entregada(s)",
-        "shipment_failed": "El envío quedó en FALLO_ENTREGA",
-        "confirm_error": "No se pudo confirmar la entrega",
-        "failed_error": "No se pudo registrar el fallo",
-        "notice_all_marked": "Las {marcadas} unidad(es) están marcadas como entregadas.",
-        "notice_partial": "{marcadas} marcada(s) como entregada(s) y {sin_marcar} se procesarán como fallo de entrega con motivo {motivo}."
+        "load_shipment_error": "",
+        "load_en_ruta_error": "",
+        "load_history_error": "",
+        "forbidden_view": "",
+        "confirm_partial": "",
+        "confirmed_title": "",
+        "failed_title": "",
+        "shipment_ref": "",
+        "units_delivered": "",
+        "shipment_failed": "",
+        "confirm_error": "",
+        "failed_error": "",
+        "notice_all_marked": "",
+        "notice_partial": ""
       },
       "validations": {
-        "unit_required": "Marca al menos una unidad como entregada.",
-        "signature_url": "La firma debe ser una URL http:// o https://",
-        "reason_required": "Selecciona el motivo del fallo."
+        "unit_required": "",
+        "signature_url": "",
+        "reason_required": ""
       }
     },
     "picking": {
-      "title": "Picking",
-      "subtitle": "Selección de unidades reservadas",
-      "operations_title": "Operaciones de picking",
-      "pagination_label": "operaciones",
+      "title": "",
+      "subtitle": "",
+      "operations_title": "",
+      "pagination_label": "",
       "states": {
-        "pendiente": "Pendiente",
-        "en_curso": "En curso",
-        "completada": "Completada",
-        "verificada": "Verificada"
+        "pendiente": "",
+        "en_curso": "",
+        "completada": "",
+        "verificada": ""
       },
       "summary": {
-        "operaciones": "Operaciones",
-        "en_curso": "En curso",
-        "completadas": "Completadas",
-        "verificadas": "Verificadas"
+        "operaciones": "",
+        "en_curso": "",
+        "completadas": "",
+        "verificadas": ""
       },
       "filters": {
-        "all_states": "Todos los estados",
-        "search_placeholder": "Buscar por lote",
-        "apply": "Filtrar",
-        "clear": "Limpiar",
-        "clear_title": "Limpiar filtros"
+        "all_states": "",
+        "search_placeholder": "",
+        "apply": "",
+        "clear": "",
+        "clear_title": ""
       },
       "columns": {
-        "barcode": "Código de barras",
-        "producto": "Producto",
-        "reservada": "Reservada",
-        "vencimiento": "Vencimiento",
-        "lote": "Lote",
-        "unidades": "Unidades",
-        "estado": "Estado",
-        "referencia": "Referencia",
-        "selector": "Selector",
-        "supervisor": "Supervisor",
-        "creado": "Creado",
-        "acciones": "Acciones"
+        "barcode": "",
+        "producto": "",
+        "reservada": "",
+        "vencimiento": "",
+        "lote": "",
+        "unidades": "",
+        "estado": "",
+        "referencia": "",
+        "selector": "",
+        "supervisor": "",
+        "creado": "",
+        "acciones": ""
       },
       "actions": {
-        "expand": "Unidades",
-        "collapse": "Ocultar",
-        "complete": "Completar",
-        "verify": "Verificar"
+        "expand": "",
+        "collapse": "",
+        "complete": "",
+        "verify": ""
       },
       "empty": {
-        "reservations_title": "Sin reservas pendientes",
-        "reservations_message": "No hay reservas activas para preparar.",
-        "title": "Sin operaciones de picking",
-        "message": "Aún no se inició ningún lote que coincida con los filtros."
+        "reservations_title": "",
+        "reservations_message": "",
+        "title": "",
+        "message": ""
       },
       "start": {
-        "title": "Nuevo lote de picking",
-        "lote_label": "Lote",
-        "generate": "Generar",
-        "generate_title": "Generar un lote nuevo",
-        "lote_hint": "Debe ser único dentro del tenant.",
-        "location_label": "Ubicación de preparación",
-        "location_loading": "Cargando ubicaciones PICKING...",
-        "location_hint": "Zonas activas de tipo PICKING.",
-        "location_select": "Seleccione una ubicación",
-        "location_empty": "No hay ubicaciones PICKING activas",
-        "location_no_limit": "sin límite",
-        "order_label": "Referencia de orden",
-        "order_placeholder": "Opcional",
-        "scan_label": "Escanear barcode",
-        "scan_placeholder": "Escanea o escribe un barcode y presiona Enter",
-        "scan_hint": "Selecciona la reserva pendiente que coincida con el barcode.",
-        "selection_count": "unidad(es) seleccionada(s)",
-        "select_all": "Seleccionar todas",
-        "clear_selection": "Limpiar selección",
-        "submit": "Iniciar picking",
-        "sending": "Enviando..."
+        "title": "",
+        "lote_label": "",
+        "generate": "",
+        "generate_title": "",
+        "lote_hint": "",
+        "location_label": "",
+        "location_loading": "",
+        "location_hint": "",
+        "location_select": "",
+        "location_empty": "",
+        "location_no_limit": "",
+        "order_label": "",
+        "order_placeholder": "",
+        "scan_label": "",
+        "scan_placeholder": "",
+        "scan_hint": "",
+        "selection_count": "",
+        "select_all": "",
+        "clear_selection": "",
+        "submit": "",
+        "sending": ""
       },
       "permission": {
-        "title": "Sin permiso",
-        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
+        "title": "",
+        "body": ""
       },
       "detail": {
-        "route": "origen {origen} → preparación {destino}"
+        "route": ""
       },
       "messages": {
-        "forbidden_locations": "Necesitas {permiso} para listar las zonas de preparación.",
-        "forbidden_reservations": "Necesitas {permiso} para ver las reservas.",
-        "forbidden_view": "Necesitas {permiso} para ver las operaciones.",
-        "reservations_load_error": "No se pudieron cargar las reservas",
-        "pickings_load_error": "No se pudieron cargar las operaciones de picking",
-        "error_lote_required": "Indique el identificador del lote.",
-        "error_location_required": "Seleccione una ubicación de preparación.",
-        "error_units_required": "Selecciona al menos una reserva pendiente.",
-        "started_title": "Picking iniciado",
-        "started_message": "Lote {lote} con {unidades} unidad(es).",
-        "start_error": "No se pudo iniciar el picking",
-        "completed_title": "Lote completado",
-        "verified_title": "Lote verificado",
-        "lote_message": "Lote {lote}",
-        "complete_error": "No se pudo completar el lote",
-        "verify_error": "No se pudo verificar el lote",
-        "scan_not_found": "No hay reservas pendientes con el barcode \"{codigo}\".",
-        "barcode_not_found_title": "Barcode no encontrado",
-        "barcode_not_found_message": "Revisa el código o actualiza la lista.",
-        "unit_selected_title": "Unidad seleccionada",
-        "unit_selected_message": "{barcode} · {producto}"
+        "forbidden_locations": "",
+        "forbidden_reservations": "",
+        "forbidden_view": "",
+        "reservations_load_error": "",
+        "pickings_load_error": "",
+        "error_lote_required": "",
+        "error_location_required": "",
+        "error_units_required": "",
+        "started_title": "",
+        "started_message": "",
+        "start_error": "",
+        "completed_title": "",
+        "verified_title": "",
+        "lote_message": "",
+        "complete_error": "",
+        "verify_error": "",
+        "scan_not_found": "",
+        "barcode_not_found_title": "",
+        "barcode_not_found_message": "",
+        "unit_selected_title": "",
+        "unit_selected_message": ""
       }
     },
     "returns": {
-      "title": "Devoluciones",
-      "subtitle": "Registro de devoluciones de unidades",
-      "pagination_label": "devoluciones",
+      "title": "",
+      "subtitle": "",
+      "pagination_label": "",
       "actions": {
-        "register": "Registrar devolución",
-        "cancel": "Cancelar",
-        "sending": "Enviando..."
+        "register": "",
+        "cancel": "",
+        "sending": ""
       },
       "filters": {
-        "estado": "Estado al devolver",
-        "motivo": "Motivo",
-        "shipment": "Envío (id o referencia)",
-        "fecha_desde": "Fecha desde",
-        "fecha_hasta": "Fecha hasta",
-        "all": "Todos",
-        "apply": "Filtrar",
-        "clear": "Limpiar",
-        "clear_title": "Limpiar filtros"
+        "estado": "",
+        "motivo": "",
+        "shipment": "",
+        "fecha_desde": "",
+        "fecha_hasta": "",
+        "all": "",
+        "apply": "",
+        "clear": "",
+        "clear_title": ""
       },
       "placeholders": {
-        "opcional": "Opcional",
-        "unit_search": "Barcode, producto, sku, lote o ubicación"
+        "opcional": "",
+        "unit_search": ""
       },
       "columns": {
-        "devolucion": "Devolución",
-        "envio": "Envío",
-        "barcode": "Barcode",
-        "cantidad": "Cantidad",
-        "motivo": "Motivo",
-        "estado": "Estado al devolver",
-        "destino": "Destino",
-        "detalle": "Detalle",
-        "fecha": "Fecha"
+        "devolucion": "",
+        "envio": "",
+        "barcode": "",
+        "cantidad": "",
+        "motivo": "",
+        "estado": "",
+        "destino": "",
+        "detalle": "",
+        "fecha": ""
       },
       "summary": {
-        "devoluciones": "Devoluciones",
-        "ok": "OK",
-        "danadas": "Dañadas",
-        "deterioradas": "Deterioradas",
-        "perdidas": "Perdidas"
+        "devoluciones": "",
+        "ok": "",
+        "danadas": "",
+        "deterioradas": "",
+        "perdidas": ""
       },
       "empty": {
-        "title": "Sin devoluciones",
-        "message": "No hay devoluciones que coincidan con los filtros actuales."
+        "title": "",
+        "message": ""
       },
       "permission": {
-        "title": "Sin permiso",
-        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
+        "title": "",
+        "body": ""
       },
       "states": {
-        "ok": "OK",
-        "danado": "Dañado",
-        "deteriorado": "Deteriorado",
-        "perdido": "Perdido"
+        "ok": "",
+        "danado": "",
+        "deteriorado": "",
+        "perdido": ""
       },
       "reasons": {
-        "cambio_cliente": "Cambio de cliente",
-        "dano": "Daño",
-        "fallo_entrega": "Fallo de entrega",
-        "no_aplica": "No aplica",
-        "otro": "Otro"
+        "cambio_cliente": "",
+        "dano": "",
+        "fallo_entrega": "",
+        "no_aplica": "",
+        "otro": ""
       },
       "modal": {
-        "title": "Registrar devolución",
-        "estado_unidad": "Estado de la unidad",
-        "estado_unidad_hint": "El backend sólo acepta unidades ENTREGADO o DEVUELTO.",
-        "buscar_unidad": "Buscar unidad",
-        "unidad": "Unidad",
-        "loading_units": "Cargando unidades...",
-        "units_available": "{count} unidad(es) disponibles.",
-        "motivo": "Motivo",
-        "select_motivo": "Seleccione un motivo",
-        "estado": "Estado al devolver",
-        "select_estado": "Seleccione un estado",
-        "ubicacion_destino": "Ubicación destino",
-        "select_unit": "Seleccione una unidad",
-        "no_destination": "Sin destino",
-        "destination_required_hint": "Obligatoria cuando el estado es OK.",
-        "destination_optional_hint": "Se ignora: DAÑADO/DETERIORADO van a la zona DAÑADOS y PERDIDO no guarda ubicación.",
-        "observaciones": "Observaciones"
+        "title": "",
+        "estado_unidad": "",
+        "estado_unidad_hint": "",
+        "buscar_unidad": "",
+        "unidad": "",
+        "loading_units": "",
+        "units_available": "",
+        "motivo": "",
+        "select_motivo": "",
+        "estado": "",
+        "select_estado": "",
+        "ubicacion_destino": "",
+        "select_unit": "",
+        "no_destination": "",
+        "destination_required_hint": "",
+        "destination_optional_hint": "",
+        "observaciones": ""
       },
       "validation": {
-        "unidad": "Selecciona la unidad a devolver.",
-        "motivo": "Selecciona el motivo de la devolución.",
-        "estado": "Selecciona el estado al devolver.",
-        "destino": "Selecciona la ubicación destino."
+        "unidad": "",
+        "motivo": "",
+        "estado": "",
+        "destino": ""
       },
       "messages": {
-        "stock_load_error": "No se pudo cargar el stock",
-        "locations_load_error": "No se pudieron cargar las ubicaciones",
-        "load_error": "No se pudieron cargar las devoluciones",
-        "forbidden_view": "Necesitas {permiso} para ver el listado.",
-        "registered_title": "Devolución registrada",
-        "register_error": "No se pudo registrar la devolución"
+        "stock_load_error": "",
+        "locations_load_error": "",
+        "load_error": "",
+        "forbidden_view": "",
+        "registered_title": "",
+        "register_error": ""
       }
     },
     "shipments": {
-      "title": "Envíos",
-      "subtitle": "Carga y autorización de salida",
-      "list_title": "Listado de envíos",
-      "pagination_label": "envíos",
+      "title": "",
+      "subtitle": "",
+      "list_title": "",
+      "pagination_label": "",
       "states": {
-        "preparacion": "En preparación",
-        "en_ruta": "En ruta",
-        "entregado": "Entregado",
-        "fallo_entrega": "Fallo de entrega",
-        "devuelto": "Devuelto"
+        "preparacion": "",
+        "en_ruta": "",
+        "entregado": "",
+        "fallo_entrega": "",
+        "devuelto": ""
       },
       "types": {
-        "propio": "Próprio",
-        "vehiculo": "Veículo",
-        "mensajeria": "Mensageiro",
-        "tercero": "Terceiro"
+        "propio": "",
+        "vehiculo": "",
+        "mensajeria": "",
+        "tercero": ""
       },
       "item_states": {
-        "preparada": "Preparada",
-        "cargada": "Carregada",
-        "en_transito": "Em trânsito",
-        "entregada": "Entregue",
-        "rechazada": "Rejeitada",
-        "devuelta": "Devolvida"
+        "preparada": "",
+        "cargada": "",
+        "en_transito": "",
+        "entregada": "",
+        "rechazada": "",
+        "devuelta": ""
       },
       "summary": {
-        "envios": "Envíos",
-        "en_preparacion": "En preparación",
-        "en_ruta": "En ruta",
-        "entregados": "Entregados"
+        "envios": "",
+        "en_preparacion": "",
+        "en_ruta": "",
+        "entregados": ""
       },
       "filters": {
-        "all_states": "Todos los estados",
-        "apply": "Filtrar",
-        "clear": "Limpiar",
-        "clear_title": "Limpiar filtros"
+        "all_states": "",
+        "apply": "",
+        "clear": "",
+        "clear_title": ""
       },
       "columns": {
-        "envio": "Envío",
-        "destinatario": "Destinatario",
-        "tipo": "Tipo",
-        "conductor": "Conductor",
-        "items": "Ítems",
-        "estado": "Estado",
-        "creado": "Creado",
-        "acciones": "Acciones",
-        "barcode": "Código de barras",
-        "producto": "Producto",
-        "zona": "Zona",
-        "cantidad": "Cantidad"
+        "envio": "",
+        "destinatario": "",
+        "tipo": "",
+        "conductor": "",
+        "items": "",
+        "estado": "",
+        "creado": "",
+        "acciones": "",
+        "barcode": "",
+        "producto": "",
+        "zona": "",
+        "cantidad": ""
       },
       "labels": {
-        "tipo": "Tipo",
-        "origen": "Origen",
-        "referencia_externa": "Referencia externa",
-        "destino_direccion": "Destino / dirección",
-        "destinatario": "Destinatario",
-        "destinatario_contacto": "Contacto del destinatario",
-        "entrega_esperada": "Entrega esperada",
-        "conductor": "Conductor",
-        "conductor_contacto": "Contacto del conductor",
-        "vehiculo": "Vehículo",
-        "observaciones": "Observaciones",
-        "estado": "Estado",
-        "destino": "Destino",
-        "salida": "Salida"
+        "tipo": "",
+        "origen": "",
+        "referencia_externa": "",
+        "destino_direccion": "",
+        "destinatario": "",
+        "destinatario_contacto": "",
+        "entrega_esperada": "",
+        "conductor": "",
+        "conductor_contacto": "",
+        "vehiculo": "",
+        "observaciones": "",
+        "estado": "",
+        "destino": "",
+        "salida": ""
       },
       "load": {
-        "title": "Nuevo envío",
-        "units_title": "Unidades a cargar",
-        "submit": "Cargar unidades",
-        "sending": "Enviando...",
-        "select_all": "Seleccionar todas",
-        "clear_selection": "Limpiar selección",
-        "selection_count": "unidad(es) seleccionada(s)",
+        "title": "",
+        "units_title": "",
+        "submit": "",
+        "sending": "",
+        "select_all": "",
+        "clear_selection": "",
+        "selection_count": "",
         "modes": {
-          "lote": "Por lote",
-          "unidades": "Selección manual"
+          "lote": "",
+          "unidades": ""
         },
         "selects": {
-          "sin_origen": "Sin origen"
+          "sin_origen": ""
         },
         "placeholders": {
-          "opcional": "Opcional",
-          "destino_direccion": "Dirección de entrega",
-          "destinatario_nombre": "Nombre o razón social",
-          "contacto": "Teléfono o correo",
-          "conductor_nombre": "Nombre del conductor",
-          "vehiculo_referencia": "Patente o referencia"
+          "opcional": "",
+          "destino_direccion": "",
+          "destinatario_nombre": "",
+          "contacto": "",
+          "conductor_nombre": "",
+          "vehiculo_referencia": ""
         },
         "hints": {
-          "destinatario": "Obligatorio para autorizar la salida."
+          "destinatario": ""
         },
         "lote": {
-          "label": "Lote de picking",
-          "select": "Seleccione un lote",
-          "hint": "Sólo lotes con picking COMPLETADA o VERIFICADA y unidades en preparación.",
-          "ready_count": "({listas}/{total} listas)",
-          "empty_title": "Sin lotes listos para cargar",
-          "empty_message": "No hay lotes de picking COMPLETADA o VERIFICADA.",
-          "empty_selection": "Elige un lote para ver sus unidades.",
-          "no_units": "Ninguna unidad del lote está en preparación."
+          "label": "",
+          "select": "",
+          "hint": "",
+          "ready_count": "",
+          "empty_title": "",
+          "empty_message": "",
+          "empty_selection": "",
+          "no_units": ""
         },
         "units": {
-          "empty_title": "Sin unidades en preparación",
-          "empty_message": "No hay unidades EN_PREPARACION listas para cargar."
+          "empty_title": "",
+          "empty_message": ""
         }
       },
       "actions": {
-        "detail": "Detalle",
-        "authorize": "Autorizar salida"
+        "detail": "",
+        "authorize": ""
       },
       "empty": {
-        "title": "Sin envíos",
-        "message": "No hay envíos que coincidan con los filtros actuales."
+        "title": "",
+        "message": ""
       },
       "detail": {
-        "title": "Envío {id}",
-        "items_count": "Ítems ({count})",
-        "items_empty": "Este envío aún no tiene ítems."
+        "title": "",
+        "items_count": "",
+        "items_empty": ""
       },
       "permission": {
-        "title": "Sin permiso",
-        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla.",
-        "dashboard": "Ir al dashboard"
+        "title": "",
+        "body": "",
+        "dashboard": ""
       },
       "messages": {
-        "catalog_forbidden": "Necesitas inventory.stock.view, inventory.picking.view e inventory.location.view para armar la carga.",
-        "catalog_load_error": "No se pudieron cargar los datos de la carga",
-        "list_forbidden": "Necesitas inventory.shipping.view para ver los envíos.",
-        "list_load_error": "No se pudieron cargar los envíos",
-        "detail_load_error": "No se pudo cargar el envío",
-        "error_tipo_required": "Seleccione el tipo de envío.",
-        "error_destinatario_required": "Indique el destinatario.",
-        "error_unidades_required": "Selecciona al menos una unidad para cargar.",
-        "loaded_title": "Unidades cargadas",
-        "loaded_message": "{unidades} unidad(es) · envío {id}",
-        "loaded_fallback_id": "creado",
-        "load_error": "No se pudieron cargar las unidades",
-        "authorize_confirm": "¿Autorizar la salida del envío {id}? Las unidades pasarán a EN_TRANSITO en la ubicación de tránsito.",
-        "authorized_title": "Salida autorizada",
-        "authorized_transit": "Unidades en tránsito ({codigo}).",
-        "authorized_en_ruta": "El envío pasó a EN_RUTA.",
-        "authorize_error": "No se pudo autorizar la salida"
+        "catalog_forbidden": "",
+        "catalog_load_error": "",
+        "list_forbidden": "",
+        "list_load_error": "",
+        "detail_load_error": "",
+        "error_tipo_required": "",
+        "error_destinatario_required": "",
+        "error_unidades_required": "",
+        "loaded_title": "",
+        "loaded_message": "",
+        "loaded_fallback_id": "",
+        "load_error": "",
+        "authorize_confirm": "",
+        "authorized_title": "",
+        "authorized_transit": "",
+        "authorized_en_ruta": "",
+        "authorize_error": ""
       }
     },
     "counts": {
-      "title": "Conteos físicos",
-      "subtitle": "Conteo físico de unidades y reconciliación de discrepancias",
-      "pagination_label": "conteos",
+      "title": "",
+      "subtitle": "",
+      "pagination_label": "",
       "summary": {
-        "conteos": "Conteos",
-        "pendientes": "Pendientes",
-        "en_curso": "En curso",
-        "completados": "Completados",
-        "reconciliados": "Reconciliados"
+        "conteos": "",
+        "pendientes": "",
+        "en_curso": "",
+        "completados": "",
+        "reconciliados": ""
       },
       "filters": {
-        "estado": "Estado",
-        "all_states": "Todos",
-        "ubicacion": "Ubicación",
-        "all_locations": "Todas",
-        "ubicacion_id": "Ubicación (id)",
-        "ubicacion_placeholder": "ID de ubicación",
-        "fecha_desde": "Fecha desde",
-        "fecha_hasta": "Fecha hasta",
-        "apply": "Filtrar",
-        "clear": "Limpiar",
-        "clear_title": "Limpiar filtros"
+        "estado": "",
+        "all_states": "",
+        "ubicacion": "",
+        "all_locations": "",
+        "ubicacion_id": "",
+        "ubicacion_placeholder": "",
+        "fecha_desde": "",
+        "fecha_hasta": "",
+        "apply": "",
+        "clear": "",
+        "clear_title": ""
       },
       "columns": {
-        "conteo": "Conteo",
-        "ubicacion": "Ubicación",
-        "estado": "Estado",
-        "fecha": "Fecha",
-        "discrepancias": "Discrepancias",
-        "reconciliado": "Reconciliado",
-        "acciones": "Acciones",
-        "unidad": "Unidad",
-        "barcode": "Barcode",
-        "esperada": "Esperada",
-        "contada": "Contada",
-        "notas": "Notas",
-        "encontrada": "Encontrada",
-        "diferencia": "Diferencia",
-        "accion": "Acción",
-        "justificacion": "Justificación",
-        "cantidad": "Cantidad",
-        "incidencia": "Incidencia",
-        "autoriza": "Autoriza"
+        "conteo": "",
+        "ubicacion": "",
+        "estado": "",
+        "fecha": "",
+        "discrepancias": "",
+        "reconciliado": "",
+        "acciones": "",
+        "unidad": "",
+        "barcode": "",
+        "esperada": "",
+        "contada": "",
+        "notas": "",
+        "encontrada": "",
+        "diferencia": "",
+        "accion": "",
+        "justificacion": "",
+        "cantidad": "",
+        "incidencia": "",
+        "autoriza": ""
       },
       "states": {
-        "pendiente": "Pendiente",
-        "en_curso": "En curso",
-        "completado": "Completado",
-        "reconciliado": "Reconciliado"
+        "pendiente": "",
+        "en_curso": "",
+        "completado": "",
+        "reconciliado": ""
       },
       "actions": {
-        "start": "Iniciar conteo",
-        "view": "Ver",
-        "count": "Contar",
-        "reconcile": "Reconciliar",
-        "download_sheet": "Descargar hoja",
-        "submit_results": "Registrar resultados",
-        "complete": "Completar",
-        "ajustar": "Ajustar",
-        "justificar": "Justificar"
+        "start": "",
+        "view": "",
+        "count": "",
+        "reconcile": "",
+        "download_sheet": "",
+        "submit_results": "",
+        "complete": "",
+        "ajustar": "",
+        "justificar": ""
       },
       "badges": {
-        "si": "Sí",
-        "no": "No",
-        "resuelta": "Resuelta"
+        "si": "",
+        "no": "",
+        "resuelta": ""
       },
       "empty": {
-        "title": "Sin conteos",
-        "message": "No hay conteos que coincidan con los filtros actuales."
+        "title": "",
+        "message": ""
       },
       "permission": {
-        "title": "Sin permiso",
-        "body": "Necesitas <code>inventory.count.view</code> para ver esta pantalla."
+        "title": "",
+        "body": ""
       },
       "detail": {
-        "info_title": "Conteo",
-        "coverage_title": "Cobertura",
-        "field_id": "ID",
-        "field_estado": "Estado",
-        "field_fecha": "Fecha",
-        "field_responsable": "Responsable",
-        "field_ubicacion": "Ubicación",
-        "field_unidades_contadas": "Unidades contadas",
-        "field_discrepancias": "Discrepancias",
-        "field_pendientes": "Pendientes",
-        "all_tenant": "Todo el tenant",
-        "sheet_title": "Hoja teórica ({count} unidades)",
-        "sheet_hint": "Carga la cantidad contada por unidad y registra los resultados.",
-        "sheet_empty_title": "Hoja vacía",
-        "sheet_empty_message": "Este conteo no tiene unidades en la lista teórica.",
-        "notes_placeholder": "Notas",
-        "discrepancies_title": "Discrepancias ({count})",
-        "select_action": "Seleccionar...",
-        "justification_placeholder": "Obligatoria para Justificar",
-        "reconcile_hint": "AJUSTAR actualiza la cantidad al valor encontrado; JUSTIFICAR deja la diferencia sin tocar el stock.",
-        "adjustments_title": "Ajustes aplicados ({count})"
+        "info_title": "",
+        "coverage_title": "",
+        "field_id": "",
+        "field_estado": "",
+        "field_fecha": "",
+        "field_responsable": "",
+        "field_ubicacion": "",
+        "field_unidades_contadas": "",
+        "field_discrepancias": "",
+        "field_pendientes": "",
+        "all_tenant": "",
+        "sheet_title": "",
+        "sheet_hint": "",
+        "sheet_empty_title": "",
+        "sheet_empty_message": "",
+        "notes_placeholder": "",
+        "discrepancies_title": "",
+        "select_action": "",
+        "justification_placeholder": "",
+        "reconcile_hint": "",
+        "adjustments_title": ""
       },
       "modals": {
-        "cancel": "Cancelar",
+        "cancel": "",
         "start": {
-          "title": "Iniciar conteo físico",
-          "submit": "Iniciar",
-          "ubicacion_label": "Ubicación",
-          "ubicacion_hint": "Si se indica, sólo se cuentan las unidades presentes en esa ubicación.",
-          "fecha_label": "Fecha del conteo",
-          "fecha_hint": "Opcional; por defecto la fecha actual.",
-          "all_tenant": "Todo el tenant (sin ubicación)"
+          "title": "",
+          "submit": "",
+          "ubicacion_label": "",
+          "ubicacion_hint": "",
+          "fecha_label": "",
+          "fecha_hint": "",
+          "all_tenant": ""
         },
         "detail": {
-          "title": "Conteo físico"
+          "title": ""
         }
       },
       "messages": {
-        "forbidden_view": "Necesitas inventory.count.view para ver los conteos.",
-        "load_error": "No se pudieron cargar los conteos",
-        "detail_load_error": "No se pudo cargar el conteo",
-        "sending": "Enviando...",
-        "start_error": "No se pudo iniciar el conteo",
-        "started_title": "Conteo iniciado",
-        "started_units": "Unidades en la lista: {count}.",
-        "started_pending": "El conteo quedó en estado Pendiente.",
-        "error_invalid_quantity": "Cantidad inválida: debe ser un número no negativo.",
-        "error_results_required": "Carga al menos una cantidad para registrar los resultados.",
-        "results_registered_title": "Resultados registrados",
-        "results_registered_message": "Pendientes: {count}.",
-        "results_error": "No se pudieron registrar los resultados",
-        "missing_unit_row": "Falta el resultado de esta unidad.",
-        "confirm_complete": "¿Completar el conteo? Se calcularán las discrepancias contra la hoja teórica.",
-        "completed_title": "Conteo completado",
-        "completed_message": "Discrepancias: {count}.",
-        "complete_error": "No se pudo completar el conteo",
-        "stale_field_error": "Justifica la diferencia o inicia un conteo nuevo.",
-        "stale_title": "Hoja teórica vencida",
-        "stale_message": "Unidad {unidad}: esperada {esperada}, actual {actual}. Pasa la fila a Justificar o inicia un conteo nuevo.",
-        "adjustment_state_field_error": "Registra la acción JUSTIFICAR con su justificación.",
-        "justification_required": "La acción JUSTIFICAR requiere una justificación.",
-        "error_actions_required": "Elige Ajustar o Justificar en al menos una discrepancia pendiente.",
-        "reconciled_title": "Discrepancias reconciliadas",
-        "reconciled_message": "Acciones aplicadas: {acciones}.",
-        "reconciled_message_incidents": "Acciones aplicadas: {acciones}. Incidencias generadas: {incidencias}.",
-        "reconcile_error": "No se pudieron reconciliar las discrepancias",
-        "download_error": "No se pudo descargar la hoja"
+        "forbidden_view": "",
+        "load_error": "",
+        "detail_load_error": "",
+        "sending": "",
+        "start_error": "",
+        "started_title": "",
+        "started_units": "",
+        "started_pending": "",
+        "error_invalid_quantity": "",
+        "error_results_required": "",
+        "results_registered_title": "",
+        "results_registered_message": "",
+        "results_error": "",
+        "missing_unit_row": "",
+        "confirm_complete": "",
+        "completed_title": "",
+        "completed_message": "",
+        "complete_error": "",
+        "stale_field_error": "",
+        "stale_title": "",
+        "stale_message": "",
+        "adjustment_state_field_error": "",
+        "justification_required": "",
+        "error_actions_required": "",
+        "reconciled_title": "",
+        "reconciled_message": "",
+        "reconciled_message_incidents": "",
+        "reconcile_error": "",
+        "download_error": ""
       }
     },
     "incidents": {
-      "title": "Incidencias",
-      "subtitle": "Reporte e investigación de incidencias",
-      "pagination_label": "incidencias",
+      "title": "",
+      "subtitle": "",
+      "pagination_label": "",
       "actions": {
-        "report": "Reportar incidencia",
-        "view": "Ver",
-        "investigate": "Investigar",
-        "resolve": "Resolver"
+        "report": "",
+        "view": "",
+        "investigate": "",
+        "resolve": ""
       },
       "states": {
-        "abierta": "Abierta",
-        "investigacion": "En investigación",
-        "resuelta": "Resuelta",
-        "no_resuelto": "No resuelto"
+        "abierta": "",
+        "investigacion": "",
+        "resuelta": "",
+        "no_resuelto": ""
       },
       "types": {
-        "dano": "Daño",
-        "perdida": "Pérdida",
-        "discrepancia_cantidad": "Discrepancia de cantidad",
-        "ubicacion_desconocida": "Ubicación desconocida",
-        "entrega_rechazada": "Entrega rechazada",
-        "transporte_fallido": "Transporte fallido",
-        "inventario_desaparecido": "Inventario desaparecido",
-        "otro": "Otro"
+        "dano": "",
+        "perdida": "",
+        "discrepancia_cantidad": "",
+        "ubicacion_desconocida": "",
+        "entrega_rechazada": "",
+        "transporte_fallido": "",
+        "inventario_desaparecido": "",
+        "otro": ""
       },
       "results": {
-        "encontrada": "Encontrada",
-        "no_encontrada": "No encontrada"
+        "encontrada": "",
+        "no_encontrada": ""
       },
       "priorities": {
-        "alta": "Alta",
-        "normal": "Normal"
+        "alta": "",
+        "normal": ""
       },
       "summary": {
-        "incidencias": "Incidencias",
-        "abiertas": "Abiertas",
-        "investigacion": "En investigación",
-        "resueltas": "Resueltas",
-        "no_resueltas": "No resueltas"
+        "incidencias": "",
+        "abiertas": "",
+        "investigacion": "",
+        "resueltas": "",
+        "no_resueltas": ""
       },
       "filters": {
-        "estado": "Estado",
-        "tipo": "Tipo",
-        "unidad": "Unidad",
-        "unidad_id": "Unidad (id)",
-        "fecha_desde": "Fecha desde",
-        "fecha_hasta": "Fecha hasta",
-        "all": "Todos",
-        "all_units": "Todas",
-        "apply": "Filtrar",
-        "clear": "Limpiar",
-        "clear_title": "Limpiar filtros",
-        "unit_placeholder": "ID de unidad física"
+        "estado": "",
+        "tipo": "",
+        "unidad": "",
+        "unidad_id": "",
+        "fecha_desde": "",
+        "fecha_hasta": "",
+        "all": "",
+        "all_units": "",
+        "apply": "",
+        "clear": "",
+        "clear_title": "",
+        "unit_placeholder": ""
       },
       "columns": {
-        "incidencia": "Incidencia",
-        "tipo": "Tipo",
-        "descripcion": "Descripción",
-        "unidad": "Unidad",
-        "ubicacion": "Ubicación",
-        "estado": "Estado",
-        "prioridad": "Prioridad",
-        "deteccion": "Detección",
-        "acciones": "Acciones"
+        "incidencia": "",
+        "tipo": "",
+        "descripcion": "",
+        "unidad": "",
+        "ubicacion": "",
+        "estado": "",
+        "prioridad": "",
+        "deteccion": "",
+        "acciones": ""
       },
       "empty": {
-        "title": "Sin incidencias",
-        "message": "No hay incidencias que coincidan con los filtros actuales."
+        "title": "",
+        "message": ""
       },
       "permission": {
-        "title": "Sin permiso",
-        "body": "Necesitas <code>{permiso}</code> para ver esta pantalla."
+        "title": "",
+        "body": ""
       },
       "messages": {
-        "forbidden_view": "Necesitas inventory.incident.view para ver las incidencias.",
-        "load_error": "No se pudieron cargar las incidencias",
-        "stock_load_error": "No se pudo cargar el stock",
-        "locations_load_error": "No se pudieron cargar las ubicaciones",
-        "incident_load_error": "No se pudo cargar la incidencia",
-        "report_error": "No se pudo reportar la incidencia",
-        "resolve_error": "No se pudo resolver la incidencia",
-        "investigate_error": "No se pudo iniciar la investigación",
-        "reported_title": "Incidencia reportada",
-        "reported_message": "La incidencia quedó en estado Abierta.",
-        "resolved_title": "Incidencia cerrada",
-        "resolved_message": "La resolución quedó registrada.",
-        "investigating_title": "Incidencia en investigación",
-        "investigating_message": "El estado pasó a En investigación.",
-        "confirm_investigate": "¿Iniciar la investigación de esta incidencia?",
-        "sending": "Enviando..."
+        "forbidden_view": "",
+        "load_error": "",
+        "stock_load_error": "",
+        "locations_load_error": "",
+        "incident_load_error": "",
+        "report_error": "",
+        "resolve_error": "",
+        "investigate_error": "",
+        "reported_title": "",
+        "reported_message": "",
+        "resolved_title": "",
+        "resolved_message": "",
+        "investigating_title": "",
+        "investigating_message": "",
+        "confirm_investigate": "",
+        "sending": ""
       },
       "validation": {
-        "tipo_required": "Selecciona el tipo de incidencia.",
-        "descripcion_required": "Describe la incidencia.",
-        "text_max": "La descripción no puede superar {max} caracteres.",
-        "observaciones_max": "Las observaciones no pueden superar {max} caracteres.",
-        "ubicacion_required": "Elige la ubicación afectada (o una unidad que tenga ubicación).",
-        "estado_required": "Elige el estado final (Resuelta o No resuelto).",
-        "resultado_required": "Indica si la unidad fue encontrada o no.",
-        "resolucion_descripcion_required": "Describe la resolución.",
-        "acciones_required": "Indica las acciones tomadas.",
-        "acciones_max": "Las acciones no pueden superar {max} caracteres.",
-        "compensacion_max": "La compensación no puede superar {max} caracteres."
+        "tipo_required": "",
+        "descripcion_required": "",
+        "text_max": "",
+        "observaciones_max": "",
+        "ubicacion_required": "",
+        "estado_required": "",
+        "resultado_required": "",
+        "resolucion_descripcion_required": "",
+        "acciones_required": "",
+        "acciones_max": "",
+        "compensacion_max": ""
       },
       "detail": {
-        "resolution_section": "Resolución",
-        "final_state": "Estado final",
-        "resultado": "Resultado",
-        "ubicacion_destino": "Ubicación destino",
-        "descripcion": "Descripción",
-        "acciones_tomadas": "Acciones tomadas",
-        "compensacion": "Compensación",
-        "resuelta_por": "Resuelta por",
-        "fecha": "Fecha",
-        "incident_section": "Incidencia",
-        "id": "ID",
-        "tipo": "Tipo",
-        "estado": "Estado",
-        "prioridad": "Prioridad",
-        "deteccion": "Detección",
-        "creada": "Creada",
-        "actualizada": "Actualizada",
-        "context_section": "Contexto",
-        "unidad": "Unidad",
-        "ubicacion": "Ubicación",
-        "reportada_por": "Reportada por",
-        "conteo_vinculado": "Conteo vinculado",
-        "observaciones": "Observaciones"
+        "resolution_section": "",
+        "final_state": "",
+        "resultado": "",
+        "ubicacion_destino": "",
+        "descripcion": "",
+        "acciones_tomadas": "",
+        "compensacion": "",
+        "resuelta_por": "",
+        "fecha": "",
+        "incident_section": "",
+        "id": "",
+        "tipo": "",
+        "estado": "",
+        "prioridad": "",
+        "deteccion": "",
+        "creada": "",
+        "actualizada": "",
+        "context_section": "",
+        "unidad": "",
+        "ubicacion": "",
+        "reportada_por": "",
+        "conteo_vinculado": "",
+        "observaciones": ""
       },
       "modals": {
-        "cancel": "Cancelar",
+        "cancel": "",
         "report": {
-          "title": "Reportar incidencia",
-          "submit": "Reportar",
-          "tipo_label": "Tipo de incidencia",
-          "select_tipo": "Seleccione un tipo",
-          "tipo_hint": "DAÑO marca la unidad como DAÑADO; PERDIDA la libera; DISCREPANCIA_CANTIDAD crea un conteo.",
-          "unit_label": "Unidad física",
-          "unit_search_placeholder": "Buscar por barcode, producto, sku o ubicación",
-          "no_unit_option": "Sin unidad (sólo ubicación)",
-          "loading_units": "Cargando unidades...",
-          "units_available": "{count} unidad(es) disponibles.",
-          "location_label": "Ubicación",
-          "no_location": "Sin ubicación",
-          "loading_locations": "Cargando ubicaciones...",
-          "location_hint": "Obligatoria para DISCREPANCIA_CANTIDAD si la unidad no tiene ubicación.",
-          "descripcion_label": "Descripción",
-          "descripcion_placeholder": "Qué ocurrió y en qué unidad o ubicación",
-          "observaciones_label": "Observaciones",
-          "observaciones_placeholder": "Información adicional (opcional)"
+          "title": "",
+          "submit": "",
+          "tipo_label": "",
+          "select_tipo": "",
+          "tipo_hint": "",
+          "unit_label": "",
+          "unit_search_placeholder": "",
+          "no_unit_option": "",
+          "loading_units": "",
+          "units_available": "",
+          "location_label": "",
+          "no_location": "",
+          "loading_locations": "",
+          "location_hint": "",
+          "descripcion_label": "",
+          "descripcion_placeholder": "",
+          "observaciones_label": "",
+          "observaciones_placeholder": ""
         },
         "detail": {
-          "title": "Detalle de incidencia"
+          "title": ""
         },
         "resolve": {
-          "title": "Resolver incidencia",
-          "submit": "Guardar resolución",
-          "context_label": "Incidencia",
-          "requires_result": "Requiere resultado de inventario",
-          "estado_label": "Estado final",
-          "estado_hint": "Resuelta cierra la incidencia; No resuelto la deja cerrada sin solución.",
-          "resultado_label": "Resultado del inventario",
-          "select_resultado": "Seleccione un resultado",
-          "resultado_hint": "Encontrada devuelve la unidad a DISPONIBLE; No encontrada la marca PERDIDA.",
-          "ubicacion_destino_label": "Ubicación destino",
-          "previous_location": "La ubicación anterior",
-          "loading_locations": "Cargando ubicaciones...",
-          "ubicacion_destino_hint": "Opcional: completa si la unidad reapareció en otra ubicación.",
-          "compensacion_label": "Compensación",
-          "compensacion_placeholder": "Ajuste económico, reposición, etc. (opcional)",
-          "descripcion_label": "Descripción de la resolución",
-          "acciones_label": "Acciones tomadas"
+          "title": "",
+          "submit": "",
+          "context_label": "",
+          "requires_result": "",
+          "estado_label": "",
+          "estado_hint": "",
+          "resultado_label": "",
+          "select_resultado": "",
+          "resultado_hint": "",
+          "ubicacion_destino_label": "",
+          "previous_location": "",
+          "loading_locations": "",
+          "ubicacion_destino_hint": "",
+          "compensacion_label": "",
+          "compensacion_placeholder": "",
+          "descripcion_label": "",
+          "acciones_label": ""
         }
       }
     }
   },
   "dashboard": {
-    "title": "Panel de control",
-    "subtitle": "Resumen de tu operación",
-    "greeting": "Hola, {name}",
+    "title": "",
+    "subtitle": "",
+    "greeting": "",
     "cards": {
-      "active_users": "Usuarios activos",
-      "stock_units": "Unidades en stock",
-      "quick_access": "Accesos rápidos",
-      "stock_summary": "Stock resumido",
-      "operation": "Operación"
+      "active_users": "",
+      "stock_units": "",
+      "quick_access": "",
+      "stock_summary": "",
+      "operation": ""
     },
     "quick": {
-      "products_title": "Ver productos",
-      "products_desc": "Gestiona el catálogo de productos",
-      "locations_desc": "Administra ubicaciones del almacén",
-      "users_desc": "Gestiona usuarios del tenant"
+      "products_title": "",
+      "products_desc": "",
+      "locations_desc": "",
+      "users_desc": ""
     },
     "stock": {
       "columns": {
-        "product": "Producto",
-        "units": "Unidades",
-        "quantity": "Cantidad"
+        "product": "",
+        "units": "",
+        "quantity": ""
       },
-      "empty": "No hay productos activos en el catálogo.",
+      "empty": "",
       "counts": {
-        "products_without_stock": "Productos sin stock",
-        "critical_locations": "Ubicaciones críticas",
-        "units_in_stock": "Unidades en stock"
+        "products_without_stock": "",
+        "critical_locations": "",
+        "units_in_stock": ""
       }
     },
     "metrics": {
-      "locations_available": "Ubicaciones disponibles",
-      "active_reservations": "Reservas activas",
-      "in_transit": "En tránsito",
-      "open_incidents": "Incidencias abiertas"
+      "locations_available": "",
+      "active_reservations": "",
+      "in_transit": "",
+      "open_incidents": ""
     },
     "messages": {
-      "error_title": "Error al cargar datos",
-      "retry": "Reintentar",
-      "http_unavailable": "HttpClient no disponible",
-      "stats_load_error": "No se pudieron cargar las estadísticas"
+      "error_title": "",
+      "retry": "",
+      "http_unavailable": "",
+      "stats_load_error": ""
     }
   },
   "audit": {
-    "title": "Auditoría",
-    "subtitle": "Bitácora de eventos de la plataforma (sólo lectura)",
+    "title": "",
+    "subtitle": "",
     "permission": {
-      "title": "Sin permiso",
-      "body": "Necesitas el permiso <code>audit.log.view</code> para consultar la bitácora de auditoría."
+      "title": "",
+      "body": ""
     },
     "filters": {
-      "fecha_desde": "Fecha desde",
-      "fecha_hasta": "Fecha hasta",
-      "usuario": "Usuario (id)",
-      "usuario_placeholder": "UUID del actor",
-      "accion": "Acción",
-      "accion_placeholder": "product.create o POST /api/inventory/products",
-      "entidad": "Entidad",
-      "resultado": "Resultado",
-      "apply": "Filtrar",
-      "clear": "Limpiar"
+      "fecha_desde": "",
+      "fecha_hasta": "",
+      "usuario": "",
+      "usuario_placeholder": "",
+      "accion": "",
+      "accion_placeholder": "",
+      "entidad": "",
+      "resultado": "",
+      "apply": "",
+      "clear": ""
     },
     "results": {
-      "all": "Todos",
-      "success": "Exitoso",
-      "failure": "Fallido",
-      "failure_badge": "Fallo"
+      "all": "",
+      "success": "",
+      "failure": "",
+      "failure_badge": ""
     },
     "summary": {
-      "total": "Registros (filtro activo)",
-      "success": "Exitosos",
-      "failure": "Fallidos"
+      "total": "",
+      "success": "",
+      "failure": ""
     },
     "empty": {
-      "title": "Sin registros",
-      "message": "No hay eventos que coincidan con los filtros actuales."
+      "title": "",
+      "message": ""
     },
     "columns": {
-      "date": "Fecha",
-      "user": "Usuario",
-      "action": "Acción",
-      "entity": "Entidad",
-      "result": "Resultado",
-      "detail": "Detalle"
+      "date": "",
+      "user": "",
+      "action": "",
+      "entity": "",
+      "result": "",
+      "detail": ""
     },
     "pagination": {
-      "per_page": "por página"
+      "per_page": ""
     },
     "detail": {
-      "title": "Detalle del evento",
-      "module_resource": "Módulo / recurso",
-      "entity_id": "Entidad (id)",
-      "change_type": "Tipo de cambio",
-      "ip_duration": "IP / duración",
-      "values_before": "Valores antes",
-      "values_after": "Valores después",
-      "extra_details": "Detalles adicionales",
-      "no_changes": "— sin cambios —"
+      "title": "",
+      "module_resource": "",
+      "entity_id": "",
+      "change_type": "",
+      "ip_duration": "",
+      "values_before": "",
+      "values_after": "",
+      "extra_details": "",
+      "no_changes": ""
     },
     "messages": {
-      "load_error": "No se pudo cargar la bitácora"
+      "load_error": ""
     }
   },
   "users": {
-    "title": "Usuarios",
-    "subtitle": "Gestión de usuarios de la organización",
-    "records": "usuarios",
+    "title": "",
+    "subtitle": "",
+    "records": "",
     "tabs": {
-      "users": "Usuarios",
-      "temp": "Permisos temporales"
+      "users": "",
+      "temp": ""
     },
     "actions": {
-      "create": "Nuevo usuario",
-      "edit": "Editar",
-      "status": "Cambiar estado",
-      "reset": "Restablecer contraseña",
-      "roles": "Roles",
-      "temp_view": "Ver permisos temporales",
-      "delete": "Eliminar"
+      "create": "",
+      "edit": "",
+      "status": "",
+      "reset": "",
+      "roles": "",
+      "temp_view": "",
+      "delete": ""
     },
     "filters": {
-      "estado": "Estado",
-      "all": "Todos los estados",
-      "search": "Búsqueda",
-      "search_placeholder": "Email o nombre",
-      "apply": "Aplicar",
-      "clear": "Limpiar"
+      "estado": "",
+      "all": "",
+      "search": "",
+      "search_placeholder": "",
+      "apply": "",
+      "clear": ""
     },
     "columns": {
-      "email": "Email",
-      "name": "Nombre",
-      "status": "Estado",
-      "roles": "Roles",
-      "last_login": "Último acceso",
-      "actions": "Acciones"
+      "email": "",
+      "name": "",
+      "status": "",
+      "roles": "",
+      "last_login": "",
+      "actions": ""
     },
     "status": {
-      "ACTIVO": "Activo",
-      "INACTIVO": "Inactivo",
-      "SUSPENDIDO": "Suspendido",
-      "PENDIENTE_CONFIRMACION": "Pendiente de confirmación",
-      "current": "Usuario: {email} — estado actual: {estado}",
-      "label": "Nuevo estado",
-      "motivo": "Motivo",
-      "motivo_hint": "Obligatorio: queda registrado en la auditoría",
-      "success_title": "Estado actualizado",
-      "success_body": "{email} ahora está {estado}.",
-      "title": "Cambiar estado",
-      "submit": "Guardar estado"
+      "ACTIVO": "",
+      "INACTIVO": "",
+      "SUSPENDIDO": "",
+      "PENDIENTE_CONFIRMACION": "",
+      "current": "",
+      "label": "",
+      "motivo": "",
+      "motivo_hint": "",
+      "success_title": "",
+      "success_body": "",
+      "title": "",
+      "submit": ""
     },
     "denied": {
-      "title": "Acceso denegado",
-      "body": "No tienes permiso para gestionar usuarios."
+      "title": "",
+      "body": ""
     },
     "empty": {
-      "title": "Sin usuarios",
-      "message": "No hay usuarios que coincidan con los filtros."
+      "title": "",
+      "message": ""
     },
     "create": {
-      "title": "Nuevo usuario",
-      "submit": "Crear usuario",
-      "no_role": "Sin rol inicial",
-      "role_hint": "El rol inicial se asigna después desde la fila del usuario.",
-      "success_title": "Usuario creado",
-      "success_body": "Se ha creado {email}.",
-      "temp_title": "Contraseña temporal"
+      "title": "",
+      "submit": "",
+      "no_role": "",
+      "role_hint": "",
+      "success_title": "",
+      "success_body": "",
+      "temp_title": ""
     },
     "fields": {
-      "email": "Correo electrónico",
-      "nombre": "Nombre",
-      "apellido": "Apellido",
-      "telefono": "Teléfono",
-      "password": "Contraseña temporal",
-      "password_hint": "Mínimo 8 caracteres, con mayúscula, minúscula y número.",
-      "role": "Rol inicial"
+      "email": "",
+      "nombre": "",
+      "apellido": "",
+      "telefono": "",
+      "password": "",
+      "password_hint": "",
+      "role": ""
     },
-    "gen_password": "Generar contraseña",
+    "gen_password": "",
     "edit": {
-      "title": "Editar usuario",
-      "submit": "Guardar cambios",
-      "success_title": "Usuario actualizado",
-      "success_body": "Se han guardado los cambios de {email}."
+      "title": "",
+      "submit": "",
+      "success_title": "",
+      "success_body": ""
     },
     "reset": {
-      "title": "Restablecer contraseña",
-      "submit": "Restablecer",
-      "body": "Se generará una contraseña temporal para {email}.",
-      "warning": "Entrega la contraseña temporal al usuario; se le pedirá cambiarla en el primer acceso.",
-      "success_title": "Contraseña restablecida",
-      "success_body": "Contraseña temporal generada correctamente.",
-      "temp_title": "Contraseña temporal"
+      "title": "",
+      "submit": "",
+      "body": "",
+      "warning": "",
+      "success_title": "",
+      "success_body": "",
+      "temp_title": ""
     },
     "temp_password": {
-      "title": "Contraseña temporal",
-      "warning": "Guarda esta contraseña ahora: no se volverá a mostrar.",
-      "label": "Contraseña temporal",
-      "copy": "Copiar",
-      "copied": "Copiada al portapapeles",
-      "copy_failed": "No se pudo copiar; selecciónala y cópiala a mano.",
-      "close": "Entendido"
+      "title": "",
+      "warning": "",
+      "label": "",
+      "copy": "",
+      "copied": "",
+      "copy_failed": "",
+      "close": ""
     },
     "roles": {
-      "title": "Roles del usuario",
-      "current": "Roles asignados",
-      "none": "Este usuario no tiene roles asignados.",
-      "select_placeholder": "Selecciona un rol",
-      "assign_label": "Asignar rol",
-      "assign": "Asignar",
-      "assigned": "Rol asignado",
-      "remove": "Quitar",
-      "removed": "Rol quitado",
-      "load_error": "No se pudieron cargar los roles.",
-      "assign_error": "No se pudo asignar el rol.",
-      "remove_error": "No se pudo quitar el rol.",
-      "from_group": "Por grupo",
-      "from_group_named": "Do grupo: {group}",
-      "remove_group": "Remover do grupo",
-      "remove_group_confirm": "O usuário será removido do grupo {group} e perderá TODOS os papéis concedidos pelo grupo: {roles}",
-      "remove_group_success": "Usuário removido do grupo {group}.",
-      "remove_group_error": "Não foi possível remover o usuário do grupo.",
-      "not_direct": "O papel não está atribuído diretamente: vem de um grupo. Remova-o pelo grupo."
+      "title": "",
+      "current": "",
+      "none": "",
+      "select_placeholder": "",
+      "assign_label": "",
+      "assign": "",
+      "assigned": "",
+      "remove": "",
+      "removed": "",
+      "load_error": "",
+      "assign_error": "",
+      "remove_error": "",
+      "from_group": "",
+      "from_group_named": "",
+      "remove_group": "",
+      "remove_group_confirm": "",
+      "remove_group_success": "",
+      "remove_group_error": "",
+      "not_direct": ""
     },
     "delete": {
-      "title": "Eliminar usuario",
-      "submit": "Eliminar",
-      "body": "Vas a eliminar a {email}.",
-      "warning": "Dejará de tener acceso de inmediato. Esta acción no se puede deshacer desde la interfaz.",
-      "success_title": "Usuario eliminado",
-      "success_body": "El usuario ha sido eliminado."
+      "title": "",
+      "submit": "",
+      "body": "",
+      "warning": "",
+      "success_title": "",
+      "success_body": ""
     },
     "errors": {
-      "load": "No se pudieron cargar los usuarios.",
-      "required": "Completa los campos obligatorios",
-      "email": "Formato de correo inválido",
-      "create": "No se pudo crear el usuario",
-      "edit": "No se pudieron guardar los cambios",
-      "status": "No se pudo cambiar el estado",
-      "reset": "No se pudo restablecer la contraseña",
-      "delete": "No se pudo eliminar el usuario"
+      "load": "",
+      "required": "",
+      "email": "",
+      "create": "",
+      "edit": "",
+      "status": "",
+      "reset": "",
+      "delete": ""
     },
     "temp": {
-      "subtitle": "Permisos otorgados con fecha de caducidad",
-      "grant": "Otorgar permiso",
-      "filtering": "Filtrando por: {usuario}",
+      "subtitle": "",
+      "grant": "",
+      "filtering": "",
       "empty": {
-        "title": "Sin permisos temporales",
-        "message": "No hay permisos temporales vigentes."
+        "title": "",
+        "message": ""
       },
-      "revoke": "Revocar",
-      "revoke_title": "Revocar permiso",
-      "revoke_body": "Se revocará el permiso {permiso} de {usuario}.",
-      "active": "Vigente",
-      "expired": "Caducado",
-      "revoked": "Revocado",
-      "load_error": "No se pudieron cargar los permisos temporales.",
-      "rate_title": "Límite alcanzado",
-      "rate_body": "Demasiadas solicitudes: espera unos minutos antes de volver a intentarlo.",
+      "revoke": "",
+      "revoke_title": "",
+      "revoke_body": "",
+      "active": "",
+      "expired": "",
+      "revoked": "",
+      "load_error": "",
+      "rate_title": "",
+      "rate_body": "",
       "columns": {
-        "user": "Usuario",
-        "permission": "Permiso",
-        "motive": "Motivo",
-        "expires": "Caduca",
-        "granted_by": "Otorgado por",
-        "state": "Estado"
+        "user": "",
+        "permission": "",
+        "motive": "",
+        "expires": "",
+        "granted_by": "",
+        "state": ""
       },
-      "revoke_error": "Nao foi possivel revogar a permissao"
+      "revoke_error": ""
     },
     "grant": {
-      "title": "Otorgar permiso temporal",
-      "submit": "Otorgar",
-      "user": "Usuario",
-      "user_placeholder": "Selecciona un usuario",
-      "permission": "Permiso",
-      "permission_placeholder": "Selecciona un permiso",
-      "motive": "Motivo",
-      "expiry": "Caducidad",
-      "mode_hours": "Duración (horas)",
-      "mode_date": "Fecha y hora de caducidad",
-      "hours": "Horas",
-      "date": "Caduca",
-      "max_hint": "Duración máxima según la criticidad del permiso.",
-      "success_title": "Permiso otorgado",
-      "success_body": "El permiso temporal se ha otorgado correctamente.",
-      "error": "No se pudo otorgar el permiso temporal",
-      "user_search_label": "Buscar beneficiario",
-      "user_search_placeholder": "Email o nombre",
-      "user_search": "Buscar"
+      "title": "",
+      "submit": "",
+      "user": "",
+      "user_placeholder": "",
+      "permission": "",
+      "permission_placeholder": "",
+      "motive": "",
+      "expiry": "",
+      "mode_hours": "",
+      "mode_date": "",
+      "hours": "",
+      "date": "",
+      "max_hint": "",
+      "success_title": "",
+      "success_body": "",
+      "error": "",
+      "user_search_label": "",
+      "user_search_placeholder": "",
+      "user_search": ""
     }
   },
   "roles": {
-    "title": "Perfis",
-    "subtitle": "Perfis do sistema e suas permissoes",
+    "title": "",
+    "subtitle": "",
     "filter": {
-      "inactive": "Ver perfis inativos"
+      "inactive": ""
     },
     "denied": {
-      "title": "Acesso negado",
-      "body": "Nao tem permissao para gerir perfis."
+      "title": "",
+      "body": ""
     },
     "type": {
-      "BUILT_IN": "Do sistema",
-      "CUSTOM": "Personalizado"
+      "BUILT_IN": "",
+      "CUSTOM": ""
     },
     "state": {
-      "active": "Ativo",
-      "inactive": "Inativo"
+      "active": "",
+      "inactive": ""
     },
     "empty": {
-      "title": "Sem perfis",
-      "message": "Nao ha perfis para mostrar."
+      "title": "",
+      "message": ""
     },
     "actions": {
-      "create": "Novo perfil",
-      "permissions": "Permissoes",
-      "edit": "Editar",
-      "delete": "Eliminar"
+      "create": "",
+      "permissions": "",
+      "edit": "",
+      "delete": ""
     },
     "columns": {
-      "name": "Nome",
-      "type": "Tipo",
-      "state": "Estado",
-      "permissions": "Permissoes",
-      "actions": "Acoes"
+      "name": "",
+      "type": "",
+      "state": "",
+      "permissions": "",
+      "actions": ""
     },
     "fields": {
-      "name": "Nome",
-      "descripcion": "Descricao",
-      "activo": "Perfil ativo"
+      "name": "",
+      "descripcion": "",
+      "activo": ""
     },
     "create": {
-      "title": "Novo perfil",
-      "submit": "Criar perfil",
-      "success_title": "Perfil criado",
-      "success_body": "O perfil {nombre} foi criado."
+      "title": "",
+      "submit": "",
+      "success_title": "",
+      "success_body": ""
     },
     "edit": {
-      "title": "Editar perfil",
-      "submit": "Guardar alteracoes",
-      "success_title": "Perfil atualizado",
-      "success_body": "As alteracoes de {nombre} foram guardadas."
+      "title": "",
+      "submit": "",
+      "success_title": "",
+      "success_body": ""
     },
     "delete": {
-      "title": "Eliminar perfil",
-      "submit": "Eliminar",
-      "body": "Vai eliminar o perfil {nombre}.",
-      "warning": "Os utilizadores e grupos que o usem perderao as suas permissoes. Esta acao nao pode ser desfeita na interface.",
-      "success_title": "Perfil eliminado",
-      "success_body": "O perfil foi eliminado."
+      "title": "",
+      "submit": "",
+      "body": "",
+      "warning": "",
+      "success_title": "",
+      "success_body": ""
     },
     "perms": {
-      "title": "Permissoes do perfil",
-      "mfa": "MFA",
-      "saved": "Permissoes guardadas ({count}).",
-      "save": "Guardar permissoes",
-      "load_error": "Nao foi possivel carregar as permissoes do perfil.",
-      "summary": "{count} permissoes selecionadas ({critical} criticas)",
-      "critical_alert": "Esta a guardar {count} permissoes CRITICAL: revise-as antes de confirmar."
+      "title": "",
+      "mfa": "",
+      "saved": "",
+      "save": "",
+      "load_error": "",
+      "summary": "",
+      "critical_alert": ""
     },
     "errors": {
-      "load": "Nao foi possivel carregar os perfis.",
-      "catalog": "Nao foi possivel carregar o catalogo de permissoes.",
-      "required": "O nome e obrigatorio",
-      "create": "Nao foi possivel criar o perfil",
-      "edit": "Nao foi possivel guardar as alteracoes",
-      "perms": "Nao foi possivel guardar as permissoes",
-      "delete": "Nao foi possivel eliminar o perfil"
+      "load": "",
+      "catalog": "",
+      "required": "",
+      "create": "",
+      "edit": "",
+      "perms": "",
+      "delete": ""
     }
   },
   "groups": {
-    "title": "Grupos",
-    "subtitle": "Grupos de usuarios y sus roles",
+    "title": "",
+    "subtitle": "",
     "filter": {
-      "inactive": "Ver grupos inactivos"
+      "inactive": ""
     },
     "denied": {
-      "title": "Acceso denegado",
-      "body": "No tienes permiso para gestionar grupos."
+      "title": "",
+      "body": ""
     },
     "state": {
-      "active": "Activo",
-      "inactive": "Inactivo"
+      "active": "",
+      "inactive": ""
     },
     "empty": {
-      "title": "Sin grupos",
-      "message": "No hay grupos que mostrar."
+      "title": "",
+      "message": ""
     },
     "actions": {
-      "create": "Nuevo grupo",
-      "detail": "Detalle",
-      "edit": "Editar",
-      "delete": "Eliminar"
+      "create": "",
+      "detail": "",
+      "edit": "",
+      "delete": ""
     },
     "columns": {
-      "name": "Nombre",
-      "state": "Estado",
-      "members": "Miembros",
-      "actions": "Acciones"
+      "name": "",
+      "state": "",
+      "members": "",
+      "actions": ""
     },
     "fields": {
-      "nombre": "Nombre",
-      "descripcion": "Descripción",
-      "activo": "Grupo activo"
+      "nombre": "",
+      "descripcion": "",
+      "activo": ""
     },
     "detail": {
-      "title": "Detalle del grupo"
+      "title": ""
     },
     "create": {
-      "title": "Nuevo grupo",
-      "submit": "Crear grupo",
-      "success_title": "Grupo creado",
-      "success_body": "Se ha creado el grupo {nombre}."
+      "title": "",
+      "submit": "",
+      "success_title": "",
+      "success_body": ""
     },
     "edit": {
-      "title": "Editar grupo",
-      "submit": "Guardar cambios",
-      "success_title": "Grupo actualizado",
-      "success_body": "Se han guardado los cambios de {nombre}."
+      "title": "",
+      "submit": "",
+      "success_title": "",
+      "success_body": ""
     },
     "delete": {
-      "title": "Eliminar grupo",
-      "submit": "Eliminar",
-      "body": "Vas a eliminar el grupo {nombre}.",
-      "warning": "Los miembros perderán los permisos heredados del grupo. Esta acción no se puede deshacer desde la interfaz.",
-      "success_title": "Grupo eliminado",
-      "success_body": "El grupo ha sido eliminado."
+      "title": "",
+      "submit": "",
+      "body": "",
+      "warning": "",
+      "success_title": "",
+      "success_body": ""
     },
     "members": {
-      "title": "Miembros",
-      "count": "{total} miembros",
-      "empty": "Este grupo no tiene miembros.",
-      "user": "Usuario",
-      "email": "Email",
-      "state": "Estado",
-      "since": "Añadido",
-      "actions": "Acciones",
-      "add": "Añadir miembro",
-      "add_title": "Añadir miembro",
-      "add_submit": "Añadir",
-      "add_select": "Usuario",
-      "add_placeholder": "Selecciona un usuario",
-      "add_hint": "Sólo se listan usuarios activos del tenant.",
-      "added": "Miembro añadido al grupo",
-      "remove": "Quitar",
-      "removed": "Miembro eliminado del grupo",
-      "search": "Buscar usuario",
-      "search_placeholder": "Email o nombre",
-      "search_btn": "Buscar",
-      "search_empty": "Sin resultados: usa la búsqueda para encontrar usuarios.",
-      "search_error": "Nao foi possivel carregar os usuarios. Verifique sua permissao e tente novamente."
+      "title": "",
+      "count": "",
+      "empty": "",
+      "user": "",
+      "email": "",
+      "state": "",
+      "since": "",
+      "actions": "",
+      "add": "",
+      "add_title": "",
+      "add_submit": "",
+      "add_select": "",
+      "add_placeholder": "",
+      "add_hint": "",
+      "added": "",
+      "remove": "",
+      "removed": "",
+      "search": "",
+      "search_placeholder": "",
+      "search_btn": "",
+      "search_empty": "",
+      "search_error": ""
     },
     "roles": {
-      "title": "Roles",
-      "count": "{total} roles",
-      "empty": "Este grupo no tiene roles asignados.",
-      "role": "Rol",
-      "type": "Tipo",
-      "assigned_at": "Asignado",
-      "deleted_role": "Rol eliminado",
-      "assign": "Asignar rol",
-      "assign_title": "Asignar rol al grupo",
-      "assign_submit": "Asignar",
-      "select": "Rol",
-      "select_placeholder": "Selecciona un rol",
-      "all_assigned": "Todos los roles disponibles ya están asignados.",
-      "escalation_hint": "Sólo puedes asignar roles contenidos en tus propios permisos.",
-      "assigned": "Rol asignado al grupo",
-      "unassign": "Quitar",
-      "unassigned": "Rol quitado del grupo",
-      "catalog_error": "Nao foi possivel carregar o catalogo de papeis. Verifique sua permissao e tente novamente."
+      "title": "",
+      "count": "",
+      "empty": "",
+      "role": "",
+      "type": "",
+      "assigned_at": "",
+      "deleted_role": "",
+      "assign": "",
+      "assign_title": "",
+      "assign_submit": "",
+      "select": "",
+      "select_placeholder": "",
+      "all_assigned": "",
+      "escalation_hint": "",
+      "assigned": "",
+      "unassign": "",
+      "unassigned": "",
+      "catalog_error": ""
     },
     "errors": {
-      "load": "No se pudieron cargar los grupos.",
-      "detail": "No se pudo cargar el detalle del grupo.",
-      "required": "El nombre es obligatorio",
-      "create": "No se pudo crear el grupo",
-      "edit": "No se pudieron guardar los cambios",
-      "add_member": "No se pudo añadir el miembro",
-      "remove_member": "No se pudo quitar el miembro",
-      "assign_role": "No se pudo asignar el rol",
-      "unassign_role": "No se pudo quitar el rol",
-      "delete": "No se pudo eliminar el grupo"
+      "load": "",
+      "detail": "",
+      "required": "",
+      "create": "",
+      "edit": "",
+      "add_member": "",
+      "remove_member": "",
+      "assign_role": "",
+      "unassign_role": "",
+      "delete": ""
     }
   },
   "password": {
-    "title": "Cambiar contraseña",
+    "title": "",
     "fields": {
-      "current": "Contraseña actual",
-      "current_placeholder": "Tu contraseña actual",
-      "new": "Nueva contraseña",
-      "new_placeholder": "Introduce la nueva contraseña",
-      "rules_hint": "Mínimo 8 caracteres, con mayúscula, minúscula y número.",
-      "confirm": "Confirmar contraseña",
-      "confirm_placeholder": "Repite la nueva contraseña"
+      "current": "",
+      "current_placeholder": "",
+      "new": "",
+      "new_placeholder": "",
+      "rules_hint": "",
+      "confirm": "",
+      "confirm_placeholder": ""
     },
     "errors": {
-      "required_actual": "La contraseña actual es obligatoria",
-      "required_new": "La nueva contraseña es obligatoria",
-      "min_length": "La contraseña debe tener mínimo 8 caracteres",
-      "uppercase": "Debe contener al menos una mayúscula",
-      "lowercase": "Debe contener al menos una minúscula",
-      "digit": "Debe contener al menos un número",
-      "same_as_current": "La nueva contraseña debe ser distinta de la actual",
-      "required_confirm": "Confirma la nueva contraseña",
-      "mismatch": "Las contraseñas no coinciden",
-      "generic": "No se pudo cambiar la contraseña"
+      "required_actual": "",
+      "required_new": "",
+      "min_length": "",
+      "uppercase": "",
+      "lowercase": "",
+      "digit": "",
+      "same_as_current": "",
+      "required_confirm": "",
+      "mismatch": "",
+      "generic": ""
     },
     "forced": {
-      "notice": "Debes cambiar tu contraseña para continuar."
+      "notice": ""
     },
     "actions": {
-      "logout": "Cerrar sesión",
-      "submit": "Guardar contraseña"
+      "logout": "",
+      "submit": ""
     },
     "success": {
-      "title": "Contraseña actualizada",
-      "body": "Tu contraseña se ha cambiado correctamente."
+      "title": "",
+      "body": ""
     }
   },
   "errors": {
-    "validation": "Verifique os dados enviados; há campos inválidos.",
-    "not_found": "O recurso solicitado não existe.",
-    "conflict": "A operação entra em conflito com o estado atual.",
-    "forbidden": "Não tem permissões para realizar esta operação.",
-    "auth": "Sessão inválida ou expirada; inicie sessão novamente.",
-    "password_change_required": "Deve alterar a palavra-passe para continuar.",
-    "rate_limited": "Demasiados pedidos; aguarde alguns segundos e tente novamente.",
-    "timeout": "O pedido demorou demasiado; tente novamente.",
-    "server": "Erro interno do servidor; tente novamente mais tarde.",
-    "network": "Sem ligação ao servidor; verifique a sua rede."
+    "validation": "",
+    "not_found": "",
+    "conflict": "",
+    "forbidden": "",
+    "auth": "",
+    "password_change_required": "",
+    "rate_limited": "",
+    "timeout": "",
+    "server": "",
+    "network": ""
   }
 }
