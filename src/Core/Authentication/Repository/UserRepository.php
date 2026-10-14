@@ -156,7 +156,7 @@ class UserRepository implements UserRepositoryInterface
             return $row;
         }
 
-        foreach (['email', 'telefono'] as $field) {
+        foreach (['email', 'telefono', 'nombre', 'apellido'] as $field) {
             if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
                 try {
                     $row[$field] = $this->encryption->decrypt($row[$field]);

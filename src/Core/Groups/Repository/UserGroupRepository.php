@@ -6,12 +6,26 @@ namespace App\Core\Groups\Repository;
 
 use App\Core\Groups\Entity\UserGroup;
 use App\Core\Groups\Exception\GroupException;
+use App\Core\Security\Service\EncryptionService;
+use App\Shared\Container\Container;
 use App\Shared\Services\DatabaseService;
 
 final class UserGroupRepository implements UserGroupRepositoryInterface
 {
-    public function __construct(private DatabaseService $db)
+    private ?EncryptionService $encryption;
+
+    public function __construct(private DatabaseService $db, ?EncryptionService $encryption = null)
     {
+        if ($encryption !== null) {
+            $this->encryption = $encryption;
+        } else {
+            try {
+                $container = Container::getInstance();
+                $this->encryption = $container->has(EncryptionService::class) ? $container->get(EncryptionService::class) : null;
+            } catch (\Throwable) {
+                $this->encryption = null;
+            }
+        }
     }
 
     public function findAll(string $tenantId, bool $soloActivos = true): array
@@ -135,10 +149,29 @@ final class UserGroupRepository implements UserGroupRepositoryInterface
                 FROM group_members gm
                 INNER JOIN users u ON u.id = gm.user_id
                 WHERE gm.group_id = :gid
-                  AND u.deleted_at IS NULL
-                ORDER BY u.nombre ASC, u.apellido ASC";
+                  AND u.deleted_at IS NULL";
 
-        return $this->db->fetchAll($sql, ['gid' => $groupId]);
+        $rows = $this->db->fetchAll($sql, ['gid' => $groupId]);
+
+        // Descifrar PII y ordenar en PHP (nombre/apellido cifrados).
+        $rows = array_map(function (array $row): array {
+            if ($this->encryption !== null) {
+                foreach (['email', 'nombre', 'apellido'] as $field) {
+                    if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
+                        try {
+                            $row[$field] = $this->encryption->decrypt($row[$field]);
+                        } catch (\Throwable) {
+                        }
+                    }
+                }
+            }
+            return $row;
+        }, $rows);
+
+        usort($rows, static fn(array $a, array $b): int =>
+            [$a['nombre'] ?? '', $a['apellido'] ?? ''] <=> [$b['nombre'] ?? '', $b['apellido'] ?? '']);
+
+        return $rows;
     }
 
     public function memberUserIds(string $groupId): array

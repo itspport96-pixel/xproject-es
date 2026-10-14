@@ -207,6 +207,9 @@ final class UserService
         $perPage = min(100, max(1, (int) ($filters['per_page'] ?? 20)));
         $offset = ($page - 1) * $perPage;
 
+        $searchTerm = trim((string) ($filters['search'] ?? ''));
+        $searchIsEmail = $searchTerm !== '' && filter_var($searchTerm, FILTER_VALIDATE_EMAIL) !== false;
+
         $where = ['u.tenant_id = :tenant_id'];
         $params = ['tenant_id' => $tenantId];
 
@@ -215,20 +218,47 @@ final class UserService
             $params['estado'] = $filters['estado'];
         }
 
-        if (!empty($filters['search'])) {
-            // Email está cifrado: LIKE no funciona. Se busca por HMAC exacto
-            // si el término parece email; nombre/apellido siguen con LIKE.
-            $term = $filters['search'];
-            $conditions = ['u.nombre LIKE :search2', 'u.apellido LIKE :search3'];
-            $params['search2'] = '%' . $term . '%';
-            $params['search3'] = '%' . $term . '%';
+        // Búsqueda: email se resuelve por HMAC exacto en SQL. Texto libre
+        // (nombre/apellido) no admite LIKE porque las columnas están
+        // cifradas; se filtra en PHP tras descifrar.
+        if ($searchTerm !== '' && $searchIsEmail && $this->blindIndex !== null) {
+            $where[] = 'u.email_hmac = :search_email_hmac';
+            $params['search_email_hmac'] = $this->blindIndex->compute($searchTerm);
+        }
 
-            if ($this->blindIndex !== null && filter_var($term, FILTER_VALIDATE_EMAIL)) {
-                $conditions[] = 'u.email_hmac = :search_email_hmac';
-                $params['search_email_hmac'] = $this->blindIndex->compute($term);
-            }
+        $whereClause = implode(' AND ', $where);
 
-            $where[] = '(' . implode(' OR ', $conditions) . ')';
+        if ($searchTerm !== '' && !$searchIsEmail) {
+            // Filtro en PHP: traer todo el tenant y filtrar tras descifrar.
+            $sql = "SELECT u.id, u.tenant_id, u.email, u.email_hmac, u.nombre, u.apellido, u.estado,
+                           u.telefono, u.avatar_url, u.ultimo_login, u.mfa_habilitado,
+                           u.created_at, u.updated_at, u.deleted_at
+                    FROM users u
+                    WHERE {$whereClause} AND u.deleted_at IS NULL
+                    ORDER BY u.created_at DESC";
+            $stmt = $this->db->getConnection()->prepare($sql);
+            $stmt->execute($params);
+            $all = array_map(fn(array $row): array => $this->decryptUserRow($row), $stmt->fetchAll(\PDO::FETCH_ASSOC));
+
+            $term = mb_strtolower($searchTerm);
+            $filtered = array_values(array_filter($all, static function (array $u) use ($term): bool {
+                $nombre = mb_strtolower((string) ($u['nombre'] ?? ''));
+                $apellido = mb_strtolower((string) ($u['apellido'] ?? ''));
+                return str_contains($nombre, $term) || str_contains($apellido, $term);
+            }));
+
+            $total = count($filtered);
+            $data = array_slice($filtered, $offset, $perPage);
+
+            return [
+                'data' => $data,
+                'pagination' => [
+                    'total'    => $total,
+                    'page'     => $page,
+                    'per_page' => $perPage,
+                    'has_next' => ($offset + $perPage) < $total,
+                ],
+            ];
         }
 
         $whereClause = implode(' AND ', $where);
@@ -610,7 +640,7 @@ final class UserService
         }
 
         $sql = "UPDATE users
-                SET estado = 'INACTIVO', deleted_at = NOW(), updated_at = NOW()
+                SET estado = 'INACTIVO', deleted_at = NOW(), email_hmac = NULL, updated_at = NOW()
                 WHERE id = :id AND tenant_id = :tenant_id";
 
         $stmt = $this->db->getConnection()->prepare($sql);
@@ -848,7 +878,7 @@ final class UserService
             return $row;
         }
 
-        foreach (['email', 'telefono'] as $field) {
+        foreach (['email', 'telefono', 'nombre', 'apellido'] as $field) {
             if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
                 try {
                     $row[$field] = $this->encryption->decrypt($row[$field]);

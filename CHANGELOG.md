@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.39] - 2026-10-14
+
+**B2 — Cifrado de `users.nombre`/`apellido` + cierre de huecos del Sprint 2.** Los nombres y apellidos de usuarios ahora se cifran AES-256-GCM. ORDER BY y LIKE sobre esas columnas se migran a PHP (filtrado y ordenación tras descifrar). Se cierran huecos detectados en la verificación B1: emails de usuarios que no se cifraron en el backfill del Sprint 2, PII de shipments que el filtro omitía, y el índice único HMAC que no ignoraba usuarios borrados.
+
+### Added
+
+- **`bin/b2-backfill.php`**: backfill con `--dry-run`. Cifra `users.email` (hueco Sprint 2), `users.nombre`/`apellido`, `shipments` PII pendiente, y limpia `email_hmac`/`nombre_interno_hmac` en filas borradas. Ejecutado contra BD viva.
+
+### Changed
+
+- **`UserRepository::decryptRow`** y **`UserService::decryptUserRow`**: ahora descifran también `nombre` y `apellido`.
+- **`UserService::findAll`**: búsqueda por texto libre (nombre/apellido) se filtra en PHP tras descifrar (LIKE sobre ciphertext no funciona). Búsqueda por email sigue con HMAC exacto en SQL.
+- **`UserGroupRepository::listMembers`**: ORDER BY `nombre`/`apellido` movido de SQL a PHP (`usort` tras descifrar). Constructor acepta `?EncryptionService`.
+- **`UserService::delete`**: soft delete pone `email_hmac = NULL` para liberar el índice único `uq_users_tenant_email_hmac`.
+- **`TenantRepository::softDelete`**: pone `nombre_interno_hmac = NULL`. **`restore`** recomputa el HMAC.
+- **`bootstrap.php`**: inyecta `EncryptionService` en `UserGroupRepository`.
+
+### Verified
+
+- `php bin/check-schema-drift.php` → SIN DRIFT
+- `php bin/check-data-integrity.php` → DATOS CONSISTENTES
+- `composer test` → 944/944 OK
+- `node tools/smoke/smoke-v162.mjs` → 89 OK, 0 FAIL
+- `node tools/smoke/smoke-v171.mjs` → 105 OK, 0 FAIL
+- API en vivo: login OK, users list con nombre/apellido/email descifrados, búsqueda por email (HMAC) y por nombre (PHP filter) OK, shipments y deliveries OK
+- BD viva: 0 filas en claro en users.email/nombre/apellido, shipments PII; 0 fallos de descifrado
+
 ## [1.13.38] - 2026-10-14
 
 **Sprint 2 de cifrado: blind index HMAC-SHA256 para búsquedas + AES-256-GCM de PII no consultable.** `users.email` y `tenants.nombre_interno` ahora se buscan por un índice ciego (HMAC-SHA256 con clave separada) en lugar de LIKE sobre el valor en claro. Los teléfonos, contacto de tenant, PII de envíos e IPs de rate limiting/refresh tokens/secrets log se cifran AES-256-GCM. Un cibercriminal con acceso a la BD no puede hacer lookup por email ni ver teléfonos/IPs reales.

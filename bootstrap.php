@@ -94,7 +94,10 @@ $container->singleton(
 // ============================================
 $container->singleton(
     App\Core\Groups\Repository\UserGroupRepositoryInterface::class,
-    fn($c) => new App\Core\Groups\Repository\UserGroupRepository($c->get('database'))
+    fn($c) => new App\Core\Groups\Repository\UserGroupRepository(
+        $c->get('database'),
+        $c->get(App\Core\Security\Service\EncryptionService::class)
+    )
 );
 
 // ============================================

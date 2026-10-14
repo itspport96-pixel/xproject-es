@@ -278,6 +278,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $sql = "UPDATE tenants
                 SET estado = 'CANCELED',
                     deleted_at = NOW(),
+                    nombre_interno_hmac = NULL,
                     updated_at = NOW()
                 WHERE id = :id";
 
@@ -287,14 +288,26 @@ final class TenantRepository implements TenantRepositoryInterface
 
     public function restore(string $id): void
     {
+        // Fetch raw (incluye borrados) para recomputar el HMAC.
+        $stmt = $this->pdo->prepare("SELECT nombre_interno FROM tenants WHERE id = :id AND deleted_at IS NOT NULL");
+        $stmt->execute(['id' => $id]);
+        $nombreInterno = $stmt->fetchColumn();
+        if ($nombreInterno === false) {
+            throw TenantException::tenantNotFound($id);
+        }
+
         $sql = "UPDATE tenants
                 SET estado = 'PENDIENTE_ACTIVACION',
                     deleted_at = NULL,
+                    nombre_interno_hmac = :hmac,
                     updated_at = NOW()
                 WHERE id = :id AND deleted_at IS NOT NULL";
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(['id' => $id]);
+        $stmt->execute([
+            'id'   => $id,
+            'hmac' => $this->blindIndex?->compute((string) $nombreInterno),
+        ]);
 
         if ($stmt->rowCount() === 0) {
             throw TenantException::tenantNotFound($id);
