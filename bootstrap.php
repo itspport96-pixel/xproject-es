@@ -85,10 +85,7 @@ $container->singleton(
 $container->singleton(
     App\Core\Authorization\Repository\TemporaryPermissionRepositoryInterface::class,
     fn($c) => new App\Core\Authorization\Repository\TemporaryPermissionRepository(
-        $c->get('database'),
-        $c->has(App\Core\Security\Service\EncryptionService::class)
-            ? $c->get(App\Core\Security\Service\EncryptionService::class)
-            : null
+        $c->get('database')
     )
 );
 
@@ -98,8 +95,7 @@ $container->singleton(
 $container->singleton(
     App\Core\Groups\Repository\UserGroupRepositoryInterface::class,
     fn($c) => new App\Core\Groups\Repository\UserGroupRepository(
-        $c->get('database'),
-        $c->get(App\Core\Security\Service\EncryptionService::class)
+        $c->get('database')
     )
 );
 
@@ -109,9 +105,7 @@ $container->singleton(
 $container->singleton(
     App\Core\Tenants\Repository\TenantRepositoryInterface::class,
     fn($c) => new App\Core\Tenants\Repository\TenantRepository(
-        $c->get('database'),
-        $c->get(App\Core\Security\Service\BlindIndexService::class),
-        $c->get(App\Core\Security\Service\EncryptionService::class)
+        $c->get('database')
     )
 );
 $container->singleton(
@@ -178,11 +172,6 @@ $container->singleton(
 );
 
 $container->singleton(
-    App\Core\Security\Service\BlindIndexService::class,
-    fn() => new App\Core\Security\Service\BlindIndexService()
-);
-
-$container->singleton(
     App\Core\Security\Service\InputSanitizer::class,
     fn() => new App\Core\Security\Service\InputSanitizer()
 );
@@ -225,7 +214,7 @@ $container->singleton(
 // ============================================
 $container->singleton(
     App\Core\Audit\AuditPort::class,
-    fn($c) => new App\Core\Audit\PdoAuditPort($c->get('database'), $c->get(App\Core\Security\Service\EncryptionService::class))
+    fn($c) => new App\Core\Audit\PdoAuditPort($c->get('database'))
 );
 
 $container->singleton(
@@ -238,7 +227,7 @@ $container->singleton(
 
 $container->singleton(
     App\Core\Audit\Service\AuditLogQueryService::class,
-    fn($c) => new App\Core\Audit\Service\AuditLogQueryService($c->get('database'), $c->get(App\Core\Security\Service\EncryptionService::class))
+    fn($c) => new App\Core\Audit\Service\AuditLogQueryService($c->get('database'))
 );
 
 // ============================================

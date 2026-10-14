@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.46] - 2026-10-14
+
+**Limpieza: bootstrap sin referencias muertas al cifrado PII.** Se quitan los argumentos `EncryptionService`/`BlindIndexService` que bootstrap seguia pasando a TemporaryPermissionRepository, UserGroupRepository, TenantRepository, PdoAuditPort y AuditLogQueryService — constructores que ya no los aceptan tras el rollback v1.13.44. Se elimina el singleton `BlindIndexService` (sin uso). Se conserva `EncryptionService` (lo usa SecretsVaultService para cifrar secretos) y los ficheros de seguridad (`EncryptionService`, `BlindIndexService`) quedan en el repositorio listos para reactivar cuando se decida.
+
 ## [1.13.45] - 2026-10-14
 
 **Fix: mutaciones de roles no se reflejan en la tabla de usuarios sin recargar.** Tras asignar/quitar un rol o quitar de un grupo, el modal se actualizaba pero la columna Roles de la tabla conservaba los datos viejos hasta recargar la pagina completa. Ahora `refreshUserRow` actualiza la fila del usuario en `state.items` con los roles frescos del servidor y re-renderiza la tabla al instante.
