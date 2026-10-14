@@ -690,7 +690,6 @@ abstract class InventorySqliteTestCase extends TestCase
                 timestamp_deteccion TEXT DEFAULT CURRENT_TIMESTAMP,
                 resolucion TEXT,
                 prioridad TEXT DEFAULT \'NORMAL\',
-                restriccion_resolucion TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )',
@@ -839,46 +838,6 @@ abstract class InventorySqliteTestCase extends TestCase
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )',
-            // BLOQUE R1 (v1.13.28): documentos de recepción planificada —
-            // columnas idénticas a SHOW CREATE TABLE de la BD viva, sin
-            // ENUM/FK para que SQLite las tolere.
-            'CREATE TABLE users (
-                id TEXT PRIMARY KEY,
-                tenant_id TEXT NOT NULL,
-                email TEXT,
-                nombre TEXT,
-                estado TEXT DEFAULT \'ACTIVO\',
-                mfa_habilitado INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                deleted_at TEXT
-            )',
-            'CREATE TABLE receiving_documents (
-                id TEXT PRIMARY KEY,
-                tenant_id TEXT NOT NULL,
-                numero_documento TEXT NOT NULL,
-                proveedor TEXT,
-                referencia TEXT,
-                estado TEXT DEFAULT \'PLANIFICADA\',
-                creado_por TEXT NOT NULL,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE (tenant_id, numero_documento)
-            )',
-            'CREATE TABLE receiving_document_lines (
-                id TEXT PRIMARY KEY,
-                document_id TEXT NOT NULL,
-                producto_id TEXT NOT NULL,
-                sku TEXT NOT NULL,
-                cantidad_esperada REAL NOT NULL,
-                cantidad_recibida REAL,
-                intentos INTEGER NOT NULL DEFAULT 0,
-                estado TEXT DEFAULT \'PENDIENTE\',
-                unidad_recepcion_id TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )',
-            'CREATE INDEX idx_receiving_document_lines_document ON receiving_document_lines (document_id)',
         ];
 
         foreach ($ddl as $statement) {

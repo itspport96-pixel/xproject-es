@@ -35,12 +35,12 @@ final class IncidentRepository implements IncidentRepositoryInterface
                 (id, tenant_id, tipo, unidad_fisica_id, descripcion, observaciones,
                  ubicacion_id, estado, inventory_count_id,
                  actor_id_reporta, timestamp_deteccion, resolucion, prioridad,
-                 restriccion_resolucion, created_at, updated_at)
+                 created_at, updated_at)
                 VALUES
                 (:id, :tenant_id, :tipo, :unidad_fisica_id, :descripcion, :observaciones,
                  :ubicacion_id, :estado, :inventory_count_id,
                  :actor_id_reporta, :timestamp_deteccion, :resolucion, :prioridad,
-                 :restriccion_resolucion, :created_at, :updated_at)';
+                 :created_at, :updated_at)';
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($data);

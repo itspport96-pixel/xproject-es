@@ -81,7 +81,6 @@ use App\Modules\Inventory\Http\PickingController;
 use App\Modules\Inventory\Http\ProductController;
 use App\Modules\Inventory\Http\LocationController;
 use App\Modules\Inventory\Http\ReceivingController;
-use App\Modules\Inventory\Http\ReceivingDocumentController;
 use App\Modules\Inventory\Http\ReservationController;
 use App\Modules\Inventory\Http\ReturnController;
 use App\Modules\Inventory\Http\ShipmentController;
@@ -248,79 +247,9 @@ $router->group('/api/inventory', function ($router) {
     // ================================================================
 
     // POST /api/inventory/receive
-    // CERRADO (v1.13.32): no hay recepción sin documento planificado. El
-    // endpoint sigue montado (dependencias históricas) pero responde 422
-    // receivingWithoutDocumentNotAllowed. Una entrega imprevista se
-    // planifica primero y se recibe contra el documento.
+    // Recibe inventario: crea unidad física + ledger + evento RECIBIDO en una
+    // sola transacción. Requiere el header Idempotency-Key (spec R7).
     $router->post('/receive', [ReceivingController::class, 'receive'], [
-        PermissionMiddleware::class . ':inventory.receiving.create',
-        RateLimitMiddleware::class . ':api',
-    ]);
-
-    // ================================================================
-    // RECEIVING DOCUMENTS (v1.13.28, BLOQUE R1)
-    // Documentos de recepción planificada: la cantidad esperada la
-    // introduce quien planifica; la recepción ciega llega en R2.
-    // ================================================================
-
-    // GET /api/inventory/receiving/documents
-    // Lista documentos de recepción del tenant (filtros: estado, search)
-    $router->get('/receiving/documents', [ReceivingDocumentController::class, 'index'], [
-        PermissionMiddleware::class . ':inventory.receiving.plan',
-        RateLimitMiddleware::class . ':api',
-    ]);
-
-    // GET /api/inventory/receiving/documents/pending
-    // Documentos PLANIFICADA/EN_RECEPCION con sus líneas Y cantidad_esperada,
-    // excluyendo los creados por el usuario (v1.13.32: el receptor lee con
-    // receiving.create, NO con .plan). Registrar ANTES de la ruta {id}.
-    $router->get('/receiving/documents/pending', [ReceivingDocumentController::class, 'pending'], [
-        PermissionMiddleware::class . ':inventory.receiving.create',
-        RateLimitMiddleware::class . ':api',
-    ]);
-
-    // POST /api/inventory/receiving/documents
-    // Crea un documento PLANIFICADA con sus líneas; exige que exista otro
-    // usuario activo con receiving.create (separación de funciones, 409)
-    $router->post('/receiving/documents', [ReceivingDocumentController::class, 'store'], [
-        PermissionMiddleware::class . ':inventory.receiving.plan',
-        RateLimitMiddleware::class . ':api',
-    ]);
-
-    // GET /api/inventory/receiving/documents/{id}
-    // Detalle de un documento con sus líneas
-    $router->get('/receiving/documents/{id}', [ReceivingDocumentController::class, 'show'], [
-        PermissionMiddleware::class . ':inventory.receiving.plan',
-        RateLimitMiddleware::class . ':api',
-    ]);
-
-    // PATCH /api/inventory/receiving/documents/{id}
-    // Edita un documento PLANIFICADA y sin líneas recibidas (audita antes/después)
-    $router->patch('/receiving/documents/{id}', [ReceivingDocumentController::class, 'update'], [
-        PermissionMiddleware::class . ':inventory.receiving.plan',
-        RateLimitMiddleware::class . ':api',
-    ]);
-
-    // POST /api/inventory/receiving/documents/{id}/cancel
-    // Anula un documento PLANIFICADA (estado ANULADA; no se borra, regla 11)
-    $router->post('/receiving/documents/{id}/cancel', [ReceivingDocumentController::class, 'cancel'], [
-        PermissionMiddleware::class . ':inventory.receiving.plan',
-        RateLimitMiddleware::class . ':api',
-    ]);
-
-    // ================================================================
-    // RECEIVING DOCUMENTS - RECEPCIÓN (v1.13.32: sin cegueza ni reconteo)
-    // ================================================================
-
-    // POST /api/inventory/receiving/documents/{id}/receive
-    // Recepción contra el documento: el receptor envía lo que cuenta
-    // (cantidad_recibida; la cantidad esperada va en el documento y la UI
-    // la muestra bloqueada, pero el payload NO la admite → 422). El creador
-    // NO puede recibirlo (403, también ADMIN). Sin reconteo: discrepancia →
-    // unidad con lo contado + incidencia; línea cerrada. Concurrencia:
-    // bloqueo de fila de la línea; el perdedor recibe 409. Requiere el
-    // header Idempotency-Key (spec R7).
-    $router->post('/receiving/documents/{id}/receive', [ReceivingDocumentController::class, 'receive'], [
         PermissionMiddleware::class . ':inventory.receiving.create',
         RateLimitMiddleware::class . ':api',
     ]);

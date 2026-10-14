@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.33] - 2026-10-14
+
+**Revert total del flujo de recepción planificada** (bloques R1, R2, R2B, R3, v1.13.32 y correcciones asociadas). Recepción vuelve al estado previo: un único formulario "Nueva recepción" (CU-001) contra `POST /inventory/receive`. Motivo: se decide descartar el modelo planificación → recepción contra documento (incluida la pestaña de recepción ciega/contra documento y la adhoc ya revertida en 1.13.31) y conservar sólo el CU-001 clásico. Etiqueta de respaldo del estado previo al revert: `pre-revert-recepcion` (apunta a `334bb52`).
+
+### Removed
+
+- **Endpoints de recepción contra documento**: `GET/POST/PATCH /inventory/receiving/documents`, `GET .../pending`, `GET .../{id}`, `POST .../{id}/cancel`, `POST .../{id}/receive` eliminados de `routes.php`; el único endpoint de recepción es `POST /inventory/receive` (CU-001, `inventory.receiving.create`).
+- **`ReceivingDocumentController`, `ReceivingDocumentService` y `ReceiveDocumentUseCase`** eliminados; `ReceivingController` restaurado a su versión CU-001 (usa `ReceiveInventoryUseCase`); `InventoryServiceProvider` restaurado sin sus registros.
+- **Guard de resolución restringida** de `ResolveIncidentUseCase` y columna `restriccion_resolucion` del INSERT de `IncidentRepository` eliminados (restaurados a su estado pre-R2); `Incident` y `InventoryException` restaurados (sin factories de documento/planificación/cegueza).
+- **Frontend**: `public/js/modules/inventory/receiving.js` restaurado al formulario único "Nueva recepción" (CU-001 con `cantidad_esperada`/`cantidad_recibida`, lote, serie, rechazo total, Idempotency-Key); pestañas receive/plan y selector de documentos eliminados. Locales `es|en|pt|fr` restaurados (sección `inventory.receiving` pre-R1). Smoke `tools/smoke/smoke-receiving.mjs` y capturas `capturas-receiving-v11332/` eliminados.
+- **Tests**: `ReceivingDocumentRoutesTest`, `ReceivingDocumentServiceTest`, `ReceiveDocumentUseCaseTest`, `InventoryMysqlSmokeTest` y `InventoryMysqlTestCase` eliminados; `ReceivingControllerTest`, `InventoryPermissionSeederTest`, `InventorySqliteTestCase` y `InventoryPermissionSeeder` restaurados (seeder sin `inventory.receiving.plan`; siguen existiendo en BD los permisos `plan`/`create`/`confirm` sembrados, ahora sin endpoint que los exija salvo `create`).
+- **Scripts**: `bin/seed-inventory-permissions.php` y `bin/prepare-test-db.php` (creados en R1/R2) eliminados.
+
+### Kept (BD viva, sin tocar datos)
+
+- Tablas **`receiving_documents`** y **`receiving_document_lines`** conservadas con sus filas (3 y 3 antes y después del revert); marcadas en `schema.sql` con el comentario "reservadas, sin uso actual". Permisos `inventory.receiving.plan`, `inventory.receiving.create` y `inventory.receiving.confirm` siguen sembrados en la BD viva; `create` es el único que vuelve a tener endpoint.
+
+### Verification
+
+- `composer test` **944/944 OK** (982 pre-revert menos los 38 tests receiving de R1/R2/v1.13.32); `check-i18n` **0 errores, 6 avisos**; `check-schema-drift` **SIN DRIFT** (34 tablas); `check-data-integrity` **DATOS CONSISTENTES**; `node --check` OK en `receiving.js`; `smoke-v1100` **66 OK, 0 FAIL**; GETs admin de products/stock/incidents → 200 y `/receiving/documents` → 404 (ruta ya inexistente); `POST /inventory/receive` sin `document_id` con `{sku, ubicacion_id, cantidad_esperada, cantidad_recibida}` → **201** (unidad DISPONIBLE + ledger + evento `RECIBIDO`); listado de stock sigue mostrando las unidades históricas (46 de PROD-001 visibles).
+
 ## [1.13.32] - 2026-10-14
 
 Flujo definitivo de recepción: **sin recepción ciega y sin reconteo**. Quedan 2 pestañas (Planificación + Recepción contra documento): el receptor elige un documento pendiente, ve la `cantidad_esperada` bloqueada (visible en la UI, rechazada en el payload con 422) y contabiliza lo recibido; cualquier discrepancia cierra la línea con lo contado + incidencia, sin segundo conteo.

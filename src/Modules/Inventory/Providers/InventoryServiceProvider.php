@@ -42,9 +42,7 @@ use App\Modules\Inventory\Application\Services\MoveStockUseCase;
 use App\Modules\Inventory\Application\Services\MovementQueryService;
 use App\Modules\Inventory\Application\Services\PickingQueryService;
 use App\Modules\Inventory\Application\Services\ProductService;
-use App\Modules\Inventory\Application\Services\ReceiveDocumentUseCase;
 use App\Modules\Inventory\Application\Services\ReceiveInventoryUseCase;
-use App\Modules\Inventory\Application\Services\ReceivingDocumentService;
 use App\Modules\Inventory\Application\Services\ReconcileCountUseCase;
 use App\Modules\Inventory\Application\Services\RecordCountResultsUseCase;
 use App\Modules\Inventory\Application\Services\ReleaseReservationUseCase;
@@ -311,38 +309,6 @@ final class InventoryServiceProvider
                 $c->get('database'),
                 $c->get(IdempotencyService::class),
                 $c->get(ProductRepositoryInterface::class),
-                $c->get(LocationRepositoryInterface::class),
-                $c->get(StockUnitRepositoryInterface::class),
-                $c->get(StockLedgerRepositoryInterface::class),
-                $c->get(StockEventRepositoryInterface::class),
-                $c->get(IncidentRepositoryInterface::class),
-                $c->get(StockCalculationService::class),
-                $c->get(BarcodeService::class),
-                $c->get(TenantContext::class)
-            )
-        );
-
-        // BLOQUE R1 (v1.13.28): documentos de recepción planificada. El
-        // chequeo de "otro receptor activo" usa AuthorizationService (registrado
-        // en bootstrap.php).
-        $container->singleton(
-            ReceivingDocumentService::class,
-            fn($c) => new ReceivingDocumentService(
-                $c->get('database'),
-                $c->get(TenantContext::class),
-                $c->get(\App\Core\Authorization\Service\AuthorizationService::class)
-            )
-        );
-
-        // BLOQUE R2 (v1.13.29): recepción ciega contra documento. Mismas
-        // dependencias que ReceiveInventoryUseCase menos ProductRepository
-        // (el use case trabaja sobre las lineas del documento, ya con
-        // producto_id resuelto).
-        $container->singleton(
-            ReceiveDocumentUseCase::class,
-            fn($c) => new ReceiveDocumentUseCase(
-                $c->get('database'),
-                $c->get(IdempotencyService::class),
                 $c->get(LocationRepositoryInterface::class),
                 $c->get(StockUnitRepositoryInterface::class),
                 $c->get(StockLedgerRepositoryInterface::class),

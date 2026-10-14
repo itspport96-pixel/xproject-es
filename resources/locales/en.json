@@ -498,152 +498,91 @@
     },
     "receiving": {
       "title": "Receiving",
-      "subtitle": "Inventory entry against planned documents",
+      "subtitle": "Inventory intake: physical unit + ledger + event in a single transaction",
+      "card_title": "New receipt",
       "labels": {
+        "producto": "Product",
         "ubicacion_destino": "Destination location",
         "cantidad_esperada": "Expected quantity",
-        "cantidad_recibida": "Counted quantity",
-        "lote": "Lot",
+        "cantidad_recibida": "Received quantity",
+        "lote": "Batch",
         "numero_serie": "Serial number",
-        "rechazo_total": "Reject the whole delivery"
+        "rechazo_total": "Reject the entire delivery"
       },
       "selects": {
         "producto": "Select a product",
         "ubicacion": "Select a location"
       },
       "placeholders": {
+        "cantidad_recibida": "Empty = same as expected",
         "opcional": "Optional"
       },
       "hints": {
-        "ubicacion": "Active locations only. Label: code (used / capacity).",
-        "rechazo_total": "The line is closed as REJECTED without creating stock and opens a high-priority rejected-delivery incident.",
-        "esperada_bloqueada": "The expected quantity is set by the document: it is shown but cannot be edited."
+        "producto": "Only active products from the catalog.",
+        "ubicacion": "Only active locations. Label: code (used / capacity).",
+        "cantidad_recibida": "Less than the expected quantity creates a partial receipt with an incident.",
+        "rechazo_total": "Nothing goes into stock: no unit or ledger is created, and a rejected delivery incident with high priority is opened. The received quantity is set to 0."
+      },
+      "buttons": {
+        "submit": "Record receipt",
+        "submitting": "Recording..."
       },
       "options": {
         "sin_limite": "no limit",
         "sin_espacio": " - no space"
       },
+      "result": {
+        "title": "Last receipt",
+        "empty_title": "No receipts in this session",
+        "empty_hint": "The unit's barcode will appear here."
+      },
+      "states": {
+        "rechazada": "Rejected",
+        "parcial": "Partial",
+        "completa": "Complete",
+        "sin_unidad": "— no unit —"
+      },
       "prioridad": {
         "alta": "High",
         "normal": "Normal"
       },
+      "columns": {
+        "ubicacion": "Location",
+        "estado": "Status",
+        "discrepancia": "Discrepancy",
+        "codigo_barras": "Barcode",
+        "sku": "SKU",
+        "esperada": "Expected",
+        "recibida": "Received"
+      },
+      "messages": {
+        "catalog_error": "Could not load products and locations",
+        "error_producto_required": "Select a product.",
+        "error_ubicacion_required": "Select a destination location.",
+        "error_cantidad_esperada": "The expected quantity must be greater than zero.",
+        "error_cantidad_recibida": "The received quantity must be greater than zero.",
+        "error_cantidad_recibida_max": "It cannot be greater than the expected quantity.",
+        "submit_error": "Could not record the receipt",
+        "rechazo_titulo": "Delivery rejected.",
+        "rechazo_fallback": "No stock was recorded; a rejected delivery incident was opened.",
+        "parcial_titulo": "Partial receipt.",
+        "parcial_fallback": "A quantity discrepancy incident was recorded.",
+        "evento": "Event {tipo}",
+        "evento_hash": "· hash {hash}...",
+        "toast_rechazo_titulo": "Delivery rejected",
+        "toast_rechazo_fallback": "No stock; a high priority incident was opened.",
+        "toast_registrada_titulo": "Receipt recorded",
+        "toast_registrada_mensaje": "{codigo} in {ubicacion}",
+        "error_401_form": "Session expired. Sign in again; the idempotency key is preserved.",
+        "error_401_toast": "Sign in again to continue",
+        "error_409_form": "The idempotency key had already been used with different data. A new key was generated: check the stock before retrying.",
+        "error_409_toast_titulo": "Idempotency",
+        "error_409_toast": "Key reused with different data; a new one was generated",
+        "toast_capacidad": "Capacity exceeded"
+      },
       "permission": {
         "title": "No permission",
         "body": "You need <code>{permiso}</code> to view this screen."
-      },
-      "tabs": {
-        "receive": "Receiving",
-        "plan": "Planning"
-      },
-      "doc_states": {
-        "PLANIFICADA": "Planned",
-        "EN_RECEPCION": "Receiving",
-        "CERRADA": "Closed",
-        "ANULADA": "Cancelled"
-      },
-      "line_states": {
-        "RECIBIDA": "Received",
-        "RECHAZADA": "Rejected",
-        "RECONTEO": "Recount (legacy)",
-        "RECIBIDA_CON_INCIDENCIA": "Received with incident"
-      },
-      "plan": {
-        "title": "Receiving documents",
-        "new": "New document",
-        "pagination_label": "documents",
-        "filters": {
-          "estado": "State",
-          "all_states": "All states",
-          "search": "Search",
-          "search_placeholder": "Document no. or supplier",
-          "apply": "Filter",
-          "clear": "Clear",
-          "clear_title": "Clear filters"
-        },
-        "columns": {
-          "numero": "Doc no.",
-          "proveedor": "Supplier",
-          "referencia": "Reference",
-          "sku": "SKU",
-          "estado": "State",
-          "lineas": "Lines",
-          "fecha": "Date",
-          "acciones": "Actions"
-        },
-        "actions": {
-          "edit": "Edit",
-          "cancel": "Cancel",
-          "cancel_confirm": "Cancel this receiving document?"
-        },
-        "empty_title": "No documents",
-        "empty_message": "Create a receiving document with the expected quantities.",
-        "load_error_title": "Could not load documents",
-        "load_error_fallback": "Error loading receiving documents.",
-        "editor": {
-          "new_title": "New receiving document",
-          "edit_title": "Edit receiving document",
-          "numero": "Document no.",
-          "proveedor": "Supplier",
-          "referencia": "Reference",
-          "lineas": "Lines (SKU and expected quantity)",
-          "sku": "SKU",
-          "cantidad_esperada": "Expected quantity",
-          "add_line": "Add line",
-          "save": "Save",
-          "saving": "Saving..."
-        },
-        "messages": {
-          "saved_title": "Document saved",
-          "created_ok": "Receiving document created.",
-          "updated_ok": "Receiving document updated.",
-          "save_error": "Could not save the document.",
-          "cancelled_title": "Document cancelled",
-          "cancelled_ok": "The receiving document was cancelled.",
-          "cancel_error": "Could not cancel the document.",
-          "error_numero_required": "The document number is required.",
-          "error_lineas_required": "Add at least one line with SKU and expected quantity.",
-          "error_linea_sku": "Every line needs a SKU.",
-          "error_linea_cantidad": "The expected quantity must be greater than zero.",
-          "error_second_receiver": "The planner cannot be the only receiver: create or activate another user with receiving permission."
-        }
-      },
-      "receive": {
-        "title": "Receive against document",
-        "select_doc": "Pending document",
-        "select_placeholder": "Select a document",
-        "select_hint": "Only planned or in-receiving documents created by another user.",
-        "ubicacion_destino": "Destination location",
-        "cantidad_recibida": "Counted quantity",
-        "expected_notice": "The expected quantity is set by the document: it is shown locked and is not sent in the payload.",
-        "loading": "Loading...",
-        "submit": "Confirm receipt",
-        "submitting": "Confirming...",
-        "result_title": "Receiving result",
-        "all_received_title": "No receivable lines",
-        "all_received_message": "All lines of this document are closed (received or rejected).",
-        "load_error_fallback": "Error loading pending documents.",
-        "columns": {
-          "estado_linea": "State",
-          "esperada": "Expected",
-          "contada": "Counted",
-          "unidad": "Unit",
-          "incidencia": "Incident"
-        },
-        "states": {
-          "ok": "Processed",
-          "rechazada": "Rejected"
-        },
-        "messages": {
-          "doc_estado": "Document state",
-          "submit_error": "Could not process the receipt.",
-          "error_ubicacion_required": "Select a destination location.",
-          "error_lineas_required": "Enter the counted quantity for at least one line.",
-          "error_409": "The line was already received or is closed. Pending documents were reloaded.",
-          "toast_title": "Receipt processed"
-        }
-      },
-      "messages": {
-        "catalog_error": "Could not load products and locations"
       }
     },
     "movements": {
