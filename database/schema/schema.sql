@@ -451,8 +451,7 @@ CREATE TABLE `secrets_vault` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `nombre` (`nombre`),
-  KEY `idx_tenant_nombre` (`tenant_id`,`nombre`),
+  UNIQUE KEY `uq_secrets_vault_tenant_nombre` (`tenant_id`,`nombre`),
   KEY `owner_user_id` (`owner_user_id`),
   CONSTRAINT `secrets_vault_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
   CONSTRAINT `secrets_vault_ibfk_2` FOREIGN KEY (`owner_user_id`) REFERENCES `users` (`id`)
