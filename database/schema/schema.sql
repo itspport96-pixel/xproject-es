@@ -193,6 +193,8 @@ CREATE TABLE `idempotency_keys` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_idempotency` (`tenant_id`,`idempotency_key`,`operacion`),
   KEY `idx_idempotency_created` (`created_at`),
+  KEY `fk_idempotency_actor` (`actor_id`),
+  CONSTRAINT `fk_idempotency_actor` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`),
   CONSTRAINT `fk_idempotency_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -587,6 +589,8 @@ CREATE TABLE `movements` (
   KEY `ubicacion_destino_id` (`ubicacion_destino_id`),
   KEY `actor_id` (`actor_id`),
   KEY `idx_tenant_fecha` (`tenant_id`,`timestamp_movimiento`),
+  KEY `fk_movements_referencia` (`movimiento_referencia_id`),
+  CONSTRAINT `fk_movements_referencia` FOREIGN KEY (`movimiento_referencia_id`) REFERENCES `movements` (`id`),
   CONSTRAINT `movements_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
   CONSTRAINT `movements_ibfk_2` FOREIGN KEY (`unidad_fisica_id`) REFERENCES `stock_units` (`id`),
   CONSTRAINT `movements_ibfk_3` FOREIGN KEY (`ubicacion_origen_id`) REFERENCES `locations` (`id`),
@@ -618,6 +622,10 @@ CREATE TABLE `picking_operations` (
   KEY `ubicacion_origen_id` (`ubicacion_origen_id`),
   KEY `ubicacion_preparacion_id` (`ubicacion_preparacion_id`),
   KEY `idx_tenant_fecha` (`tenant_id`,`created_at`),
+  KEY `fk_picking_selector` (`actor_id_selector`),
+  KEY `fk_picking_supervisor` (`actor_id_supervisor`),
+  CONSTRAINT `fk_picking_selector` FOREIGN KEY (`actor_id_selector`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_picking_supervisor` FOREIGN KEY (`actor_id_supervisor`) REFERENCES `users` (`id`),
   CONSTRAINT `picking_operations_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
   CONSTRAINT `picking_operations_ibfk_2` FOREIGN KEY (`unidad_fisica_id`) REFERENCES `stock_units` (`id`),
   CONSTRAINT `picking_operations_ibfk_3` FOREIGN KEY (`ubicacion_origen_id`) REFERENCES `locations` (`id`),
