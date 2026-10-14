@@ -85,7 +85,7 @@ final class TemporaryPermissionRepository implements TemporaryPermissionReposito
      */
     private function buildWhere(string $tenantId, ?string $userId, bool $soloVigentes): array
     {
-        $where = ' WHERE u.tenant_id = :tid';
+        $where = ' WHERE u.tenant_id = :tid AND u.deleted_at IS NULL';
         $params = ['tid' => $tenantId];
 
         if ($userId !== null) {

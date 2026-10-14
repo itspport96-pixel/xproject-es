@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.47] - 2026-10-14
+
+**Fix: permisos temporales de usuarios borrados siguen apareciendo.** El query de `TemporaryPermissionRepository` hacía `INNER JOIN users` sin filtrar `u.deleted_at IS NULL`, así que los permisos temporales de un usuario con soft delete seguían listándose. Se añade el filtro al WHERE compartido (`findAll`, `count`, `findById`).
+
 ## [1.13.46] - 2026-10-14
 
 **Limpieza: bootstrap sin referencias muertas al cifrado PII.** Se quitan los argumentos `EncryptionService`/`BlindIndexService` que bootstrap seguia pasando a TemporaryPermissionRepository, UserGroupRepository, TenantRepository, PdoAuditPort y AuditLogQueryService — constructores que ya no los aceptan tras el rollback v1.13.44. Se elimina el singleton `BlindIndexService` (sin uso). Se conserva `EncryptionService` (lo usa SecretsVaultService para cifrar secretos) y los ficheros de seguridad (`EncryptionService`, `BlindIndexService`) quedan en el repositorio listos para reactivar cuando se decida.
