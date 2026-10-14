@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.41] - 2026-10-14
+
+**Indexacion BD: indices compuestos (tenant_id, fecha) para list endpoints.** Los listados de movements, shipments, deliveries, incidents, inventory_counts, reservations, picking_operations, return_operations y stock_ledger ordenan y filtran por `tenant_id` + columna de fecha. Sin indice compuesto, cada request ejecutaba un filesort sobre todas las filas del tenant. Ahora MySQL usa `idx_tenant_fecha` y el ordenado se resuelve en el indice. Anadido indice en `roles(tipo, activo)` para el filtro del seeder.
+
+### Added
+
+- **Indices compuestos `idx_tenant_fecha (tenant_id, fecha)`** en 9 tablas: `movements` (timestamp_movimiento), `shipments` (created_at), `deliveries` (timestamp_entrega), `incidents` (timestamp_deteccion), `inventory_counts` (fecha_conteo), `reservations` (created_at), `picking_operations` (created_at), `return_operations` (timestamp_devolucion), `stock_ledger` (ultima_actualizacion).
+- **`roles.idx_tipo_activo (tipo, activo)`**: filtro del seeder y queries por tipo de rol.
+
+### Verified
+
+- `EXPLAIN` confirma uso de `idx_tenant_fecha` en movements, shipments, deliveries, stock_ledger (type=ref, Extra=Using index)
+- `php bin/check-schema-drift.php` -> SIN DRIFT
+- `php bin/check-data-integrity.php` -> DATOS CONSISTENTES
+- `composer test` -> 944/944 OK
+- `node tools/smoke/smoke-v162.mjs` -> 89 OK, 0 FAIL
+- `node tools/smoke/smoke-v171.mjs` -> 105 OK, 0 FAIL
+- API en vivo: users, shipments, deliveries, incidents, movements, audit -> todos 200
+
+### Debt (produccion)
+
+- **Rotacion de claves** (`bin/rotate-keys.php`): sin ella, si una clave se compromete, no hay salida. Requisito #1 antes de produccion.
+- **Guardia de regresion** (`bin/check-plaintext-pii.php`): sin ella, un campo PII nuevo puede quedar en claro sin detectarse. Anadir al cierre de sprint junto a `check-data-integrity`.
+
 ## [1.13.40] - 2026-10-14
 
 **B3 - Cifrado de PII restante: audit_logs JSON, shipments contactos, deliveries, incidents.** Cifra la PII que quedaba sin cifrar tras B2: contactos de shipments, campos de deliveries (destinatario_real, firma, observaciones), texto libre de incidents (descripcion, observaciones) y los JSON de audit_logs (valores_anteriores, valores_nuevos, detalles_adicionales). Los JSON con CHECK json_valid usan wrapper `{"__encrypted":"<base64>"}`. El hash de integridad del audit se calcula sobre claro antes de cifrar; al verificar la cadena hay que descifrar primero.

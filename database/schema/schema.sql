@@ -52,7 +52,8 @@ CREATE TABLE `roles` (
   `deleted_at` timestamp NULL DEFAULT NULL,
   `nombre_activo` varchar(100) GENERATED ALWAYS AS (if(`deleted_at` is null,`nombre`,NULL)) STORED,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_roles_tenant_nombre_activo` (`tenant_id`,`nombre_activo`)
+  UNIQUE KEY `uq_roles_tenant_nombre_activo` (`tenant_id`,`nombre_activo`),
+  KEY `idx_tipo_activo` (`tipo`,`activo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `users`;
@@ -241,6 +242,7 @@ CREATE TABLE `inventory_counts` (
   KEY `idx_tenant_estado` (`tenant_id`,`estado`),
   KEY `ubicacion_id` (`ubicacion_id`),
   KEY `usuario_responsable_id` (`usuario_responsable_id`),
+  KEY `idx_tenant_fecha` (`tenant_id`,`fecha_conteo`),
   CONSTRAINT `inventory_counts_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
   CONSTRAINT `inventory_counts_ibfk_2` FOREIGN KEY (`ubicacion_id`) REFERENCES `locations` (`id`),
   CONSTRAINT `inventory_counts_ibfk_3` FOREIGN KEY (`usuario_responsable_id`) REFERENCES `users` (`id`)
@@ -504,6 +506,7 @@ CREATE TABLE `shipments` (
   KEY `idx_tenant_estado` (`tenant_id`,`estado`),
   KEY `origen_ubicacion_id` (`origen_ubicacion_id`),
   KEY `actor_id_autoriza_salida` (`actor_id_autoriza_salida`),
+  KEY `idx_tenant_fecha` (`tenant_id`,`created_at`),
   CONSTRAINT `shipments_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
   CONSTRAINT `shipments_ibfk_2` FOREIGN KEY (`origen_ubicacion_id`) REFERENCES `locations` (`id`),
   CONSTRAINT `shipments_ibfk_3` FOREIGN KEY (`actor_id_autoriza_salida`) REFERENCES `users` (`id`)
@@ -563,6 +566,7 @@ CREATE TABLE `deliveries` (
   KEY `tenant_id` (`tenant_id`),
   KEY `unidad_fisica_id` (`unidad_fisica_id`),
   KEY `actor_id_entrega` (`actor_id_entrega`),
+  KEY `idx_tenant_fecha` (`tenant_id`,`timestamp_entrega`),
   CONSTRAINT `deliveries_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
   CONSTRAINT `deliveries_ibfk_2` FOREIGN KEY (`shipment_id`) REFERENCES `shipments` (`id`),
   CONSTRAINT `deliveries_ibfk_3` FOREIGN KEY (`unidad_fisica_id`) REFERENCES `stock_units` (`id`),
@@ -595,6 +599,7 @@ CREATE TABLE `incidents` (
   KEY `ubicacion_id` (`ubicacion_id`),
   KEY `actor_id_reporta` (`actor_id_reporta`),
   KEY `inventory_count_id` (`inventory_count_id`),
+  KEY `idx_tenant_fecha` (`tenant_id`,`timestamp_deteccion`),
   CONSTRAINT `incidents_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
   CONSTRAINT `incidents_ibfk_2` FOREIGN KEY (`unidad_fisica_id`) REFERENCES `stock_units` (`id`),
   CONSTRAINT `incidents_ibfk_3` FOREIGN KEY (`ubicacion_id`) REFERENCES `locations` (`id`),
@@ -625,6 +630,7 @@ CREATE TABLE `movements` (
   KEY `unidad_fisica_id` (`unidad_fisica_id`),
   KEY `ubicacion_destino_id` (`ubicacion_destino_id`),
   KEY `actor_id` (`actor_id`),
+  KEY `idx_tenant_fecha` (`tenant_id`,`timestamp_movimiento`),
   CONSTRAINT `movements_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
   CONSTRAINT `movements_ibfk_2` FOREIGN KEY (`unidad_fisica_id`) REFERENCES `stock_units` (`id`),
   CONSTRAINT `movements_ibfk_3` FOREIGN KEY (`ubicacion_origen_id`) REFERENCES `locations` (`id`),
@@ -655,6 +661,7 @@ CREATE TABLE `picking_operations` (
   KEY `unidad_fisica_id` (`unidad_fisica_id`),
   KEY `ubicacion_origen_id` (`ubicacion_origen_id`),
   KEY `ubicacion_preparacion_id` (`ubicacion_preparacion_id`),
+  KEY `idx_tenant_fecha` (`tenant_id`,`created_at`),
   CONSTRAINT `picking_operations_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
   CONSTRAINT `picking_operations_ibfk_2` FOREIGN KEY (`unidad_fisica_id`) REFERENCES `stock_units` (`id`),
   CONSTRAINT `picking_operations_ibfk_3` FOREIGN KEY (`ubicacion_origen_id`) REFERENCES `locations` (`id`),
@@ -705,6 +712,7 @@ CREATE TABLE `reservations` (
   KEY `idx_tenant_estado` (`tenant_id`,`estado`),
   KEY `idx_unidad` (`unidad_fisica_id`),
   KEY `actor_id` (`actor_id`),
+  KEY `idx_tenant_fecha` (`tenant_id`,`created_at`),
   CONSTRAINT `reservations_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
   CONSTRAINT `reservations_ibfk_2` FOREIGN KEY (`unidad_fisica_id`) REFERENCES `stock_units` (`id`),
   CONSTRAINT `reservations_ibfk_3` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`)
@@ -733,6 +741,7 @@ CREATE TABLE `return_operations` (
   KEY `unidad_fisica_id` (`unidad_fisica_id`),
   KEY `ubicacion_destino_id` (`ubicacion_destino_id`),
   KEY `actor_id_recibe_devolucion` (`actor_id_recibe_devolucion`),
+  KEY `idx_tenant_fecha` (`tenant_id`,`timestamp_devolucion`),
   CONSTRAINT `return_operations_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
   CONSTRAINT `return_operations_ibfk_2` FOREIGN KEY (`delivery_id`) REFERENCES `deliveries` (`id`),
   CONSTRAINT `return_operations_ibfk_3` FOREIGN KEY (`unidad_fisica_id`) REFERENCES `stock_units` (`id`),
@@ -801,6 +810,7 @@ CREATE TABLE `stock_ledger` (
   PRIMARY KEY (`id`),
   KEY `idx_tenant_unidad` (`tenant_id`,`unidad_fisica_id`),
   KEY `unidad_fisica_id` (`unidad_fisica_id`),
+  KEY `idx_tenant_fecha` (`tenant_id`,`ultima_actualizacion`),
   CONSTRAINT `stock_ledger_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
   CONSTRAINT `stock_ledger_ibfk_2` FOREIGN KEY (`unidad_fisica_id`) REFERENCES `stock_units` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
