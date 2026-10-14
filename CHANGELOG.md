@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.49] - 2026-10-14
+
+**Fix: selector de unidad física en modal de Reportar Incidencia era una lista expandida.** El `<select>` llevaba `size="6"`, que en HTML renderiza el dropdown como lista visible de 6 filas en vez de un select colapsado. Se quita el atributo para que se comporte como un dropdown normal con buscador.
+
 ## [1.13.48] - 2026-10-14
 
 **Skeleton Loading en tablas: sin parpadeos ni layout shift durante la carga.** Se reemplaza el spinner centrado (`UI.loadingState`) por placeholders animados que mantienen la estructura, dimensiones y posiciones de la tabla mientras llegan los datos. Nuevas funciones `UI.tableSkeleton(columns, rows, widths)` (misma estructura que `tableShell` con filas placeholder shimmer) y `UI.cardsSkeleton(count)` (placeholders de tarjetas de resumen). Actualizados 10 módulos: users, groups, roles, counts, deliveries (2 tablas), incidents, movements, picking (2 tablas), reservations y shipments.

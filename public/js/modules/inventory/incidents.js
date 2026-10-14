@@ -964,7 +964,7 @@
                     <input type="text" class="input" data-modal-field="stockSearch"
                            value="${UI.escapeHtml(modal.stockSearch)}"
                            placeholder="${t('inventory.incidents.modals.report.unit_search_placeholder')}" autocomplete="off">
-                    <select class="select" data-modal-field="unidad_fisica_id" size="6">
+                    <select class="select" data-modal-field="unidad_fisica_id">
                         ${stockOptions(filteredStock(), modal.unidad_fisica_id)}
                     </select>
                     <span class="form-error hidden" data-error="unidad_fisica_id"></span>
