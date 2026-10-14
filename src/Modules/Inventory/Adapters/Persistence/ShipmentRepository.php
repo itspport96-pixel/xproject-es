@@ -15,7 +15,7 @@ use PDO;
 
 final class ShipmentRepository implements ShipmentRepositoryInterface
 {
-    private const PII_FIELDS = ['destino_direccion', 'destinatario_nombre', 'conductor_nombre'];
+    private const PII_FIELDS = ['destino_direccion', 'destinatario_nombre', 'conductor_nombre', 'destinatario_contacto', 'conductor_contacto'];
 
     private PDO $pdo;
     private TenantContext $tenantContext;

@@ -115,6 +115,19 @@ final class PdoAuditPort implements AuditPort
             }
         }
 
+        // JSON con PII: se envuelve el ciphertext en un objeto JSON válido
+        // {"__encrypted":"base64"} para cumplir el CHECK json_valid de la
+        // columna. El hash ya se calculó sobre el contenido en claro; al
+        // leer, AuditLogQueryService detecta __encrypted y descifra.
+        foreach (['valores_anteriores', 'valores_nuevos', 'detalles_adicionales'] as $field) {
+            if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
+                $row[$field] = json_encode(
+                    ['__encrypted' => $this->encryption->encrypt($row[$field])],
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                );
+            }
+        }
+
         return $row;
     }
 

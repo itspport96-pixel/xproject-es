@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.40] - 2026-10-14
+
+**B3 - Cifrado de PII restante: audit_logs JSON, shipments contactos, deliveries, incidents.** Cifra la PII que quedaba sin cifrar tras B2: contactos de shipments, campos de deliveries (destinatario_real, firma, observaciones), texto libre de incidents (descripcion, observaciones) y los JSON de audit_logs (valores_anteriores, valores_nuevos, detalles_adicionales). Los JSON con CHECK json_valid usan wrapper `{"__encrypted":"<base64>"}`. El hash de integridad del audit se calcula sobre claro antes de cifrar; al verificar la cadena hay que descifrar primero.
+
+### Added
+
+- **`bin/b3-backfill.php`**: backfill con `--dry-run`. Cifra shipments contactos, deliveries PII, incidents texto libre, incidents JSON y audit_logs JSON. Ejecutado contra BD viva.
+- **`docs/ENCRYPTION.md`**: referencia completa de campos cifrados, algoritmos, claves, wrapper JSON, patrones de lectura, rotacion y recuperacion.
+
+### Changed
+
+- **`PdoAuditPort::encryptSensitiveFields`**: ahora cifra `valores_anteriores`, `valores_nuevos` y `detalles_adicionales` (ademas de ip_address/user_agent). JSON envueltos en wrapper `__encrypted` para cumplir CHECK json_valid.
+- **`AuditLogQueryService::present`**: detecta wrapper `__encrypted` y descifra antes de `decodeJson`. Fallback para filas pre-migracion.
+- **`ShipmentRepository::PII_FIELDS`** y **`ShipmentQueryService::PII_FIELDS`**: anadidos `destinatario_contacto` y `conductor_contacto`.
+- **`DeliveryRepository`**: cifra/descifra `destinatario_real`, `firma_comprobante`, `observaciones`. Constructor acepta `?EncryptionService`.
+- **`DeliveryQueryService`**: descifra PII en `mapRow`. Constructor acepta `?EncryptionService`.
+- **`IncidentRepository`**: cifra/descifra `descripcion`/`observaciones` (texto) y `resolucion`/`restriccion_resolucion` (JSON wrapper). Constructor acepta `?EncryptionService`.
+- **`IncidentQueryService`**: descifra PII en `mapRow`. Constructor acepta `?EncryptionService`.
+
+### Verified
+
+- `composer test` -> 944/944 OK
+- `php bin/check-schema-drift.php` -> SIN DRIFT
+- `php bin/check-data-integrity.php` -> DATOS CONSISTENTES
+- `node tools/smoke/smoke-v162.mjs` -> 89 OK, 0 FAIL
+- `node tools/smoke/smoke-v171.mjs` -> 105 OK, 0 FAIL
+- API en vivo: login OK, users OK, shipments OK, deliveries OK, incidents OK (descripcion descifrada), audit OK
+- BD viva: 0 filas en claro en todos los campos B3
+
 ## [1.13.39] - 2026-10-14
 
 **B2 — Cifrado de `users.nombre`/`apellido` + cierre de huecos del Sprint 2.** Los nombres y apellidos de usuarios ahora se cifran AES-256-GCM. ORDER BY y LIKE sobre esas columnas se migran a PHP (filtrado y ordenación tras descifrar). Se cierran huecos detectados en la verificación B1: emails de usuarios que no se cifraron en el backfill del Sprint 2, PII de shipments que el filtro omitía, y el índice único HMAC que no ignoraba usuarios borrados.

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Application\Services;
 
+use App\Core\Security\Service\EncryptionService;
+use App\Shared\Container\Container;
 use App\Modules\Inventory\Domain\Entities\Incident;
 use App\Modules\Inventory\Domain\Exceptions\InventoryException;
 use PDO;
@@ -24,11 +26,25 @@ final class IncidentQueryService
     /** Tope de filas por página (spec: per_page máximo 100). */
     private const MAX_PER_PAGE = 100;
 
-    private PDO $pdo;
+    private const PII_FIELDS = ['descripcion', 'observaciones'];
+    private const PII_JSON_FIELDS = ['resolucion', 'restriccion_resolucion'];
 
-    public function __construct(PDO $pdo)
+    private PDO $pdo;
+    private ?EncryptionService $encryption;
+
+    public function __construct(PDO $pdo, ?EncryptionService $encryption = null)
     {
         $this->pdo = $pdo;
+        if ($encryption !== null) {
+            $this->encryption = $encryption;
+        } else {
+            try {
+                $container = Container::getInstance();
+                $this->encryption = $container->has(EncryptionService::class) ? $container->get(EncryptionService::class) : null;
+            } catch (\Throwable) {
+                $this->encryption = null;
+            }
+        }
     }
 
     /**
@@ -227,6 +243,8 @@ final class IncidentQueryService
      */
     private function mapRow(array $row): array
     {
+        $row = $this->decryptPii($row);
+
         $resolucion = null;
 
         if (!empty($row['resolucion'])) {
@@ -251,6 +269,33 @@ final class IncidentQueryService
             'fecha_creacion' => $row['fecha_creacion'],
             'resolucion' => $resolucion,
         ];
+    }
+
+    private function decryptPii(array $row): array
+    {
+        if ($this->encryption === null) {
+            return $row;
+        }
+        foreach (self::PII_FIELDS as $field) {
+            if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
+                try {
+                    $row[$field] = $this->encryption->decrypt($row[$field]);
+                } catch (\Throwable) {
+                }
+            }
+        }
+        foreach (self::PII_JSON_FIELDS as $field) {
+            if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
+                $decoded = json_decode($row[$field], true);
+                if (is_array($decoded) && isset($decoded['__encrypted']) && is_string($decoded['__encrypted'])) {
+                    try {
+                        $row[$field] = $this->encryption->decrypt($decoded['__encrypted']);
+                    } catch (\Throwable) {
+                    }
+                }
+            }
+        }
+        return $row;
     }
 
     /**

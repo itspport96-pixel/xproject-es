@@ -25,7 +25,7 @@ final class ShipmentQueryService
     /** Tope de filas por página (spec: per_page máximo 100). */
     private const MAX_PER_PAGE = 100;
 
-    private const PII_FIELDS = ['destino_direccion', 'destinatario_nombre', 'conductor_nombre'];
+    private const PII_FIELDS = ['destino_direccion', 'destinatario_nombre', 'conductor_nombre', 'destinatario_contacto', 'conductor_contacto'];
 
     private PDO $pdo;
     private ?EncryptionService $encryption;

@@ -181,6 +181,15 @@ final class AuditLogQueryService
 
     private function present(array $row): array
     {
+        // Descifrar JSON de PII antes de decodificar. Detecta el wrapper
+        // {"__encrypted":"base64"} y lo descifra. Fallback: si el valor no
+        // está cifrado (pre-migración), se devuelve tal cual.
+        foreach (['valores_anteriores', 'valores_nuevos', 'detalles_adicionales'] as $field) {
+            if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
+                $row[$field] = $this->decryptJsonField($row[$field]);
+            }
+        }
+
         $detalles = $this->decodeJson($row['detalles_adicionales'] ?? null);
         $prevHash = null;
 
@@ -211,6 +220,28 @@ final class AuditLogQueryService
             'prev_hash' => $prevHash,
             'hash_integridad' => $row['hash_integridad'],
         ];
+    }
+
+    /**
+     * Descifra un campo JSON que puede estar envuelto como
+     * {"__encrypted":"base64"} o en claro (pre-migración).
+     */
+    private function decryptJsonField(string $value): string
+    {
+        if ($this->encryption === null) {
+            return $value;
+        }
+
+        $decoded = json_decode($value, true);
+        if (is_array($decoded) && isset($decoded['__encrypted']) && is_string($decoded['__encrypted'])) {
+            try {
+                return $this->encryption->decrypt($decoded['__encrypted']);
+            } catch (\Throwable) {
+                return $value;
+            }
+        }
+
+        return $value;
     }
 
     /**
