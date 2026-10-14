@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Application\Services;
 
+use App\Core\Security\Service\EncryptionService;
+use App\Shared\Container\Container;
 use DateTimeImmutable;
 use DateTimeZone;
 use PDO;
@@ -274,14 +276,31 @@ final class DashboardService
             return null;
         }
 
+        $nombrePublico = $row['nombre_publico'] !== null && $row['nombre_publico'] !== ''
+            ? $this->decryptField((string) $row['nombre_publico'])
+            : null;
+        $nombreInterno = $row['nombre_interno'] !== null && $row['nombre_interno'] !== ''
+            ? (string) $row['nombre_interno']
+            : null;
+
         return [
             'id' => (string) $row['id'],
-            'nombre' => ($row['nombre_publico'] !== null && $row['nombre_publico'] !== '')
-                ? (string) $row['nombre_publico']
-                : (($row['nombre_interno'] !== null && $row['nombre_interno'] !== '')
-                    ? (string) $row['nombre_interno']
-                    : null),
+            'nombre' => $nombrePublico ?? $nombreInterno,
         ];
+    }
+
+    /**
+     * Descifra un campo (nombre_publico). Si no está cifrado o el servicio
+     * no está disponible, devuelve el valor tal cual.
+     */
+    private function decryptField(string $value): string
+    {
+        try {
+            $encryption = Container::getInstance()->get(EncryptionService::class);
+            return $encryption->decrypt($value);
+        } catch (\Throwable) {
+            return $value;
+        }
     }
 
     // ====================================================================

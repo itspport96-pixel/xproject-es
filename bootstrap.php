@@ -66,7 +66,11 @@ $container->singleton('password_hasher', fn() => new App\Core\Authentication\Ser
 ]));
 $container->singleton(
     App\Core\Authentication\Repository\UserRepositoryInterface::class,
-    fn($c) => new App\Core\Authentication\Repository\UserRepository($c->get('database'))
+    fn($c) => new App\Core\Authentication\Repository\UserRepository(
+        $c->get('database'),
+        $c->get(App\Core\Security\Service\BlindIndexService::class),
+        $c->get(App\Core\Security\Service\EncryptionService::class)
+    )
 );
 
 // ============================================
@@ -98,7 +102,11 @@ $container->singleton(
 // ============================================
 $container->singleton(
     App\Core\Tenants\Repository\TenantRepositoryInterface::class,
-    fn($c) => new App\Core\Tenants\Repository\TenantRepository($c->get('database'))
+    fn($c) => new App\Core\Tenants\Repository\TenantRepository(
+        $c->get('database'),
+        $c->get(App\Core\Security\Service\BlindIndexService::class),
+        $c->get(App\Core\Security\Service\EncryptionService::class)
+    )
 );
 $container->singleton(
     App\Core\Tenants\Service\TenantContext::class,
@@ -161,6 +169,11 @@ $container->singleton(
 $container->singleton(
     App\Core\Security\Service\EncryptionService::class,
     fn() => new App\Core\Security\Service\EncryptionService()
+);
+
+$container->singleton(
+    App\Core\Security\Service\BlindIndexService::class,
+    fn() => new App\Core\Security\Service\BlindIndexService()
 );
 
 $container->singleton(

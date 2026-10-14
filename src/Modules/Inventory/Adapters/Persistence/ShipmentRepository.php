@@ -4,22 +4,40 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Adapters\Persistence;
 
+use App\Core\Security\Service\EncryptionService;
 use App\Core\Tenants\Service\TenantContext;
 use App\Modules\Inventory\Domain\Entities\Shipment;
 use App\Modules\Inventory\Domain\Exceptions\InventoryException;
 use App\Modules\Inventory\Domain\Repositories\ShipmentRepositoryInterface;
+use App\Shared\Container\Container;
 use App\Shared\Services\DatabaseService;
 use PDO;
 
 final class ShipmentRepository implements ShipmentRepositoryInterface
 {
+    private const PII_FIELDS = ['destino_direccion', 'destinatario_nombre', 'conductor_nombre'];
+
     private PDO $pdo;
     private TenantContext $tenantContext;
+    private ?EncryptionService $encryption;
 
-    public function __construct(DatabaseService $db, TenantContext $tenantContext)
-    {
+    public function __construct(
+        DatabaseService $db,
+        TenantContext $tenantContext,
+        ?EncryptionService $encryption = null
+    ) {
         $this->pdo = $db->getConnection();
         $this->tenantContext = $tenantContext;
+        if ($encryption !== null) {
+            $this->encryption = $encryption;
+        } else {
+            try {
+                $container = Container::getInstance();
+                $this->encryption = $container->has(EncryptionService::class) ? $container->get(EncryptionService::class) : null;
+            } catch (\Throwable) {
+                $this->encryption = null;
+            }
+        }
     }
 
     private function getCurrentTenantId(): string
@@ -38,12 +56,13 @@ final class ShipmentRepository implements ShipmentRepositoryInterface
         ]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $row ? Shipment::fromArray($row) : null;
+        return $row ? Shipment::fromArray($this->decryptRow($row)) : null;
     }
 
     public function save(Shipment $shipment): void
     {
         $data = $shipment->toArray();
+        $data = $this->encryptPii($data);
 
         $sql = 'INSERT INTO shipments
                 (id, tenant_id, referencia_externa, tipo, origen_ubicacion_id,
@@ -64,7 +83,7 @@ final class ShipmentRepository implements ShipmentRepositoryInterface
 
     public function update(Shipment $shipment): void
     {
-        $data = $shipment->toArray();
+        $data = $this->encryptPii($shipment->toArray());
 
         // Sólo los parámetros con placeholder en el UPDATE (created_at no
         // cambia y provocaría "column index out of range" en PDO).
@@ -103,5 +122,42 @@ final class ShipmentRepository implements ShipmentRepositoryInterface
                 throw InventoryException::shipmentNotFound($shipment->id());
             }
         }
+    }
+
+    /**
+     * Cifra los campos PII de un array de datos de shipments.
+     */
+    private function encryptPii(array $data): array
+    {
+        if ($this->encryption === null) {
+            return $data;
+        }
+        foreach (self::PII_FIELDS as $field) {
+            if (isset($data[$field]) && is_string($data[$field]) && $data[$field] !== '') {
+                $data[$field] = $this->encryption->encrypt($data[$field]);
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Descifra los campos PII de una fila de shipments.
+     * Si el valor no está cifrado (pre-migración), lo devuelve tal cual.
+     */
+    private function decryptRow(array $row): array
+    {
+        if ($this->encryption === null) {
+            return $row;
+        }
+        foreach (self::PII_FIELDS as $field) {
+            if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
+                try {
+                    $row[$field] = $this->encryption->decrypt($row[$field]);
+                } catch (\Throwable) {
+                    // Pre-migración: valor en claro, dejar tal cual.
+                }
+            }
+        }
+        return $row;
     }
 }

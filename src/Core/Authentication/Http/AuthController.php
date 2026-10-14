@@ -9,6 +9,7 @@ use App\Core\Authentication\Service\PasswordHasher;
 use App\Core\Authentication\Service\SessionRevokerService;
 use App\Core\Authentication\Repository\UserRepositoryInterface;
 use App\Core\Authorization\Service\AuthorizationService;
+use App\Core\Security\Service\EncryptionService;
 use App\Core\Security\Service\InputSanitizer;
 use App\Core\Security\Service\RateLimiter;
 use App\Core\Users\Exception\UserException;
@@ -30,6 +31,7 @@ class AuthController
     private ?UserService $userService;
     private ?SessionRevokerService $sessions;
     private AuthorizationService $authz;
+    private ?EncryptionService $encryption;
 
     public function __construct(
         ?JwtService $jwt = null,
@@ -41,7 +43,8 @@ class AuthController
         ?AuditLogger $audit = null,
         ?UserService $userService = null,
         ?SessionRevokerService $sessions = null,
-        ?AuthorizationService $authz = null
+        ?AuthorizationService $authz = null,
+        ?EncryptionService $encryption = null
     ) {
         $container = Container::getInstance();
         $this->jwt = $jwt ?? $container->get('jwt');
@@ -56,6 +59,7 @@ class AuthController
         $this->userService = $userService;
         $this->sessions = $sessions;
         $this->authz = $authz ?? $container->get(AuthorizationService::class);
+        $this->encryption = $encryption ?? ($container->has(EncryptionService::class) ? $container->get(EncryptionService::class) : null);
     }
 
     /**
@@ -511,7 +515,7 @@ class AuthController
             'tenant_id' => $tenantId,
             'family_id' => $sessionId,
             'expires_at' => date('Y-m-d H:i:s', time() + $refreshTtl),
-            'ip' => $this->getClientIp(),
+            'ip' => $this->encryption?->encrypt($this->getClientIp()) ?? $this->getClientIp(),
             'ua' => mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
         ]);
 
@@ -600,9 +604,15 @@ class AuthController
 
     private function deduceTenantIdFromEmail(string $email): ?string
     {
-        $sql = "SELECT tenant_id FROM users WHERE email = :email AND deleted_at IS NULL LIMIT 1";
+        // Blind index: busca por HMAC del email (columna email_hmac).
+        $container = Container::getInstance();
+        $hmac = $container->has(\App\Core\Security\Service\BlindIndexService::class)
+            ? $container->get(\App\Core\Security\Service\BlindIndexService::class)->compute($email)
+            : $email;
+
+        $sql = "SELECT tenant_id FROM users WHERE email_hmac = :email_hmac AND deleted_at IS NULL LIMIT 1";
         $stmt = $this->db->getConnection()->prepare($sql);
-        $stmt->execute(['email' => $email]);
+        $stmt->execute(['email_hmac' => $hmac]);
         $tenantId = $stmt->fetchColumn();
         return $tenantId !== false ? (string) $tenantId : null;
     }

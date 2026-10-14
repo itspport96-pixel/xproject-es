@@ -85,13 +85,14 @@ abstract class PlatformControlSqliteTestCase extends TestCase
         ?string $tenantId = null
     ): string {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO users (id, tenant_id, email, nombre, apellido, password, estado, created_at, updated_at)
-             VALUES (:id, :tenant, :email, :nombre, :apellido, :password, :estado, :now, :now)'
+            'INSERT INTO users (id, tenant_id, email, email_hmac, nombre, apellido, password, estado, created_at, updated_at)
+             VALUES (:id, :tenant, :email, :email_hmac, :nombre, :apellido, :password, :estado, :now, :now)'
         );
         $stmt->execute([
             'id' => $id,
             'tenant' => $tenantId ?? self::TENANT,
             'email' => $id . '@example.test',
+            'email_hmac' => $id . '@example.test',
             'nombre' => 'Usuario',
             'apellido' => $id,
             'password' => password_hash('Abcdef1!', PASSWORD_BCRYPT, ['cost' => 4]),
@@ -347,6 +348,7 @@ abstract class PlatformControlSqliteTestCase extends TestCase
                 id TEXT PRIMARY KEY,
                 tenant_id TEXT NOT NULL,
                 email TEXT NOT NULL,
+                email_hmac TEXT,
                 nombre TEXT,
                 apellido TEXT,
                 password TEXT NOT NULL,

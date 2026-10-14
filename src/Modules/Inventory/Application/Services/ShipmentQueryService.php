@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Application\Services;
 
+use App\Core\Security\Service\EncryptionService;
+use App\Shared\Container\Container;
 use App\Modules\Inventory\Domain\Entities\Shipment;
 use App\Modules\Inventory\Domain\Exceptions\InventoryException;
 use PDO;
@@ -23,11 +25,24 @@ final class ShipmentQueryService
     /** Tope de filas por página (spec: per_page máximo 100). */
     private const MAX_PER_PAGE = 100;
 
-    private PDO $pdo;
+    private const PII_FIELDS = ['destino_direccion', 'destinatario_nombre', 'conductor_nombre'];
 
-    public function __construct(PDO $pdo)
+    private PDO $pdo;
+    private ?EncryptionService $encryption;
+
+    public function __construct(PDO $pdo, ?EncryptionService $encryption = null)
     {
         $this->pdo = $pdo;
+        if ($encryption !== null) {
+            $this->encryption = $encryption;
+        } else {
+            try {
+                $container = Container::getInstance();
+                $this->encryption = $container->has(EncryptionService::class) ? $container->get(EncryptionService::class) : null;
+            } catch (\Throwable) {
+                $this->encryption = null;
+            }
+        }
     }
 
     /**
@@ -235,6 +250,7 @@ final class ShipmentQueryService
      */
     private function mapRow(array $row): array
     {
+        $row = $this->decryptPii($row);
         return [
             'shipment_id' => $row['shipment_id'],
             'referencia_externa' => $row['referencia_externa'],
@@ -257,6 +273,26 @@ final class ShipmentQueryService
             'fecha_creacion' => $row['fecha_creacion'],
             'fecha_actualizacion' => $row['fecha_actualizacion'],
         ];
+    }
+
+    /**
+     * Descifra campos PII de una fila. Si no está cifrado, lo devuelve tal cual.
+     */
+    private function decryptPii(array $row): array
+    {
+        if ($this->encryption === null) {
+            return $row;
+        }
+        foreach (self::PII_FIELDS as $field) {
+            if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
+                try {
+                    $row[$field] = $this->encryption->decrypt($row[$field]);
+                } catch (\Throwable) {
+                    // Pre-migración: valor en claro, dejar tal cual.
+                }
+            }
+        }
+        return $row;
     }
 
     /**

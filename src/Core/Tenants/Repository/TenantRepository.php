@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Core\Tenants\Repository;
 
+use App\Core\Security\Service\BlindIndexService;
+use App\Core\Security\Service\EncryptionService;
 use App\Core\Tenants\Entity\Tenant;
 use App\Core\Tenants\Exception\TenantException;
 use App\Shared\Services\DatabaseService;
@@ -12,10 +14,17 @@ use PDO;
 final class TenantRepository implements TenantRepositoryInterface
 {
     private PDO $pdo;
+    private ?BlindIndexService $blindIndex;
+    private ?EncryptionService $encryption;
 
-    public function __construct(DatabaseService $db)
-    {
+    public function __construct(
+        DatabaseService $db,
+        ?BlindIndexService $blindIndex = null,
+        ?EncryptionService $encryption = null
+    ) {
         $this->pdo = $db->getConnection();
+        $this->blindIndex = $blindIndex;
+        $this->encryption = $encryption;
     }
 
     // ========================================================================
@@ -29,19 +38,21 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $row ? Tenant::fromArray($row) : null;
+        return $row ? Tenant::fromArray($this->decryptRow($row)) : null;
     }
 
     public function findByNombreInterno(string $nombreInterno): ?Tenant
     {
+        // Blind index: busca por HMAC de nombre_interno.
+        $hmac = $this->blindIndex?->compute($nombreInterno) ?? strtolower(trim($nombreInterno));
         $sql = "SELECT * FROM tenants
-                WHERE LOWER(nombre_interno) = LOWER(:nombre_interno)
+                WHERE nombre_interno_hmac = :hmac
                   AND deleted_at IS NULL";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(['nombre_interno' => trim($nombreInterno)]);
+        $stmt->execute(['hmac' => $hmac]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $row ? Tenant::fromArray($row) : null;
+        return $row ? Tenant::fromArray($this->decryptRow($row)) : null;
     }
 
     public function findByDominioCustom(string $dominio): ?Tenant
@@ -53,7 +64,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute(['dominio' => trim($dominio)]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $row ? Tenant::fromArray($row) : null;
+        return $row ? Tenant::fromArray($this->decryptRow($row)) : null;
     }
 
     public function findByOwnerUserId(string $ownerUserId): array
@@ -66,7 +77,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute(['owner' => $ownerUserId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Tenant::fromArray($row), $rows);
+        return array_map(fn(array $row) => Tenant::fromArray($this->decryptRow($row)), $rows);
     }
 
     public function findAll(bool $soloActivos = true): array
@@ -75,37 +86,44 @@ final class TenantRepository implements TenantRepositoryInterface
         if ($soloActivos) {
             $sql .= " WHERE deleted_at IS NULL";
         }
-        $sql .= " ORDER BY nombre_publico ASC";
-
+        // ORDER BY en SQL sobre nombre_publico cifrado no funciona.
+        // Se ordena en PHP tras descifrar (lista de tenants es pequeña).
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Tenant::fromArray($row), $rows);
+        $tenants = array_map(fn(array $row) => Tenant::fromArray($this->decryptRow($row)), $rows);
+        usort($tenants, fn(Tenant $a, Tenant $b) => strcmp($a->nombrePublico(), $b->nombrePublico()));
+
+        return $tenants;
     }
 
     public function findByEstado(string $estado): array
     {
         $sql = "SELECT * FROM tenants
-                WHERE estado = :estado AND deleted_at IS NULL
-                ORDER BY nombre_publico ASC";
+                WHERE estado = :estado AND deleted_at IS NULL";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['estado' => $estado]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Tenant::fromArray($row), $rows);
+        $tenants = array_map(fn(array $row) => Tenant::fromArray($this->decryptRow($row)), $rows);
+        usort($tenants, fn(Tenant $a, Tenant $b) => strcmp($a->nombrePublico(), $b->nombrePublico()));
+
+        return $tenants;
     }
 
     public function findByPlan(string $plan): array
     {
         $sql = "SELECT * FROM tenants
-                WHERE plan = :plan AND deleted_at IS NULL
-                ORDER BY nombre_publico ASC";
+                WHERE plan = :plan AND deleted_at IS NULL";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['plan' => $plan]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Tenant::fromArray($row), $rows);
+        $tenants = array_map(fn(array $row) => Tenant::fromArray($this->decryptRow($row)), $rows);
+        usort($tenants, fn(Tenant $a, Tenant $b) => strcmp($a->nombrePublico(), $b->nombrePublico()));
+
+        return $tenants;
     }
 
     public function findOperativos(): array
@@ -113,14 +131,16 @@ final class TenantRepository implements TenantRepositoryInterface
         $sql = "SELECT * FROM tenants
                 WHERE estado = 'ACTIVO'
                   AND deleted_at IS NULL
-                  AND (fecha_expiracion IS NULL OR fecha_expiracion > NOW())
-                ORDER BY nombre_publico ASC";
+                  AND (fecha_expiracion IS NULL OR fecha_expiracion > NOW())";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Tenant::fromArray($row), $rows);
+        $tenants = array_map(fn(array $row) => Tenant::fromArray($this->decryptRow($row)), $rows);
+        usort($tenants, fn(Tenant $a, Tenant $b) => strcmp($a->nombrePublico(), $b->nombrePublico()));
+
+        return $tenants;
     }
 
     public function findPorExpirar(int $dias = 30): array
@@ -137,7 +157,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Tenant::fromArray($row), $rows);
+        return array_map(fn(array $row) => Tenant::fromArray($this->decryptRow($row)), $rows);
     }
 
     // ========================================================================
@@ -155,37 +175,38 @@ final class TenantRepository implements TenantRepositoryInterface
         }
 
         $sql = "INSERT INTO tenants
-                (id, nombre_publico, nombre_interno, estado, plan, owner_user_id,
+                (id, nombre_publico, nombre_interno, nombre_interno_hmac, estado, plan, owner_user_id,
                  fecha_creacion, fecha_expiracion, email_contacto, telefono, pais,
                  zona_horaria, idioma_default, logo_url, dominio_custom,
                  configuracion, metadatos, created_at, updated_at)
                 VALUES
-                (:id, :nombre_publico, :nombre_interno, :estado, :plan, :owner_user_id,
+                (:id, :nombre_publico, :nombre_interno, :nombre_interno_hmac, :estado, :plan, :owner_user_id,
                  :fecha_creacion, :fecha_expiracion, :email_contacto, :telefono, :pais,
                  :zona_horaria, :idioma_default, :logo_url, :dominio_custom,
                  :configuracion, :metadatos, :created_at, :updated_at)";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
-            'id'               => $tenant->id(),
-            'nombre_publico'   => $tenant->nombrePublico(),
-            'nombre_interno'   => $tenant->nombreInterno(),
-            'estado'           => $tenant->estado(),
-            'plan'             => $tenant->plan(),
-            'owner_user_id'    => $tenant->ownerUserId(),
-            'fecha_creacion'   => $tenant->fechaCreacion()->format('Y-m-d H:i:s'),
-            'fecha_expiracion' => $tenant->fechaExpiracion()?->format('Y-m-d H:i:s'),
-            'email_contacto'   => $tenant->emailContacto(),
-            'telefono'         => $tenant->telefono(),
-            'pais'             => $tenant->pais(),
-            'zona_horaria'     => $tenant->zonaHoraria(),
-            'idioma_default'   => $tenant->idiomaDefault(),
-            'logo_url'         => $tenant->logoUrl(),
-            'dominio_custom'   => $tenant->dominioCustom(),
-            'configuracion'    => $this->encodeJson($tenant->configuracion()),
-            'metadatos'        => $this->encodeJson($tenant->metadatos()),
-            'created_at'       => $tenant->createdAt()->format('Y-m-d H:i:s'),
-            'updated_at'       => $tenant->updatedAt()?->format('Y-m-d H:i:s'),
+            'id'                   => $tenant->id(),
+            'nombre_publico'       => $this->encryptField($tenant->nombrePublico()),
+            'nombre_interno'       => $tenant->nombreInterno(),
+            'nombre_interno_hmac'  => $this->blindIndex?->compute($tenant->nombreInterno()),
+            'estado'               => $tenant->estado(),
+            'plan'                 => $tenant->plan(),
+            'owner_user_id'        => $tenant->ownerUserId(),
+            'fecha_creacion'       => $tenant->fechaCreacion()->format('Y-m-d H:i:s'),
+            'fecha_expiracion'     => $tenant->fechaExpiracion()?->format('Y-m-d H:i:s'),
+            'email_contacto'       => $this->encryptField($tenant->emailContacto()),
+            'telefono'             => $this->encryptField($tenant->telefono()),
+            'pais'                 => $tenant->pais(),
+            'zona_horaria'         => $tenant->zonaHoraria(),
+            'idioma_default'       => $tenant->idiomaDefault(),
+            'logo_url'             => $tenant->logoUrl(),
+            'dominio_custom'       => $tenant->dominioCustom(),
+            'configuracion'        => $this->encodeJson($tenant->configuracion()),
+            'metadatos'            => $this->encodeJson($tenant->metadatos()),
+            'created_at'           => $tenant->createdAt()->format('Y-m-d H:i:s'),
+            'updated_at'           => $tenant->updatedAt()?->format('Y-m-d H:i:s'),
         ]);
     }
 
@@ -229,13 +250,13 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
             'id'               => $tenant->id(),
-            'nombre_publico'   => $tenant->nombrePublico(),
+            'nombre_publico'   => $this->encryptField($tenant->nombrePublico()),
             'estado'           => $tenant->estado(),
             'plan'             => $tenant->plan(),
             'owner_user_id'    => $tenant->ownerUserId(),
             'fecha_expiracion' => $tenant->fechaExpiracion()?->format('Y-m-d H:i:s'),
-            'email_contacto'   => $tenant->emailContacto(),
-            'telefono'         => $tenant->telefono(),
+            'email_contacto'   => $this->encryptField($tenant->emailContacto()),
+            'telefono'         => $this->encryptField($tenant->telefono()),
             'pais'             => $tenant->pais(),
             'zona_horaria'     => $tenant->zonaHoraria(),
             'idioma_default'   => $tenant->idiomaDefault(),
@@ -287,10 +308,10 @@ final class TenantRepository implements TenantRepositoryInterface
     public function existsByNombreInterno(string $nombreInterno): bool
     {
         $sql = "SELECT COUNT(*) FROM tenants
-                WHERE LOWER(nombre_interno) = LOWER(:nombre_interno)
+                WHERE nombre_interno_hmac = :hmac
                   AND deleted_at IS NULL";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(['nombre_interno' => trim($nombreInterno)]);
+        $stmt->execute(['hmac' => $this->blindIndex?->compute($nombreInterno) ?? strtolower(trim($nombreInterno))]);
         return (int) $stmt->fetchColumn() > 0;
     }
 
@@ -352,5 +373,39 @@ final class TenantRepository implements TenantRepositoryInterface
             return null;
         }
         return json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * Cifra un campo nullable. Retorna null si el valor es null o vacío.
+     */
+    private function encryptField(?string $value): ?string
+    {
+        if ($value === null || $value === '' || $this->encryption === null) {
+            return $value;
+        }
+        return $this->encryption->encrypt($value);
+    }
+
+    /**
+     * Descifra campos PII de una fila de tenants (nombre_publico, email_contacto, telefono).
+     * Si el valor no está cifrado (pre-migración), lo devuelve tal cual.
+     */
+    private function decryptRow(array $row): array
+    {
+        if ($this->encryption === null) {
+            return $row;
+        }
+
+        foreach (['nombre_publico', 'email_contacto', 'telefono'] as $field) {
+            if (isset($row[$field]) && is_string($row[$field]) && $row[$field] !== '') {
+                try {
+                    $row[$field] = $this->encryption->decrypt($row[$field]);
+                } catch (\Throwable) {
+                    // Pre-migración: valor en claro, dejar tal cual.
+                }
+            }
+        }
+
+        return $row;
     }
 }

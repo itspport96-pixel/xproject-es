@@ -7,6 +7,8 @@ require_once __DIR__ . '/../../bootstrap.php';
 use App\Core\Audit\Seeder\AuditPermissionSeeder;
 use App\Core\Authorization\Seeder\InventoryPermissionSeeder;
 use App\Core\Authorization\Seeder\PlatformControlPermissionSeeder;
+use App\Core\Security\Service\BlindIndexService;
+use App\Core\Security\Service\EncryptionService;
 use App\Core\Tenants\Service\TenantContext;
 use App\Shared\Container\Container;
 
@@ -68,6 +70,8 @@ try {
     $container = Container::getInstance();
     $db = $container->get('database');
     $pdo = $db->getConnection();
+    $blindIndex = $container->has(BlindIndexService::class) ? $container->get(BlindIndexService::class) : null;
+    $encryption = $container->has(EncryptionService::class) ? $container->get(EncryptionService::class) : null;
 
     // PASO 1: Verificar rol ADMIN
     info('Verificando rol BUILT_IN ADMIN...');
@@ -83,8 +87,9 @@ try {
 
     // PASO 2: Verificar tenant
     info('Verificando si el tenant ya existe...');
-    $stmt = $pdo->prepare("SELECT id FROM tenants WHERE nombre_interno = :ni AND deleted_at IS NULL");
-    $stmt->execute(['ni' => TENANT_DATA['nombre_interno']]);
+    $tenantLookupValue = $blindIndex?->compute(TENANT_DATA['nombre_interno']) ?? TENANT_DATA['nombre_interno'];
+    $stmt = $pdo->prepare("SELECT id FROM tenants WHERE nombre_interno_hmac = :ni AND deleted_at IS NULL");
+    $stmt->execute(['ni' => $tenantLookupValue]);
     $existingTenantId = $stmt->fetchColumn();
 
     if ($existingTenantId !== false) {
@@ -98,8 +103,9 @@ try {
 
     // PASO 3: Verificar usuario admin
     info('Verificando si el usuario admin ya existe...');
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email AND deleted_at IS NULL");
-    $stmt->execute(['email' => ADMIN_DATA['email']]);
+    $emailLookupValue = $blindIndex?->compute(ADMIN_DATA['email']) ?? ADMIN_DATA['email'];
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE email_hmac = :email AND deleted_at IS NULL");
+    $stmt->execute(['email' => $emailLookupValue]);
     $existingUserId = $stmt->fetchColumn();
 
     if ($existingUserId !== false) {
@@ -120,18 +126,22 @@ try {
             info('Creando tenant...');
             $now = date('Y-m-d H:i:s');
             $sql = "INSERT INTO tenants
-                    (id, nombre_publico, nombre_interno, estado, plan,
+                    (id, nombre_publico, nombre_interno, nombre_interno_hmac, estado, plan,
                      email_contacto, telefono, pais, zona_horaria, idioma_default,
                      fecha_creacion, created_at, updated_at)
                     VALUES
-                    (:id, :np, :ni, 'ACTIVO', :plan,
+                    (:id, :np, :ni, :nih, 'ACTIVO', :plan,
                      :ec, :tel, :pais, :zh, :idioma,
                      :fc, :ca, :ua)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
-                'id' => $tenantId, 'np' => TENANT_DATA['nombre_publico'],
-                'ni' => TENANT_DATA['nombre_interno'], 'plan' => TENANT_DATA['plan'],
-                'ec' => TENANT_DATA['email_contacto'], 'tel' => TENANT_DATA['telefono'],
+                'id' => $tenantId,
+                'np' => $encryption?->encrypt(TENANT_DATA['nombre_publico']) ?? TENANT_DATA['nombre_publico'],
+                'ni' => TENANT_DATA['nombre_interno'],
+                'nih' => $blindIndex?->compute(TENANT_DATA['nombre_interno']),
+                'plan' => TENANT_DATA['plan'],
+                'ec' => $encryption?->encrypt(TENANT_DATA['email_contacto']) ?? TENANT_DATA['email_contacto'],
+                'tel' => $encryption?->encrypt(TENANT_DATA['telefono']) ?? TENANT_DATA['telefono'],
                 'pais' => TENANT_DATA['pais'], 'zh' => TENANT_DATA['zona_horaria'],
                 'idioma' => TENANT_DATA['idioma_default'],
                 'fc' => $now, 'ca' => $now, 'ua' => $now,
@@ -147,13 +157,15 @@ try {
             $now = date('Y-m-d H:i:s');
 
             $sql = "INSERT INTO users
-                    (id, tenant_id, email, nombre, apellido, password, estado, email_verificado, created_at, updated_at)
+                    (id, tenant_id, email, email_hmac, nombre, apellido, password, estado, email_verificado, created_at, updated_at)
                     VALUES
-                    (:id, :tid, :email, :nombre, :apellido, :password, 'ACTIVO', 1, :ca, :ua)";
+                    (:id, :tid, :email, :emailh, :nombre, :apellido, :password, 'ACTIVO', 1, :ca, :ua)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 'id' => $adminUserId, 'tid' => $tenantId,
-                'email' => ADMIN_DATA['email'], 'nombre' => ADMIN_DATA['nombre'],
+                'email' => $encryption?->encrypt(ADMIN_DATA['email']) ?? ADMIN_DATA['email'],
+                'emailh' => $blindIndex?->compute(ADMIN_DATA['email']),
+                'nombre' => ADMIN_DATA['nombre'],
                 'apellido' => ADMIN_DATA['apellido'], 'password' => $passwordHash,
                 'ca' => $now, 'ua' => $now,
             ]);

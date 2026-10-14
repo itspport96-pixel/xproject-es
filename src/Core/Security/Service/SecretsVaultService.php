@@ -427,7 +427,7 @@ final class SecretsVaultService
                 'secret_id' => $secretId,
                 'user_id' => $userId,
                 'accion' => $accion,
-                'ip' => $ip,
+                'ip' => $this->encryption->encrypt($ip),
                 'ua' => substr($userAgent, 0, 500),
             ]);
         } catch (\Throwable $e) {

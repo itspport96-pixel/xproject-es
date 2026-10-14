@@ -4,6 +4,48 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.38] - 2026-10-14
+
+**Sprint 2 de cifrado: blind index HMAC-SHA256 para búsquedas + AES-256-GCM de PII no consultable.** `users.email` y `tenants.nombre_interno` ahora se buscan por un índice ciego (HMAC-SHA256 con clave separada) en lugar de LIKE sobre el valor en claro. Los teléfonos, contacto de tenant, PII de envíos e IPs de rate limiting/refresh tokens/secrets log se cifran AES-256-GCM. Un cibercriminal con acceso a la BD no puede hacer lookup por email ni ver teléfonos/IPs reales.
+
+### Added
+
+- **`BlindIndexService`** (`src/Core/Security/Service/BlindIndexService.php`): HMAC-SHA256 con clave `BLIND_INDEX_KEY` (separada de `ENCRYPTION_KEY`), hex de 64 caracteres. Normaliza valor (`mb_strtolower(trim())`) antes de hashear.
+- **`bin/sprint2-backfill.php`**: backfill de `email_hmac`, `nombre_interno_hmac` y cifrado de PII existente. Ejecutado contra BD viva.
+- **`bin/revert-users-nombre-encryption.php`**: revirtió `users.nombre`/`apellido` a claro (el backfill los cifró pero la decisión final fue no cifrarlos por ORDER BY/LIKE).
+
+### Changed
+
+- **`users.email`**: ahora se busca por `email_hmac` (HMAC exacto) en `findByEmail`, login y `deduceTenantIdFromEmail`. Búsqueda LIKE de email degradada a match exacto por HMAC si el término parece email.
+- **`tenants.nombre_interno`**: se busca por `nombre_interno_hmac` en `findByNombreInterno` y `existsByNombreInterno`.
+- **Cifrado AES-256-GCM añadido a**: `users.email`, `users.telefono`, `tenants.nombre_publico`, `tenants.email_contacto`, `tenants.telefono`, `shipments.destino_direccion`/`destinatario_nombre`/`conductor_nombre`, `rate_limit_log.ip_address`, `refresh_tokens.ip_address`, `secrets_access_log.ip_address`.
+- **`TenantRepository`**: constructor acepta `?BlindIndexService` + `?EncryptionService`. `findAll`/`findByEstado`/`findByPlan`/`findOperativos` mueven ORDER BY `nombre_publico` de SQL a PHP (`usort` tras descifrar).
+- **`UserService`**: `create`/`update`/`updateMe` calculan `email_hmac` y cifran email/telefono. `findAll` descifra filas y soporta búsqueda HMAC.
+- **`TenantService`**: INSERT de admin calcula `email_hmac` y cifra email/telefono.
+- **`ShipmentRepository`**: cifra PII al escribir, descifra al leer.
+- **`ShipmentQueryService`**: descifra PII en `mapRow` (listado y detalle).
+- **`RateLimitRepository`**, **`AuthController::storeRefreshToken`**, **`SecretsVaultService::logAccess`**: cifran IP antes del INSERT.
+- **`DashboardService`**: descifra `nombre_publico` al mostrar nombre de tenant.
+- **`PlatformSeeder`**: lookups por HMAC, INSERT con email_hmac + cifrado.
+- **`bootstrap.php`**: registra `BlindIndexService`; inyecta servicios en `UserRepository`, `TenantRepository`.
+- **`.env`**: `BLIND_INDEX_KEY` añadida (clave separada de `ENCRYPTION_KEY`).
+- **`schema.sql`**: regenerado. Columnas nuevas: `users.email_hmac CHAR(64)`, `tenants.nombre_interno_hmac CHAR(64)`. Ampliadas: `users.telefono`/`tenants.telefono` → varchar(255), `tenants.email_contacto` → varchar(512), `shipments.destinatario_nombre`/`conductor_nombre` → varchar(512), `rate_limit_log`/`refresh_tokens`/`secrets_access_log.ip_address` → varchar(255). Eliminadas: `users.email_activo` (generated), índices `uq_users_tenant_email_activo`, `idx_tenant_email`, unique `nombre_interno` de tenants. Nuevos: `uq_users_tenant_email_hmac (tenant_id, email_hmac)`, `uq_tenants_nombre_interno_hmac (nombre_interno_hmac)`.
+
+### Notes
+
+- **Campos NO cifrados** (rompen ORDER BY / LIKE): `users.nombre`, `users.apellido`. Se usan LIKE directo en búsquedas y ORDER BY en `UserGroupRepository`.
+- **Búsqueda LIKE de email degradada**: LIKE sobre email cifrado no funciona; el search de usuarios usa HMAC exacto si el término parece email, y LIKE sobre nombre/apellido siempre.
+- **Fallback seguro**: todos los `decrypt*` intentan descifrar y si el valor no está cifrado (pre-migración) lo devuelven tal cual.
+
+### Verified
+
+- `php bin/check-schema-drift.php` → SIN DRIFT
+- `php bin/check-data-integrity.php` → DATOS CONSISTENTES
+- `composer test` → 944/944 OK
+- `node tools/smoke/smoke-v162.mjs` → 89 OK, 0 FAIL
+- `node tools/smoke/smoke-v171.mjs` → 105 OK, 0 FAIL
+- API en vivo: login OK, users list con emails/teléfonos descifrados, dashboard muestra nombre de tenant descifrado, create user con cifrado en escritura y búsqueda HMAC/LIKE OK
+
 ## [1.13.37] - 2026-10-14
 
 **Cifrado AES-256-GCM de PII en audit_logs (ip_address, user_agent).** Los datos de auditoría ahora se almacenan cifrados en la BD viva; la API los descifra al servirlos. Un cibercriminal con acceso a la BD ve texto cifrado, no IPs ni user agents reales.
