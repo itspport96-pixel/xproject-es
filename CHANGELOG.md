@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.45] - 2026-10-14
+
+**Fix: mutaciones de roles no se reflejan en la tabla de usuarios sin recargar.** Tras asignar/quitar un rol o quitar de un grupo, el modal se actualizaba pero la columna Roles de la tabla conservaba los datos viejos hasta recargar la pagina completa. Ahora `refreshUserRow` actualiza la fila del usuario en `state.items` con los roles frescos del servidor y re-renderiza la tabla al instante.
+
 ## [1.13.44] - 2026-10-14
 
 **Rollback del cifrado PII de usuarios: se revierte a texto plano.** El cifrado AES-256-GCM de PII (email, nombre, apellido, telefono en users; destinatario/conductor en shipments; JSON en audit_logs) se revierte porque rompe busquedas LIKE, ORDER BY y complicaba la plataforma sin beneficio operativo. Los datos en BD viva se descifraron primero (1762 filas) y luego el codigo de cifrado se elimino de todos los repositorios y servicios. La normalizacion BD (junction role_permissions, FKs, indices) se **conserva** — es independiente del cifrado.

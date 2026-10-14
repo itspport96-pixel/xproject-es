@@ -1169,6 +1169,7 @@
             modal.roles = null;
             renderModal();
             const recargado = await loadUserRoles(modal.id);
+            refreshUserRow(modal.id, modal.roles);
             if (recargado) {
                 UI.toast('success', t('users.roles.title'),
                     t('users.roles.remove_group_success', { group: UI.escapeHtml(groupName || '') }));
@@ -1209,6 +1210,23 @@
         }
     }
 
+    /**
+     * Tras mutar roles, actualiza la fila del usuario en la tabla
+     * (state.items) con los roles frescos del servidor y re-renderiza.
+     * Sin esto la columna Roles de la tabla conserva los datos viejos
+     * hasta recargar la pagina completa.
+     */
+    function refreshUserRow(userId, rolesFromModal) {
+        const idx = state.items.findIndex(function (u) { return String(u.id) === String(userId); });
+        if (idx === -1) return;
+        if (rolesFromModal && Array.isArray(rolesFromModal)) {
+            state.items[idx].roles = rolesFromModal.map(function (r) {
+                return { id: r.id, nombre: r.nombre, tipo: r.tipo, origen: r.origen };
+            });
+        }
+        renderUsersTable();
+    }
+
     async function assignRole() {
         const modal = state.modal;
         const root = getModalRoot();
@@ -1228,6 +1246,7 @@
             });
             refreshSelfIfNeeded(modal.id);
             const recargado = await loadUserRoles(modal.id);
+            refreshUserRow(modal.id, modal.roles);
             if (recargado) {
                 UI.toast('success', t('users.roles.title'), t('users.roles.assigned'));
             }
@@ -1255,6 +1274,7 @@
             refreshSelfIfNeeded(modal.id);
             // Estado real desde el servidor antes de confirmar el exito.
             const recargado = await loadUserRoles(modal.id);
+            refreshUserRow(modal.id, modal.roles);
             if (recargado) {
                 UI.toast('success', t('users.roles.title'), t('users.roles.removed'));
             }
