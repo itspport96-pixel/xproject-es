@@ -1,11 +1,20 @@
 # ============================================
-# RAIZ DEL PROYECTO - ACCESO WEB RESTRINGIDO
-# Solo /public es accesible via HTTP.
-# Bloquea .env, src/, database/, composer.json, etc.
+# RAIZ DEL PROYECTO - TODO REDIRIGE A /public
+# Cualquier acceso fuera de /public/ (directorio raiz,
+# src/, database/, .env, etc.) redirige a /public/.
 # ============================================
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteRule !^public/ - [F,L]
+
+    # Directorio base (misma convencion que public/.htaccess)
+    RewriteBase /xp/
+
+    # Si la request NO empieza por /public/, redirigir a /public/
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [R=302,L]
+
+    # Si empieza por /public/ pero no existe el archivo/directorio,
+    # dejar que el .htaccess de /public/ haga su trabajo (SPA router)
 </IfModule>
 
 # Bloqueo extra de archivos ocultos (.env, .git, .htaccess...)
