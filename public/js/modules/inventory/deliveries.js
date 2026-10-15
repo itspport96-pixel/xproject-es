@@ -283,7 +283,7 @@
                 </td>
                 <td class="text-xs">${escapeHtml(s.conductor_nombre || '—')}</td>
                 <td class="text-right">${formatNumber(s.total_items)}</td>
-                <td class="text-xs">${escapeHtml(s.fecha_creacion || '—')}</td>
+                <td class="text-xs">${escapeHtml(UI.formatDateTime(s.fecha_creacion))}</td>
                 <td class="table-actions col-actions">${renderRowActions(s)}</td>
             </tr>
         `).join('');

@@ -465,6 +465,23 @@ $router->patch('/api/tenant', [TenantController::class, 'update'], [
     RateLimitMiddleware::class . ':api',
 ]);
 
+// GET /api/tenant/branding (v1.14.0): marca y preferencias regionales para
+// cualquier usuario autenticado del tenant (logo, color, formatos).
+$router->get('/api/tenant/branding', [TenantController::class, 'branding'], [
+    AuthenticationMiddleware::class,
+    TenantMiddleware::class,
+    RateLimitMiddleware::class . ':api',
+]);
+
+// POST /api/tenant/logo (v1.14.0): subida multipart del logo (solo ADMIN)
+$router->post('/api/tenant/logo', [TenantController::class, 'uploadLogo'], [
+    AuditMiddleware::class,
+    AuthenticationMiddleware::class,
+    TenantMiddleware::class,
+    PermissionMiddleware::class . ':tenants.tenant.edit',
+    RateLimitMiddleware::class . ':api',
+]);
+
 // POST /api/tenant/activate
 $router->post('/api/tenant/activate', [TenantController::class, 'activate'], [
     AuditMiddleware::class,

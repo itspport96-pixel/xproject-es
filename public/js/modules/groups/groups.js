@@ -335,7 +335,7 @@
                     <td>${UI.escapeHtml((m.nombre || '') + ' ' + (m.apellido || ''))}</td>
                     <td>${UI.escapeHtml(m.email || '')}</td>
                     <td>${estadoUsuarioBadge(m.estado)}</td>
-                    <td>${UI.escapeHtml(m.added_at || '—')}</td>
+                    <td>${UI.escapeHtml(UI.formatDateTime(m.added_at))}</td>
                     <td class="table-actions col-actions">${quitar}</td>
                 </tr>`;
         }).join('');
@@ -380,7 +380,7 @@
                 <tr>
                     <td>${UI.escapeHtml(r.nombre || '')}${borrado}</td>
                     <td><span class="badge badge-${r.tipo === 'BUILT_IN' ? 'neutral' : 'info'}">${UI.escapeHtml(r.tipo || '')}</span></td>
-                    <td>${UI.escapeHtml(r.assigned_at || '—')}</td>
+                    <td>${UI.escapeHtml(UI.formatDateTime(r.assigned_at))}</td>
                     <td class="table-actions col-actions">${quitar}</td>
                 </tr>`;
         }).join('');

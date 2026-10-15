@@ -418,8 +418,21 @@ final class TenantService
             }
         }
 
+        if (array_key_exists('logo_url', $data)) {
+            $logo = $data['logo_url'] === null ? null : trim((string) $data['logo_url']);
+            if ($logo !== null && $logo !== '' && !self::isValidLogoUrl($logo)) {
+                throw TenantException::invalidLogoUrl();
+            }
+            $tenant->actualizarLogo($logo);
+        }
+
         if (isset($data['configuracion'])) {
-            $tenant->actualizarConfiguracion((array) $data['configuracion']);
+            if (!is_array($data['configuracion'])) {
+                throw TenantException::invalidConfiguracion('configuracion');
+            }
+            $merged = self::mergeConfiguracion($tenant->configuracion() ?? [], $data['configuracion']);
+            self::validateConfiguracion($merged);
+            $tenant->actualizarConfiguracion($merged === [] ? null : $merged);
         }
 
         if (isset($data['metadatos'])) {
@@ -680,6 +693,87 @@ final class TenantService
     /**
      * Invalida el cache de un tenant específico.
      */
+    public const FORMATOS_FECHA = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD', 'DD-MM-YYYY', 'DD.MM.YYYY'];
+
+    /** Mismo catalogo que el selector de Configuracion > Preferencias regionales. */
+    public const MONEDAS = ['MXN', 'USD', 'EUR', 'COP', 'ARS', 'CLP', 'PEN', 'BRL', 'GTQ', 'CRC', 'UYU', 'BOB', 'PYG', 'DOP', 'GBP', 'CAD'];
+
+    /**
+     * Fusion por secciones (v1.14.0): un PATCH parcial no borra el resto de
+     * la configuracion; una clave con null se elimina y una seccion vacia
+     * desaparece.
+     */
+    private static function mergeConfiguracion(array $actual, array $cambios): array
+    {
+        foreach ($cambios as $seccion => $valor) {
+            if (is_array($valor) && is_array($actual[$seccion] ?? null)) {
+                $valor = array_replace($actual[$seccion], $valor);
+            }
+            if (is_array($valor)) {
+                $valor = array_filter($valor, static fn($v) => $v !== null);
+            }
+            if ($valor === null || $valor === []) {
+                unset($actual[$seccion]);
+            } else {
+                $actual[$seccion] = $valor;
+            }
+        }
+        foreach ($actual as $seccion => $valor) {
+            if (is_array($valor)) {
+                $valor = array_filter($valor, static fn($v) => $v !== null);
+                if ($valor === []) {
+                    unset($actual[$seccion]);
+                    continue;
+                }
+                $actual[$seccion] = $valor;
+            }
+        }
+        return $actual;
+    }
+
+    /** http(s) externo o ruta propia de subida (uploads/tenants/...). */
+    private static function isValidLogoUrl(string $url): bool
+    {
+        if (strlen($url) > 255) {
+            return false;
+        }
+        if (preg_match('#^uploads/tenants/[0-9a-f\-]{36}/logo-[0-9]+\.(png|jpg|webp)$#', $url)) {
+            return true;
+        }
+        return (bool) preg_match('#^https?://[^\s"\'<>]+$#i', $url);
+    }
+
+    /** Valida las claves conocidas de configuracion (perfil/apariencia/regional). */
+    private static function validateConfiguracion(array $config): void
+    {
+        $perfil = $config['perfil'] ?? [];
+        $apariencia = $config['apariencia'] ?? [];
+        $regional = $config['regional'] ?? [];
+        if (!is_array($perfil) || !is_array($apariencia) || !is_array($regional)) {
+            throw TenantException::invalidConfiguracion('configuracion');
+        }
+
+        $direccion = $perfil['direccion'] ?? null;
+        if ($direccion !== null && (!is_string($direccion) || mb_strlen($direccion) > 500)) {
+            throw TenantException::invalidConfiguracion('perfil.direccion');
+        }
+
+        $color = $apariencia['color_primario'] ?? null;
+        if ($color !== null && (!is_string($color) || !preg_match('/^#[0-9a-fA-F]{6}$/', $color))) {
+            throw TenantException::invalidConfiguracion('apariencia.color_primario');
+        }
+
+        $moneda = $regional['moneda'] ?? null;
+        if ($moneda !== null && (!is_string($moneda) || !in_array($moneda, self::MONEDAS, true))) {
+            throw TenantException::invalidConfiguracion('regional.moneda');
+        }
+
+        $formato = $regional['formato_fecha'] ?? null;
+        if ($formato !== null && !in_array($formato, self::FORMATOS_FECHA, true)) {
+            throw TenantException::invalidConfiguracion('regional.formato_fecha');
+        }
+    }
+
     private function invalidateTenantCache(string $tenantId): void
     {
         $cacheKey = self::CACHE_PREFIX . $tenantId;

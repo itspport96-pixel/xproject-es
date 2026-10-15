@@ -33,3 +33,7 @@ CHANGELOG.md
 /tools/e2e/.e2e-server.pid
 /tools/e2e/.e2e-server.log
 /tools/e2e/.e2e-server.log.err
+
+# Subidas de usuario (logos de tenant, v1.14.0): solo se versiona el .htaccess.
+/public/uploads/*
+!/public/uploads/.htaccess

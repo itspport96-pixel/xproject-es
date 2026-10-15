@@ -1,0 +1,651 @@
+/* ============================================
+   IOS - Capa visual estilo iOS sin transparencias (v1.14.0)
+   Se carga DESPUES de components.css y sólo refina presentación (radios,
+   alturas, rellenos, separadores, estados). No cambia estructura ni
+   selectores de las vistas. Sin backdrop-filter ni fondos translúcidos:
+   todas las superficies son opacas (requisito del rediseño).
+   Las reglas que deben ganar a utilidades de Tailwind (CDN, se inyecta al
+   final del <head>) llevan especificidad propia (#module-container ...).
+   ============================================ */
+
+body {
+    font-size: 0.9375rem;
+    letter-spacing: -0.006em;
+    font-feature-settings: "kern", "liga";
+}
+
+h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+}
+
+/* ---------- Large title de cada vista (UI.pageHeader) ---------- */
+#module-container h2.text-2xl {
+    font-size: 1.875rem;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+
+#module-container h2.text-2xl + p.text-sm {
+    margin-top: 0.25rem;
+    font-size: 0.9375rem;
+}
+
+#module-container {
+    animation: iosFadeUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes iosFadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Shell: header opaco con separador fino ---------- */
+.app-header {
+    background-color: rgb(var(--color-surface));
+    border-bottom: 1px solid rgb(var(--color-border));
+    box-shadow: none;
+    min-height: 3.5rem;
+}
+
+.header-icon-btn {
+    border-radius: 9999px;
+}
+
+/* ---------- Sidebar estilo iPadOS ---------- */
+.sidebar {
+    background-color: rgb(var(--color-background));
+    border-right: 1px solid rgb(var(--color-border));
+}
+
+.sidebar-header {
+    border-bottom: none;
+    padding: 1.125rem 1rem 0.75rem;
+    min-height: 3.5rem;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 0;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: rgb(var(--color-text));
+}
+
+.sidebar-brand-logo {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    object-fit: contain;
+    background-color: rgb(var(--color-surface));
+    flex-shrink: 0;
+}
+
+.sidebar-brand-mark {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(var(--color-primary));
+    color: rgb(var(--color-primary-foreground));
+    font-size: 0.9375rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.sidebar-brand-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.sidebar-brand-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-brand-sub {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: rgb(var(--color-text-subtle));
+    letter-spacing: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-layout.sidebar-collapsed .sidebar-brand {
+    display: flex;
+}
+
+.app-layout.sidebar-collapsed .sidebar-brand-text {
+    display: none;
+}
+
+.sidebar-nav {
+    padding: 0.25rem 0.625rem;
+}
+
+.sidebar-section-title {
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    padding: 0.5rem 0.625rem 0.375rem;
+}
+
+.sidebar-item {
+    padding: 0.5rem 0.625rem;
+    font-size: 0.9375rem;
+    color: rgb(var(--color-text));
+    border-radius: 0.625rem;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-item .sidebar-item-icon {
+    color: rgb(var(--color-primary));
+}
+
+.sidebar-item:hover {
+    background-color: rgb(var(--color-surface-hover));
+}
+
+.sidebar-item.is-active {
+    background-color: rgb(var(--color-primary));
+    color: rgb(var(--color-primary-foreground));
+    font-weight: 600;
+}
+
+.sidebar-item.is-active .sidebar-item-icon {
+    color: rgb(var(--color-primary-foreground));
+}
+
+.sidebar-footer {
+    border-top: 1px solid rgb(var(--color-border));
+    background-color: rgb(var(--color-background));
+}
+
+/* ---------- Tarjetas: inset grouped ---------- */
+.card,
+.stat-card {
+    background-color: rgb(var(--color-surface));
+    border: 1px solid transparent;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+html.dark .card,
+html.dark .stat-card {
+    box-shadow: none;
+}
+
+.card-header {
+    border-bottom-color: rgb(var(--color-border));
+}
+
+.card > .table-wrapper,
+.card.p-0 {
+    border-radius: var(--radius-lg);
+}
+
+/* ---------- Botones ---------- */
+.btn {
+    min-height: 2.5rem;
+    padding: 0.5rem 1.125rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    letter-spacing: -0.01em;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+
+.btn:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.btn-sm {
+    min-height: 2rem;
+    padding: 0.3125rem 0.75rem;
+    font-size: 0.8125rem;
+    border-radius: 0.5rem;
+}
+
+.btn-lg {
+    min-height: 3rem;
+    font-size: 1.0625rem;
+    border-radius: 0.75rem;
+}
+
+.btn-secondary {
+    background-color: rgb(var(--color-surface-alt));
+    border-color: transparent;
+    color: rgb(var(--color-primary));
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: rgb(var(--color-surface-hover));
+}
+
+.btn-outline {
+    border-color: rgb(var(--color-border-strong));
+}
+
+.btn-ghost {
+    font-weight: 500;
+}
+
+.btn.text-danger {
+    color: rgb(var(--color-danger));
+}
+
+.header-icon-btn,
+.sidebar-toggle {
+    min-height: 2.5rem;
+}
+
+.btn.is-loading {
+    position: relative;
+    color: transparent !important;
+    pointer-events: none;
+}
+
+.btn.is-loading::after {
+    content: '';
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgb(var(--color-primary-foreground));
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+/* ---------- Campos: estilo "filled" iOS ---------- */
+.input,
+.select,
+.textarea {
+    min-height: 2.625rem;
+    padding: 0.5625rem 0.875rem;
+    font-size: 0.9375rem;
+    background-color: rgb(var(--color-surface-alt));
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+}
+
+.input:hover:not(:disabled):not(:focus),
+.select:hover:not(:disabled):not(:focus),
+.textarea:hover:not(:disabled):not(:focus) {
+    background-color: rgb(var(--color-surface-hover));
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+    background-color: rgb(var(--color-surface));
+    border-color: rgb(var(--color-primary));
+}
+
+.select {
+    padding-right: 2.25rem;
+}
+
+.input.is-invalid,
+.select.is-invalid,
+.textarea.is-invalid {
+    background-color: rgb(var(--color-danger) / 0.06);
+    border-color: rgb(var(--color-danger));
+}
+
+.form-label,
+#module-container label.text-sm.font-medium {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: rgb(var(--color-text-muted));
+}
+
+.textarea {
+    min-height: 5rem;
+}
+
+/* Interruptor iOS: verde al activarse, pomo con sombra */
+.toggle {
+    width: 3.1875rem;
+    height: 1.9375rem;
+}
+
+.toggle-slider::before {
+    height: 1.6875rem;
+    width: 1.6875rem;
+    left: 0.125rem;
+    top: 0.125rem;
+    box-shadow: 0 3px 8px rgb(0 0 0 / 0.15), 0 1px 1px rgb(0 0 0 / 0.16);
+}
+
+.toggle-slider {
+    background-color: rgb(var(--color-surface-hover));
+}
+
+.toggle input:checked + .toggle-slider {
+    background-color: rgb(var(--color-switch-on));
+}
+
+.toggle input:checked + .toggle-slider::before {
+    transform: translateX(1.25rem);
+}
+
+/* ---------- Pestañas: control segmentado ---------- */
+.tabs {
+    display: inline-flex;
+    max-width: 100%;
+    gap: 0.125rem;
+    padding: 0.1875rem;
+    background-color: rgb(var(--color-surface-hover));
+    border-bottom: none;
+    border-radius: 0.6875rem;
+}
+
+.tab {
+    padding: 0.4375rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(var(--color-text));
+    border-bottom: none;
+    border-radius: 0.5rem;
+    margin-bottom: 0;
+    transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.tab:hover:not(.is-active) {
+    background-color: rgb(var(--color-surface-alt));
+}
+
+.tab.is-active {
+    background-color: rgb(var(--color-surface));
+    color: rgb(var(--color-text));
+    font-weight: 600;
+    box-shadow: 0 3px 8px rgb(0 0 0 / 0.12), 0 1px 1px rgb(0 0 0 / 0.04);
+}
+
+html.dark .tab.is-active {
+    background-color: rgb(99 99 102);
+    color: rgb(255 255 255);
+    box-shadow: none;
+}
+
+html.dark .tabs {
+    background-color: rgb(var(--color-surface-alt));
+}
+
+/* Segmentado propio (modal Otorgar permiso) con el mismo lenguaje */
+.segmented {
+    background-color: rgb(var(--color-surface-hover));
+    border-color: transparent;
+    border-radius: 0.6875rem;
+}
+
+/* ---------- Tablas: listas agrupadas ---------- */
+.table-wrapper {
+    border: 1px solid transparent;
+    border-radius: var(--radius-lg);
+    background-color: rgb(var(--color-surface));
+}
+
+.table {
+    font-size: 0.9rem;
+}
+
+.table thead {
+    background-color: rgb(var(--color-surface));
+    border-bottom: 1px solid rgb(var(--color-border));
+}
+
+.table th {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgb(var(--color-text-subtle));
+}
+
+.table td {
+    padding: 0.8125rem 1rem;
+    color: rgb(var(--color-text));
+    border-bottom: 1px solid rgb(var(--color-border));
+}
+
+.table tbody tr {
+    transition: background-color 0.12s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgb(var(--color-surface-alt));
+}
+
+/* ---------- Paginación ---------- */
+.page-btn {
+    border-radius: 0.5rem;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+}
+
+/* ---------- Badges y chips ---------- */
+.badge {
+    padding: 0.1875rem 0.625rem;
+    font-weight: 600;
+}
+
+/* ---------- Modales: hoja opaca ---------- */
+.modal {
+    border-radius: var(--radius-xl);
+    border: none;
+}
+
+.modal-header {
+    border-bottom-color: rgb(var(--color-border));
+}
+
+.modal-title {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.modal-close {
+    border-radius: 9999px;
+}
+
+/* ---------- Menús y toasts ---------- */
+.dropdown-menu {
+    border-radius: 0.875rem;
+    border-color: rgb(var(--color-border));
+    padding: 0.375rem;
+}
+
+.dropdown-item {
+    border-radius: 0.5rem;
+    font-size: 0.9375rem;
+}
+
+.toast {
+    border-radius: var(--radius-lg);
+    border-color: rgb(var(--color-border));
+}
+
+/* ---------- Alerts ---------- */
+.alert {
+    border-radius: var(--radius-md);
+    border-width: 0;
+}
+
+/* ---------- Skeleton ---------- */
+.skeleton {
+    border-radius: 0.5rem;
+}
+
+/* ---------- Login ---------- */
+.login-container {
+    background: rgb(var(--color-background));
+}
+
+.login-card {
+    border: none;
+    border-radius: 1.375rem;
+    padding: 2.5rem 2rem;
+    box-shadow: var(--shadow-lg);
+}
+
+.login-logo h1 {
+    color: rgb(var(--color-text));
+    font-size: 1.875rem;
+    letter-spacing: -0.03em;
+}
+
+/* ---------- Avatar ---------- */
+.avatar {
+    background-color: rgb(var(--color-primary));
+    color: rgb(var(--color-primary-foreground));
+    font-weight: 600;
+}
+
+/* ---------- Configuración del tenant (v1.14.0) ---------- */
+.settings-section {
+    margin-bottom: 1.5rem;
+}
+
+.settings-section-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgb(var(--color-text-subtle));
+    margin: 0 0 0.5rem 0.25rem;
+}
+
+.settings-section-foot {
+    font-size: 0.8125rem;
+    color: rgb(var(--color-text-subtle));
+    margin: 0.5rem 0 0 0.25rem;
+}
+
+.settings-logo-box {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.settings-logo-preview {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 1rem;
+    background-color: rgb(var(--color-surface-alt));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    color: rgb(var(--color-text-subtle));
+}
+
+.settings-logo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.color-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.color-swatch {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    border: 3px solid rgb(var(--color-surface));
+    box-shadow: 0 0 0 1px rgb(var(--color-border-strong));
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.15s ease;
+}
+
+.color-swatch:hover {
+    transform: scale(1.08);
+}
+
+.color-swatch.is-selected {
+    box-shadow: 0 0 0 2px rgb(var(--color-text));
+}
+
+.color-custom {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.color-custom input[type="color"] {
+    width: 2.25rem;
+    height: 2.25rem;
+    border: none;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.brand-preview {
+    border-radius: var(--radius-lg);
+    background-color: rgb(var(--color-background));
+    padding: 1rem;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.brand-preview-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 0.625rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+}
+
+.format-sample {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: rgb(var(--color-text));
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+    #module-container h2.text-2xl {
+        font-size: 1.5rem;
+    }
+
+    .tabs {
+        display: flex;
+    }
+
+    .btn {
+        min-height: 2.75rem;
+    }
+}
+
+/* ---------- Ajustes de maquetación (v1.14.0) ---------- */
+/* Fila de botones de filtro (Filtrar + limpiar) dentro de un form-group:
+   en fila, no en columna (antes "Limpiar" caía sola a una segunda línea). */
+#module-container .form-group.flex {
+    flex-direction: row;
+    align-items: stretch;
+}
+
+/* Cabecera de vista: el subtítulo no se pega al botón de acción en móvil */
+#module-container .flex.items-center.justify-between.mb-6 {
+    gap: 1rem;
+    flex-wrap: wrap;
+}

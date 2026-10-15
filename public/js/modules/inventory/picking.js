@@ -352,7 +352,7 @@
                     <td class="text-right font-medium">${formatNumber(r.cantidad)}</td>
                     <td class="text-xs">${r.fecha_expiracion
                         ? `<span class="${expiryIsPast(r) ? 'text-danger font-medium' : ''}"
-                               title="${escapeHtml(r.fecha_expiracion)}">${escapeHtml(r.fecha_expiracion)}</span>`
+                               title="${escapeHtml(r.fecha_expiracion)}">${escapeHtml(UI.formatDateTime(r.fecha_expiracion))}</span>`
                         : '<span class="text-muted">—</span>'}</td>
                 </tr>
             `;
@@ -489,7 +489,7 @@
                     <td class="text-xs text-muted">${g.referencia_orden ? escapeHtml(g.referencia_orden) : '—'}</td>
                     <td class="text-xs">${escapeHtml(g.selector || '—')}</td>
                     <td class="text-xs">${escapeHtml(g.supervisor || '—')}</td>
-                    <td class="text-xs">${escapeHtml(g.fecha_creacion || '—')}</td>
+                    <td class="text-xs">${escapeHtml(UI.formatDateTime(g.fecha_creacion))}</td>
                     <td class="table-actions col-actions">${rowActionsForLote(g, open)}</td>
                 </tr>
             `;
@@ -506,7 +506,7 @@
                     </td>
                     <td class="text-right font-medium">${formatNumber(r.cantidad)}</td>
                     <td><span class="badge badge-${estadoColor(r.estado)}">${escapeHtml(estadoLabel(r.estado))}</span></td>
-                    <td class="text-xs">${escapeHtml(r.fecha_creacion || '—')}</td>
+                    <td class="text-xs">${escapeHtml(UI.formatDateTime(r.fecha_creacion))}</td>
                     <td></td>
                 </tr>
             `).join('');

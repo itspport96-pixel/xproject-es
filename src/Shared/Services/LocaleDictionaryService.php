@@ -73,7 +73,10 @@ final class LocaleDictionaryService
     public function load(string $locale): array
     {
         $locale = self::normalizeLocale($locale);
-        $cacheKey = 'i18n:locale:' . $locale;
+        // v1.14.0: la fecha de modificacion del fichero entra en la clave,
+        // asi un diccionario editado (git pull) no queda oculto 1h por Redis.
+        $mtime = @filemtime(($this->baseDir ?? BASE_PATH . '/resources/locales') . DIRECTORY_SEPARATOR . $locale . '.json');
+        $cacheKey = 'i18n:locale:' . $locale . ':' . ($mtime === false ? '0' : (string) $mtime);
 
         if ($this->redis !== null) {
             $cached = $this->redis->get($cacheKey);

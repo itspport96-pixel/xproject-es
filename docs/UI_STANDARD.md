@@ -381,6 +381,12 @@ footerHtml: UI.modalFooter({
   foco) y `node tools/smoke/smoke-m1-add-member.mjs` (combobox de añadir
   miembro). `node --check public/js/ui/modal.js`.
 
+## 6.7 Estilo iOS y marca del tenant (v1.14.0)
+
+- La capa `public/css/ios.css` se carga despues de `components.css` y sólo refina presentación; nada de `backdrop-filter` ni superficies translúcidas.
+- El color de acción es siempre `rgb(var(--color-primary))`: `TenantBranding` lo sustituye por el color de marca del tenant, así que no se usan azules literales.
+- Fechas de listados con `UI.formatDate(valor)` o `UI.formatDateTime(valor)`; importes con `UI.formatMoney(n)`. No usar `toLocaleDateString` ni pintar la cadena cruda de la BD.
+
 ## 7. Reglas de contenido
 
 - **Filtros**: campos con `data-filter="nombre"` (uno por campo), botones

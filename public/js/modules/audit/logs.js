@@ -193,7 +193,7 @@
 
         const rows = state.items.map((row, index) => `
             <tr>
-                <td class="text-xs font-mono">${escapeHtml(row.timestamp || '')}</td>
+                <td class="text-xs font-mono">${escapeHtml(UI.formatDateTime(row.timestamp))}</td>
                 <td>${userLabel(row.usuario_id)}</td>
                 <td class="text-xs font-mono">${escapeHtml(row.operacion || '')}</td>
                 <td class="text-xs">
@@ -307,7 +307,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <div class="text-xs text-muted mb-1">${t('audit.columns.date')}</div>
-                                <div class="text-sm font-mono">${escapeHtml(row.timestamp || '')}</div>
+                                <div class="text-sm font-mono">${escapeHtml(UI.formatDateTime(row.timestamp))}</div>
                             </div>
                             <div>
                                 <div class="text-xs text-muted mb-1">${t('audit.columns.user')}</div>

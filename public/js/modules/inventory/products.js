@@ -678,10 +678,7 @@
 
     function formatDate(iso) {
         if (!iso) return '';
-        try {
-            const d = new Date(iso);
-            return d.toLocaleDateString(i18n.getLocale(), { day: '2-digit', month: 'short', year: 'numeric' });
-        } catch { return iso; }
+        return UI.formatDate(iso);
     }
 
     function estadoColor(value) {
