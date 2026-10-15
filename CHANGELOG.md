@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.55] - 2026-10-15
+
+**Corrección de doble scroll en el combobox de modal.** El modal "Anadir miembro" de Grupos aparecía con dos barras de scroll: la del `modal-body` y la de la propia lista de sugerencias. Causa: la lista `.combo-list` (posición absoluta) se salía del recuadro visible del `modal-body` (altura pequeña del modal md), lo que crecía el `scrollHeight` del body y activaba su `overflow-y: auto`.
+
+### Fixed
+- `public/js/ui/modal.js` — `bindCombobox`: nueva `positionList()`, invocada al abrir la lista y al pintar sus opciones. Sólo interviene si el contenido no cabe: recorta el `max-height` al hueco visible bajo el control (o lo abre hacia arriba si cabe arriba); sin hueco en ningún lado, ancla la lista al viewport (`position: fixed`, mismo ancho y x que el control) como un desplegable estándar. Se reposiciona con `resize` y con el scroll del `modal-body`; `closeList` limpia los estilos inline.
+- `public/css/components.css` — comentario de `.combo-list` actualizado al nuevo contrato.
+
+### Verification
+- `node tools/smoke/verify-modal-add-member.mjs`: 15/15 (antes 13; +2 checks de regresión: `modal-body` sin scroll con la lista abierta y tras elegir chip).
+- `node tools/smoke/verify-modal-grant.mjs` 14/14 y `node tools/smoke/verify-modal-roles.mjs` 15/15 (los otros dos usan combobox/mismo `modal.js`).
+- 12 smokes jsdom: 883/883. `php bin/check-schema-drift.php`: SIN DRIFT.
+
 ## [1.13.54] - 2026-10-15
 
 **M3 — Modales "Nuevo rol" y "Editar rol": alineación de la cabecera (sólo presentación).** Corrección de la línea base de `.pp-head-row` en `public/css/components.css`: el `margin-bottom: 1rem` interno del form-group de Nombre, dentro de la rejilla con `align-items: end`, subía el campo 16px respecto al toolbar ("Basar en" + botones). Sin cambios en `roles.js`, de i18n ni de backend.

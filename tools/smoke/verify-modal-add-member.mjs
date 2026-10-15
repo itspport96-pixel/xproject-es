@@ -68,7 +68,13 @@ async function metrics(page) {
       listRole: list ? list.getAttribute('role') : null,
       listVisible: list ? getComputedStyle(list).display !== 'none' : false,
       options: modal ? modal.querySelectorAll('.combo-option').length : 0,
-      chipCount: chips ? chips.querySelectorAll('.chip').length : 0
+      chipCount: chips ? chips.querySelectorAll('.chip').length : 0,
+      // Regresion v1.13.55: con la lista abierta el modal-body no debe
+      // crecer su scrollHeight (apareceria una segunda barra de scroll).
+      bodyScrollable: modal ? (() => {
+        const body = modal.querySelector('.modal-body');
+        return !!body && body.scrollHeight > body.clientHeight + 2;
+      })() : null
     };
   });
 }
@@ -94,6 +100,8 @@ async function main() {
       m1.expanded === 'true' && m1.listVisible === true, `${m1.expanded}/${m1.listVisible}`);
     check('lista role=listbox', m1.listRole === 'listbox', m1.listRole);
     check('sugerencias pintadas', m1.options >= 1, String(m1.options));
+    check('modal-body sin scroll con la lista abierta (sin doble barra)', m1.bodyScrollable === false,
+      String(m1.bodyScrollable));
     await page.screenshot({ path: path.join(OUT, 'modal-anadir-miembro-1366-light.png'), fullPage: false });
 
     // Seleccionar la primera sugerencia -> chip, lista reabierta
@@ -102,6 +110,7 @@ async function main() {
     const m2 = await metrics(page);
     check('chip tras elegir', m2.chipCount >= 1, String(m2.chipCount));
     check('la lista sigue abierta con los restantes', m2.expanded === 'true', m2.expanded);
+    check('modal-body sin scroll tras anadir chip', m2.bodyScrollable === false, String(m2.bodyScrollable));
     await page.screenshot({ path: path.join(OUT, 'modal-anadir-miembro-1366-seleccion.png'), fullPage: false });
 
     // Quitar el chip

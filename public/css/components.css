@@ -701,8 +701,11 @@
 /* Lista absoluta: no altera la altura del modal, así que los clics en curso
    (mousedown sobre chip/botón y blur que cierra la lista) nunca se pierden
    por un redimensionado. Los chips van dentro de .combo-control, por debajo
-   de la lista cae el resto; si al campo le queda poco espacio en el body,
-   el scroll del propio body (o el teclado, con scrollIntoView) la revelan. */
+   de la lista cae el resto. `positionList` (modal.js) sólo interviene si el
+   contenido no cabe en el hueco visible del modal-body: recorta el
+   max-height (o abre hacia arriba) y, sin hueco, ancla la lista al
+   viewport (fixed) como un desplegable, de modo que el body nunca crece
+   su scrollHeight y no aparece una segunda barra de scroll. */
 .combo-control {
     position: relative;
 }

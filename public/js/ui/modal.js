@@ -226,6 +226,60 @@
 
         const options = () => Array.prototype.slice.call(list.querySelectorAll('.combo-option'));
 
+        function positionList() {
+            // La lista absoluta no debe desbordar el recuadro visible del
+            // modal-body: si lo hace, el body crece su scrollHeight y aparece
+            // una segunda barra (la del body) junto a la de la propia lista.
+            // Sólo se actúa si con el contenido actual la lista no cabe: se
+            // recorta al hueco (o se abre arriba) y, sin hueco, se ancla al
+            // viewport (fixed) como un desplegable.
+            const body = list.closest('.modal-body');
+            const control = input.closest('.combo-control');
+            if (!control) return;
+            list.style.top = '';
+            list.style.bottom = '';
+            list.style.position = '';
+            list.style.left = '';
+            list.style.right = '';
+            list.style.width = '';
+            list.style.maxHeight = '';
+            const cap = 240;
+            const contentH = list.scrollHeight || 0;
+            const cRect = control.getBoundingClientRect();
+            if (body) {
+                const bodyRect = body.getBoundingClientRect();
+                const below = bodyRect.bottom - cRect.bottom - 8;
+                const above = cRect.top - bodyRect.top - 8;
+                if (contentH <= below) return;
+                if (contentH <= above) {
+                    list.style.top = 'auto';
+                    list.style.bottom = 'calc(100% + 4px)';
+                    list.style.maxHeight = contentH + 'px';
+                    return;
+                }
+            }
+            list.style.position = 'fixed';
+            list.style.right = 'auto';
+            list.style.left = cRect.left + 'px';
+            list.style.width = cRect.width + 'px';
+            const belowVp = window.innerHeight - cRect.bottom - 16;
+            const aboveVp = cRect.top - 16;
+            if (belowVp >= Math.min(cap, 96) || belowVp >= aboveVp) {
+                list.style.maxHeight = Math.max(96, Math.min(cap, belowVp)) + 'px';
+                list.style.top = (cRect.bottom + 4) + 'px';
+            } else {
+                list.style.maxHeight = Math.max(96, Math.min(cap, aboveVp)) + 'px';
+                list.style.top = Math.max(8, cRect.top - list.offsetHeight - 4) + 'px';
+            }
+        }
+
+        function onViewportChange() {
+            if (!list.classList.contains('hidden')) positionList();
+        }
+        window.addEventListener('resize', onViewportChange);
+        const bodyScrollParent = list.closest('.modal-body');
+        if (bodyScrollParent) bodyScrollParent.addEventListener('scroll', onViewportChange, { passive: true });
+
         function closeList() {
             // Invalida cualquier carga en vuelo: lo que el usuario cerró no
             // debe volver a pintarse cuando responda el servidor.
@@ -233,6 +287,13 @@
             if (timer) { clearTimeout(timer); timer = null; }
             list.classList.add('hidden');
             list.innerHTML = '';
+            list.style.top = '';
+            list.style.bottom = '';
+            list.style.position = '';
+            list.style.left = '';
+            list.style.right = '';
+            list.style.width = '';
+            list.style.maxHeight = '';
             input.setAttribute('aria-expanded', 'false');
             input.removeAttribute('aria-activedescendant');
             active = -1;
@@ -264,6 +325,7 @@
             const mySeq = ++seq;
             list.innerHTML = `<li class="combo-msg" role="presentation">${UI.escapeHtml(o.loadingLabel || '')}</li>`;
             list.classList.remove('hidden');
+            positionList();
             input.setAttribute('aria-expanded', 'true');
             let items;
             try {
@@ -284,6 +346,7 @@
             list.innerHTML = items.map((it, i) =>
                 `<li class="combo-option" role="option" id="${listId}-opt-${i}" data-value="${UI.escapeHtml(String(it.value))}" data-label="${UI.escapeHtml(String(it.label))}">${UI.escapeHtml(String(it.label))}</li>`
             ).join('');
+            positionList();
             highlight(0);
         }
 
