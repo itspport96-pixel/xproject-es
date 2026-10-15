@@ -319,6 +319,10 @@ footerHtml: UI.modalFooter({
   envuelve los radios nativos (mismo `name`, `valor` y handler `change`);
   sólo cambia la presentación. El resto se apila a una columna con el ritmo
   uniforme de `form-group` (1rem).
+- **Cabecera con toolbar** (`.pp-head-row`, M3, v1.13.54): los hijos
+  `.form-group` anulan su `margin-bottom` (`.pp-head-row > .form-group`);
+  con `align-items: end` ese margen subía el campo 16px y su línea base no
+  coincidía con la del toolbar (Basar en + botones).
 
 ### 6.5 Teclado y foco (global, en `ui/modal.js`)
 

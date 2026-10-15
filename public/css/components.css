@@ -848,6 +848,15 @@
     margin-bottom: 1rem;
 }
 
+/* El form-group trae margin-bottom: 1rem; dentro de la rejilla con
+   align-items: end ese margen empujaba el campo de Nombre 16px hacia
+   arriba y su linea base no coincadia con la del toolbar (Basar en +
+   botones). Se anula el margen del hijo para que ambos items acaben en
+   la misma linea. (M3, v1.13.54) */
+.pp-head-row > .form-group {
+    margin-bottom: 0;
+}
+
 @media (min-width: 768px) {
     .pp-head-row.has-toolbar {
         grid-template-columns: minmax(12rem, 1fr) auto;

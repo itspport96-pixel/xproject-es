@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.54] - 2026-10-15
+
+**M3 — Modales "Nuevo rol" y "Editar rol": alineación de la cabecera (sólo presentación).** Corrección de la línea base de `.pp-head-row` en `public/css/components.css`: el `margin-bottom: 1rem` interno del form-group de Nombre, dentro de la rejilla con `align-items: end`, subía el campo 16px respecto al toolbar ("Basar en" + botones). Sin cambios en `roles.js`, de i18n ni de backend.
+
+### Changed
+- `.pp-head-row > .form-group { margin-bottom: 0 }`: Nombre, su etiqueta y el toolbar (select "Basar en", "Solo lectura", "Limpiar") comparten ahora línea superior e inferior en ambos modales (create y edit; el modal de Permisos no lleva form-group en la cabecera y no se ve afectado).
+- `docs/UI_STANDARD.md` §6.4: nueva regla de cabecera con toolbar.
+
+### Verification
+- `node tools/smoke/verify-modal-roles.mjs` (nuevo, Playwright 1366×768, claro/oscuro): 15/15 — etiquetas y líneas base de la cabecera (±2px) en crear y editar, descripción centrada a ancho completo, misma línea izquierda con "Permisos del rol", picker y resumen del pie visibles, casilla "Rol activo" presente y **ciclo autocontenido de rol temporal (alta→editar→borrado) que deja la BD en sus 4 roles BUILT_IN**. La primera versión del chequeo de limpieza daba un falso positivo: `tbody tr` resolvía contra el esqueleto de carga; se espera ahora a que el tbody tenga texto real. Capturas en `tools/smoke/capturas-modales/`.
+- Los 12 smokes en verde (883 checks), `php bin/check-schema-drift.php` SIN DRIFT, GETs read-only (`/roles`, `/roles/{id}/permissions`, `/permissions`) con admin: todos 200.
+
 ## [1.13.53] - 2026-10-15
 
 **M2 — Modal "Otorgar permiso temporal": layout (sólo presentación).** Reordenación del body de `grantBody` en `public/js/modules/groups/../users/users.js` con espaciado uniforme, alineación de columnas y el par Duración|Fecha como control segmentado. Mismos campos, mismos `name`/handlers (`change` de los radios nativos) y mismo envío; sin cambios de backend ni de i18n.
