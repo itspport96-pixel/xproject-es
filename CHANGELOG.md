@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.51] - 2026-10-15
+
+**M0 — Estándar de modales de formulario: Esc cierra, Enter envía, foco en el primer campo.** Nuevo apartado §6 de `docs/UI_STANDARD.md` (composición con `modalShell`, escala de tamaños, pie con `UI.modalFooter`, campos `field`/`grid`, teclado y foco) y su implementación en `public/js/ui/modal.js`, instalada una sola vez sobre `document` y válida para todos los modales (incluidos los preexistentes aún sin migrar). Sin cambios de backend.
+
+### Added
+- `UI.modalFooter({hintHtml, cancelLabel, cancelAction, submitLabel, submitAction, danger, disabled})` en `public/js/ui/modal.js`: pie estándar (hint `mr-auto` + Cancelar `type="button"`/`close-modal` + primario con `data-modal-send`).
+- Comportamiento global en `public/js/ui/modal.js`: **Esc** cierra el modal superior (fase de captura; respeta menú de fila de `view.js`, `<select>` nativo y combobox con `aria-expanded`); **Enter** pulsa el primario del pie desde `input`/`select` dentro del modal (no desde `textarea`, `type=search`, campo con `aria-expanded="true"`/`data-no-enter-submit` ni dentro de `<form>`); **foco** en el primer campo al abrir por primera vez (`MutationObserver`, sin re-enfocar en re-render ni robar el foco que ponga el módulo).
+- Tamaño `md` (`SIZES.md` → `.modal-md`) en `modal.js`.
+
+### Changed
+- **Anchos de modal** (`public/css/themes.css`): escala estándar sm 480 / md 640 (defecto) / lg 1000 / xl 1200 px (antes 384/512/768/1024); `.modal-pp` (1100×85vh) sin cambios. Nueva clase `.modal-md` en `public/css/components.css`.
+- `UI.grid()` a **una columna por defecto** (los llamadas existentes pasaban la columna explícita, sin cambio visual).
+- `UI.field()` textarea: clase `input textarea` (min-height/asas) y mínimo 4 filas.
+- `docs/UI_STANDARD.md`: nuevo §6 "Estándar de modales de formulario"; la tabla de componentes (§1), las reglas de contenido (§7), el checklist (§8) y la auditoría de adopción (§9) se actualizan.
+
+### Verification
+- `node tools/smoke/smoke-modales-m0.mjs` (nuevo): 52/52. Smokes existentes en verde (v162 89/89, v171 105/105 y el resto: 824 checks).
+- `node --check public/js/ui/modal.js`, `php bin/check-i18n.php` 0 errores, `php bin/check-schema-drift.php` SIN DRIFT.
+
+## [1.13.50] - 2026-10-15
+
+**.htaccess de la raíz redirige todo a `/public/` en vez de bloquear con 403.** `C:\xampp\htdocs\xp\.htaccess` (añadido/ajustado en el commit, sin entrada al changelog; aquí se registra retroactivamente): con `RewriteBase /xp/`, cualquier request que no empiece por `/public/` redirige a `public/$1` con `R=302` y los ficheros ocultos (`.env`, `.git`, `.htaccess`...) quedan con `Require all denied`.
+
 ## [1.13.49] - 2026-10-14
 
 **Fix: selector de unidad física en modal de Reportar Incidencia era una lista expandida.** El `<select>` llevaba `size="6"`, que en HTML renderiza el dropdown como lista visible de 6 filas en vez de un select colapsado. Se quita el atributo para que se comporte como un dropdown normal con buscador.

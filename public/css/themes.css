@@ -32,11 +32,13 @@
     --z-modal: 50;
     --z-toast: 100;
 
-    /* Anchos de modal */
-    --modal-width-sm: 24rem;
-    --modal-width: 32rem;
-    --modal-width-lg: 48rem;
-    --modal-width-xl: 64rem;
+    /* Anchos de modal (escala estandar: sm 480 / md 640 / lg 1000 / xl 1200 px.
+       El ancho por defecto es md; xl queda reservado para modales con tablas. */
+    --modal-width-sm: 30rem;
+    --modal-width: 40rem;
+    --modal-width-md: 40rem;
+    --modal-width-lg: 62.5rem;
+    --modal-width-xl: 75rem;
 
     /* Superposiciones opacas (antes literales en components.css) */
     --overlay-modal: rgb(0 0 0 / 0.6);

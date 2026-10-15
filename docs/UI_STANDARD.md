@@ -15,7 +15,7 @@ botones, misma semántica de URL) sin reimplementar el HTML en cada módulo.
 | Componentes de estructura de vista | `public/js/ui/view.js` |
 | Componentes de contenido (cabecera, estados, tablas, resumen, paginación) | `public/js/ui/render.js` |
 | Utilidades DOM (`escapeHtml`, etc.) | `public/js/ui/dom.js` |
-| Modales (`modalShell`, `field`, `grid`, errores de formulario) | `public/js/ui/modal.js` |
+| Modales (`modalShell`, `field`, `grid`, `modalFooter`, errores de formulario, Esc/Enter/foco) | `public/js/ui/modal.js` |
 | Acciones compartidas (`handleActionError`, `can`, claves idempotencia) | `public/js/ui/actions.js` |
 | Selector de permisos maestro-detalle (`permissionPicker`) | `public/js/ui/permission-picker.js` |
 | CSS de pestañas (`.tabs`, `.tab`, `.tab.is-active`) | `public/css/components.css` |
@@ -250,7 +250,94 @@ permisos de un rol dentro de un modal, con patrón maestro-detalle:
   crear/editar/permisos).
 
 
-## 6. Reglas de contenido
+## 6. Estándar de modales de formulario (M0, v1.13.51)
+
+Patrón obligatorio para todo modal que contenga un formulario. Los comportamientos
+(Esc, Enter, foco) viven en `public/js/ui/modal.js` a nivel de `document` y
+aplican también a los modales preexistentes que aún no se han migrado.
+
+### 6.1 Composición
+
+- Envoltorio con `UI.modalShell({title, size, bodyHtml, footerHtml})` y montaje
+  con `UI.mountModal(root, html)` sobre el `[data-modal-root]` del módulo.
+  No se escribe el HTML del modal a mano en el módulo.
+- El overlay lleva siempre `data-modal` (base de Esc/Enter/foco); la cabecera
+  tiene su `×` con `data-action="close-modal"`.
+
+### 6.2 Tamaños
+
+| Tamaño | Clase / variable | Ancho | Uso |
+| --- | --- | --- | --- |
+| `sm` | `.modal-sm` / `--modal-width-sm` | 480px (30rem) | Confirmaciones y detalles cortos. |
+| `md` (defecto) | `.modal-md` / `--modal-width` | 640px (40rem) | Formularios estándar. |
+| `lg` | `.modal-lg` / `--modal-width-lg` | 1000px (62.5rem) | Formularios anchos. |
+| `xl` | `.modal-xl` / `--modal-width-xl` | 1200px (75rem) | Modales con tablas dentro. |
+| `pp` | `.modal-pp` | 1100px × 85vh | Selector de permisos (§4.2). |
+
+Variables en `public/css/themes.css`, clase en `public/css/components.css`.
+En pantallas ≤640px todos los modales van a ancho completo (regla responsive).
+Cabecera y pie fijos, sólo `.modal-body` hace scroll; con `max-height: 90vh`
+el modal siempre cabe en 1366×768.
+
+### 6.3 Pie estándar (`UI.modalFooter`)
+
+```js
+footerHtml: UI.modalFooter({
+    hintHtml: '<span data-key-hint></span>',   // opcional, a la izquierda
+    cancelLabel: t('ui.cancel'),               // por defecto
+    submitLabel: t('mi.modulo.actions.save'),
+    submitAction: 'submit-save',
+    disabled: state.sending                    // o true con error bloqueante
+})
+```
+
+- Orden: hint (`mr-auto`) → Cancelar (`btn-secondary`) → primario
+  (`btn-primary`, o `btn-danger` con `danger: true`).
+- Cancelar es `type="button"` con acción `close-modal`: descarta el modal
+  igual que la `×` de la cabecera, pero su etiqueta es "Cancelar"
+  (`t('ui.cancel')`); "Cerrar" queda para la cabecera y para modales de solo
+  lectura (detalle).
+- El primario **no** lleva `type`: fuera de `<form>` lo maneja el `data-action`
+  del módulo y dentro de `<form>` manda el listener de `submit`.
+- El primario lleva `data-modal-send`, que los helpers de envío de cada módulo
+  deshabilitan con `state.sending` (petición en curso); `disabled: true` en
+  `modalFooter` cubre el arranque y estados bloqueantes.
+
+### 6.4 Campos (`UI.field`, `UI.grid`)
+
+- Etiqueta arriba (`form-label`), asterisco `required`, control, error inline
+  (`data-error`, visible con `showFieldError`) y ayuda debajo (`form-hint`).
+- Textarea: clase `input textarea` y **mínimo 4 filas**; con
+  `controlClass: 'textarea-autogrow'` crece con el contenido (§4.2).
+- `UI.grid(html)` a **una columna por defecto**; dos columnas sólo para un par
+  de campos cortos relacionados (p. ej. código + tipo).
+
+### 6.5 Teclado y foco (global, en `ui/modal.js`)
+
+- **Esc** cierra el modal superior (fase de captura): respeta un menú de fila
+  abierto (lo cierra `view.js`), el desplegable nativo de un `<select>` y un
+  combobox con `aria-expanded="true"`.
+- **Enter** envía: dentro de un modal, desde `input`/`select` pulsa el botón
+  primario del pie. No envía desde `textarea`, desde `input[type=search]`,
+  desde un campo con `aria-expanded="true"` o `data-no-enter-submit`, ni
+  dentro de un `<form>` (ahí rige el submit nativo).
+- **Foco** en el primer campo al abrir por primera vez; un re-render del modal
+  no re-enfoca y si el módulo ya enfocó algo (p. ej. el buscador del picker)
+  no se le roba.
+- **Contrato para componentes con sugerencias** (combobox de M1/M2): mantener
+  `aria-expanded="true"` en el input mientras la lista esté visible y llamar
+  a `e.preventDefault()` en el Enter que elige una sugerencia.
+- El primario deshabilitado (`disabled`/`sending`) no recibe el Enter
+  (el clic programático sobre un botón deshabilitado no hace nada).
+
+### 6.6 Errores y verificación
+
+- Errores de campo/formulario: `showFieldError`, `showFormError`,
+  `clearErrors` (mismo contrato `data-error` que ya usaban todos).
+- Smoke: `node tools/smoke/smoke-modales-m0.mjs` (tamaños, pie, Esc, Enter,
+  foco). `node --check public/js/ui/modal.js`.
+
+## 7. Reglas de contenido
 
 - **Filtros**: campos con `data-filter="nombre"` (uno por campo), botones
   `data-action="apply-filters"` / `clear-filters` y lectura genérica
@@ -267,7 +354,8 @@ permisos de un rol dentro de un modal, con patrón maestro-detalle:
 - **Pie de formulario**: siempre `UI.formFooter`; `renderKeyHint()` del módulo
   rellena `[data-key-hint]`.
 - **Errores de formulario y modales**: `ui/modal.js`
-  (`field`, `grid`, `showFieldError`, `showFormError`, `clearErrors`).
+  (`field`, `grid`, `modalFooter`, `showFieldError`, `showFormError`,
+  `clearErrors`); composición, pie y teclado según §6.
 - **i18n**: todo texto visible sale de `t()`; los valores de enum que se
   muestran al usuario (tipo de envío, estado de ítem…) se traducen con claves
   propias (`inventory.shipments.types.*`) y tienen fallback al valor crudo.
@@ -284,7 +372,7 @@ permisos de un rol dentro de un modal, con patrón maestro-detalle:
   unidades" en `shipments.js`) pueden quedarse como `<div class="empty-state">`
   con un solo `<p>`: son texto de apoyo, no un estado de contenedor.
 
-## 7. Checklist de adopción
+## 8. Checklist de adopción
 
 1. `node --check` en el módulo tocado.
 2. Estructura con `UI.viewShell` (o `pageHeader` + barra de pestañas propia).
@@ -294,19 +382,20 @@ permisos de un rol dentro de un modal, con patrón maestro-detalle:
 5. Estados de lista con `loadingState` / `emptyState` / `errorState` /
    `deniedState`.
 6. Pie de formulario con `formFooter`.
-7. Sin selectores ni botones propios que dupliquen componentes.
-8. Textos en i18n (4 idiomas) y `php bin/check-i18n.php`.
-9. Smoke: `UI_FILES` con `ui/view.js` y `node tools/smoke/smoke-*.mjs` en verde.
+7. Modales con `modalShell` + `modalFooter` y campos de `field`/`grid` (§6).
+8. Sin selectores ni botones propios que dupliquen componentes.
+9. Textos en i18n (4 idiomas) y `php bin/check-i18n.php`.
+10. Smoke: `UI_FILES` con `ui/view.js` y `node tools/smoke/smoke-*.mjs` en verde.
 
-## 8. Estado de adopción (auditoría, v1.13.11)
+## 9. Estado de adopción (auditoría, v1.13.11)
 
 Sólo se modificaron las tres vistas de este sprint; el resto es informe.
 
 | Módulo | Estado | Desviaciones |
 | --- | --- | --- |
 | `inventory/picking` | Aplicado | Tabla construida a mano en vez de `UI.tableShell` (aceptado, ver §4). |
-| `inventory/shipments` | Aplicado | Ídem. Avisos vacíos dentro del formulario con `empty-state` propio (excepción §6). |
-| `inventory/deliveries` | Aplicado | Ídem. Aviso "sin acceso a envíos" escrito a mano (excepción §6). |
+| `inventory/shipments` | Aplicado | Ídem. Avisos vacíos dentro del formulario con `empty-state` propio (excepción §7). |
+| `inventory/deliveries` | Aplicado | Ídem. Aviso "sin acceso a envíos" escrito a mano (excepción §7). |
 | `users` | Parcial | Tiene pestañas y `switchTab` pero **sin estado en la URL** (`?tab=`) y con shell/filtros propios; sin `summaryCards`. Es el precedente del patrón, pendiente de migrar a `viewShell`. |
 | `inventory/counts`, `inventory/incidents`, `inventory/movements` | Parcial | Ya usan `summaryCards`, `emptyState`, `loadingState`, `renderPagination`, pero shell propia (`pageHeader`), `DENIED_TEMPLATE` a mano y tarjeta de filtros propia. |
 | `inventory/reservations` | Parcial | Componentes de contenido compartidos; sin pantalla de permiso propia ni pestañas. |

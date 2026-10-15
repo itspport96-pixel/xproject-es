@@ -624,6 +624,12 @@
     max-width: var(--modal-width-sm);
 }
 
+/* Tamaño estandar md (640px): explicito para quien lo pida aunque ya es
+   el ancho por defecto de .modal. */
+.modal-md {
+    max-width: var(--modal-width-md);
+}
+
 /* Modal ancho y de alto fijo para el selector de permisos (BLOQUE F):
    cabecera y pie fijos, solo los paneles internos hacen scroll. */
 .modal-pp {
