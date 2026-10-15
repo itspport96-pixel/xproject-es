@@ -227,6 +227,18 @@
     "load_error_title": "Não foi possível carregar as configurações",
     "load_error_body": "Erro ao carregar as configurações da organização",
     "stats_error": "Não foi possível carregar os contadores da organização.",
+    "btn_save": "Salvar alterações",
+    "btn_saving": "Salvando...",
+    "success_update": "Configurações atualizadas com sucesso",
+    "update_error": "Não foi possível atualizar as configurações",
+    "error_nothing_changed": "Nenhuma alteração para salvar",
+    "field_required": "Este campo é obrigatório",
+    "nombre_interno_invalid": "Use minúsculas, números, hífens ou sublinhado, sem espaços",
+    "nombre_interno_max_length": "O nome interno não pode exceder 255 caracteres",
+    "logo_url_invalid": "A URL deve começar com http:// ou https://",
+    "placeholder_nombre_interno": "ex. acme-corp",
+    "help_nombre_interno": "Identificador técnico único; apenas minúsculas, números, hífens e sublinhado.",
+    "help_dominio_custom": "Deixe vazio para remover o domínio personalizado.",
     "permission": {
       "title": "Você não tem acesso a esta seção",
       "body": "Você precisa da permissão <code>{permiso}</code> para ver as configurações da organização."

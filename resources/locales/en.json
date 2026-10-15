@@ -227,6 +227,18 @@
     "load_error_title": "Could not load settings",
     "load_error_body": "Error loading organization settings",
     "stats_error": "Could not load organization counters.",
+    "btn_save": "Save changes",
+    "btn_saving": "Saving...",
+    "success_update": "Settings updated successfully",
+    "update_error": "Could not update settings",
+    "error_nothing_changed": "No changes to save",
+    "field_required": "This field is required",
+    "nombre_interno_invalid": "Use lowercase, numbers, hyphens or underscores, no spaces",
+    "nombre_interno_max_length": "Internal name cannot exceed 255 characters",
+    "logo_url_invalid": "The URL must start with http:// or https://",
+    "placeholder_nombre_interno": "e.g. acme-corp",
+    "help_nombre_interno": "Unique technical identifier; lowercase, numbers, hyphens and underscores only.",
+    "help_dominio_custom": "Leave empty to remove the custom domain.",
     "permission": {
       "title": "You do not have access to this section",
       "body": "You need the <code>{permiso}</code> permission to view organization settings."

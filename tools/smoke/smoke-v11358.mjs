@@ -1,13 +1,14 @@
 /**
- * Smoke test jsdom para la UI v1.13.58 (modulo settings/settings, solo lectura).
+ * Smoke test jsdom para la UI v1.13.59 (modulo settings/settings: lectura y edicion).
  * Uso: node tools/smoke/smoke-v11358.mjs   (desde la raiz del repo)
  *
  * Cobertura:
  *  S1  Registro de ruta/modulo y wiring (loader, router)
  *  S2  Pantalla sin permiso: deniedState con el permiso requerido
- *  S3  Pantalla con permiso: GET /tenant + /tenant/stats, pestañas y datos
+ *  S3  Pantalla con permiso view: GET /tenant + /tenant/stats, pestañas y datos
  *  S4  Cambio de pestañas (?tab=) y ocultamiento de nombre_publico (ciphertext)
  *  S5  Error de carga: estado de error + reintento
+ *  S6  Edicion (tenants.tenant.edit): formularios, slug, PATCH diff y toasts
  */
 import { JSDOM } from 'jsdom';
 import { readFileSync } from 'node:fs';
@@ -77,14 +78,14 @@ const STATS_PAYLOAD = {
 // ENTORNO (una ventana jsdom con stubs)
 // =====================================================================
 
-function createEnv({ perms = [], roles = [], getHandlers = {}, getImpl = null } = {}) {
+function createEnv({ perms = [], roles = [], getHandlers = {}, getImpl = null, patchImpl = null } = {}) {
   const dom = new JSDOM(
     '<!DOCTYPE html><html><body><div id="module-container"></div></body></html>',
     { url: 'http://localhost/xp/public/#/settings', runScripts: 'outside-only', pretendToBeVisual: true }
   );
   const w = dom.window;
 
-  const calls = { gets: [], toasts: [], errors: [] };
+  const calls = { gets: [], patches: [], toasts: [], errors: [] };
 
   w.console = {
     log() {}, info() {}, debug() {}, warn(...a) { calls.errors.push(a.map(String).join(' ')); },
@@ -115,7 +116,7 @@ function createEnv({ perms = [], roles = [], getHandlers = {}, getImpl = null } 
     logout() {}
   };
 
-  const env = { w, calls, getImpl, dom };
+  const env = { w, calls, getImpl, patchImpl, dom };
 
   w.HttpClient = {
     async get(p, options = {}) {
@@ -125,7 +126,11 @@ function createEnv({ perms = [], roles = [], getHandlers = {}, getImpl = null } 
       throw Object.assign(new Error('GET no soportado: ' + p), { status: 404, data: null });
     },
     async post() { return { status: 200, data: {} }; },
-    async patch() { return { status: 200, data: {} }; },
+    async patch(p, body, options = {}) {
+      calls.patches.push({ path: p, body, options });
+      if (env.patchImpl) return env.patchImpl(p, body, options, env);
+      return { status: 200, data: {} };
+    },
     async delete() { return { status: 200, data: {} }; }
   };
 
@@ -144,6 +149,7 @@ function createEnv({ perms = [], roles = [], getHandlers = {}, getImpl = null } 
 }
 
 const VIEW_PERMS = ['tenants.tenant.view'];
+const EDIT_PERMS = ['tenants.tenant.view', 'tenants.tenant.edit'];
 
 // =====================================================================
 // S1 - REGISTRO Y WIRING
@@ -317,6 +323,103 @@ async function s5_error_retry() {
 }
 
 // =====================================================================
+// S6 - EDICION (tenants.tenant.edit)
+// =====================================================================
+async function s6_edit() {
+  console.log('S6 edicion: formularios, slug, PATCH diff y toasts');
+
+  // Sin edit: sólo lectura (labelValue, sin form)
+  {
+    const env = createEnv({
+      perms: VIEW_PERMS,
+      roles: ['ADMIN'],
+      getHandlers: { '/tenant': () => TENANT_PAYLOAD, '/tenant/stats': () => STATS_PAYLOAD }
+    });
+    env.loadSettings();
+    env.w.SettingsSettingsModule.init({}, env.container);
+    await tick();
+    await tick();
+    check('sin edit: no hay form en general', !env.container.querySelector('#settings-general-form'));
+    check('sin edit: no hay form en localizacion', !env.container.querySelector('#settings-local-form'));
+    env.close();
+  }
+
+  // Con edit: formularios presentes
+  {
+    const env = createEnv({
+      perms: EDIT_PERMS,
+      roles: ['ADMIN'],
+      getHandlers: { '/tenant': () => TENANT_PAYLOAD, '/tenant/stats': () => STATS_PAYLOAD },
+      patchImpl: (p, body) => {
+        if (p !== '/tenant') throw Object.assign(new Error('PATCH no soportado: ' + p), { status: 404 });
+        return { status: 200, data: { tenant: { ...TENANT, ...body } } };
+      }
+    });
+    env.loadSettings();
+    env.w.SettingsSettingsModule.init({}, env.container);
+    await tick();
+    await tick();
+
+    const form = env.container.querySelector('#settings-general-form');
+    check('con edit: form general presente', !!form);
+    check('con edit: input nombre_interno con valor', !!env.container.querySelector('#settings-nombre-interno'));
+    check('con edit: formFooter con boton guardar',
+      !!env.container.querySelector('[data-action="settings-save-general"]'));
+
+    // Slug invalido: error de campo, sin PATCH
+    const input = env.container.querySelector('#settings-nombre-interno');
+    input.value = 'Acme Corp';
+    form.dispatchEvent(new env.w.Event('submit', { bubbles: true, cancelable: true }));
+    await tick();
+    const errEl = env.container.querySelector('[data-field="nombre_interno"]');
+    check('slug invalido: error de campo visible',
+      errEl && !errEl.classList.contains('hidden') && errEl.textContent.length > 0,
+      errEl ? errEl.textContent : 'sin elemento');
+    check('slug invalido: sin PATCH', env.calls.patches.length === 0, JSON.stringify(env.calls.patches));
+
+    // Sin cambios: toast info, sin PATCH
+    input.value = 'acme-corp';
+    form.dispatchEvent(new env.w.Event('submit', { bubbles: true, cancelable: true }));
+    await tick();
+    check('sin cambios: toast info', env.calls.toasts.some(t => t.type === 'info'));
+    check('sin cambios: sin PATCH', env.calls.patches.length === 0, JSON.stringify(env.calls.patches));
+
+    // Cambio valido: PATCH con solo el campo cambiado
+    input.value = 'acme-corp-verify';
+    form.dispatchEvent(new env.w.Event('submit', { bubbles: true, cancelable: true }));
+    await tick();
+    check('cambio valido: un PATCH /tenant', env.calls.patches.length === 1, JSON.stringify(env.calls.patches));
+    check('PATCH solo nombre_interno',
+      env.calls.patches[0] &&
+      env.calls.patches[0].body &&
+      Object.keys(env.calls.patches[0].body).length === 1 &&
+      env.calls.patches[0].body.nombre_interno === 'acme-corp-verify',
+      JSON.stringify(env.calls.patches[0] && env.calls.patches[0].body));
+    check('toast de exito', env.calls.toasts.some(t => t.type === 'success'));
+    check('tras PATCH el form refleja el valor',
+      env.container.querySelector('#settings-nombre-interno').value === 'acme-corp-verify');
+
+    // Form localizacion: pais cambiado + dominio vacio -> null
+    env.click(Array.from(env.container.querySelectorAll('[data-action="tab"]'))
+      .find(b => b.getAttribute('data-tab') === 'localizacion'));
+    await tick();
+    const localForm = env.container.querySelector('#settings-local-form');
+    check('form localizacion presente', !!localForm);
+    if (localForm) {
+      localForm.querySelector('[name="pais"]').value = 'Argentina';
+      localForm.dispatchEvent(new env.w.Event('submit', { bubbles: true, cancelable: true }));
+      await tick();
+      const last = env.calls.patches[env.calls.patches.length - 1];
+      check('PATCH localizacion solo pais',
+        last && Object.keys(last.body).length === 1 && last.body.pais === 'Argentina',
+        JSON.stringify(last && last.body));
+    }
+
+    env.close();
+  }
+}
+
+// =====================================================================
 // RUN
 // =====================================================================
 async function main() {
@@ -325,6 +428,7 @@ async function main() {
   await s3_read_only();
   await s4_ciphertext_and_params();
   await s5_error_retry();
+  await s6_edit();
   console.log(`\n${pass} ok, ${fail} fail`);
   process.exit(fail > 0 ? 1 : 0);
 }

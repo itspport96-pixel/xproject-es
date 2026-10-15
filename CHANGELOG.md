@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.59] - 2026-10-15
+
+**Bloque C frontend del módulo settings: edición inline de la configuración del tenant (sin modales).** Con `tenants.tenant.edit` (fallback rol ADMIN) las pestañas General y Localización pasan de lectura a formulario `UI.formFooter`: General edita `nombre_interno` (validación de slug en cliente con el mismo regex que la entidad backend, `^[a-z0-9][a-z0-9_\-]*[a-z0-9]$`, máx. 255) y Localización edita `pais`, `zona_horaria`, `idioma_default` (select con `profile.lang.*`), `logo_url` (http/https) y `dominio_custom` (vacío = remover → `null`). El envío calcula el diff contra el tenant cargado y hace `PATCH /api/tenant` sólo con los campos cambiados; sin cambios toast `info`, éxito toast `success` + re-render, errores de campo vía `err.data.field`. Sin `tenants.tenant.edit` la vista sigue siendo de solo lectura (mismo `labelValue`). `nombre_publico` sigue sin mostrarse ni editarse (ciphertext residual). Sin cambios de backend ni de esquema.
+
+### Changed
+- `public/js/modules/settings/settings.js` (v1.13.59): `canEdit()` con `UI.can('tenants.tenant.edit', ['ADMIN'])`; formularios inline en General y Localización con `UI.formFooter`; `validateNombreInterno`/`validateLogoUrl` en cliente; `diffFields` + `saveForm` (PATCH sólo con cambios, guardado con botón deshabilitado); binding de `submit` en `init`/`onActivate`/`destroy`; select de idioma reutiliza `profile.lang.*` (literales fuera de `t()` eliminados).
+- `resources/locales/{es,en,pt,fr}.json`: claves `settings.btn_save/btn_saving/success_update/update_error/error_nothing_changed/field_required/nombre_interno_invalid/nombre_interno_max_length/logo_url_invalid/placeholder_nombre_interno/help_nombre_interno/help_dominio_custom`.
+- `tools/smoke/smoke-v11358.mjs`: nuevo escenario S6 (47 checks, antes 32): forms con/sin permiso de edición, slug inválido sin PATCH, toast info sin cambios, PATCH diff de un solo campo y reflejo del valor tras éxito.
+
+### Verification
+- `node --check` (settings.js) y JSON de 4 locales OK; `node tools/smoke/smoke-v11358.mjs`: 47/47.
+- Regresión: `smoke-v162.mjs` 89/89, `smoke-v171.mjs` 105/105; `php bin/check-i18n.php`: 0 errores (205 avisos preexistentes).
+- Vivo (sesión ADMIN): `PATCH /api/tenant` round-trip `zona_horaria` (America/Mexico_City → America/Bogota → America/Mexico_City) 200/200 con el valor restaurado byte a byte; `php bin/check-schema-drift.php` SIN DRIFT.
+
 ## [1.13.58] - 2026-10-15
 
 **Bloque B frontend del módulo settings: vista de solo lectura de la configuración del tenant.** Nueva ruta `#/settings` (menú Sistema, rol ADMIN) con el módulo `settings/settings` registrado en el loader. Cinco pestañas (`UI.viewShell` + estado en `?tab=`): General (nombre interno, ID, estado, plan, configuración adicional y versión de plataforma desde `GET /api/tenant`), Localización (país, zona horaria, idioma, logo, dominio), Seguridad y Correo como pantallas de hueco declarado (la política de contraseñas y el SMTP no tienen formulario ni endpoint de edición) y Resumen con `UI.summaryCards` sobre `GET /api/tenant/stats`. Gate de permiso `tenants.tenant.view` (fallback rol ADMIN) con `UI.deniedState`. `nombre_publico` NO se muestra: es ciphertext residual documentado en 1.13.57. Sin cambios de backend ni de esquema.

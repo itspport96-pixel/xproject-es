@@ -1,16 +1,18 @@
 /**
- * Settings Module (v1.13.58)
- * Vista de configuracion del tenant (solo lectura).
+ * Settings Module (v1.13.59)
+ * Configuracion del tenant: lectura y edicion inline (sin modales).
  *
  * Tabs:
- * - general: nombre interno, id, estado, plan, configuracion, version
- * - localizacion: pais, zona horaria, idioma por defecto, logo, dominio
+ * - general: identidad + formulario de nombre_interno (con tenants.tenant.edit)
+ * - localizacion: pais, zona horaria, idioma, logo, dominio (edicion inline)
  * - seguridad: politica de contrasenas (hueco: la API no la expone aun)
  * - correo: SMTP (hueco: sin endpoint ni datos de configuracion)
  * - resumen: contadores de GET /api/tenant/stats
  *
- * Datos: GET /api/tenant (requiere tenants.tenant.view) y
- * GET /api/tenant/stats. nombre_publico NO se muestra: es ciphertext
+ * Datos: GET /api/tenant (tenants.tenant.view) y GET /api/tenant/stats.
+ * Edicion: PATCH /api/tenant (tenants.tenant.edit) solo con los campos
+ * cambiados; nombre_interno valida slug en cliente (mismo regex que la
+ * entidad). nombre_publico NO se muestra ni se edita: es ciphertext
  * residual (documentado en CHANGELOG 1.13.57).
  *
  * Ruta 'settings': permiso tenants.tenant.view (fallback rol ADMIN).
@@ -32,7 +34,8 @@
         stats: null,
         loading: true,
         statsLoading: true,
-        error: null
+        error: null,
+        saving: false
     };
 
     const ESTADOS_TENANT = [
@@ -43,11 +46,16 @@
 
     const EMPTY = '—';
 
+    // Mismo contrato que la entidad backend (Tenant::validateNombreInterno)
+    const SLUG_RE = /^[a-z0-9][a-z0-9_\-]*[a-z0-9]$/;
+    const MAX_NOMBRE_INTERNO = 255;
+
     // ====================================================================
     // PERMISOS
     // ====================================================================
 
     const canView = () => UI.can('tenants.tenant.view', ['ADMIN']);
+    const canEdit = () => UI.can('tenants.tenant.edit', ['ADMIN']);
 
     // ====================================================================
     // HELPERS
@@ -62,6 +70,12 @@
         return String(value);
     }
 
+    function showToast(type, title, message) {
+        if (global.UI && typeof global.UI.toast === 'function') {
+            global.UI.toast(type, title, message || '');
+        }
+    }
+
     // ====================================================================
     // TEMPLATE
     // ====================================================================
@@ -72,6 +86,27 @@
                 <div class="text-xs text-muted mb-1">${escapeHtml(label)}</div>
                 <div data-field-value>${escapeHtml(fmt(value))}</div>
             </div>`;
+    }
+
+    function fieldError(field) {
+        return `<p class="field-error text-danger text-sm mt-1 hidden" data-field="${escapeHtml(field)}"></p>`;
+    }
+
+    function clearFieldErrors() {
+        if (!container) return;
+        container.querySelectorAll('.field-error').forEach(function(el) {
+            el.textContent = '';
+            el.classList.add('hidden');
+        });
+    }
+
+    function showFieldError(field, message) {
+        if (!container) return;
+        const el = container.querySelector('[data-field="' + field + '"]');
+        if (el) {
+            el.textContent = message;
+            el.classList.remove('hidden');
+        }
     }
 
     function renderGeneralPanel() {
@@ -86,11 +121,8 @@
         }
 
         const tenant = state.tenant || {};
-        return `
-            <div class="card p-4">
-                <h3 class="text-lg font-semibold mb-4">${escapeHtml(t('settings.section_identidad'))}</h3>
+        const identidad = `
                 <div class="grid gap-4 md:grid-cols-2">
-                    ${labelValue(t('settings.label_nombre_interno'), tenant.nombre_interno)}
                     ${labelValue(t('settings.label_id'), tenant.id)}
                     <div>
                         <div class="text-xs text-muted mb-1">${escapeHtml(t('settings.label_estado'))}</div>
@@ -99,7 +131,37 @@
                     ${labelValue(t('settings.label_plan'), tenant.plan)}
                     ${labelValue(t('settings.label_configuracion'), tenant.configuracion == null ? t('settings.configuracion_null') : JSON.stringify(tenant.configuracion))}
                     ${labelValue(t('settings.label_version'), state.version)}
+                </div>`;
+
+        if (!canEdit()) {
+            return `
+            <div class="card p-4">
+                <h3 class="text-lg font-semibold mb-4">${escapeHtml(t('settings.section_identidad'))}</h3>
+                <div class="grid gap-4 md:grid-cols-2 mb-4">
+                    ${labelValue(t('settings.label_nombre_interno'), tenant.nombre_interno)}
                 </div>
+                ${identidad}
+            </div>`;
+        }
+
+        return `
+            <div class="card p-4">
+                <h3 class="text-lg font-semibold mb-4">${escapeHtml(t('settings.section_identidad'))}</h3>
+                <form id="settings-general-form" novalidate>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium mb-1" for="settings-nombre-interno">${escapeHtml(t('settings.label_nombre_interno'))}</label>
+                            <input type="text" id="settings-nombre-interno" name="nombre_interno" class="input w-full"
+                                value="${escapeHtml(tenant.nombre_interno || '')}"
+                                placeholder="${escapeHtml(t('settings.placeholder_nombre_interno'))}"
+                                maxlength="${MAX_NOMBRE_INTERNO}" required>
+                            <p class="text-muted text-xs mt-1">${escapeHtml(t('settings.help_nombre_interno'))}</p>
+                            ${fieldError('nombre_interno')}
+                        </div>
+                    </div>
+                    ${identidad}
+                    ${UI.formFooter({ submitLabel: t('settings.btn_save'), submitAction: 'settings-save-general' })}
+                </form>
             </div>`;
     }
 
@@ -108,7 +170,9 @@
         if (state.error) return UI.emptyState({ title: t('settings.load_error_title'), message: state.error });
 
         const tenant = state.tenant || {};
-        return `
+
+        if (!canEdit()) {
+            return `
             <div class="card p-4">
                 <h3 class="text-lg font-semibold mb-4">${escapeHtml(t('settings.section_localizacion'))}</h3>
                 <div class="grid gap-4 md:grid-cols-2">
@@ -118,6 +182,52 @@
                     ${labelValue(t('settings.label_logo_url'), tenant.logo_url)}
                     ${labelValue(t('settings.label_dominio_custom'), tenant.dominio_custom)}
                 </div>
+            </div>`;
+        }
+
+        return `
+            <div class="card p-4">
+                <h3 class="text-lg font-semibold mb-4">${escapeHtml(t('settings.section_localizacion'))}</h3>
+                <form id="settings-local-form" novalidate>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium mb-1" for="settings-pais">${escapeHtml(t('settings.label_pais'))}</label>
+                            <input type="text" id="settings-pais" name="pais" class="input w-full"
+                                value="${escapeHtml(tenant.pais || '')}" maxlength="100">
+                            ${fieldError('pais')}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1" for="settings-zona-horaria">${escapeHtml(t('settings.label_zona_horaria'))}</label>
+                            <input type="text" id="settings-zona-horaria" name="zona_horaria" class="input w-full"
+                                value="${escapeHtml(tenant.zona_horaria || '')}" maxlength="64">
+                            ${fieldError('zona_horaria')}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1" for="settings-idioma">${escapeHtml(t('settings.label_idioma_default'))}</label>
+                            <select id="settings-idioma" name="idioma_default" class="select w-full">
+                                <option value="es"${tenant.idioma_default === 'es' ? ' selected' : ''}>${escapeHtml(t('profile.lang.es'))}</option>
+                                <option value="en"${tenant.idioma_default === 'en' ? ' selected' : ''}>${escapeHtml(t('profile.lang.en'))}</option>
+                                <option value="pt"${tenant.idioma_default === 'pt' ? ' selected' : ''}>${escapeHtml(t('profile.lang.pt'))}</option>
+                                <option value="fr"${tenant.idioma_default === 'fr' ? ' selected' : ''}>${escapeHtml(t('profile.lang.fr'))}</option>
+                            </select>
+                            ${fieldError('idioma_default')}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1" for="settings-logo-url">${escapeHtml(t('settings.label_logo_url'))}</label>
+                            <input type="url" id="settings-logo-url" name="logo_url" class="input w-full"
+                                value="${escapeHtml(tenant.logo_url || '')}" placeholder="https://..." maxlength="500">
+                            ${fieldError('logo_url')}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1" for="settings-dominio">${escapeHtml(t('settings.label_dominio_custom'))}</label>
+                            <input type="text" id="settings-dominio" name="dominio_custom" class="input w-full"
+                                value="${escapeHtml(tenant.dominio_custom || '')}" placeholder="ej. acme.example.com" maxlength="255">
+                            <p class="text-muted text-xs mt-1">${escapeHtml(t('settings.help_dominio_custom'))}</p>
+                            ${fieldError('dominio_custom')}
+                        </div>
+                    </div>
+                    ${UI.formFooter({ submitLabel: t('settings.btn_save'), submitAction: 'settings-save-local' })}
+                </form>
             </div>`;
     }
 
@@ -272,6 +382,112 @@
     }
 
     // ====================================================================
+    // EDICION (PATCH /api/tenant)
+    // ====================================================================
+
+    function validateNombreInterno(value) {
+        const nombre = String(value == null ? '' : value).trim();
+        if (nombre === '') return t('settings.field_required');
+        if (nombre.length > MAX_NOMBRE_INTERNO) return t('settings.nombre_interno_max_length');
+        if (nombre.length > 1 && !SLUG_RE.test(nombre)) return t('settings.nombre_interno_invalid');
+        return null;
+    }
+
+    function validateLogoUrl(value) {
+        const url = String(value == null ? '' : value).trim();
+        if (url === '') return null;
+        if (!/^https?:\/\/.+/.test(url)) return t('settings.logo_url_invalid');
+        return null;
+    }
+
+    /** Solo los campos que cambiaron respecto al tenant cargado. */
+    function diffFields(form, tenant, fields) {
+        const payload = {};
+        fields.forEach(function(name) {
+            const el = form.querySelector('[name="' + name + '"]');
+            if (!el) return;
+            let value = el.value;
+            if (value !== null && typeof value === 'string') value = value.trim();
+            if (name === 'dominio_custom' && value === '') value = null;
+            if (name === 'logo_url' && value === '') value = null;
+            const current = tenant[name] == null ? null : tenant[name];
+            if (String(value == null ? '' : value) !== String(current == null ? '' : current)) {
+                payload[name] = value;
+            }
+        });
+        return payload;
+    }
+
+    async function saveForm(form, fields) {
+        if (state.saving || !state.tenant) return;
+
+        clearFieldErrors();
+
+        let errors = null;
+        if (form.querySelector('[name="nombre_interno"]')) {
+            const el = form.querySelector('[name="nombre_interno"]');
+            errors = validateNombreInterno(el.value);
+            if (errors) {
+                showFieldError('nombre_interno', errors);
+                return;
+            }
+        }
+        if (form.querySelector('[name="logo_url"]')) {
+            const el = form.querySelector('[name="logo_url"]');
+            const logoError = validateLogoUrl(el.value);
+            if (logoError) {
+                showFieldError('logo_url', logoError);
+                return;
+            }
+        }
+
+        const payload = diffFields(form, state.tenant, fields);
+        if (Object.keys(payload).length === 0) {
+            showToast('info', t('settings.title'), t('settings.error_nothing_changed'));
+            return;
+        }
+
+        const submitBtn = form.querySelector('[type="submit"]');
+        state.saving = true;
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = t('settings.btn_saving');
+        }
+
+        try {
+            const response = await global.HttpClient.patch('/tenant', payload, { requiresAuth: true });
+            const data = response && response.data ? response.data : response;
+            if (data && data.tenant) {
+                state.tenant = data.tenant;
+            }
+            showToast('success', t('settings.title'), t('settings.success_update'));
+            render();
+        } catch (err) {
+            console.error('[Settings] Error updating tenant:', err);
+            const errorMsg = err && err.message ? err.message : t('settings.update_error');
+            const errorField = err && err.data && err.data.field;
+            if (errorField) {
+                showFieldError(errorField, errorMsg);
+            } else {
+                showToast('danger', t('settings.update_error'), errorMsg);
+            }
+        } finally {
+            state.saving = false;
+        }
+    }
+
+    function handleSubmit(e) {
+        const form = e.target;
+        if (form.id === 'settings-general-form') {
+            e.preventDefault();
+            saveForm(form, ['nombre_interno']);
+        } else if (form.id === 'settings-local-form') {
+            e.preventDefault();
+            saveForm(form, ['pais', 'zona_horaria', 'idioma_default', 'logo_url', 'dominio_custom']);
+        }
+    }
+
+    // ====================================================================
     // PUBLIC API
     // ====================================================================
 
@@ -291,6 +507,7 @@
             state.tab = UI.tabFromParams(params, TABS, 'general');
             render();
             container.addEventListener('click', handleClick);
+            container.addEventListener('submit', handleSubmit);
             loadData();
         },
 
@@ -307,6 +524,7 @@
 
             if (!container.querySelector('[data-tabs]')) {
                 container.addEventListener('click', handleClick);
+                container.addEventListener('submit', handleSubmit);
             }
 
             const tab = UI.tabFromParams(params, TABS, state.tab);
@@ -320,6 +538,7 @@
         destroy() {
             if (container) {
                 container.removeEventListener('click', handleClick);
+                container.removeEventListener('submit', handleSubmit);
                 container.innerHTML = '';
             }
             container = null;
@@ -330,6 +549,7 @@
             state.loading = true;
             state.statsLoading = true;
             state.error = null;
+            state.saving = false;
         }
     };
 
