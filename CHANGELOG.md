@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.56] - 2026-10-15
+
+**Cabecera del modal de rol: acciones "Solo lectura" y "Limpiar" integradas en la linea de campos.** Los dos botones del toolbar (`btn-ghost btn-sm`, ~23px sin fondo) flotaban junto al select "Basar en" (~39px con borde) y rompian la linea de la cabecera. Opcion elegida (de las dos planteadas): mantenerlos en el toolbar —el pie sigue siendo sólo Cerrar/Crear rol— dandoles el mismo alto, fondo y borde que `.input`/`.select`.
+
+### Changed
+- `public/css/components.css` — `.pp-toolbar [data-pp-readonly-action]` y `.pp-toolbar [data-pp-clear]`: alto 2.4375rem (mismo que los campos), padding y tipografia de input, fondo `--color-background` y borde `--color-border`; hover sobre el fondo nuevo. Aplica a los modales Nuevo y Editar rol (mismo toolbar).
+
+### Verification
+- `node tools/smoke/verify-modal-roles.mjs`: 15/15 (los tres checks de linea base de la cabecera siguen en verde en claro y oscuro; capturas actualizadas).
+
 ## [1.13.55] - 2026-10-15
 
 **Corrección de doble scroll en el combobox de modal.** El modal "Anadir miembro" de Grupos aparecía con dos barras de scroll: la del `modal-body` y la de la propia lista de sugerencias. Causa: la lista `.combo-list` (posición absoluta) se salía del recuadro visible del `modal-body` (altura pequeña del modal md), lo que crecía el `scrollHeight` del body y activaba su `overflow-y: auto`.

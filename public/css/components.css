@@ -880,6 +880,26 @@
     min-width: 12rem;
 }
 
+/* Acciones del toolbar de la cabecera (Solo lectura / Limpiar) a la misma
+   linea que los campos: mismo alto que .input/.select y con su fondo y
+   borde, para que la fila Nombre | Basar en | acciones no se vea
+   discontinua. El hover conserva el tono de .btn-ghost pero sobre el nuevo
+   fondo. (v1.13.56) */
+.pp-toolbar [data-pp-readonly-action],
+.pp-toolbar [data-pp-clear] {
+    height: 2.4375rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    background-color: rgb(var(--color-background));
+    border-color: rgb(var(--color-border));
+}
+
+.pp-toolbar [data-pp-readonly-action]:hover:not(:disabled),
+.pp-toolbar [data-pp-clear]:hover:not(:disabled) {
+    background-color: rgb(var(--color-surface-alt));
+}
+
 /* Barra de filtros del picker. */
 .pp-bar {
     display: flex;
