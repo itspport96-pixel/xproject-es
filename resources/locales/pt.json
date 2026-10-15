@@ -195,6 +195,51 @@
     "password_incorrect": "A senha atual não corresponde",
     "email_in_use": "Este email já está em uso"
   },
+  "settings": {
+    "title": "Configurações",
+    "subtitle": "Ajustes gerais da organização",
+    "tab_general": "Geral",
+    "tab_localizacion": "Localização",
+    "tab_seguridad": "Segurança",
+    "tab_correo": "E-mail",
+    "tab_resumen": "Resumo",
+    "section_identidad": "Identidade da organização",
+    "section_localizacion": "Localização",
+    "section_seguridad": "Segurança",
+    "section_correo": "E-mail (SMTP)",
+    "label_nombre_interno": "Nome interno",
+    "label_id": "ID",
+    "label_estado": "Estado",
+    "label_plan": "Plano",
+    "label_configuracion": "Configuração adicional",
+    "label_version": "Versão da plataforma",
+    "label_pais": "País",
+    "label_zona_horaria": "Fuso horário",
+    "label_idioma_default": "Idioma padrão",
+    "label_logo_url": "URL do logo",
+    "label_dominio_custom": "Domínio personalizado",
+    "configuracion_null": "Sem configuração adicional",
+    "seguridad_body": "Política de senhas e autenticação de dois fatores (MFA).",
+    "correo_body": "Configuração do servidor SMTP para envio de e-mails.",
+    "hueco_title": "Em breve",
+    "hueco_password_policy": "A política de senhas (expiração e regras) será aplicada no backend; ainda não há formulário de edição.",
+    "hueco_smtp": "O envio de e-mails não está implementado; ainda não há formulário de configuração SMTP.",
+    "load_error_title": "Não foi possível carregar as configurações",
+    "load_error_body": "Erro ao carregar as configurações da organização",
+    "stats_error": "Não foi possível carregar os contadores da organização.",
+    "permission": {
+      "title": "Você não tem acesso a esta seção",
+      "body": "Você precisa da permissão <code>{permiso}</code> para ver as configurações da organização."
+    },
+    "stats": {
+      "usuarios": "Usuários",
+      "usuarios_activos": "Usuários ativos",
+      "roles_asignados": "Papéis atribuídos",
+      "productos": "Produtos",
+      "ubicaciones": "Localizações",
+      "unidades_fisicas": "Unidades físicas"
+    }
+  },
   "inventory": {
     "stock": {
       "title": "",

@@ -195,6 +195,51 @@
     "password_incorrect": "Le mot de passe actuel ne correspond pas",
     "email_in_use": "Cet email est déjà utilisé"
   },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Réglages généraux de l'organisation",
+    "tab_general": "Général",
+    "tab_localizacion": "Localisation",
+    "tab_seguridad": "Sécurité",
+    "tab_correo": "E-mail",
+    "tab_resumen": "Résumé",
+    "section_identidad": "Identité de l'organisation",
+    "section_localizacion": "Localisation",
+    "section_seguridad": "Sécurité",
+    "section_correo": "E-mail (SMTP)",
+    "label_nombre_interno": "Nom interne",
+    "label_id": "ID",
+    "label_estado": "Statut",
+    "label_plan": "Plan",
+    "label_configuracion": "Configuration supplémentaire",
+    "label_version": "Version de la plateforme",
+    "label_pais": "Pays",
+    "label_zona_horaria": "Fuseau horaire",
+    "label_idioma_default": "Langue par défaut",
+    "label_logo_url": "URL du logo",
+    "label_dominio_custom": "Domaine personnalisé",
+    "configuracion_null": "Aucune configuration supplémentaire",
+    "seguridad_body": "Politique de mots de passe et authentification à deux facteurs (MFA).",
+    "correo_body": "Configuration du serveur SMTP pour l'envoi d'e-mails.",
+    "hueco_title": "Bientôt disponible",
+    "hueco_password_policy": "La politique de mots de passe (expiration et règles) sera appliquée par le backend ; il n'y a pas encore de formulaire d'édition.",
+    "hueco_smtp": "L'envoi d'e-mails n'est pas implémenté ; il n'y a pas encore de formulaire de configuration SMTP.",
+    "load_error_title": "Impossible de charger les paramètres",
+    "load_error_body": "Erreur lors du chargement des paramètres de l'organisation",
+    "stats_error": "Impossible de charger les compteurs de l'organisation.",
+    "permission": {
+      "title": "Vous n'avez pas accès à cette section",
+      "body": "Vous avez besoin de la permission <code>{permiso}</code> pour voir les paramètres de l'organisation."
+    },
+    "stats": {
+      "usuarios": "Utilisateurs",
+      "usuarios_activos": "Utilisateurs actifs",
+      "roles_asignados": "Rôles assignés",
+      "productos": "Produits",
+      "ubicaciones": "Emplacements",
+      "unidades_fisicas": "Unités physiques"
+    }
+  },
   "inventory": {
     "stock": {
       "title": "",

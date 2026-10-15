@@ -195,6 +195,51 @@
     "password_incorrect": "Current password does not match",
     "email_in_use": "This email is already in use"
   },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "General organization settings",
+    "tab_general": "General",
+    "tab_localizacion": "Location",
+    "tab_seguridad": "Security",
+    "tab_correo": "Email",
+    "tab_resumen": "Summary",
+    "section_identidad": "Organization identity",
+    "section_localizacion": "Location",
+    "section_seguridad": "Security",
+    "section_correo": "Email (SMTP)",
+    "label_nombre_interno": "Internal name",
+    "label_id": "ID",
+    "label_estado": "Status",
+    "label_plan": "Plan",
+    "label_configuracion": "Additional configuration",
+    "label_version": "Platform version",
+    "label_pais": "Country",
+    "label_zona_horaria": "Time zone",
+    "label_idioma_default": "Default language",
+    "label_logo_url": "Logo URL",
+    "label_dominio_custom": "Custom domain",
+    "configuracion_null": "No additional configuration",
+    "seguridad_body": "Password policy and multi-factor authentication (MFA).",
+    "correo_body": "SMTP server configuration for sending emails.",
+    "hueco_title": "Coming soon",
+    "hueco_password_policy": "The password policy (expiration and rules) will be enforced by the backend; there is no edit form yet.",
+    "hueco_smtp": "Email sending is not implemented; there is no SMTP configuration form yet.",
+    "load_error_title": "Could not load settings",
+    "load_error_body": "Error loading organization settings",
+    "stats_error": "Could not load organization counters.",
+    "permission": {
+      "title": "You do not have access to this section",
+      "body": "You need the <code>{permiso}</code> permission to view organization settings."
+    },
+    "stats": {
+      "usuarios": "Users",
+      "usuarios_activos": "Active users",
+      "roles_asignados": "Assigned roles",
+      "productos": "Products",
+      "ubicaciones": "Locations",
+      "unidades_fisicas": "Physical units"
+    }
+  },
   "inventory": {
     "stock": {
       "title": "Current stock",

@@ -195,6 +195,51 @@
     "password_incorrect": "La contraseña actual no coincide",
     "email_in_use": "Este email ya está en uso"
   },
+  "settings": {
+    "title": "Configuración",
+    "subtitle": "Ajustes generales de la organización",
+    "tab_general": "General",
+    "tab_localizacion": "Localización",
+    "tab_seguridad": "Seguridad",
+    "tab_correo": "Correo",
+    "tab_resumen": "Resumen",
+    "section_identidad": "Identidad de la organización",
+    "section_localizacion": "Localización",
+    "section_seguridad": "Seguridad",
+    "section_correo": "Correo (SMTP)",
+    "label_nombre_interno": "Nombre interno",
+    "label_id": "ID",
+    "label_estado": "Estado",
+    "label_plan": "Plan",
+    "label_configuracion": "Configuración adicional",
+    "label_version": "Versión de la plataforma",
+    "label_pais": "País",
+    "label_zona_horaria": "Zona horaria",
+    "label_idioma_default": "Idioma por defecto",
+    "label_logo_url": "URL del logo",
+    "label_dominio_custom": "Dominio personalizado",
+    "configuracion_null": "Sin configuración adicional",
+    "seguridad_body": "Política de contraseñas y segundo factor (MFA).",
+    "correo_body": "Configuración del servidor SMTP para envío de correos.",
+    "hueco_title": "Próximamente",
+    "hueco_password_policy": "La política de contraseñas (vencimiento y reglas) se aplicará en el backend; no hay formulario de edición todavía.",
+    "hueco_smtp": "El envío de correos no está implementado; no hay formulario de configuración SMTP todavía.",
+    "load_error_title": "No se pudo cargar la configuración",
+    "load_error_body": "Error al cargar la configuración de la organización",
+    "stats_error": "No se pudieron cargar los contadores de la organización.",
+    "permission": {
+      "title": "No tienes acceso a este apartado",
+      "body": "Necesitas el permiso <code>{permiso}</code> para ver la configuración de la organización."
+    },
+    "stats": {
+      "usuarios": "Usuarios",
+      "usuarios_activos": "Usuarios activos",
+      "roles_asignados": "Roles asignados",
+      "productos": "Productos",
+      "ubicaciones": "Ubicaciones",
+      "unidades_fisicas": "Unidades físicas"
+    }
+  },
   "inventory": {
     "stock": {
       "title": "Stock actual",

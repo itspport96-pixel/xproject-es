@@ -336,7 +336,10 @@
 
     // CICLO 5 (v1.13.7): perfil de usuario (ruta publica autenticada,
     // sin permiso especifico; no forma parte de settings/settings)
-    'profile/profile': { path: 'profile/profile.js' }
+    'profile/profile': { path: 'profile/profile.js' },
+
+    // v1.13.58: configuracion del tenant (solo lectura; tenants.tenant.view)
+    'settings/settings': { path: 'settings/settings.js' }
   });
 
   global.ModuleLoader = ModuleLoader;

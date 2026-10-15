@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.58] - 2026-10-15
+
+**Bloque B frontend del módulo settings: vista de solo lectura de la configuración del tenant.** Nueva ruta `#/settings` (menú Sistema, rol ADMIN) con el módulo `settings/settings` registrado en el loader. Cinco pestañas (`UI.viewShell` + estado en `?tab=`): General (nombre interno, ID, estado, plan, configuración adicional y versión de plataforma desde `GET /api/tenant`), Localización (país, zona horaria, idioma, logo, dominio), Seguridad y Correo como pantallas de hueco declarado (la política de contraseñas y el SMTP no tienen formulario ni endpoint de edición) y Resumen con `UI.summaryCards` sobre `GET /api/tenant/stats`. Gate de permiso `tenants.tenant.view` (fallback rol ADMIN) con `UI.deniedState`. `nombre_publico` NO se muestra: es ciphertext residual documentado en 1.13.57. Sin cambios de backend ni de esquema.
+
+### Added
+- `public/js/modules/settings/settings.js` (nuevo): `SettingsSettingsModule` con `UI.viewShell`, pestañas con `state.tab` + `UI.tabFromParams`/`applyTabState`/`syncTabParam`, estados `UI.loadingState`/`errorState` (con retry)/`deniedState`/`cardsSkeleton` y resumen con `UI.summaryCards`.
+- `public/js/core/loader.js`: registro de `settings/settings`.
+- `resources/locales/{es,en,pt,fr}.json`: bloque `settings.*` (títulos, pestañas, etiquetas, huecos de seguridad/correo, permiso y contadores).
+- `tools/smoke/smoke-v11358.mjs` (nuevo): 32 checks (registro, denied sin permiso, lectura con permiso, ciphertext oculto, tab por params, error+retry).
+
+### Verification
+- `node --check` (settings.js, loader.js) y JSON de 4 locales OK.
+- `node tools/smoke/smoke-v11358.mjs`: 32/32.
+- Regresión de smokes que cargan el loader: `smoke-v162.mjs` 89/89, `smoke-v171.mjs` 105/105.
+- `php bin/check-i18n.php`: 0 errores (205 avisos preexistentes).
+- Vivo (sesión ADMIN): `GET /api/tenant` y `GET /api/tenant/stats` 200; `php bin/check-schema-drift.php` SIN DRIFT.
+
 ## [1.13.57] - 2026-10-15
 
 **Bloque A backend del módulo settings de tenant: identidad interna editable, `configuracion` y versión de plataforma en el GET.** El nombre interno del tenant (`tenants.nombre_interno`) pasa a ser editable por el ADMIN del tenant vía `PATCH /api/tenant`, con el mismo patrón de ceguera de datos que el resto del módulo: se actualiza `nombre_interno` junto a su `nombre_interno_hmac` (HMAC-SHA256, `BlindIndexService`) y la unicidad se comprueba con `existsByNombreInterno($excludeId)` más captura de SQLSTATE 23000 → 409. `GET /api/tenant` añade `nombre_interno`, `configuracion` (hoy `null`, hueco declarado) y `plataforma_version` (leída de `APP_VERSION` en `.env`, sin fallback versionado en el repo). Sin cambios de esquema.
