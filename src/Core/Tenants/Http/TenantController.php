@@ -85,6 +85,81 @@ final class TenantController
         return $this->json(200, ['stats' => $stats]);
     }
 
+    /**
+     * GET /api/tenant/branding
+     * Marca y preferencias regionales del tenant para cualquier usuario
+     * autenticado del mismo tenant (sin datos de plan ni contacto).
+     */
+    public function branding(array $request): array
+    {
+        $claims = $request['user'] ?? null;
+        if (!is_array($claims) || empty($claims['tenant_id'])) {
+            throw (new HttpException('No autorizado', 401))->withMessageKey('common.unauthorized');
+        }
+
+        return $this->json(200, [
+            'branding' => $this->tenantContext->getCurrentTenant()->toBrandingArray(),
+        ]);
+    }
+
+    // ========================================================================
+    // LOGO
+    // ========================================================================
+
+    private const LOGO_MAX_BYTES = 819200;
+    private const LOGO_MIME = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/webp' => 'webp'];
+
+    /**
+     * POST /api/tenant/logo (multipart, campo "logo")
+     * PNG/JPG/WebP hasta 800 KB. Se guarda en public/uploads/tenants/{id}/
+     * y logo_url pasa a la ruta relativa; los logos anteriores se borran.
+     */
+    public function uploadLogo(array $request): array
+    {
+        $this->requireAdmin($request);
+        $tenantId = $this->tenantContext->getTenantId();
+
+        try {
+            $file = $_FILES['logo'] ?? null;
+            if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
+                throw TenantException::invalidLogoFile('no se recibió el archivo');
+            }
+            if ((int) $file['size'] > self::LOGO_MAX_BYTES) {
+                throw TenantException::invalidLogoFile('supera 800 KB');
+            }
+
+            $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+            $ext = self::LOGO_MIME[$mime] ?? null;
+            if ($ext === null || @getimagesize($file['tmp_name']) === false) {
+                throw TenantException::invalidLogoFile('formato no permitido');
+            }
+
+            $relDir = 'uploads/tenants/' . $tenantId;
+            $absDir = BASE_PATH . '/public/' . $relDir;
+            if (!is_dir($absDir) && !mkdir($absDir, 0755, true) && !is_dir($absDir)) {
+                throw new \RuntimeException('No se pudo crear el directorio de subida');
+            }
+
+            $previous = glob($absDir . '/logo-*') ?: [];
+            $fileName = 'logo-' . time() . '.' . $ext;
+            if (!move_uploaded_file($file['tmp_name'], $absDir . '/' . $fileName)) {
+                throw new \RuntimeException('No se pudo guardar el logo');
+            }
+            foreach ($previous as $old) {
+                @unlink($old);
+            }
+
+            $tenant = $this->tenantService->update($tenantId, ['logo_url' => $relDir . '/' . $fileName]);
+            return $this->json(200, ['tenant' => $tenant]);
+        } catch (TenantException $e) {
+            $http = new HttpException($e->getMessage(), $e->getCode() ?: 400, $e);
+            if ($e->getMessageKey() !== null) {
+                $http->withMessageKey($e->getMessageKey(), $e->getMessageParams());
+            }
+            throw $http;
+        }
+    }
+
     // ========================================================================
     // ACTUALIZACIÓN
     // ========================================================================

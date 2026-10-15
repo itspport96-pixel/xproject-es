@@ -4,6 +4,45 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.14.0] - 2026-10-15
+
+**Interfaz estilo iOS (sin transparencias) y modulo de Configuracion del tenant completo: Perfil, Apariencia y Preferencias regionales.** Rediseno visual de toda la app sobre los tokens existentes (sin cambiar estructura ni selectores de las vistas) y cierre del modulo settings con edicion del correo de contacto, telefono, direccion, subida de logo, color de marca aplicado a todos los usuarios del tenant y formatos regionales (moneda y fecha) aplicados en los listados. Sin cambios de esquema: los datos nuevos viven en la columna existente `tenants.configuracion` (JSON).
+
+### Added
+- `GET /api/tenant/branding` (cualquier usuario autenticado del tenant): `nombre_publico`, `logo_url`, `zona_horaria`, `idioma_default`, `apariencia`, `regional` (`Tenant::toBrandingArray()`, sin plan ni contacto).
+- `POST /api/tenant/logo` (multipart `logo`, `tenants.tenant.edit` + ADMIN, auditado): PNG/JPG/WebP hasta 800 KB validados con `finfo` + `getimagesize` (SVG excluido por XSS); se guarda en `public/uploads/tenants/{tenant_id}/logo-{ts}.{ext}`, borra los logos anteriores y fija `logo_url` a la ruta relativa. `public/uploads/.htaccess` impide ejecutar scripts y listar el directorio; `/public/uploads/*` en `.gitignore` (salvo el `.htaccess`).
+- `public/js/core/branding.js` (`TenantBranding`): carga la marca tras login/arranque, cache en `localStorage['xp.branding']`, aplica el color a `--color-primary`/`-hover`/`-foreground`/`--color-info` (recalculado en claro/oscuro, contraste del texto calculado), vista previa sin guardar y evento `branding:changed`.
+- `UI.formatDate`, `UI.formatDateTime`, `UI.formatMoney` (`public/js/ui/dom.js`) con el formato de fecha y la moneda del tenant; fechas "naive" de la BD se muestran tal cual (sin conversion de zona), ISO con zona se convierten a `zona_horaria`.
+- `public/css/ios.css`: capa visual iOS opaca (large titles, sidebar estilo iPadOS con item activo relleno, tarjetas inset grouped, campos "filled", control segmentado para pestanas, interruptor verde, tablas tipo lista, modales/menus/toasts con radios iOS, boton `is-loading`).
+- Configuracion: pestanas Perfil (nombre, correo de contacto, telefono, direccion, logo por subida o URL), Apariencia (8 colores + selector libre + vista previa en vivo + restablecer) y Preferencias regionales (pais, zona horaria con `Intl.supportedValuesOf`, idioma, moneda y formato de fecha con muestra en vivo). Validacion inline (correo, telefono, slug, URL, tamano/tipo de logo), botones con estado de carga y toasts.
+- Sidebar: logo o inicial del tenant con el color de marca + nombre de la organizacion.
+- `tests/Unit/TenantSettingsTest.php` (14 tests): contacto en `toPublicArray`, `toBrandingArray`, logo, URL de logo, fusion y validacion de `configuracion`.
+- `resources/locales/{es,en,pt,fr}.json`: claves `settings.*` nuevas (perfil, apariencia, regional, logo, colores, monedas) y `api_errors.tenants.email_contacto_invalid/logo_url_invalid/configuracion_invalid/logo_file_invalid`.
+
+### Changed
+- `public/css/themes.css`: paleta iOS en claro (fondo agrupado `#f2f2f7`, superficies blancas, acento `#0066d6` con AA 5.4:1) y oscuro (fondo negro, `#1c1c1e`/`#2c2c2e`, acento `#0a84ff`); radios 6/10/14/18 px; sombras suaves; pila tipografica SF Pro / Segoe UI Variable.
+- `public/index.php`: carga `ios.css` y `core/branding.js`; `TenantBranding.init()` en el arranque; `tailwind.config` con `primary` = `rgb(var(--color-primary))` y radios reconciliados.
+- `Tenant::toPublicArray()` incluye `email_contacto` y `telefono` (el correo de contacto ya se puede editar desde la UI).
+- `TenantService::update()`: `configuracion` se **fusiona por secciones** (un PATCH parcial no borra el resto; `null` elimina la clave) y se valida (`perfil.direccion` <= 500, `apariencia.color_primario` `#RRGGBB`, `regional.moneda` en catalogo, `regional.formato_fecha` en `FORMATOS_FECHA`).
+- Fechas de listados con `UI.formatDate*`: productos, ubicaciones, conteos, envios, entregas, picking, incidencias, usuarios (ultimo acceso, permisos temporales), grupos y auditoria.
+- `LocaleDictionaryService`: la clave de Redis incluye el `filemtime` del diccionario (antes un `git pull` con claves nuevas quedaba oculto hasta 1 h por el cache).
+- `tools/smoke/smoke-v11358.mjs`: 7 pestanas, Perfil por defecto, `nombre_publico` visible (en la BD viva es texto plano) y escenario S7 (perfil, apariencia, regional y `UI.formatDate`): 61 checks.
+
+### Fixed
+- `PATCH /api/tenant` ignoraba `logo_url` (la UI lo enviaba desde 1.13.59 pero nunca se guardaba).
+- Filtros de inventario: el boton limpiar caia solo a una segunda linea; cabecera de vista sin separacion entre subtitulo y accion en movil.
+
+### Verification
+- `php -l` en los PHP tocados; `composer test`: 958 tests / 6849 aserciones OK; `php bin/check-schema-drift.php` SIN DRIFT; `php bin/check-data-integrity.php` DATOS CONSISTENTES; `php bin/check-i18n.php` 0 errores.
+- `node --check` en los JS tocados; los 13 smokes jsdom en verde (smoke-v11358 61/61, v162 89/89, v171 105/105, v193 136/136...).
+- E2E en navegador (Playwright) contra PHP 8.4 + MariaDB con el dump de trabajo: perfil, logo, color, regional, permisos de no-admin y revision visual claro/oscuro/movil.
+
+### Deviations (reportadas, no tocadas)
+- El engranaje del header se muestra a usuarios sin `tenants.tenant.view` (llega al estado de permiso denegado).
+- Los filtros de fecha de auditoria/devoluciones usan `input type=date` nativo (formato del navegador, no el del tenant).
+- `Tenant::$nombrePublico` en la BD viva es texto plano ("Acme Corporation"), no el ciphertext residual documentado en 1.13.57.
+- Contraste del acento oscuro `#0a84ff` con texto blanco: 3.65:1 (AA para componentes y texto grande; el texto de botones va en 600).
+
 ## [1.13.59] - 2026-10-15
 
 **Bloque C frontend del módulo settings: edición inline de la configuración del tenant (sin modales).** Con `tenants.tenant.edit` (fallback rol ADMIN) las pestañas General y Localización pasan de lectura a formulario `UI.formFooter`: General edita `nombre_interno` (validación de slug en cliente con el mismo regex que la entidad backend, `^[a-z0-9][a-z0-9_\-]*[a-z0-9]$`, máx. 255) y Localización edita `pais`, `zona_horaria`, `idioma_default` (select con `profile.lang.*`), `logo_url` (http/https) y `dominio_custom` (vacío = remover → `null`). El envío calcula el diff contra el tenant cargado y hace `PATCH /api/tenant` sólo con los campos cambiados; sin cambios toast `info`, éxito toast `success` + re-render, errores de campo vía `err.data.field`. Sin `tenants.tenant.edit` la vista sigue siendo de solo lectura (mismo `labelValue`). `nombre_publico` sigue sin mostrarse ni editarse (ciphertext residual). Sin cambios de backend ni de esquema.

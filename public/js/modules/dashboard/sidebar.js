@@ -147,7 +147,7 @@
 
     container.innerHTML = `
       <div class="sidebar-header">
-        <div class="sidebar-brand">${escapeHtml(global.AppConfig?.appName || 'XP Platform')}</div>
+        ${renderBrand()}
         <button class="sidebar-toggle-mobile" aria-label="${escapeHtml(t('shell.sidebar_close'))}">${ICONS.close}</button>
       </div>
       <nav class="sidebar-nav" role="navigation" aria-label="${escapeHtml(t('shell.sidebar_menu'))}">
@@ -168,6 +168,25 @@
 
     bindSidebarEvents();
     updateActiveItem();
+  }
+
+  // Marca del tenant (v1.14.0): logo subido o inicial sobre el color de
+  // marca, nombre de la organización y, debajo, el nombre de la app.
+  function renderBrand() {
+    const appName = global.AppConfig?.appName || 'XP Platform';
+    const branding = global.TenantBranding ? global.TenantBranding.get() : null;
+    const tenantName = (branding && branding.nombre_publico) || '';
+    const title = tenantName || appName;
+    const logo = branding && global.TenantBranding.logoSrc(branding.logo_url);
+    const mark = logo
+      ? `<img class="sidebar-brand-logo" src="${escapeHtml(logo)}" alt="" data-testid="sidebar-brand-logo">`
+      : `<span class="sidebar-brand-mark" aria-hidden="true">${escapeHtml(title.trim().charAt(0).toUpperCase() || 'X')}</span>`;
+    const sub = tenantName ? `<span class="sidebar-brand-sub">${escapeHtml(appName)}</span>` : '';
+    return `
+        <div class="sidebar-brand" data-testid="sidebar-brand" title="${escapeHtml(title)}">
+          ${mark}
+          <span class="sidebar-brand-text"><span class="sidebar-brand-name">${escapeHtml(title)}</span>${sub}</span>
+        </div>`;
   }
 
   function renderSections(menu) {
@@ -364,6 +383,11 @@
     // Cambio de idioma sin recarga: re-pinta etiquetas y secciones.
     global.EventBus.on('i18n:changed', () => {
       render();
+    });
+
+    // Logo/nombre del tenant cambiados (Configuración o carga inicial).
+    global.EventBus.on('branding:changed', () => {
+      if (global.AuthState && global.AuthState.isAuthenticated()) render();
     });
   }
 

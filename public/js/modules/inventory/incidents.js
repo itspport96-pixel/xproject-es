@@ -307,7 +307,7 @@
                 <td class="font-mono text-xs">${UI.escapeHtml(r.ubicacion_codigo || '—')}</td>
                 <td>${UI.estadoBadge(r.estado, estadoCatalog(ESTADOS))}</td>
                 <td>${prioridadBadge(r.prioridad)}</td>
-                <td class="text-xs">${UI.escapeHtml(r.fecha_deteccion || '—')}</td>
+                <td class="text-xs">${UI.escapeHtml(UI.formatDateTime(r.fecha_deteccion))}</td>
                 <td class="table-actions col-actions">${acciones}</td>
             </tr>`;
         }).join('');
@@ -655,7 +655,7 @@
                 ${detailRow(t('inventory.incidents.detail.acciones_tomadas'), UI.escapeHtml(resolucion.acciones_tomadas || '—'))}
                 ${detailRow(t('inventory.incidents.detail.compensacion'), UI.escapeHtml(resolucion.compensacion || '—'))}
                 ${detailRow(t('inventory.incidents.detail.resuelta_por'), UI.escapeHtml(resolucion.actor_resuelve || '—'))}
-                ${detailRow(t('inventory.incidents.detail.fecha'), UI.escapeHtml(resolucion.fecha_resolucion || '—'))}
+                ${detailRow(t('inventory.incidents.detail.fecha'), UI.escapeHtml(UI.formatDateTime(resolucion.fecha_resolucion)))}
             </div>` : '';
 
         return `
@@ -666,9 +666,9 @@
                     ${detailRow(t('inventory.incidents.detail.tipo'), UI.escapeHtml(tipoLabel(data.tipo)))}
                     ${detailRow(t('inventory.incidents.detail.estado'), UI.estadoBadge(data.estado, estadoCatalog(ESTADOS)))}
                     ${detailRow(t('inventory.incidents.detail.prioridad'), prioridadBadge(data.prioridad))}
-                    ${detailRow(t('inventory.incidents.detail.deteccion'), UI.escapeHtml(data.fecha_deteccion || '—'))}
-                    ${detailRow(t('inventory.incidents.detail.creada'), UI.escapeHtml(data.fecha_creacion || '—'))}
-                    ${detailRow(t('inventory.incidents.detail.actualizada'), UI.escapeHtml(data.fecha_actualizacion || '—'))}
+                    ${detailRow(t('inventory.incidents.detail.deteccion'), UI.escapeHtml(UI.formatDateTime(data.fecha_deteccion)))}
+                    ${detailRow(t('inventory.incidents.detail.creada'), UI.escapeHtml(UI.formatDateTime(data.fecha_creacion)))}
+                    ${detailRow(t('inventory.incidents.detail.actualizada'), UI.escapeHtml(UI.formatDateTime(data.fecha_actualizacion)))}
                 </div>
                 <div class="card p-3">
                     <div class="text-xs text-muted mb-2">${t('inventory.incidents.detail.context_section')}</div>

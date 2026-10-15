@@ -300,7 +300,7 @@
                     <td>${estado}</td>
                     <td class="nowrap-cell">${rolesCell(u)}</td>
                     <td class="text-xs nowrap-cell">${u.ultimo_login
-                        ? `<span title="${UI.escapeHtml(u.ultimo_login)}">${UI.escapeHtml(u.ultimo_login)}</span>`
+                        ? `<span title="${UI.escapeHtml(u.ultimo_login)}">${UI.escapeHtml(UI.formatDateTime(u.ultimo_login))}</span>`
                         : '<span class="text-muted">—</span>'}</td>
                     <td class="table-actions col-actions">${acciones}</td>
                 </tr>`;
@@ -404,7 +404,7 @@
                         <div>${criticidadBadge(row.permission_criticidad)}</div>
                     </td>
                     <td class="text-xs">${UI.escapeHtml(row.motivo || '')}</td>
-                    <td class="text-xs">${UI.escapeHtml(row.fecha_expiracion || '')}</td>
+                    <td class="text-xs">${UI.escapeHtml(row.fecha_expiracion ? UI.formatDateTime(row.fecha_expiracion) : '')}</td>
                     <td class="text-xs">${UI.escapeHtml(row.granted_by_email || row.granted_by_user_id || '—')}</td>
                     <td>${estado}</td>
                     <td class="table-actions col-actions">${acciones}</td>

@@ -43,8 +43,10 @@ async function tick(n = 8) {
 
 const TENANT = {
   id: 'cb22db62-5379-4b83-8c51-a3c695c6de51',
-  nombre_publico: 'HIaSDpSrUXta51g3rRXbhF8Yx/PmH4dyaXO99ZcEm/djucl7gkHs1ok=',
+  nombre_publico: 'Acme Corporation',
   nombre_interno: 'acme-corp',
+  email_contacto: 'contact@acme.local',
+  telefono: '+52 55 1234 5678',
   estado: 'ACTIVO',
   plan: 'FREE',
   pais: 'México',
@@ -214,16 +216,20 @@ async function s3_read_only() {
   check('GET /tenant/stats lanzado', env.calls.gets.some(g => g.path === '/tenant/stats'));
 
   const tabs = env.container.querySelectorAll('[data-action="tab"]');
-  check('5 pestañas', tabs.length === 5, String(tabs.length));
-  check('pestaña general activa',
-    env.container.querySelector('[data-panel="general"]') &&
-    !env.container.querySelector('[data-panel="general"]').classList.contains('hidden'));
+  // v1.14.0: Perfil, Apariencia y Preferencias regionales; Perfil por defecto
+  check('7 pestañas', tabs.length === 7, String(tabs.length));
+  check('pestaña perfil activa',
+    env.container.querySelector('[data-panel="perfil"]') &&
+    !env.container.querySelector('[data-panel="perfil"]').classList.contains('hidden'));
+  const perfil = env.container.querySelector('[data-panel="perfil"]');
+  check('perfil: nombre publico visible', perfil.textContent.includes('Acme Corporation'));
+  check('perfil: correo de contacto visible', perfil.textContent.includes('contact@acme.local'));
 
   const general = env.container.querySelector('[data-panel="general"]');
   check('nombre_interno visible', general.textContent.includes('acme-corp'));
   check('plan FREE visible', general.textContent.includes('FREE'));
   check('version 1.13.58 visible', general.textContent.includes('1.13.58'));
-  check('configuracion null con texto', general.textContent.includes('Sin configuración adicional'));
+  check('general sin volcado JSON de configuracion', !general.textContent.includes('null'));
 
   const loc = env.container.querySelector('[data-panel="localizacion"]');
   check('pais visible', loc.textContent.includes('México'));
@@ -271,8 +277,7 @@ async function s4_ciphertext_and_params() {
     !env.container.querySelector('[data-panel="localizacion"]').classList.contains('hidden'));
 
   const text = env.container.textContent;
-  check('nombre_publico (ciphertext) NO visible',
-    !text.includes('HIaSDpSrUXta51g3rRXbhF8Yx'));
+  check('nombre_publico visible (texto plano en la BD viva)', text.includes('Acme Corporation'));
   check('ID del tenant visible', text.includes(TENANT.id));
 
   env.close();
@@ -420,6 +425,94 @@ async function s6_edit() {
 }
 
 // =====================================================================
+// S7 - PERFIL, APARIENCIA Y PREFERENCIAS REGIONALES (v1.14.0)
+// =====================================================================
+async function s7_tenant_config() {
+  console.log('S7 perfil, apariencia y preferencias regionales');
+  const CONFIG = { perfil: { direccion: 'Av. Reforma 1' }, extra: { x: 1 } };
+  const env = createEnv({
+    perms: EDIT_PERMS,
+    roles: ['ADMIN'],
+    getHandlers: {
+      '/tenant': () => ({ status: 200, data: { tenant: { ...TENANT, configuracion: CONFIG }, plataforma_version: '1.14.0' } }),
+      '/tenant/stats': () => STATS_PAYLOAD
+    },
+    patchImpl: (p, body) => ({ status: 200, data: { tenant: { ...TENANT, configuracion: CONFIG, ...body } } })
+  });
+  env.loadSettings();
+  env.w.SettingsSettingsModule.init({}, env.container);
+  await tick();
+  await tick();
+  const submit = (f) => f.dispatchEvent(new env.w.Event('submit', { bubbles: true, cancelable: true }));
+
+  const pf = env.container.querySelector('#settings-profile-form');
+  check('perfil: form presente', !!pf);
+  check('perfil: direccion desde configuracion', pf.querySelector('[name="perfil.direccion"]').value === 'Av. Reforma 1');
+
+  pf.querySelector('[name="email_contacto"]').value = 'correo-malo';
+  submit(pf);
+  await tick();
+  const emailErr = env.container.querySelector('[data-field="email_contacto"]');
+  check('perfil: correo invalido muestra error inline', emailErr && !emailErr.classList.contains('hidden'));
+  check('perfil: correo invalido sin PATCH', env.calls.patches.length === 0, JSON.stringify(env.calls.patches));
+
+  pf.querySelector('[name="email_contacto"]').value = 'nuevo@acme.local';
+  submit(pf);
+  await tick();
+  let last = env.calls.patches[env.calls.patches.length - 1];
+  check('perfil: PATCH solo email_contacto',
+    last && Object.keys(last.body).length === 1 && last.body.email_contacto === 'nuevo@acme.local',
+    JSON.stringify(last && last.body));
+
+  const pf2 = env.container.querySelector('#settings-profile-form');
+  pf2.querySelector('[name="perfil.direccion"]').value = 'Calle 2';
+  submit(pf2);
+  await tick();
+  last = env.calls.patches[env.calls.patches.length - 1];
+  check('perfil: direccion va en configuracion.perfil y conserva otras claves',
+    last && last.body.configuracion && last.body.configuracion.perfil.direccion === 'Calle 2' &&
+    last.body.configuracion.extra && last.body.configuracion.extra.x === 1,
+    JSON.stringify(last && last.body));
+
+  // Apariencia: swatch + guardar
+  env.click(env.container.querySelector('[data-action="tab"][data-tab="apariencia"]'));
+  await tick();
+  env.click(env.container.querySelector('[data-action="settings-pick-color"][data-color="#248A3D"]'));
+  check('apariencia: swatch marcado', env.container.querySelector('.color-swatch.is-selected[data-color="#248A3D"]') !== null);
+  submit(env.container.querySelector('#settings-appearance-form'));
+  await tick();
+  last = env.calls.patches[env.calls.patches.length - 1];
+  check('apariencia: PATCH color_primario',
+    last && last.body.configuracion && last.body.configuracion.apariencia &&
+    last.body.configuracion.apariencia.color_primario === '#248A3D',
+    JSON.stringify(last && last.body));
+
+  // Preferencias regionales: moneda y formato
+  env.click(env.container.querySelector('[data-action="tab"][data-tab="localizacion"]'));
+  await tick();
+  const lf = env.container.querySelector('#settings-local-form');
+  lf.querySelector('[name="regional.moneda"]').value = 'MXN';
+  lf.querySelector('[name="regional.formato_fecha"]').value = 'YYYY-MM-DD';
+  submit(lf);
+  await tick();
+  last = env.calls.patches[env.calls.patches.length - 1];
+  check('regional: PATCH moneda y formato en configuracion.regional',
+    last && last.body.configuracion && last.body.configuracion.regional &&
+    last.body.configuracion.regional.moneda === 'MXN' &&
+    last.body.configuracion.regional.formato_fecha === 'YYYY-MM-DD',
+    JSON.stringify(last && last.body));
+
+  // UI.formatDate con formato del tenant
+  env.w.TenantBranding = { get: () => ({ regional: { formato_fecha: 'MM/DD/YYYY' } }) };
+  check('UI.formatDate respeta el formato', env.w.UI.formatDate('2026-10-15 21:43:40') === '10/15/2026',
+    env.w.UI.formatDate('2026-10-15 21:43:40'));
+  check('UI.formatDateTime anade hora', env.w.UI.formatDateTime('2026-10-15 21:43:40') === '10/15/2026 21:43');
+  check('UI.formatDate vacio', env.w.UI.formatDate(null) === '—');
+
+  env.close();
+}
+
+// =====================================================================
 // RUN
 // =====================================================================
 async function main() {
@@ -429,6 +522,7 @@ async function main() {
   await s4_ciphertext_and_params();
   await s5_error_retry();
   await s6_edit();
+  await s7_tenant_config();
   console.log(`\n${pass} ok, ${fail} fail`);
   process.exit(fail > 0 ? 1 : 0);
 }

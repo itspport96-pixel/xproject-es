@@ -352,15 +352,15 @@ function renderSpaLayout(): void
                         // claro es azul-600 (AA como texto y como fondo con
                         // texto blanco); .text-primary/.bg-primary rara vez
                         // se usan, pero si se usan deben coincidir.
-                        primary: { DEFAULT: '#2563eb', dark: '#60a5fa' }
+                        primary: { DEFAULT: 'rgb(var(--color-primary) / <alpha-value>)', dark: 'rgb(var(--color-primary) / <alpha-value>)' }
                     },
                     // Reconciliacion con los tokens de themes.css (D8): si no,
                     // .rounded / .shadow los definiria el CDN con la escala
                     // estatica de Tailwind y el resultado dependeria del orden
                     // de carga entre el CDN y los ficheros locales.
                     borderRadius: {
-                        sm: '0.25rem',
-                        DEFAULT: '0.375rem'
+                        sm: '0.375rem',
+                        DEFAULT: '0.625rem'
                     },
                     boxShadow: {
                         sm: 'var(--shadow-sm)',
@@ -375,6 +375,7 @@ function renderSpaLayout(): void
     <link rel="stylesheet" href="{$baseUrlHtml}/css/themes.css?v={$assetsVersion}">
     <link rel="stylesheet" href="{$baseUrlHtml}/css/style.css?v={$assetsVersion}">
     <link rel="stylesheet" href="{$baseUrlHtml}/css/components.css?v={$assetsVersion}">
+    <link rel="stylesheet" href="{$baseUrlHtml}/css/ios.css?v={$assetsVersion}">
 </head>
 <body class="min-h-screen">
     <div id="app" class="app-layout">
@@ -451,6 +452,7 @@ function renderSpaLayout(): void
     <script src="{$baseUrlHtml}/js/ui/actions.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/ui/permission-picker.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/ui/account-menu.js?v={$assetsVersion}"></script>
+    <script src="{$baseUrlHtml}/js/core/branding.js?v={$assetsVersion}"></script>
 
     <!-- Dashboard / App Shell Scripts -->
     <script src="{$baseUrlHtml}/js/modules/dashboard/sidebar.js?v={$assetsVersion}"></script>
@@ -469,6 +471,7 @@ function renderSpaLayout(): void
                 // Orden: estado de auth primero (sidebar/router dependen de él)
                 if (window.AuthState) AuthState.init();
                 if (window.ThemeManager) ThemeManager.init();
+                if (window.TenantBranding) TenantBranding.init();
                 if (window.AppSidebar) AppSidebar.init();
                 if (window.AppRouter) AppRouter.init();
                 if (window.AccountMenu) AccountMenu.init();

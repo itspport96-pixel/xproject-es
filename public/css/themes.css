@@ -16,7 +16,7 @@
     transition: background-color 0.2s ease, color 0.2s ease;
 
     /* Tipografía (fuente unica de la app) */
-    --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI Variable Text', 'Segoe UI', system-ui, 'Helvetica Neue', Arial, sans-serif;
 
     /* Layout del shell */
     --sidebar-width: 260px;
@@ -68,46 +68,53 @@ html.light {
     /* Brand. Acento unico: azul-600 (#2563eb), con AA como texto sobre
        fondo claro (5.2:1) y como fondo con texto blanco (5.2:1); el
        anterior azul-500 (#3b82f6) quedaba en 3.7:1 y 3.1:1. */
-    --color-primary: 37 99 235;        /* #2563eb */
-    --color-primary-hover: 29 78 216;  /* #1d4ed8 */
+    /* v1.14.0 (estilo iOS sin transparencias): azul iOS oscurecido a
+       #0066d6 para mantener AA (5.4:1 con texto blanco y sobre blanco). El
+       color de marca del tenant (TenantBranding) pisa estas tres variables. */
+    --color-primary: 0 102 214;        /* #0066d6 */
+    --color-primary-hover: 0 86 184;   /* #0056b8 */
     --color-primary-foreground: 255 255 255;
 
-    /* Surfaces */
-    --color-background: 255 255 255;    /* #ffffff */
-    --color-surface: 248 250 252;       /* #f8fafc */
-    --color-surface-alt: 241 245 249;   /* #f1f5f9 */
-    --color-surface-hover: 226 232 240; /* #e2e8f0 */
+    /* Surfaces: fondo agrupado iOS (#f2f2f7) con tarjetas blancas */
+    --color-background: 242 242 247;    /* #f2f2f7 */
+    --color-surface: 255 255 255;       /* #ffffff */
+    --color-surface-alt: 239 239 244;   /* #efeff4 */
+    --color-surface-hover: 229 229 234; /* #e5e5ea */
 
     /* Text */
-    --color-text: 15 23 42;             /* #0f172a */
-    --color-text-muted: 71 85 105;      /* #475569 */
-    --color-text-subtle: 100 116 139;   /* #64748b */
+    --color-text: 28 28 30;             /* #1c1c1e */
+    --color-text-muted: 99 99 104;      /* #636368 */
+    --color-text-subtle: 110 110 115;   /* #6e6e73 */
 
-    /* Borders */
-    --color-border: 226 232 240;        /* #e2e8f0 */
-    --color-border-strong: 203 213 225; /* #cbd5e1 */
+    /* Borders (separadores iOS) */
+    --color-border: 229 229 234;        /* #e5e5ea */
+    --color-border-strong: 199 199 204; /* #c7c7cc */
 
     /* Status. Tonos -700/-800 para que el texto pequeno (badges, alerts,
        enlaces de accion) alcance 4.5:1 sobre su propio tinte y sobre
        blanco; los -400/-500 anteriores quedaban entre 2.2:1 y 3.8:1. */
-    --color-success: 22 101 52;         /* #166534 */
-    --color-warning: 146 64 14;         /* #92400e */
-    --color-danger: 185 28 28;          /* #b91c1c */
-    --color-info: 37 99 235;            /* #2563eb */
+    --color-success: 30 125 50;         /* #1e7d32 */
+    --color-warning: 178 80 0;          /* #b25000 */
+    --color-danger: 215 0 21;           /* #d70015 */
+    --color-info: 0 102 214;            /* #0066d6 */
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    /* Interruptor activo (verde iOS) */
+    --color-switch-on: 52 199 89;       /* #34c759 */
+
+    /* Shadows (suaves, sin desenfoque de fondo) */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --shadow-md: 0 2px 8px -2px rgb(0 0 0 / 0.08), 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.18), 0 2px 6px 0 rgb(0 0 0 / 0.06);
 
     /* Focus ring */
     --focus-ring: 0 0 0 3px rgb(var(--color-primary) / 0.35);
 
     /* Radius */
-    --radius-sm: 0.25rem;
-    --radius-md: 0.375rem;
-    --radius-lg: 0.5rem;
-    --radius-xl: 0.75rem;
+    /* Radius (escala iOS: controles 10px, tarjetas 14px, hojas 18px) */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.625rem;
+    --radius-lg: 0.875rem;
+    --radius-xl: 1.125rem;
 
     /* Spacing */
     --spacing-xs: 0.25rem;
@@ -126,31 +133,33 @@ html.dark {
     /* Brand. En dark el acento es claro y el texto sobre el va en tinta
        oscura: blanco sobre #60a5fa daba 2.5:1; tinta da 6.4:1. El hover
        aclara (#93c5fd) en vez de oscurecer, como es habitual en dark. */
-    --color-primary: 96 165 250;        /* #60a5fa */
-    --color-primary-hover: 147 197 253; /* #93c5fd */
-    --color-primary-foreground: 15 23 42;
+    /* v1.14.0: paleta oscura iOS (fondo negro, superficies elevadas
+       #1c1c1e/#2c2c2e, sin transparencias). Azul iOS dark #0a84ff. */
+    --color-primary: 10 132 255;        /* #0a84ff */
+    --color-primary-hover: 64 156 255;  /* #409cff */
+    --color-primary-foreground: 255 255 255;
 
     /* Surfaces */
-    --color-background: 15 23 42;       /* #0f172a */
-    --color-surface: 30 41 59;          /* #1e293b */
-    --color-surface-alt: 51 65 85;      /* #334155 */
-    --color-surface-hover: 71 85 105;   /* #475569 */
+    --color-background: 0 0 0;          /* #000000 */
+    --color-surface: 28 28 30;          /* #1c1c1e */
+    --color-surface-alt: 44 44 46;      /* #2c2c2e */
+    --color-surface-hover: 58 58 60;    /* #3a3a3c */
 
-    /* Text. subtle sube de #64748b (3.0:1 sobre #0f172a) a #8291a5 (5.0:1)
-       para titulos de seccion y placeholders, sin igualar a muted. */
-    --color-text: 226 232 240;          /* #e2e8f0 */
-    --color-text-muted: 148 163 184;    /* #94a3b8 */
-    --color-text-subtle: 130 145 165;   /* #8291a5 */
+    /* Text */
+    --color-text: 242 242 247;          /* #f2f2f7 */
+    --color-text-muted: 174 174 178;    /* #aeaeb2 */
+    --color-text-subtle: 152 152 157;   /* #98989d */
 
     /* Borders */
-    --color-border: 51 65 85;           /* #334155 */
-    --color-border-strong: 71 85 105;   /* #475569 */
+    --color-border: 56 56 58;           /* #38383a */
+    --color-border-strong: 72 72 74;    /* #48484a */
 
     /* Status */
-    --color-success: 74 222 128;        /* #4ade80 */
-    --color-warning: 251 191 36;        /* #fbbf24 */
-    --color-danger: 248 113 113;        /* #f87171 */
-    --color-info: 96 165 250;           /* #60a5fa */
+    --color-success: 48 209 88;         /* #30d158 */
+    --color-warning: 255 159 10;        /* #ff9f0a */
+    --color-danger: 255 69 58;          /* #ff453a */
+    --color-info: 10 132 255;           /* #0a84ff */
+    --color-switch-on: 48 209 88;       /* #30d158 */
 
     /* Shadows (más sutiles en dark) */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);

@@ -1,0 +1,13 @@
+# Subidas de usuario (logos de tenant): solo se sirven imagenes, nunca scripts.
+Options -Indexes
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<FilesMatch "(?i)\.(php|phtml|phar|pl|py|cgi|sh|html?|svg|js)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>

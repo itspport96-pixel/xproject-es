@@ -238,7 +238,7 @@
                 <td class="font-mono text-xs">${UI.escapeHtml(c.conteo_id)}</td>
                 <td class="font-mono text-xs">${UI.escapeHtml(c.ubicacion_codigo || '—')}</td>
                 <td>${UI.estadoBadge(c.estado, estadoCatalog())}</td>
-                <td class="text-xs">${UI.escapeHtml(c.fecha_conteo || '—')}</td>
+                <td class="text-xs">${UI.escapeHtml(UI.formatDateTime(c.fecha_conteo))}</td>
                 <td class="text-xs">${UI.formatNumber(c.discrepancias || 0)} / ${UI.formatNumber(c.total_discrepancias || 0)}</td>
                 <td>${c.reconciliado
                     ? `<span class="badge badge-success">${t('inventory.counts.badges.si')}</span>`
@@ -516,7 +516,7 @@
                     <div class="text-xs text-muted mb-2">${t('inventory.counts.detail.info_title')}</div>
                     ${detailRow(t('inventory.counts.detail.field_id'), `<span class="font-mono text-xs">${UI.escapeHtml(d.conteo_id)}</span>`)}
                     ${detailRow(t('inventory.counts.detail.field_estado'), UI.estadoBadge(d.estado, estadoCatalog()))}
-                    ${detailRow(t('inventory.counts.detail.field_fecha'), UI.escapeHtml(d.fecha_conteo || '—'))}
+                    ${detailRow(t('inventory.counts.detail.field_fecha'), UI.escapeHtml(UI.formatDateTime(d.fecha_conteo)))}
                     ${detailRow(t('inventory.counts.detail.field_responsable'), UI.escapeHtml(d.usuario_responsable_id || '—'))}
                 </div>
                 <div class="card p-3">

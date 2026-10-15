@@ -120,6 +120,25 @@ final class TenantException extends RuntimeException
 
     public static function invalidEmailContacto(string $email): self
     {
-        return new self("El email de contacto '{$email}' es inválido.", 400);
+        return (new self("El email de contacto '{$email}' es inválido.", 400))
+            ->withMessageKey('tenants.email_contacto_invalid');
+    }
+
+    public static function invalidLogoUrl(): self
+    {
+        return (new self('La URL del logo es inválida.', 400))
+            ->withMessageKey('tenants.logo_url_invalid');
+    }
+
+    public static function invalidConfiguracion(string $campo): self
+    {
+        return (new self("Valor de configuración inválido: '{$campo}'.", 400))
+            ->withMessageKey('tenants.configuracion_invalid', ['campo' => $campo]);
+    }
+
+    public static function invalidLogoFile(string $motivo): self
+    {
+        return (new self("Archivo de logo inválido: {$motivo}.", 400))
+            ->withMessageKey('tenants.logo_file_invalid');
     }
 }

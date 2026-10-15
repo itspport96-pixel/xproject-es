@@ -267,9 +267,10 @@ final class Tenant
         $this->touch();
     }
 
-    public function actualizarLogo(string $url): void
+    public function actualizarLogo(?string $url): void
     {
-        $this->logoUrl = trim($url);
+        $url = $url !== null ? trim($url) : null;
+        $this->logoUrl = ($url === '' ? null : $url);
         $this->touch();
     }
 
@@ -445,12 +446,32 @@ final class Tenant
             'nombre_interno'    => $this->nombreInterno,
             'estado'            => $this->estado,
             'plan'              => $this->plan,
+            'email_contacto'    => $this->emailContacto,
+            'telefono'          => $this->telefono,
             'pais'              => $this->pais,
             'zona_horaria'      => $this->zonaHoraria,
             'idioma_default'    => $this->idiomaDefault,
             'logo_url'          => $this->logoUrl,
             'dominio_custom'    => $this->dominioCustom,
             'configuracion'     => $this->configuracion,
+        ];
+    }
+
+    /**
+     * Datos de marca visibles para cualquier usuario del tenant (v1.14.0):
+     * sin plan, estado ni contacto.
+     */
+    public function toBrandingArray(): array
+    {
+        $config = $this->configuracion ?? [];
+
+        return [
+            'nombre_publico' => $this->nombrePublico,
+            'logo_url'       => $this->logoUrl,
+            'zona_horaria'   => $this->zonaHoraria,
+            'idioma_default' => $this->idiomaDefault,
+            'apariencia'     => is_array($config['apariencia'] ?? null) ? $config['apariencia'] : null,
+            'regional'       => is_array($config['regional'] ?? null) ? $config['regional'] : null,
         ];
     }
 
