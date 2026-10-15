@@ -311,6 +311,14 @@ footerHtml: UI.modalFooter({
   `controlClass: 'textarea-autogrow'` crece con el contenido (§4.2).
 - `UI.grid(html)` a **una columna por defecto**; dos columnas sólo para un par
   de campos cortos relacionados (p. ej. código + tipo).
+- **Sin columnas fantasma** (M2, v1.13.53): un `UI.grid` con un solo hijo se
+  rinde como campo a ancho completo (no media pantalla con la mitad vacía);
+  `grid(…, 2)` sólo con las dos celdas llenas y la misma altura interna
+  (sin `mb-0` asimétrico).
+- **Elección binaria visible** (M2, v1.13.53): `.segmented > label.segment`
+  envuelve los radios nativos (mismo `name`, `valor` y handler `change`);
+  sólo cambia la presentación. El resto se apila a una columna con el ritmo
+  uniforme de `form-group` (1rem).
 
 ### 6.5 Teclado y foco (global, en `ui/modal.js`)
 

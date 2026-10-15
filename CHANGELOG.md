@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.53] - 2026-10-15
+
+**M2 — Modal "Otorgar permiso temporal": layout (sólo presentación).** Reordenación del body de `grantBody` en `public/js/modules/groups/../users/users.js` con espaciado uniforme, alineación de columnas y el par Duración|Fecha como control segmentado. Mismos campos, mismos `name`/handlers (`change` de los radios nativos) y mismo envío; sin cambios de backend ni de i18n.
+
+### Changed
+- **Sin columnas fantasma**: `UI.grid(…, 2)` con un solo hijo (Permiso) y `UI.grid(…, 1)` envoltorio (Motivo) pasan a campo plano a ancho completo; ambos miden lo mismo y alinean con el resto de la columna.
+- **Beneficiario alineado**: las dos celdas de la rejilla (buscador con botón "Buscar" / select "Usuario") mantienen la misma altura interna (sin `mb-0` asimétrico) y las etiquetas arrancan a la misma altura; `items-center` explícito en la fila input+botón.
+- **Segmentado `Duración | Fecha`** (`.segmented > label.segment` en `public/css/components.css`): pista con borde/radio del tema y estado activo por `:has(input:checked)` con acento del tema; los radios nativos se conservan dentro de cada segmento (mismo `name`, `valor` y handler `change` — sólo cambia la presentación, con fallback visible sin `:has()`).
+- **Ritmo de campos**: los paneles de horas/fecha salen del `form-group` anidado y quedan a un nivel, con el margen uniforme de `form-group` (1rem) y el hint de duración al final.
+- `docs/UI_STANDARD.md` §6.4: dos reglas nuevas (sin columnas fantasma; elección binaria con `.segmented` conservando los radios).
+
+### Desviaciones (reportadas, no corregidas por alcance de layout)
+- `users.grant.max_hint` ("Duración máxima según la criticidad del permiso") es **falso**: el backend no tiene máximo por criticidad, sólo la cota global `TEMP_PERMISSION_MAX_DAYS` (default 30 días), no expuesta por ningún endpoint. Texto intacto por decisión de alcance (sólo layout).
+- Funcionalidades previstas del plan original de M2 descartadas por decisión del usuario: combobox de beneficiario, badge de criticidad en el permiso, contador de motivo, atajos 1h/4h/8h/24h y duración máxima por criticidad. Quedan fuera de este bloque.
+
+### Verification
+- `node tools/smoke/smoke-v1120.mjs` sin modificar: 155/155 (el flujo del modal sigue intacto). Los 12 smokes en verde (883 checks) y `node --check` en los JS tocados.
+- `node tools/smoke/verify-modal-grant.mjs` (nuevo, Playwright 1366×768, claro/oscuro): 14/14 — ancho md, celdas iguales y etiquetas alineadas, permiso y motivo a ancho completo, segmentado 2 segmentos con cambio por `change` nativo, sin solapes e hint visible; capturas en `tools/smoke/capturas-modales/`.
+- `php bin/check-i18n.php` 0 errores/203 avisos, `php bin/check-schema-drift.php` SIN DRIFT, GETs read-only del módulo (`/users`, `/temporary-permissions`, `/permissions`) con admin: todos 200.
+
 ## [1.13.52] - 2026-10-15
 
 **M1 — Modal "Añadir miembro" de Grupos: combobox multi-selección con sugerencias y chips.** Nuevo componente compartido `UI.combobox` + `UI.bindCombobox` en `public/js/ui/modal.js` (documentado en `docs/UI_STANDARD.md` §6.6) y migración del modal de alta de miembros de `public/js/modules/groups/groups.js` (select+buscador manual → combobox con debounce, chips seleccionables y teclado completo). Sin cambios de backend.

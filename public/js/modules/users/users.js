@@ -1427,12 +1427,16 @@
 
         const ahora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
+        // Layout (M2): una columna para campo a campo (sin columnas
+        // fantasma en un UI.grid de un solo hijo), ritmo uniforme de
+        // form-group y el par Duración|Fecha como .segmented (los radios
+        // nativos y su handler change no cambian: sólo presentación).
         return `
             <div class="form-error hidden mb-3" data-form-error></div>
             ${UI.grid(`
-                <div class="form-group mb-0">
+                <div class="form-group">
                     <label class="form-label">${t('users.grant.user_search_label')}</label>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 items-center">
                         <input type="text" class="input" data-grant-user-search
                                placeholder="${t('users.grant.user_search_placeholder')}" maxlength="100">
                         <button type="button" class="btn btn-secondary" data-action="grant-search">${t('users.grant.user_search')}</button>
@@ -1440,30 +1444,26 @@
                 </div>
                 <div data-grant-users>${grantUsersField(modal.user_id || '')}</div>
             `, 2)}
-            ${UI.grid(`
-                ${UI.field({ label: t('users.grant.permission'), name: 'permission_id', type: 'select', options: permOpciones, required: true })}
-            `, 2)}
-            ${UI.grid(`
-                ${UI.field({ label: t('users.grant.motive'), name: 'motivo', type: 'textarea', rows: 2, required: true })}
-            `, 1)}
+            ${UI.field({ label: t('users.grant.permission'), name: 'permission_id', type: 'select', options: permOpciones, required: true })}
+            ${UI.field({ label: t('users.grant.motive'), name: 'motivo', type: 'textarea', rows: 2, required: true })}
             <div class="form-group">
                 <label class="form-label">${t('users.grant.expiry')} <span class="required">*</span></label>
-                <div class="flex gap-4 mb-2">
-                    <label class="flex items-center gap-2 text-sm">
+                <div class="segmented">
+                    <label class="segment">
                         <input type="radio" name="expiry_mode" value="horas" data-expiry-mode${modal.expiry_mode === 'horas' ? ' checked' : ''}>
                         ${t('users.grant.mode_hours')}
                     </label>
-                    <label class="flex items-center gap-2 text-sm">
+                    <label class="segment">
                         <input type="radio" name="expiry_mode" value="fecha" data-expiry-mode${modal.expiry_mode === 'fecha' ? ' checked' : ''}>
                         ${t('users.grant.mode_date')}
                     </label>
                 </div>
-                <div data-expiry-hours class="${modal.expiry_mode === 'horas' ? '' : 'hidden'}">
-                    ${UI.field({ label: t('users.grant.hours'), name: 'duracion_horas', type: 'number', value: '24' })}
-                </div>
-                <div data-expiry-date class="${modal.expiry_mode === 'fecha' ? '' : 'hidden'}">
-                    ${UI.field({ label: t('users.grant.date'), name: 'fecha_expiracion', type: 'datetime-local', value: ahora })}
-                </div>
+            </div>
+            <div data-expiry-hours class="${modal.expiry_mode === 'horas' ? '' : 'hidden'}">
+                ${UI.field({ label: t('users.grant.hours'), name: 'duracion_horas', type: 'number', value: '24' })}
+            </div>
+            <div data-expiry-date class="${modal.expiry_mode === 'fecha' ? '' : 'hidden'}">
+                ${UI.field({ label: t('users.grant.date'), name: 'fecha_expiracion', type: 'datetime-local', value: ahora })}
             </div>
             <div class="text-xs text-muted">${t('users.grant.max_hint')}</div>
         `;

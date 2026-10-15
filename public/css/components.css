@@ -790,6 +790,50 @@
 }
 
 /* ============================================
+   SEGMENTADO DE MODAL (M2, v1.13.53)
+   ============================================ */
+/* Eleccion binaria visible (p. ej. Duración | Fecha en "Otorgar permiso").
+   Los radios nativos se conservan dentro de cada segmento (mismo name,
+   valor y handler change); aqui sólo cambia la presentación. El estado
+   activo usa :has(): sin soporte sigue viéndose el radio con su acento. */
+.segmented {
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border: 1px solid rgb(var(--color-border));
+    border-radius: var(--radius-md);
+    background-color: rgb(var(--color-surface-alt));
+}
+
+.segmented .segment {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: rgb(var(--color-text-muted));
+    border-radius: calc(var(--radius-md) - 2px);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.segmented .segment:hover {
+    background-color: rgb(var(--color-surface-hover));
+    color: rgb(var(--color-text));
+}
+
+.segmented .segment:has(input:checked) {
+    background-color: rgb(var(--color-primary) / 0.12);
+    color: rgb(var(--color-primary));
+}
+
+.segmented .segment input {
+    margin: 0;
+    accent-color: rgb(var(--color-primary));
+}
+
+/* ============================================
    PERMISSION PICKER (maestro-detalle)
    ============================================ */
 
