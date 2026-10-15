@@ -24,9 +24,6 @@
         roles: [],
         rolesLoaded: false,
         rolesError: false,
-        users: [],
-        usersLoaded: false,
-        usersError: false,
         detail: null,
         modal: null,
         sending: false
@@ -237,21 +234,20 @@
         return state.roles;
     }
 
-    async function searchUsers(search) {
-        state.usersError = false;
-        try {
-            const params = { per_page: 50, estado: 'ACTIVO' };
-            if (search) params.search = search;
-            const response = await global.HttpClient.get('/users', { params });
-            const payload = response && response.data ? response.data : response;
-            state.users = (payload && payload.data) || [];
-        } catch (err) {
-            console.error('[Groups] users search error:', err);
-            state.users = [];
-            state.usersError = true;
-        }
-        state.usersLoaded = true;
-        return state.users;
+    // Candidatos del combobox de añadir miembro: GET /users existente, que
+    // routes/api.php acepta con users.user.view O groups.group.manage_members
+    // (no exige la pantalla de Usuarios). Hueco: no existe aún
+    // GET /groups/member-candidates (reportado, ver informe M4).
+    async function fetchUsers(search) {
+        const params = { per_page: 50, estado: 'ACTIVO' };
+        if (search) params.search = search;
+        const response = await global.HttpClient.get('/users', { params });
+        const payload = response && response.data ? response.data : response;
+        const items = (payload && payload.data) || [];
+        return items.map(u => ({
+            value: String(u.id),
+            label: (u.nombre || '') + ' ' + (u.apellido || '') + ' (' + (u.email || '') + ')'
+        }));
     }
 
     // ====================================================================
@@ -563,47 +559,63 @@
 
     function openAddMember() {
         if (!canManageMembers() || !state.detail) return;
-        state.users = [];
-        state.usersLoaded = false;
-        state.usersError = false;
-        state.modal = { mode: 'add-member', errors: {}, formError: '' };
+        state.modal = { mode: 'add-member', selected: [], errors: {}, formError: '' };
         renderModal();
-        searchUsers('').then(() => {
-            if (state.modal && state.modal.mode === 'add-member') renderModal();
-        });
+        // Foco explícito: el observer M0 no re-enfoca porque la raíz ya está
+        // en openedRoots (venimos del detalle). Este focus dispara el primer
+        // load('') del combobox.
+        const root = getModalRoot();
+        const input = root ? root.querySelector('[data-combo-input]') : null;
+        if (input) input.focus();
     }
 
-    function addMemberBody(modal) {
-        const opciones = state.users.map(u => ({
-            value: u.id,
-            label: (u.nombre || '') + ' ' + (u.apellido || '') + ' (' + (u.email || '') + ')'
-        }));
-
-        let cuerpo;
-        if (state.usersError) {
-            cuerpo = `<p class="text-sm text-danger">${t('groups.members.search_error')}</p>`;
-        } else if (!state.usersLoaded) {
-            cuerpo = UI.loadingState();
-        } else if (state.users.length > 0) {
-            cuerpo = UI.field({
-                label: t('groups.members.add_select'),
-                name: 'user_id',
-                type: 'select',
-                required: true,
-                options: [{ value: '', label: t('groups.members.add_placeholder') }].concat(opciones)
-            });
-        } else {
-            cuerpo = `<p class="text-muted text-sm">${t('groups.members.search_empty')}</p>`;
-        }
-
+    function addMemberBody() {
         return `
             <div class="form-error hidden mb-3" data-form-error></div>
-            <div class="flex items-end gap-2 mb-4">
-                ${UI.field({ label: t('groups.members.search'), name: 'search', type: 'text', placeholder: t('groups.members.search_placeholder') })}
-                <button type="button" class="btn btn-secondary" data-action="search-users">${t('groups.members.search_btn')}</button>
-            </div>
-            ${cuerpo}
-            <p class="form-hint">${t('groups.members.add_hint')}</p>`;
+            ${UI.combobox({
+                name: 'user_id',
+                label: t('groups.members.combo_label'),
+                placeholder: t('groups.members.combo_placeholder'),
+                required: true,
+                hint: t('groups.members.add_hint')
+            })}`;
+    }
+
+    function selectedMembers() {
+        return (state.modal && state.modal.selected) || [];
+    }
+
+    function renderChips(root) {
+        const box = root ? root.querySelector('[data-combo-chips]') : null;
+        if (!box) return;
+        const etiquetas = selectedMembers().map(s => `
+            <span class="chip">
+                ${UI.escapeHtml(s.label)}
+                <button type="button" class="chip-remove" data-action="combo-remove" data-value="${UI.escapeHtml(s.value)}" aria-label="${UI.escapeHtml(t('groups.members.remove'))}">&times;</button>
+            </span>`);
+        box.innerHTML = etiquetas.join('');
+    }
+
+    function selectMember(root, item) {
+        if (!state.modal || state.modal.mode !== 'add-member' || !item || !item.value) return;
+        if (selectedMembers().some(s => s.value === item.value)) return;
+        state.modal.selected.push({ value: item.value, label: item.label });
+        if (root) UI.clearErrors(root);
+        renderChips(root);
+    }
+
+    function bindAddMemberCombo(root) {
+        UI.bindCombobox(root, {
+            fetch: fetchUsers,
+            onSelect: (item) => selectMember(root, item),
+            isExcluded: (item) =>
+                selectedMembers().some(s => s.value === item.value) ||
+                (((state.detail && state.detail.members) || [])
+                    .some(m => String(m.user_id) === String(item.value))),
+            loadingLabel: t('groups.members.combo_loading'),
+            emptyLabel: t('groups.members.combo_empty'),
+            errorLabel: t('groups.members.search_error')
+        });
     }
 
     async function submitAddMember() {
@@ -613,28 +625,50 @@
         const root = getModalRoot();
         UI.clearErrors(root);
 
-        const userId = fieldValue(root, 'user_id');
-        if (!userId) {
-            UI.showFieldError(root, 'user_id', t('groups.errors.required'));
+        const seleccionados = selectedMembers();
+        if (seleccionados.length === 0) {
+            UI.showFieldError(root, 'user_id', t('groups.members.add_required'));
             return;
         }
 
         setSending(true);
+        let anadidos = 0;
+        let primerError = null;
 
         try {
-            await global.HttpClient.post('/groups/' + encodeURIComponent(detail.id) + '/members', { user_id: userId });
-            if (global.AuthState && typeof global.AuthState.refreshUser === 'function') {
+            for (const u of seleccionados) {
+                try {
+                    await global.HttpClient.post('/groups/' + encodeURIComponent(detail.id) + '/members', { user_id: u.value });
+                    anadidos++;
+                } catch (err) {
+                    primerError = err;
+                    break;
+                }
+            }
+
+            if (anadidos > 0 && global.AuthState && typeof global.AuthState.refreshUser === 'function') {
                 const cur = global.AuthState.getUserId && global.AuthState.getUserId();
-                if (cur && String(cur) === String(userId)) global.AuthState.refreshUser().catch(function () {});
+                const ids = seleccionados.slice(0, anadidos).map(u => String(u.value));
+                if (cur && ids.indexOf(String(cur)) !== -1) global.AuthState.refreshUser().catch(function () {});
             }
-            state.modal = { mode: 'detail' };
-            renderModal();
-            const recargado = await loadDetail();
-            if (recargado) {
-                UI.toast('success', t('groups.members.add'), t('groups.members.added'));
+
+            if (!primerError) {
+                state.modal = { mode: 'detail' };
+                renderModal();
+                const recargado = await loadDetail();
+                if (recargado) {
+                    UI.toast('success', t('groups.members.add'),
+                        anadidos > 1 ? t('groups.members.added_multi') : t('groups.members.added'));
+                }
+                return;
             }
-        } catch (err) {
-            UI.handleActionError(err, {
+
+            // Error parcial: los ya añadidos salen de los chips y el detalle
+            // queda marcado para recargar al volver (back-detail).
+            state.modal.selected = seleccionados.slice(anadidos);
+            if (state.detail) state.detail.members = null;
+            renderChips(root);
+            UI.handleActionError(primerError, {
                 fallbackMessage: t('groups.errors.add_member'),
                 root: getModalRoot(),
                 inline: true,
@@ -642,18 +676,6 @@
             });
         } finally {
             setSending(false);
-        }
-    }
-
-    async function searchUsersAction() {
-        const root = getModalRoot();
-        const input = root ? root.querySelector('[data-modal-field="search"]') : null;
-        const termino = input ? String(input.value || '').trim() : '';
-        if (state.modal) state.modal.searching = true;
-        await searchUsers(termino);
-        if (state.modal && state.modal.mode === 'add-member') {
-            state.modal.searching = false;
-            renderModal();
         }
     }
 
@@ -865,11 +887,15 @@
                 break;
             case 'add-member':
                 title = t('groups.members.add_title');
-                size = 'lg';
-                body = addMemberBody(modal);
-                footer = `
-                    <button class="btn btn-secondary" data-action="back-detail">${t('ui.close')}</button>
-                    <button class="btn btn-primary" data-action="submit-add-member" data-modal-send${state.sending ? ' disabled' : ''}>${t('groups.members.add_submit')}</button>`;
+                size = 'md';
+                body = addMemberBody();
+                footer = UI.modalFooter({
+                    cancelLabel: t('ui.cancel'),
+                    cancelAction: 'back-detail',
+                    submitLabel: t('groups.members.add_submit'),
+                    submitAction: 'submit-add-member',
+                    disabled: state.sending
+                });
                 break;
             case 'assign-role':
                 title = t('groups.roles.assign_title');
@@ -892,6 +918,11 @@
         }
 
         UI.mountModal(root, UI.modalShell({ title, size, bodyHtml: body, footerHtml: footer }));
+
+        if (modal.mode === 'add-member') {
+            bindAddMemberCombo(root);
+            renderChips(root);
+        }
     }
 
     function fieldValue(root, name) {
@@ -951,9 +982,23 @@
                 renderModal();
                 if (state.detail && state.detail.members === null) loadDetail();
                 break;
-            case 'search-users':
-                searchUsersAction();
+            case 'combo-remove': {
+                const modal = state.modal;
+                if (modal && modal.selected) {
+                    modal.selected = modal.selected.filter(s => s.value !== btn.dataset.value);
+                    const root = getModalRoot();
+                    renderChips(root);
+                    const input = root ? root.querySelector('[data-combo-input]') : null;
+                    if (input) {
+                        // blur+focus garantiza el evento focus (y con él la
+                        // recarga de sugerencias) aunque el foco no hubiera
+                        // salido del input al pulsar el chip.
+                        input.blur();
+                        input.focus();
+                    }
+                }
                 break;
+            }
             case 'remove-member':
                 removeMember(btn.dataset.userId);
                 break;
@@ -1038,9 +1083,6 @@
                 roles: [],
                 rolesLoaded: false,
                 rolesError: false,
-                users: [],
-                usersLoaded: false,
-                usersError: false,
                 detail: null,
                 modal: null,
                 sending: false

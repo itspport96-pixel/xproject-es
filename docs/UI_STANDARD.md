@@ -324,18 +324,50 @@ footerHtml: UI.modalFooter({
 - **Foco** en el primer campo al abrir por primera vez; un re-render del modal
   no re-enfoca y si el módulo ya enfocó algo (p. ej. el buscador del picker)
   no se le roba.
-- **Contrato para componentes con sugerencias** (combobox de M1/M2): mantener
-  `aria-expanded="true"` en el input mientras la lista esté visible y llamar
-  a `e.preventDefault()` en el Enter que elige una sugerencia.
+- **Contrato para componentes con sugerencias**: ver §6.6 (combobox M1) —
+  `aria-expanded="true"` mientras la lista esté visible y `preventDefault()`
+  en el Enter que elige una sugerencia.
 - El primario deshabilitado (`disabled`/`sending`) no recibe el Enter
   (el clic programático sobre un botón deshabilitado no hace nada).
 
-### 6.6 Errores y verificación
+### 6.6 Combobox de modal (M1, v1.13.52)
+
+- Componente compartido en `ui/modal.js`: `UI.combobox({name, label,
+  placeholder, hint, required})` genera el HTML (label + `input[role=combobox]`
+  con `aria-expanded`/`aria-controls`/`aria-autocomplete` + `[data-combo-chips]`
+  y `ul[role=listbox]` dentro de `.combo-control` + `span[data-error]` + hint)
+  y `UI.bindCombobox(root, {fetch, onSelect, isExcluded, loadingLabel,
+  emptyLabel, errorLabel, debounceMs})` lo activa. Los chips van DENTRO de
+  `.combo-control` para que la lista desplegable caiga bajo el conjunto y no
+  tape los botones de quitar. La lista es ABSOLUTA (no altera la altura del
+  modal: cerrarla en un blur no redimensiona el modal y no se pierden clics
+  en curso); si el campo queda bajo en el body del modal, el scroll del body
+  o la navegación con teclado (`scrollIntoView`) revelan el resto.
+- `fetch(term)` devuelve `[{value, label}]` (o lanza; el componente pinta el
+  `errorLabel`). Búsqueda con debounce (250 ms), respuestas fuera de secuencia
+  descartadas y la lista sólo se repinta si el input sigue conectado y con el
+  foco. Primera opción resaltada por defecto (`aria-activedescendant`).
+- Teclado: flechas recorren la lista; **Enter con la lista visible se consume
+  aquí** (elige la resaltada; con la lista cerrada el Enter global del modal
+  envía normalmente); **Esc cierra primero la lista** (`aria-expanded="true"`
+  salta al modal) y el modal sólo se cierra en la segunda Esc.
+- La selección vive en el estado del módulo: `onSelect(item)` añade al array
+  y el módulo pinta sus chips (`.chip` con `data-action="combo-remove"`) con
+  render dirigido a `[data-combo-chips]`, sin re-render del cuerpo. El
+  componente excluye ya elegidos vía `isExcluded` y al elegir limpia el input
+  (`skipFocusLoad`: reenfocar no recarga la lista).
+- El módulo enfoca `[data-combo-input]` tras montar (el observer de §6.5 no
+  re-enfoca porque la raíz ya estaba en `openedRoots`); ese foco dispara la
+  primera carga con término vacío.
+- Pie con `UI.modalFooter` (Cancelar vuelve al contexto anterior, no cierra).
+
+### 6.7 Errores y verificación
 
 - Errores de campo/formulario: `showFieldError`, `showFormError`,
   `clearErrors` (mismo contrato `data-error` que ya usaban todos).
 - Smoke: `node tools/smoke/smoke-modales-m0.mjs` (tamaños, pie, Esc, Enter,
-  foco). `node --check public/js/ui/modal.js`.
+  foco) y `node tools/smoke/smoke-m1-add-member.mjs` (combobox de añadir
+  miembro). `node --check public/js/ui/modal.js`.
 
 ## 7. Reglas de contenido
 

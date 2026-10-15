@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.52] - 2026-10-15
+
+**M1 — Modal "Añadir miembro" de Grupos: combobox multi-selección con sugerencias y chips.** Nuevo componente compartido `UI.combobox` + `UI.bindCombobox` en `public/js/ui/modal.js` (documentado en `docs/UI_STANDARD.md` §6.6) y migración del modal de alta de miembros de `public/js/modules/groups/groups.js` (select+buscador manual → combobox con debounce, chips seleccionables y teclado completo). Sin cambios de backend.
+
+### Added
+- `UI.combobox({name, label, placeholder, hint, required})`: HTML estándar (label + `input[role=combobox]` con `aria-expanded`/`aria-controls`/`aria-autocomplete`, chips y `ul[role=listbox]` dentro de `.combo-control`, error `data-error` y hint).
+- `UI.bindCombobox(root, {fetch, onSelect, isExcluded, loadingLabel, emptyLabel, errorLabel, debounceMs})`: búsqueda con debounce 250 ms, respuestas fuera de secuencia descartadas (`seq`; cerrar la lista invalida las cargas en vuelo), primera opción resaltada (`aria-activedescendant`), **Enter con la lista visible se consume aquí** (elige la resaltada; con la lista cerrada envía el modal), **Esc cierra primero la lista** y el modal sólo con la siguiente Esc, y al elegir se reabre la lista con los candidatos restantes (multi-selección).
+- Estilos `.combo-*`, `.chip` y `.chip-remove` en `public/css/components.css`; los chips van dentro de `.combo-control` para que la lista absoluta caiga bajo el conjunto y no tape los botones de quitar.
+- Modal de alta de miembros migrado: selección en chips desde el estado del módulo (`combo-remove` con `aria-label`), **alta múltiple con POSTs secuenciales** a `/groups/{id}/members` (el backend acepta `user_id` único), toast plural (`added_multi`), **exclusión de miembros existentes y ya elegidos** (`isExcluded`), foco explícito al abrir, tamaño `md` y pie con `UI.modalFooter` (Cancelar vuelve al detalle, no cierra con la ×). Fallo parcial: retira de los chips los ya añadidos, marca el detalle para recargar al volver y pinta el error inline sin perder el resto de la selección.
+- Claves nuevas en los 4 idiomas (`groups.members.combo_label`, `combo_placeholder`, `combo_empty`, `combo_loading`, `add_required`, `added_multi`); eliminadas 6 claves muertas del viejo buscador (`add_select`, `add_placeholder`, `search`, `search_placeholder`, `search_btn`, `search_empty`).
+
+### Changed
+- `docs/UI_STANDARD.md`: nuevo §6.6 "Combobox de modal" (errores y verificación pasan a §6.7).
+- `tools/smoke/smoke-v1120.mjs`: la sección de añadir miembro se reescribe al nuevo flujo y el fixture de usuarios gana un candidato externo al grupo (155 checks).
+
+### Huecos
+- No existe `GET /groups/member-candidates` (reportado, fuera de alcance de este bloque): el combobox usa el endpoint existente `GET /users`, que `routes/api.php` acepta con `users.user.view` **o** `groups.group.manage_members`.
+
+### Verification
+- `node tools/smoke/smoke-m1-add-member.mjs` (nuevo): 56/56. Los 12 smokes en verde (883 checks) y `node --check` en los JS tocados.
+- `node tools/smoke/verify-modal-add-member.mjs` (nuevo, Playwright 1366×768, tema claro/oscuro): 13/13, capturas en `tools/smoke/capturas-modales/` (la captura destapó un fallo real: la lista absoluta tapaba los chips; se movieron los chips dentro de `.combo-control`).
+- `php bin/check-i18n.php` 0 errores/203 avisos, `php bin/check-schema-drift.php` SIN DRIFT, GETs read-only del módulo (groups, members, roles, users, roles-catalogo) con admin: todos 200.
+
 ## [1.13.51] - 2026-10-15
 
 **M0 — Estándar de modales de formulario: Esc cierra, Enter envía, foco en el primer campo.** Nuevo apartado §6 de `docs/UI_STANDARD.md` (composición con `modalShell`, escala de tamaños, pie con `UI.modalFooter`, campos `field`/`grid`, teclado y foco) y su implementación en `public/js/ui/modal.js`, instalada una sola vez sobre `document` y válida para todos los modales (incluidos los preexistentes aún sin migrar). Sin cambios de backend.

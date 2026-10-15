@@ -51,7 +51,9 @@ async function tick(n = 8) {
 
 const USERS = [
   { id: 'u1', email: 'ana@acme.local', nombre: 'Ana', apellido: 'Torres', estado: 'ACTIVO', ultimo_login: '2026-10-01 09:00:00' },
-  { id: 'u2', email: 'bruno@acme.local', nombre: 'Bruno', apellido: 'Diaz', estado: 'SUSPENDIDO', ultimo_login: null }
+  { id: 'u2', email: 'bruno@acme.local', nombre: 'Bruno', apellido: 'Diaz', estado: 'SUSPENDIDO', ultimo_login: null },
+  // Candidato externo al grupo g1: alimenta el combobox de añadir miembro (M1).
+  { id: 'u3', email: 'lucia@acme.local', nombre: 'Lucia', apellido: 'Vidal', estado: 'ACTIVO', ultimo_login: null }
 ];
 
 const ROLES = [
@@ -320,8 +322,8 @@ async function s2_users_screen() {
 
   const table = env.container.querySelector('[data-users-table] table');
   check('tabla renderizada', !!table);
-  check('filas con los 2 usuarios',
-    env.container.querySelectorAll('[data-users-table] tbody tr').length === 2,
+  check('filas con los 3 usuarios',
+    env.container.querySelectorAll('[data-users-table] tbody tr').length === 3,
     String(env.container.querySelectorAll('[data-users-table] tbody tr').length));
   check('email visible en la tabla', /ana@acme\.local/.test(env.container.textContent));
   check('estado en la fila (texto traducido)',
@@ -645,7 +647,7 @@ async function s4_groups_screen() {
   check('vuelve al detalle tras asignar',
     !!env.modalRoot().querySelector('[data-action="detail-tab"]'));
 
-  // --- Anadir miembro (busqueda + envio) ---
+  // --- Anadir miembro (combobox con sugerencias y chips, M1) ---
   root = env.modalRoot();
   env.click(root.querySelector('[data-action="detail-tab"][data-tab="members"]'));
   await tick();
@@ -653,29 +655,42 @@ async function s4_groups_screen() {
   env.click(root.querySelector('[data-action="open-add-member"]'));
   await tick(10);
   root = env.modalRoot();
-  check('modal de anadir miembro abierto', !!root && !!root.querySelector('[data-modal-field="search"]'));
-  check('busqueda inicial al abrir',
+  const comboInput = root && root.querySelector('[data-combo-input]');
+  check('modal de anadir miembro abierto con combobox', !!root && !!comboInput,
+    root ? 'sin [data-combo-input]' : 'sin modal');
+  check('foco en el combobox al abrir',
+    !!comboInput && env.w.document.activeElement === comboInput,
+    env.w.document.activeElement ? env.w.document.activeElement.tagName + '.' + (env.w.document.activeElement.className || '') : 'sin foco');
+  check('carga inicial de candidatos',
     env.calls.gets.some(g => g.path === '/users'
       && g.options.params.estado === 'ACTIVO' && g.options.params.per_page === 50 && !g.options.params.search),
     JSON.stringify(env.calls.gets.filter(g => g.path === '/users')));
+  check('sugerencias pintadas', root.querySelectorAll('.combo-option').length >= 1,
+    String(root.querySelectorAll('.combo-option').length));
 
-  env.set(root, 'search', 'ana');
-  env.click(root.querySelector('[data-action="search-users"]'));
+  comboInput.value = 'ana';
+  comboInput.dispatchEvent(new env.w.Event('input', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 320));
   await tick(10);
-  check('busqueda enviada con search',
+  check('busqueda enviada con search (debounce)',
     env.calls.gets.some(g => g.path === '/users' && g.options.params.search === 'ana'),
     JSON.stringify(env.calls.gets.filter(g => g.path === '/users')));
 
   root = env.modalRoot();
-  const userSelect = root.querySelector('[data-modal-field="user_id"]');
-  check('desplegable de usuarios con opciones', !!userSelect && userSelect.options.length >= 2,
-    userSelect ? String(userSelect.options.length) : 'sin select');
-  userSelect.value = 'u1';
+  check('opciones tras buscar', root.querySelectorAll('.combo-option').length >= 1,
+    String(root.querySelectorAll('.combo-option').length));
+  env.click(root.querySelectorAll('.combo-option')[0]);
+  await tick();
+  root = env.modalRoot();
+  check('chip de seleccion tras elegir',
+    !!root.querySelector('[data-combo-chips] .chip'),
+    root.querySelector('[data-combo-chips]') ? root.querySelector('[data-combo-chips]').textContent : 'sin chips');
+  check('input limpio tras elegir', root.querySelector('[data-combo-input]').value === '');
   env.click(root.querySelector('[data-action="submit-add-member"]'));
   await tick(12);
   check('POST /groups/g1/members',
-    env.calls.posts.some(p => p.path === '/groups/g1/members' && p.body.user_id === 'u1'),
-    JSON.stringify(env.calls.posts.map(p => p.path)));
+    env.calls.posts.some(p => p.path === '/groups/g1/members' && p.body.user_id === 'u3'),
+    JSON.stringify(env.calls.posts.map(p => [p.path, p.body.user_id])));
   check('toast de miembro anadido', env.calls.toasts.some(t => t.type === 'success'));
   check('detalle recargado tras anadir',
     env.calls.gets.filter(g => g.path === '/groups/g1/members').length >= 3,

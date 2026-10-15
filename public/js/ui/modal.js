@@ -6,9 +6,10 @@
  * los módulos (mismo contrato `data-error="<campo>"` que ya usaban returns,
  * shipments, picking...). Depende de ui/dom.js.
  *
- * Estándar M0 (docs/UI_STANDARD.md §9): tamaños sm/md/lg/xl, pie estándar
+ * Estándar M0 (docs/UI_STANDARD.md §6): tamaños sm/md/lg/xl, pie estándar
  * con UI.modalFooter, Esc cierra, Enter envía y foco en el primer campo al
  * abrir (los tres últimos se instalan una sola vez a nivel de document).
+ * M1: combobox con sugerencias y chips (UI.combobox + UI.bindCombobox).
  */
 (function(global) {
     'use strict';
@@ -96,7 +97,7 @@
             const sizeAttr = o.size ? ` size="${o.size}"` : '';
             control = `<select class="select" data-modal-field="${name}"${attrs}${sizeAttr}>${opciones}</select>`;
         } else if (o.type === 'textarea') {
-            // Mínimo 4 filas (estándar §9); el textarea-autogrow ajusta después.
+            // Mínimo 4 filas (estándar §6); el textarea-autogrow ajusta después.
             const rows = Math.max(4, Number(o.rows) || 4);
             const extraClass = o.controlClass ? ' ' + o.controlClass : '';
             control = `<textarea class="input textarea${extraClass}" rows="${rows}" data-modal-field="${name}"${attrs}>${UI.escapeHtml(o.value || '')}</textarea>`;
@@ -122,7 +123,7 @@
     }
 
     /**
-     * Pie estándar de modal (docs/UI_STANDARD.md §9).
+     * Pie estándar de modal (docs/UI_STANDARD.md §6).
      *
      * Orden: hint opcional a la izquierda (`mr-auto`), Cancelar y a su derecha
      * el botón primario (o peligroso). Cancelar es `type="button"` y su acción
@@ -153,6 +154,187 @@
                 `${UI.escapeHtml(o.submitLabel)}</button>`;
         }
         return hint + cancel + submit;
+    }
+
+    // ====================================================================
+    // COMBOBOX DE MODAL (M1, docs/UI_STANDARD.md §6.5)
+    // Input con sugerencias (role=combobox/aria-expanded) y chips de
+    // selección. El componente sólo sugiere: la selección vive en el estado
+    // del módulo (onSelect / chips renderizados por el módulo).
+    // ====================================================================
+
+    let comboSeq = 0;
+
+    /**
+     * Campo combobox estándar (input + lista de sugerencias + chips + error).
+     *
+     * @param {{name: string, label: string, placeholder?: string,
+     *         hint?: string, required?: boolean, className?: string}} opts
+     * @returns {string} HTML para el body del modal
+     */
+    function combobox(opts) {
+        const o = opts || {};
+        const id = 'combo-' + (++comboSeq);
+        const name = UI.escapeHtml(o.name || '');
+        const requiredMark = o.required ? ' <span class="required">*</span>' : '';
+        return `
+            <div class="form-group combo-group${o.className ? ' ' + o.className : ''}">
+                <label class="form-label" for="${id}">${UI.escapeHtml(o.label || '')}${requiredMark}</label>
+                <div class="combo-control">
+                    <input type="text" id="${id}" class="input combo-input" data-combo-input data-modal-field="${name}"
+                           role="combobox" aria-expanded="false" aria-controls="${id}-list"
+                           aria-autocomplete="list" autocomplete="off"${o.placeholder ? ` placeholder="${UI.escapeHtml(o.placeholder)}"` : ''}>
+                    <div class="combo-chips" data-combo-chips></div>
+                    <ul class="combo-list hidden" id="${id}-list" role="listbox" data-combo-list></ul>
+                </div>
+                <span class="form-error hidden" data-error="${name}"></span>
+                ${o.hint ? `<span class="form-hint">${UI.escapeHtml(o.hint)}</span>` : ''}
+            </div>`;
+    }
+
+    /**
+     * Activa el combobox del modal: búsqueda con debounce, teclado
+     * (flechas/Enter/Esc) y clic en sugerencia.
+     *
+     * Contrato (§6.5/§6.6): mientras la lista está visible el input lleva
+     * `aria-expanded="true"` y Enter se consume aquí (elige la opción
+     * resaltada, la primera por defecto); Esc cierra primero la lista (el
+     * modal sólo se cierra en la siguiente Esc). Al elegir se llama
+     * `onSelect({value, label})` y la lista se reabre con los candidatos
+     * restantes (el módulo debe excluirlos con `isExcluded`). Cerrar la
+     * lista invalida las cargas en vuelo.
+     *
+     * @param {Element} root raíz del modal
+     * @param {{fetch: (term: string) => Promise<Array<{value: string,
+     *         label: string}>>, onSelect: (item: {value: string,
+     *         label: string}) => void, isExcluded?: (item) => boolean,
+     *         loadingLabel?: string, emptyLabel?: string,
+     *         errorLabel?: string, debounceMs?: number}} opts
+     * @returns {{closeList: function}|null}
+     */
+    function bindCombobox(root, opts) {
+        const o = opts || {};
+        if (!root) return null;
+        const input = root.querySelector('[data-combo-input]');
+        const list = root.querySelector('[data-combo-list]');
+        if (!input || !list || typeof o.fetch !== 'function') return null;
+
+        const listId = list.id;
+        let seq = 0;
+        let timer = null;
+        let active = -1;
+
+        const options = () => Array.prototype.slice.call(list.querySelectorAll('.combo-option'));
+
+        function closeList() {
+            // Invalida cualquier carga en vuelo: lo que el usuario cerró no
+            // debe volver a pintarse cuando responda el servidor.
+            seq++;
+            if (timer) { clearTimeout(timer); timer = null; }
+            list.classList.add('hidden');
+            list.innerHTML = '';
+            input.setAttribute('aria-expanded', 'false');
+            input.removeAttribute('aria-activedescendant');
+            active = -1;
+        }
+
+        function highlight(next) {
+            const opts = options();
+            if (!opts.length) return;
+            active = ((next % opts.length) + opts.length) % opts.length;
+            opts.forEach((el, i) => el.classList.toggle('is-active', i === active));
+            const el = opts[active];
+            input.setAttribute('aria-activedescendant', el.id);
+            if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest' });
+        }
+
+        function pick(opt) {
+            if (!opt) return;
+            const item = { value: opt.dataset.value || '', label: opt.dataset.label || opt.textContent || '' };
+            closeList();
+            input.value = '';
+            if (typeof o.onSelect === 'function') o.onSelect(item);
+            // Multi-selección: se reabre con los candidatos restantes. Como la
+            // lista ya está visible, el focus() posterior no dispara otra carga.
+            load('');
+            if (document.activeElement !== input) input.focus();
+        }
+
+        async function load(term) {
+            const mySeq = ++seq;
+            list.innerHTML = `<li class="combo-msg" role="presentation">${UI.escapeHtml(o.loadingLabel || '')}</li>`;
+            list.classList.remove('hidden');
+            input.setAttribute('aria-expanded', 'true');
+            let items;
+            try {
+                items = (await o.fetch(term)) || [];
+            } catch (err) {
+                if (mySeq !== seq) return;
+                list.innerHTML = `<li class="combo-msg combo-msg-error" role="presentation">${UI.escapeHtml(o.errorLabel || '')}</li>`;
+                active = -1;
+                return;
+            }
+            if (mySeq !== seq || !input.isConnected || document.activeElement !== input) return;
+            if (typeof o.isExcluded === 'function') items = items.filter(it => !o.isExcluded(it));
+            if (!items.length) {
+                list.innerHTML = `<li class="combo-msg" role="presentation">${UI.escapeHtml(o.emptyLabel || '')}</li>`;
+                active = -1;
+                return;
+            }
+            list.innerHTML = items.map((it, i) =>
+                `<li class="combo-option" role="option" id="${listId}-opt-${i}" data-value="${UI.escapeHtml(String(it.value))}" data-label="${UI.escapeHtml(String(it.label))}">${UI.escapeHtml(String(it.label))}</li>`
+            ).join('');
+            highlight(0);
+        }
+
+        input.addEventListener('input', () => {
+            const term = String(input.value || '').trim();
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => { timer = null; load(term); }, o.debounceMs || 250);
+        });
+
+        input.addEventListener('focus', () => {
+            // Si la lista ya está visible (p. ej. recién reabierta por pick)
+            // no se recarga: sólo al entrar con ella cerrada.
+            if (list.classList.contains('hidden')) load(String(input.value || '').trim());
+        });
+
+        input.addEventListener('blur', () => closeList());
+
+        input.addEventListener('keydown', (e) => {
+            const opts = options();
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (list.classList.contains('hidden')) { load(String(input.value || '').trim()); return; }
+                if (!opts.length) return;
+                if (active === -1) highlight(e.key === 'ArrowDown' ? 0 : opts.length - 1);
+                else highlight(active + (e.key === 'ArrowDown' ? 1 : -1));
+                return;
+            }
+            if (e.key === 'Enter') {
+                if (list.classList.contains('hidden')) return; // el modal envía (modal.js)
+                // Lista visible: Enter se consume aquí, nunca envía el modal.
+                e.preventDefault();
+                if (opts.length) pick(opts[active >= 0 ? active : 0]);
+                else closeList();
+                return;
+            }
+            if (e.key === 'Escape' && !list.classList.contains('hidden')) {
+                e.preventDefault();
+                closeList();
+            }
+        });
+
+        list.addEventListener('mousedown', (e) => {
+            if (e.target.closest && e.target.closest('.combo-option')) e.preventDefault();
+        });
+
+        list.addEventListener('click', (e) => {
+            const opt = e.target.closest ? e.target.closest('.combo-option') : null;
+            if (opt) pick(opt);
+        });
+
+        return { closeList };
     }
 
     function showFieldError(root, fieldName, message) {
@@ -196,7 +378,7 @@
     }
 
     // ====================================================================
-    // COMPORTAMIENTO ESTANDAR DE MODALES (M0, docs/UI_STANDARD.md §9)
+    // COMPORTAMIENTO ESTANDAR DE MODALES (M0, docs/UI_STANDARD.md §6)
     // Esc cierra, Enter envía y foco en el primer campo al abrir.
     // Se registra una sola vez sobre `document` y vale para todos los
     // modales, tanto los montados con mountModal como los que escriben
@@ -321,6 +503,8 @@
         field: field,
         grid: grid,
         modalFooter: modalFooter,
+        combobox: combobox,
+        bindCombobox: bindCombobox,
         showFieldError: showFieldError,
         showFormError: showFormError,
         clearErrors: clearErrors
