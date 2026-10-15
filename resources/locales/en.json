@@ -2141,6 +2141,8 @@
       "admin_role_missing": "The BUILT_IN ADMIN role does not exist in the system",
       "nombre_publico_max_length": "nombre_publico exceeds maximum length (255)",
       "nombre_interno_max_length": "nombre_interno exceeds maximum length (255)",
+      "nombre_interno_already_exists": "The internal name '{nombre}' is already registered.",
+      "nombre_interno_invalid": "Invalid internal name '{nombre}'. Use lowercase, numbers, hyphens or underscores, no spaces.",
       "admin_email_invalid": "Invalid admin email",
       "admin_password_min_length": "Admin password must be at least 8 characters",
       "tenant_id_required": "tenant_id cannot be empty.",

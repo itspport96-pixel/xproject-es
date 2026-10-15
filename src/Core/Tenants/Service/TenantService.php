@@ -350,6 +350,7 @@ final class TenantService
      * Actualiza los datos de un tenant.
      *
      * @param array $data Campos a actualizar:
+     *   - nombre_interno (string, opcional, único global; slug)
      *   - nombre_publico (string, opcional)
      *   - email_contacto (string, opcional)
      *   - telefono (string, opcional)
@@ -383,6 +384,16 @@ final class TenantService
         // Actualizar campos
         if (isset($data['nombre_publico'])) {
             $tenant->actualizarNombrePublico((string) $data['nombre_publico']);
+        }
+
+        // Nombre interno (settings): normaliza y valida slug; la unicidad
+        // (por nombre_interno y por nombre_interno_hmac) la resuelve el
+        // repositorio antes de escribir.
+        if (isset($data['nombre_interno'])) {
+            $nombreInterno = strtolower(trim((string) $data['nombre_interno']));
+            if ($nombreInterno !== $tenant->nombreInterno()) {
+                $tenant->actualizarNombreInterno($nombreInterno);
+            }
         }
 
         if (array_key_exists('email_contacto', $data) ||

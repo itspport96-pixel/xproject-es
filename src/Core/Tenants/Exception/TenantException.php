@@ -15,9 +15,32 @@ use Throwable;
  */
 final class TenantException extends RuntimeException
 {
+    private ?string $messageKey = null;
+    private array $messageParams = [];
+
     public function __construct(string $message = '', int $code = 0, ?Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
+    }
+
+    /** Clave del catalogo api_errors (null = mensaje hardcodeado sin i18n). */
+    public function getMessageKey(): ?string
+    {
+        return $this->messageKey;
+    }
+
+    /** Placeholders {nombre} para el messageKey. */
+    public function getMessageParams(): array
+    {
+        return $this->messageParams;
+    }
+
+    /** Asocia messageKey + params (fluent, para factories). */
+    public function withMessageKey(string $key, array $params = []): static
+    {
+        $this->messageKey = $key;
+        $this->messageParams = $params;
+        return $this;
     }
 
     public static function tenantNotFound(string $tenantId): self
@@ -35,7 +58,8 @@ final class TenantException extends RuntimeException
 
     public static function nombreInternoAlreadyExists(string $nombreInterno): self
     {
-        return new self("El nombre interno '{$nombreInterno}' ya está registrado.", 409);
+        return (new self("El nombre interno '{$nombreInterno}' ya está registrado.", 409))
+            ->withMessageKey('tenants.nombre_interno_already_exists', ['nombre' => $nombreInterno]);
     }
 
     public static function dominioCustomAlreadyExists(string $dominio): self
@@ -85,7 +109,8 @@ final class TenantException extends RuntimeException
 
     public static function invalidNombreInterno(string $nombreInterno): self
     {
-        return new self("El nombre interno '{$nombreInterno}' es inválido.", 400);
+        return (new self("El nombre interno '{$nombreInterno}' es inválido.", 400))
+            ->withMessageKey('tenants.nombre_interno_invalid', ['nombre' => $nombreInterno]);
     }
 
     public static function invalidNombrePublico(string $nombrePublico): self

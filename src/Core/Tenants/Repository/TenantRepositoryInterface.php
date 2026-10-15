@@ -119,8 +119,9 @@ interface TenantRepositoryInterface
 
     /**
      * Verifica si ya existe un tenant con el nombre interno dado.
+     * $excludeId descarta un tenant propio (renombre sin autoduplicarse).
      */
-    public function existsByNombreInterno(string $nombreInterno): bool;
+    public function existsByNombreInterno(string $nombreInterno, ?string $excludeId = null): bool;
 
     /**
      * Verifica si ya existe un tenant con el dominio custom dado.

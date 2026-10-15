@@ -2141,6 +2141,8 @@
       "admin_role_missing": "",
       "nombre_publico_max_length": "",
       "nombre_interno_max_length": "",
+      "nombre_interno_already_exists": "",
+      "nombre_interno_invalid": "",
       "admin_email_invalid": "",
       "admin_password_min_length": "",
       "tenant_id_required": "",

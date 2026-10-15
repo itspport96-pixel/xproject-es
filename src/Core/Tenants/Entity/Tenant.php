@@ -15,7 +15,8 @@ use InvalidArgumentException;
  * Aísla completamente los datos entre organizaciones.
  *
  * Reglas de negocio:
- * - nombre_interno único (slug interno, inmutable tras creación)
+ * - nombre_interno único global (slug; editable por el admin del tenant en
+ *   settings, unicidad garantizada por nombre_interno_hmac)
  * - dominio_custom único (si se asigna)
  * - Transiciones de estado controladas (CANCELED es terminal)
  * - owner_user_id nullable (puede no haber owner al crear)
@@ -61,7 +62,8 @@ final class Tenant
     private function __construct(
         private readonly string $id,
         private string $nombrePublico,
-        private readonly string $nombreInterno,
+        // Editable por el admin del tenant en settings (unicidad vía HMAC)
+        private string $nombreInterno,
         private string $estado,
         private string $plan,
         private ?string $ownerUserId,
@@ -215,6 +217,17 @@ final class Tenant
     {
         self::validateNombrePublico($nombrePublico);
         $this->nombrePublico = trim($nombrePublico);
+        $this->touch();
+    }
+
+    /**
+     * Edita el nombre interno (slug único global vía nombre_interno_hmac).
+     * La unicidad la valida el repositorio antes de escribir.
+     */
+    public function actualizarNombreInterno(string $nombreInterno): void
+    {
+        self::validateNombreInterno($nombreInterno);
+        $this->nombreInterno = strtolower(trim($nombreInterno));
         $this->touch();
     }
 
@@ -420,13 +433,16 @@ final class Tenant
     }
 
     /**
-     * Versión pública (sin metadatos internos ni configuración sensible).
+     * Versión pública (sin metadatos internos).
+     * Incluye nombre_interno (identificador editable en settings) y
+     * configuracion (ajustes del tenant: SMTP, política de contraseñas...).
      */
     public function toPublicArray(): array
     {
         return [
             'id'                => $this->id,
             'nombre_publico'    => $this->nombrePublico,
+            'nombre_interno'    => $this->nombreInterno,
             'estado'            => $this->estado,
             'plan'              => $this->plan,
             'pais'              => $this->pais,
@@ -434,6 +450,7 @@ final class Tenant
             'idioma_default'    => $this->idiomaDefault,
             'logo_url'          => $this->logoUrl,
             'dominio_custom'    => $this->dominioCustom,
+            'configuracion'     => $this->configuracion,
         ];
     }
 
@@ -462,10 +479,10 @@ final class Tenant
             throw TenantException::invalidNombreInterno($nombre);
         }
         if (strlen($nombre) > self::MAX_NOMBRE_INTERNO_LENGTH) {
-            throw new TenantException(
+            throw (new TenantException(
                 "El nombre interno excede longitud máxima (" . self::MAX_NOMBRE_INTERNO_LENGTH . ").",
                 400
-            );
+            ))->withMessageKey('tenants.nombre_interno_max_length');
         }
         // Slug: lowercase, alphanumeric + guiones + guiones bajos
         if (!preg_match('/^[a-z0-9][a-z0-9_\-]*[a-z0-9]$/', $nombre) && strlen($nombre) > 1) {

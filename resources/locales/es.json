@@ -2141,6 +2141,8 @@
       "admin_role_missing": "El rol BUILT_IN ADMIN no existe en el sistema",
       "nombre_publico_max_length": "nombre_publico excede longitud máxima (255)",
       "nombre_interno_max_length": "nombre_interno excede longitud máxima (255)",
+      "nombre_interno_already_exists": "El nombre interno '{nombre}' ya está registrado.",
+      "nombre_interno_invalid": "El nombre interno '{nombre}' es inválido. Usa minúsculas, números, guiones o guion bajo, sin espacios.",
       "admin_email_invalid": "Email del admin inválido",
       "admin_password_min_length": "Password del admin debe tener mínimo 8 caracteres",
       "tenant_id_required": "El tenant_id no puede estar vacío.",

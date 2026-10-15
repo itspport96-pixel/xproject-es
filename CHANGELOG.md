@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.57] - 2026-10-15
+
+**Bloque A backend del módulo settings de tenant: identidad interna editable, `configuracion` y versión de plataforma en el GET.** El nombre interno del tenant (`tenants.nombre_interno`) pasa a ser editable por el ADMIN del tenant vía `PATCH /api/tenant`, con el mismo patrón de ceguera de datos que el resto del módulo: se actualiza `nombre_interno` junto a su `nombre_interno_hmac` (HMAC-SHA256, `BlindIndexService`) y la unicidad se comprueba con `existsByNombreInterno($excludeId)` más captura de SQLSTATE 23000 → 409. `GET /api/tenant` añade `nombre_interno`, `configuracion` (hoy `null`, hueco declarado) y `plataforma_version` (leída de `APP_VERSION` en `.env`, sin fallback versionado en el repo). Sin cambios de esquema.
+
+### Added
+- `Tenant::actualizarNombreInterno()` y `nombre_interno`/`configuracion` en `toPublicArray()`; validación de slug reutilizada (`^[a-z0-9][a-z0-9_\-]*[a-z0-9]$`, máx. 255) con claves i18n propias.
+- `TenantRepositoryInterface::existsByNombreInterno(?string $excludeId)` + implementación; el `UPDATE` del repositorio escribe `nombre_interno` y recalcula `nombre_interno_hmac`.
+- `TenantService::update()` con rama `nombre_interno` (lowercase/trim + validación de entidad).
+- `TenantController::$allowedFields` con `nombre_interno`; `show()` devuelve `plataforma_version` y propaga `messageKey` de las `TenantException` en el catch de `update()`.
+- `resources/locales/{es,en,pt,fr}.json`: `api_errors.tenants.nombre_interno_already_exists` y `nombre_interno_invalid`.
+- `.env` (gitignored): `APP_VERSION=1.13.57` y `TEMP_PASSWORD_TTL_DAYS=7` (fijo el fallback implícito de `UserService`).
+
+### Fixed
+- `TenantException`: `withMessageKey()`/`getMessageKey()`/`getMessageParams()` no existían pero se invocaban en los factories (fatal latente a la primera llamada real); fluent añadido.
+- `Tenant::$nombreInterno` era `readonly` y `actualizarNombreInterno()` murió con 500 en vivo (`Cannot modify readonly property`); ahora es editable como el resto de campos mutables (`id`, `fechaCreacion`, `createdAt` siguen readonly).
+
+### Verification
+- `php -l` (6 PHP) y JSON de 4 locales OK; `composer test`: 944 tests / 6818 aserciones OK; `php bin/check-schema-drift.php`: SIN DRIFT (31 tablas); `php bin/check-data-integrity.php`: DATOS CONSISTENTES; `php bin/check-i18n.php`: 0 errores.
+- Vivo contra BD viva (Apache, sesión ADMIN `aleon@acme.local`): `GET /api/tenant` y `GET /api/tenant/stats` 200 con los campos nuevos; `PATCH` rename `acme-corp`→`acme-corp-verify`→`acme-corp` 200 con `nombre_interno_hmac` idéntico antes/después (round-trip limpio); `PATCH` con slug inválido 400 traducido por `ErrorCatalog` (verificado en `es` y `en`); `pais` restaurado byte a byte (`HEX` = `4DC3A97869636F`).
+
+### Deviations (reportadas, no tocadas)
+- `TenantRepository::save()` (INSERT) no escribe `nombre_interno_hmac`; el índice `uq_tenants_nombre_interno_hmac` es `NULL`-tolerante, pero cualquier alta futura queda sin blind index hasta que se añada.
+- En la BD viva `admin@acme.local` ya no es ADMIN (sólo USER+VIEWER; único ADMIN `aleon@acme.local`), desviándose de lo documentado en 1.13.45/1.13.47 (`manager@` además hoy sin rol asignado).
+- `GET /api/tenant` sigue exponiendo `nombre_publico` como ciphertext residual (sin descifrado de PII de tenant); el módulo settings no lo mostrará.
+
 ## [1.13.56] - 2026-10-15
 
 **Cabecera del modal de rol: acciones "Solo lectura" y "Limpiar" integradas en la linea de campos.** Los dos botones del toolbar (`btn-ghost btn-sm`, ~23px sin fondo) flotaban junto al select "Basar en" (~39px con borde) y rompian la linea de la cabecera. Opcion elegida (de las dos planteadas): mantenerlos en el toolbar —el pie sigue siendo sólo Cerrar/Crear rol— dandoles el mismo alto, fondo y borde que `.input`/`.select`.

@@ -58,7 +58,10 @@ final class TenantController
         $claims = $this->requireAdmin($request);
         $tenant = $this->tenantContext->getCurrentTenant();
 
-        return $this->json(200, ['tenant' => $tenant->toPublicArray()]);
+        return $this->json(200, [
+            'tenant'             => $tenant->toPublicArray(),
+            'plataforma_version' => (string) ($_ENV['APP_VERSION'] ?? ''),
+        ]);
     }
 
     /**
@@ -89,8 +92,9 @@ final class TenantController
     /**
      * PATCH /api/tenant
      * Actualiza los datos del tenant actual.
-     * Campos permitidos: nombre_publico, email_contacto, telefono, pais,
-     * zona_horaria, idioma_default, logo_url, dominio_custom, configuracion, metadatos.
+     * Campos permitidos: nombre_interno, nombre_publico, email_contacto,
+     * telefono, pais, zona_horaria, idioma_default, logo_url, dominio_custom,
+     * configuracion, metadatos.
      */
     public function update(array $request): array
     {
@@ -100,6 +104,7 @@ final class TenantController
 
         // Solo permitir campos específicos (no permitir cambiar estado, plan, owner)
         $allowedFields = [
+            'nombre_interno',
             'nombre_publico',
             'email_contacto',
             'telefono',
@@ -122,7 +127,11 @@ final class TenantController
             $tenant = $this->tenantService->update($tenantId, $filteredData);
             return $this->json(200, ['tenant' => $tenant]);
         } catch (TenantException $e) {
-            throw new HttpException($e->getMessage(), $e->getCode() ?: 400, $e);
+            $http = new HttpException($e->getMessage(), $e->getCode() ?: 400, $e);
+            if ($e->getMessageKey() !== null) {
+                $http->withMessageKey($e->getMessageKey(), $e->getMessageParams());
+            }
+            throw $http;
         }
     }
 
