@@ -359,7 +359,7 @@
 
     function renderMfaCard() {
         let html = `
-            <div class="card p-4">
+            <div class="card p-4 mt-4">
                 <h3 class="text-lg font-semibold mb-1">${escapeHtml(t('profile.mfa_title'))}</h3>
                 <p class="text-muted text-sm mb-3">${escapeHtml(t('profile.mfa_body'))}</p>`;
 
