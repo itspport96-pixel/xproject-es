@@ -1,11 +1,11 @@
 /**
- * Smoke test jsdom para la UI v1.14.2 (modulo settings/settings).
+ * Smoke test jsdom para la UI v1.15.0 (modulo settings/settings).
  * Uso: node tools/smoke/smoke-v11358.mjs   (desde la raiz del repo)
  *
  * Cobertura:
  *  S1  Registro de ruta/modulo y wiring (loader, router)
  *  S2  Pantalla sin permiso: deniedState con el permiso requerido
- *  S3  Pantalla con permiso view: GET /tenant, 4 pestanas y datos
+ *  S3  Pantalla con permiso view: GET /tenant, 4 pestanas, datos y seccion MFA
  *  S4  Cambio de pestanas (?tab=), pais ISO y logo sin form de URL
  *  S5  Error de carga: estado de error + reintento
  *  S6  Edicion (tenants.tenant.edit): UN boton global, validacion, PATCH diff
@@ -60,7 +60,7 @@ const TENANT = {
 
 const TENANT_PAYLOAD = {
   status: 200,
-  data: { tenant: TENANT, plataforma_version: '1.14.2' }
+  data: { tenant: TENANT, plataforma_version: '1.15.0' }
 };
 
 // =====================================================================
@@ -227,7 +227,7 @@ async function s3_read_only() {
   check('general: correo de contacto visible', general.textContent.includes('contact@acme.local'));
   check('general: nombre_interno visible', general.textContent.includes('acme-corp'));
   check('general: plan FREE visible', general.textContent.includes('FREE'));
-  check('general: version 1.14.2 visible', general.textContent.includes('1.14.2'));
+  check('general: version 1.15.0 visible', general.textContent.includes('1.15.0'));
 
   const loc = env.container.querySelector('[data-panel="localizacion"]');
   check('localizacion: pais ISO MX visible', loc.textContent.includes('MX'));

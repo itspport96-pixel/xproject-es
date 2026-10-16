@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.15.0] - 2026-10-16
+
+**MFA opt-in por usuario (TOTP con `spomky-labs/otphp`): enrolamiento en Configuracion > Seguridad y paso de codigo en el login.** Cada usuario puede activar su segundo factor desde la pestaña Seguridad de Configuracion: se genera un secreto TOTP (sha1, 6 digitos, 30 s) que se muestra como codigo manual y como enlace `otpauth://` para el QR, se confirma con un codigo de 6 digitos de la app autenticadora y se entregan 10 codigos de respaldo de un solo uso (hash bcrypt) que se muestran una sola vez. El login pasa a devolver `mfa_required` (HTTP 200 sin tokens) hasta recibir un codigo valido; un codigo invalido responde 401 y no emite tokens. La desactivacion requiere un codigo valido. Todo el frontend del login y del enrolamiento esta i18n en es/en/pt/fr.
+
+### Added
+- `MfaService` (`src/Core/Authentication/Service/MfaService.php`): TOTP con `spomky-labs/otphp` ^11.5 (`generateSecret()` con 20 bytes aleatorios en base32 RFC4648 sin padding, `buildProvisionUri()`, `verifyTotp()`, `setup()`, `enable()` con 10 codigos de respaldo en bcrypt, `disable()`, `verify()` que acepta TOTP o consume un codigo de respaldo, `status()` con `backup_codes_remaining`); singleton en `bootstrap.php`.
+- Columnas en `users` (BD viva): `mfa_secret` varchar(255) y `mfa_backup_codes` longtext `CHECK(json_valid)`; `schema.sql` regenerado (SIN DRIFT).
+- Endpoints `GET /api/auth/mfa/status` y `POST /api/auth/mfa/setup|enable|disable` (Auth + Audit + RateLimit 10/300); rama MFA en el login con rate limit propio (3/300 por email y 5/300 por IP) y limpieza de intentos tras exito.
+- `resources/locales/{es,en,pt,fr}.json`: bloque `login.mfa_*` y `settings.mfa_*` completos (pt/fr con traducciones propias).
+
+### Changed
+- `AuthController::login()`: con MFA habilitado devuelve 200 `{mfa_required:true}` sin tokens hasta validar el codigo; el codigo se recibe crudo (sin filtrar no-digitos en el controller) para que los codigos de respaldo alfanumericos funcionen.
+- `public/js/modules/auth/login.js`: estado `mfaPending`, grupo de codigo oculto/mostrado con `enterMfaMode()`/`exitMfaMode()`, reenvio con `mfa_code`, 401 en modo MFA marca el campo y permanece en pantalla.
+- `public/js/modules/settings/settings.js`: el hueco MFA (`UI.emptyState`) se sustituye por la seccion real de enrolamiento (estado cargando/desactivado/activado, secreto manual + URI otpauth enlaceable, confirmacion con codigo, lista de codigos de respaldo, desactivacion con codigo); `loadMfa()` se une al `Promise.all` de `loadData()`; acciones `settings-mfa-setup|enable|disable|cancel|backup-done`; reset del estado MFA en `destroy()`. El enrolamiento es servicio personal y no se gatea con `canEdit()`.
+- `tools/smoke/smoke-v11358.mjs`: handler por defecto `GET /auth/mfa/status` (desactivado), check de la seccion MFA real y fixture `plataforma_version` a 1.15.0 (68 checks).
+
+### Notes
+- Opt-in por usuario: no hay ajuste global de MFA en el tenant; `GET /auth/me` y `login.user` no exponen `mfa_secret` ni `mfa_backup_codes`.
+- Codigos de respaldo: 10 de un solo uso, se muestran una vez; el TOTP se normaliza a digitos y el respaldo se compara sin guiones ni espacios (hash bcrypt del codigo sin guion).
+- Verificado en vivo: setup, enable, login con TOTP (200), login con codigo de respaldo (200), reutilizacion de respaldo (401), codigo invalido (401) y disable; `composer test` 969/969; smokes 68+89+105 OK; `check-schema-drift` SIN DRIFT; `check-data-integrity` DATOS CONSISTENTES.
+- Deuda preexistente reportada sin tocar: 214 avisos de claves i18n sin uso, advisory de `phpunit/php-jwt`, tests de mensaje dependientes del orden de ejecucion (`BASE_PATH`).
+
 ## [1.14.2] - 2026-10-16
 
 **Refactor de almacenamiento: los ajustes del tenant dejan de vivir en el JSON `tenants.configuracion` y pasan a columnas individuales; la columna `configuracion` se elimina.** Todos los datos del formulario de Configuracion que hasta ahora se persistian anidados en la columna `configuracion` (direccion, color primario, moneda, formato de fecha, caducidad de contrasena y el bloque SMTP completo) se guardan ahora cada uno en su propia columna de `tenants`, y la columna `configuracion` se dropea de la tabla. El contrato de API no cambia: `GET/PATCH /api/tenant` siguen exponiendo y aceptando `configuracion` anidada; el backend la compone desde las columnas al leer y la descompone al escribir. Corrige ademas un bug: `MailerService` recibia `smtp.password` ya enmascarada (null) porque `TenantService::findById` devuelve la version publica; ahora lee la entidad cruda via `TenantService::findEntity()` y autentica de verdad contra el SMTP.
