@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.14.1] - 2026-10-16
+
+**SMTP con PHPMailer y politica de caducidad de contrasena: formulario de configuracion completa del tenant en 4 pestanas con un unico boton de guardar.** El modulo de Configuracion se reorganiza en General (identidad, perfil y logo), Apariencia, Localizacion (pais ISO 3166-1 alpha-2, zona horaria, idioma, moneda y formato) y Seguridad (caducidad de contrasena, hueco MFA y SMTP); un solo boton global recoge los diffs de todos los formularios y envia un unico PATCH. El password SMTP se cifra en la BD con `EncryptionService`, se oculta en toda respuesta API (flag `password_configurada`) y nunca se reenvia al frontend. Sin cambios de esquema.
+
+### Added
+- `POST /api/tenant/smtp/test` (`tenants.tenant.edit` + ADMIN, rate-limitado): envia un correo de prueba con el SMTP del tenant via PHPMailer (`sendTest(tenantId, ?email_destino)`, destino por defecto `email_contacto`); fallo de envio -> `TenantException` 502 con `api_errors.tenants.smtp_send_failed`.
+- `src/Core/Tenants/Service/MailerService.php`: transporte SMTP con PHPMailer 7 (descifra `smtp.password` con `EncryptionService::decryptFromStorage`, TLS/SSL segun `smtp.encryption`); singleton registrado en `bootstrap.php`.
+- `TenantService`: validacion de la seccion `smtp` (host <=255, puerto 1-65535, encryption en `SMTP_ENCRYPTS`, username <=255, password <=1024, from_email email, from_name <=255) y de `seguridad.caducidad_password_dias` (entero 1-365 o null); `normalizePais()` exige codigo ISO 3166-1 alpha-2 (normaliza a mayusculas; `TenantException::invalidPais`).
+- `TenantService::update()`: si el PATCH trae `smtp.password`, se cifra con `EncryptionService::encryptForStorage` antes del merge; null/vacio conserva la guardada.
+- `UserService::changePassword()`: aplica la politica del tenant (`seguridad.caducidad_password_dias`) fijando `fecha_expiracion_password` (helper `passwordExpiryFromPolicy()`).
+- `resources/locales/{es,en,pt,fr}.json`: `api_errors.tenants.pais_invalid/smtp_not_configured/smtp_no_destino/smtp_send_failed`; bloque `settings.*` ampliado (4 pestanas, boton unico `btn_save_all`, campos SMTP, caducidad, MFA hueco, paises ISO).
+
+### Changed
+- `public/js/modules/settings/settings.js`: rediseno a 4 pestanas (general/apariencia/localizacion/seguridad) con **un unico boton global** `settings-save-all` que construye un PATCH combinado (diffs de todos los formularios); pais como `<select>` ISO 3166-1 alpha-2 (249 codigos + `Intl.DisplayNames`); form SMTP con password write-only (placeholder `••••••` si `password_configurada`, vacio = no cambiar) y boton de prueba; caducidad de contrasena 1-365; MFA como hueco declarado (`UI.emptyState`); sin pestaña Resumen ni form de URL de logo (solo subida); el campo `smtp.password` solo se incluye en el payload si el admin escribio una nueva (sin diff espurio).
+- `Tenant::toPublicArray()`: enmascara `smtp.password` a null y anade `password_configurada` (flag antes del null).
+- `PlatformSeeder`: `TENANT_DATA['pais'] = 'MX'` (dato vivo migrado de `'México'` a `'MX'`).
+- `tools/smoke/smoke-v11358.mjs`: reescrito para el nuevo layout (4 pestanas, boton global, select ISO, form SMTP, caducidad, sin stats): 68 checks.
+
+### Notes
+- Hueco declarado: MFA/TOTP sin implementar (seccion visual con `UI.emptyState`, sin endpoint ni logica).
+- El endpoint `GET /api/tenant/stats` sigue existiendo pero la UI de settings ya no lo consume.
+
 ## [1.14.0] - 2026-10-15
 
 **Interfaz estilo iOS (sin transparencias) y modulo de Configuracion del tenant completo: Perfil, Apariencia y Preferencias regionales.** Rediseno visual de toda la app sobre los tokens existentes (sin cambiar estructura ni selectores de las vistas) y cierre del modulo settings con edicion del correo de contacto, telefono, direccion, subida de logo, color de marca aplicado a todos los usuarios del tenant y formatos regionales (moneda y fecha) aplicados en los listados. Sin cambios de esquema: los datos nuevos viven en la columna existente `tenants.configuracion` (JSON).

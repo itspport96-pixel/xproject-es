@@ -1,14 +1,15 @@
 /**
- * Smoke test jsdom para la UI v1.13.59 (modulo settings/settings: lectura y edicion).
+ * Smoke test jsdom para la UI v1.14.1 (modulo settings/settings).
  * Uso: node tools/smoke/smoke-v11358.mjs   (desde la raiz del repo)
  *
  * Cobertura:
  *  S1  Registro de ruta/modulo y wiring (loader, router)
  *  S2  Pantalla sin permiso: deniedState con el permiso requerido
- *  S3  Pantalla con permiso view: GET /tenant + /tenant/stats, pestañas y datos
- *  S4  Cambio de pestañas (?tab=) y ocultamiento de nombre_publico (ciphertext)
+ *  S3  Pantalla con permiso view: GET /tenant, 4 pestanas y datos
+ *  S4  Cambio de pestanas (?tab=), pais ISO y logo sin form de URL
  *  S5  Error de carga: estado de error + reintento
- *  S6  Edicion (tenants.tenant.edit): formularios, slug, PATCH diff y toasts
+ *  S6  Edicion (tenants.tenant.edit): UN boton global, validacion, PATCH diff
+ *  S7  Apariencia, regional, caducidad de contrasena y SMTP enmascarado
  */
 import { JSDOM } from 'jsdom';
 import { readFileSync } from 'node:fs';
@@ -38,7 +39,7 @@ async function tick(n = 8) {
 }
 
 // =====================================================================
-// FIXTURES (payloads reales de GET /api/tenant y /api/tenant/stats)
+// FIXTURES (payloads reales de GET /api/tenant, v1.14.1)
 // =====================================================================
 
 const TENANT = {
@@ -49,7 +50,7 @@ const TENANT = {
   telefono: '+52 55 1234 5678',
   estado: 'ACTIVO',
   plan: 'FREE',
-  pais: 'México',
+  pais: 'MX',
   zona_horaria: 'America/Mexico_City',
   idioma_default: 'es',
   logo_url: null,
@@ -59,35 +60,21 @@ const TENANT = {
 
 const TENANT_PAYLOAD = {
   status: 200,
-  data: { tenant: TENANT, plataforma_version: '1.13.58' }
-};
-
-const STATS_PAYLOAD = {
-  status: 200,
-  data: {
-    stats: {
-      usuarios: 4,
-      usuarios_activos: 4,
-      roles_asignados: 5,
-      productos: 1,
-      ubicaciones: 14,
-      unidades_fisicas: 20
-    }
-  }
+  data: { tenant: TENANT, plataforma_version: '1.14.1' }
 };
 
 // =====================================================================
 // ENTORNO (una ventana jsdom con stubs)
 // =====================================================================
 
-function createEnv({ perms = [], roles = [], getHandlers = {}, getImpl = null, patchImpl = null } = {}) {
+function createEnv({ perms = [], roles = [], getHandlers = {}, getImpl = null, patchImpl = null, postImpl = null } = {}) {
   const dom = new JSDOM(
     '<!DOCTYPE html><html><body><div id="module-container"></div></body></html>',
     { url: 'http://localhost/xp/public/#/settings', runScripts: 'outside-only', pretendToBeVisual: true }
   );
   const w = dom.window;
 
-  const calls = { gets: [], patches: [], toasts: [], errors: [] };
+  const calls = { gets: [], patches: [], posts: [], toasts: [], errors: [] };
 
   w.console = {
     log() {}, info() {}, debug() {}, warn(...a) { calls.errors.push(a.map(String).join(' ')); },
@@ -118,7 +105,7 @@ function createEnv({ perms = [], roles = [], getHandlers = {}, getImpl = null, p
     logout() {}
   };
 
-  const env = { w, calls, getImpl, patchImpl, dom };
+  const env = { w, calls, getImpl, patchImpl, postImpl, dom };
 
   w.HttpClient = {
     async get(p, options = {}) {
@@ -127,7 +114,15 @@ function createEnv({ perms = [], roles = [], getHandlers = {}, getImpl = null, p
       if (getHandlers[p]) return getHandlers[p](options, env);
       throw Object.assign(new Error('GET no soportado: ' + p), { status: 404, data: null });
     },
-    async post() { return { status: 200, data: {} }; },
+    async post(p, body, options = {}) {
+      calls.posts.push({ path: p, body, options });
+      if (env.postImpl) return env.postImpl(p, body, options, env);
+      return { status: 200, data: {} };
+    },
+    async upload(p) {
+      calls.posts.push({ path: p, body: null, options: { upload: true } });
+      return { status: 200, data: { tenant: TENANT } };
+    },
     async patch(p, body, options = {}) {
       calls.patches.push({ path: p, body, options });
       if (env.patchImpl) return env.patchImpl(p, body, options, env);
@@ -190,22 +185,19 @@ async function s2_denied() {
   check('pinta deniedState (card con CTA)', !!env.container.querySelector('.card a[href="#/dashboard"]'));
   check('menciona el permiso requerido', text.includes('tenants.tenant.view'));
   check('sin GETs al API', env.calls.gets.length === 0, JSON.stringify(env.calls.gets));
-  check('sin pestañas', !env.container.querySelector('[data-tabs]'));
+  check('sin pestanas', !env.container.querySelector('[data-tabs]'));
   env.close();
 }
 
 // =====================================================================
-// S3 - CON PERMISO: datos y pestañas
+// S3 - CON PERMISO: 4 pestanas y datos (sin stats)
 // =====================================================================
 async function s3_read_only() {
-  console.log('S3 con permiso: GET /tenant + /tenant/stats, pestañas y datos');
+  console.log('S3 con permiso: GET /tenant, 4 pestanas y datos');
   const env = createEnv({
     perms: VIEW_PERMS,
     roles: ['ADMIN'],
-    getHandlers: {
-      '/tenant': () => TENANT_PAYLOAD,
-      '/tenant/stats': () => STATS_PAYLOAD
-    }
+    getHandlers: { '/tenant': () => TENANT_PAYLOAD }
   });
   env.loadSettings();
   env.w.SettingsSettingsModule.init({}, env.container);
@@ -213,59 +205,47 @@ async function s3_read_only() {
   await tick();
 
   check('GET /tenant lanzado', env.calls.gets.some(g => g.path === '/tenant'));
-  check('GET /tenant/stats lanzado', env.calls.gets.some(g => g.path === '/tenant/stats'));
+  check('sin GET /tenant/stats', !env.calls.gets.some(g => g.path === '/tenant/stats'));
 
   const tabs = env.container.querySelectorAll('[data-action="tab"]');
-  // v1.14.0: Perfil, Apariencia y Preferencias regionales; Perfil por defecto
-  check('7 pestañas', tabs.length === 7, String(tabs.length));
-  check('pestaña perfil activa',
-    env.container.querySelector('[data-panel="perfil"]') &&
-    !env.container.querySelector('[data-panel="perfil"]').classList.contains('hidden'));
-  const perfil = env.container.querySelector('[data-panel="perfil"]');
-  check('perfil: nombre publico visible', perfil.textContent.includes('Acme Corporation'));
-  check('perfil: correo de contacto visible', perfil.textContent.includes('contact@acme.local'));
+  check('4 pestanas', tabs.length === 4, String(tabs.length));
+  check('pestañas: general, apariencia, localizacion, seguridad',
+    Array.from(tabs).map(b => b.getAttribute('data-tab')).join(',') === 'general,apariencia,localizacion,seguridad',
+    Array.from(tabs).map(b => b.getAttribute('data-tab')).join(','));
+  check('pestaña general activa por defecto',
+    env.container.querySelector('[data-panel="general"]') &&
+    !env.container.querySelector('[data-panel="general"]').classList.contains('hidden'));
 
   const general = env.container.querySelector('[data-panel="general"]');
-  check('nombre_interno visible', general.textContent.includes('acme-corp'));
-  check('plan FREE visible', general.textContent.includes('FREE'));
-  check('version 1.13.58 visible', general.textContent.includes('1.13.58'));
-  check('general sin volcado JSON de configuracion', !general.textContent.includes('null'));
+  check('general: nombre publico visible', general.textContent.includes('Acme Corporation'));
+  check('general: correo de contacto visible', general.textContent.includes('contact@acme.local'));
+  check('general: nombre_interno visible', general.textContent.includes('acme-corp'));
+  check('general: plan FREE visible', general.textContent.includes('FREE'));
+  check('general: version 1.14.1 visible', general.textContent.includes('1.14.1'));
 
   const loc = env.container.querySelector('[data-panel="localizacion"]');
-  check('pais visible', loc.textContent.includes('México'));
-  check('zona horaria visible', loc.textContent.includes('America/Mexico_City'));
+  check('localizacion: pais ISO MX visible', loc.textContent.includes('MX'));
+  check('localizacion: zona horaria visible', loc.textContent.includes('America/Mexico_City'));
 
   const seg = env.container.querySelector('[data-panel="seguridad"]');
-  check('tab seguridad con hueco declarado', seg.textContent.includes('Próximamente'));
-
-  const correo = env.container.querySelector('[data-panel="correo"]');
-  check('tab correo con hueco declarado', correo.textContent.includes('Próximamente'));
-
-  // Resumen: al cambiar de pestaña se repinta con los contadores
-  const tabResumen = Array.from(tabs).find(b => b.getAttribute('data-tab') === 'resumen');
-  env.click(tabResumen);
-  await tick();
-  const resumen = env.container.querySelector('[data-panel="resumen"]');
-  check('resumen sin hidden tras clic', !resumen.classList.contains('hidden'));
-  check('contador usuarios (4)', resumen.textContent.includes('4'));
-  check('contador unidades_fisicas (20)', resumen.textContent.includes('20'));
-  check('etiqueta Ubicaciones', resumen.textContent.includes('Ubicaciones'));
+  check('seguridad: hueco MFA declarado', seg.textContent.includes('Próximamente'));
+  check('seguridad read-only: sin inputs editables',
+    !seg.querySelector('[name="smtp.host"]') && !seg.querySelector('[name="seguridad.caducidad_password_dias"]'));
+  check('seguridad read-only: etiqueta de caducidad visible',
+    seg.textContent.includes(ES_DICT.settings.label_caducidad_password));
 
   env.close();
 }
 
 // =====================================================================
-// S4 - nombre_publico ciphertext y tab via params
+// S4 - pestana por params, pais ISO y sin form de URL de logo
 // =====================================================================
-async function s4_ciphertext_and_params() {
-  console.log('S4 nombre_publico oculto y pestaña por params');
+async function s4_tabs_and_logo() {
+  console.log('S4 pestana por params, pais ISO y logo sin URL');
   const env = createEnv({
-    perms: VIEW_PERMS,
+    perms: EDIT_PERMS,
     roles: ['ADMIN'],
-    getHandlers: {
-      '/tenant': () => TENANT_PAYLOAD,
-      '/tenant/stats': () => STATS_PAYLOAD
-    }
+    getHandlers: { '/tenant': () => TENANT_PAYLOAD }
   });
   env.loadSettings();
   env.w.SettingsSettingsModule.init({ tab: 'localizacion' }, env.container);
@@ -276,9 +256,17 @@ async function s4_ciphertext_and_params() {
     env.container.querySelector('[data-panel="localizacion"]') &&
     !env.container.querySelector('[data-panel="localizacion"]').classList.contains('hidden'));
 
-  const text = env.container.textContent;
-  check('nombre_publico visible (texto plano en la BD viva)', text.includes('Acme Corporation'));
-  check('ID del tenant visible', text.includes(TENANT.id));
+  const loc = env.container.querySelector('[data-panel="localizacion"]');
+  const paisSelect = loc.querySelector('[name="pais"]');
+  check('select pais es ISO (no input texto)', paisSelect && paisSelect.tagName === 'SELECT');
+  check('select pais tiene opciones', paisSelect && paisSelect.options.length > 200, paisSelect ? String(paisSelect.options.length) : 'sin select');
+  check('opciones incluyen MX', paisSelect && Array.from(paisSelect.options).some(o => o.value === 'MX'));
+  check('valor actual MX seleccionado', paisSelect && paisSelect.value === 'MX', paisSelect ? paisSelect.value : '');
+
+  const general = env.container.querySelector('[data-panel="general"]');
+  check('sin form de URL de logo', !env.container.querySelector('#settings-logo-url-form'));
+  check('sin input logo_url', !env.container.querySelector('[name="logo_url"]'));
+  check('boton subir logo presente', !!env.container.querySelector('[data-testid="settings-logo-file-input"]'));
 
   env.close();
 }
@@ -300,7 +288,6 @@ async function s5_error_retry() {
         }
         return TENANT_PAYLOAD;
       }
-      if (p === '/tenant/stats') return STATS_PAYLOAD;
       throw Object.assign(new Error('GET no soportado: ' + p), { status: 404, data: null });
     }
   });
@@ -328,33 +315,35 @@ async function s5_error_retry() {
 }
 
 // =====================================================================
-// S6 - EDICION (tenants.tenant.edit)
+// S6 - UN SOLO BOTON GLOBAL: validacion, PATCH diff y toasts
 // =====================================================================
-async function s6_edit() {
-  console.log('S6 edicion: formularios, slug, PATCH diff y toasts');
+async function s6_global_save() {
+  console.log('S6 edicion: UN boton global, validacion, PATCH diff');
 
-  // Sin edit: sólo lectura (labelValue, sin form)
+  // Sin edit: sin boton global ni campos editables
   {
     const env = createEnv({
       perms: VIEW_PERMS,
       roles: ['ADMIN'],
-      getHandlers: { '/tenant': () => TENANT_PAYLOAD, '/tenant/stats': () => STATS_PAYLOAD }
+      getHandlers: { '/tenant': () => TENANT_PAYLOAD }
     });
     env.loadSettings();
     env.w.SettingsSettingsModule.init({}, env.container);
     await tick();
     await tick();
-    check('sin edit: no hay form en general', !env.container.querySelector('#settings-general-form'));
-    check('sin edit: no hay form en localizacion', !env.container.querySelector('#settings-local-form'));
+    check('sin edit: no hay boton guardar global',
+      !env.container.querySelector('[data-action="settings-save-all"]'));
+    check('sin edit: nombre_interno como label, no input',
+      !env.container.querySelector('[name="nombre_interno"]'));
     env.close();
   }
 
-  // Con edit: formularios presentes
+  // Con edit: UN boton global que recoge diffs de todos los forms
   {
     const env = createEnv({
       perms: EDIT_PERMS,
       roles: ['ADMIN'],
-      getHandlers: { '/tenant': () => TENANT_PAYLOAD, '/tenant/stats': () => STATS_PAYLOAD },
+      getHandlers: { '/tenant': () => TENANT_PAYLOAD },
       patchImpl: (p, body) => {
         if (p !== '/tenant') throw Object.assign(new Error('PATCH no soportado: ' + p), { status: 404 });
         return { status: 200, data: { tenant: { ...TENANT, ...body } } };
@@ -365,16 +354,17 @@ async function s6_edit() {
     await tick();
     await tick();
 
-    const form = env.container.querySelector('#settings-general-form');
-    check('con edit: form general presente', !!form);
-    check('con edit: input nombre_interno con valor', !!env.container.querySelector('#settings-nombre-interno'));
-    check('con edit: formFooter con boton guardar',
-      !!env.container.querySelector('[data-action="settings-save-general"]'));
+    const saveBtn = env.container.querySelector('[data-action="settings-save-all"]');
+    check('con edit: UN boton global presente', !!saveBtn);
+    check('con edit: sin botones submit por formulario',
+      !env.container.querySelector('#settings-general-form [type="submit"]') &&
+      !env.container.querySelector('[data-action="settings-save-general"]'));
 
-    // Slug invalido: error de campo, sin PATCH
-    const input = env.container.querySelector('#settings-nombre-interno');
-    input.value = 'Acme Corp';
-    form.dispatchEvent(new env.w.Event('submit', { bubbles: true, cancelable: true }));
+    const clickSave = () => env.click(env.container.querySelector('[data-action="settings-save-all"]'));
+
+    // Slug invalido: error de campo, sin PATCH, salta a la pestana general
+    env.container.querySelector('[name="nombre_interno"]').value = 'Acme Corp';
+    clickSave();
     await tick();
     const errEl = env.container.querySelector('[data-field="nombre_interno"]');
     check('slug invalido: error de campo visible',
@@ -383,124 +373,159 @@ async function s6_edit() {
     check('slug invalido: sin PATCH', env.calls.patches.length === 0, JSON.stringify(env.calls.patches));
 
     // Sin cambios: toast info, sin PATCH
-    input.value = 'acme-corp';
-    form.dispatchEvent(new env.w.Event('submit', { bubbles: true, cancelable: true }));
+    env.container.querySelector('[name="nombre_interno"]').value = 'acme-corp';
+    clickSave();
     await tick();
     check('sin cambios: toast info', env.calls.toasts.some(t => t.type === 'info'));
     check('sin cambios: sin PATCH', env.calls.patches.length === 0, JSON.stringify(env.calls.patches));
 
-    // Cambio valido: PATCH con solo el campo cambiado
-    input.value = 'acme-corp-verify';
-    form.dispatchEvent(new env.w.Event('submit', { bubbles: true, cancelable: true }));
+    // Cambio valido en general + cambio en localizacion = UN solo PATCH combinado
+    env.container.querySelector('[name="nombre_interno"]').value = 'acme-corp-verify';
+    env.container.querySelector('[name="pais"]').value = 'AR';
+    clickSave();
     await tick();
-    check('cambio valido: un PATCH /tenant', env.calls.patches.length === 1, JSON.stringify(env.calls.patches));
-    check('PATCH solo nombre_interno',
-      env.calls.patches[0] &&
-      env.calls.patches[0].body &&
-      Object.keys(env.calls.patches[0].body).length === 1 &&
-      env.calls.patches[0].body.nombre_interno === 'acme-corp-verify',
-      JSON.stringify(env.calls.patches[0] && env.calls.patches[0].body));
+    check('cambio valido: un solo PATCH', env.calls.patches.length === 1, JSON.stringify(env.calls.patches));
+    const body = env.calls.patches[0] && env.calls.patches[0].body;
+    check('PATCH combina nombre_interno y pais',
+      body && body.nombre_interno === 'acme-corp-verify' && body.pais === 'AR',
+      JSON.stringify(body));
+    check('PATCH no arrastra campos sin cambios',
+      body && !('email_contacto' in body) && !('telefono' in body) && !('zona_horaria' in body),
+      JSON.stringify(body));
     check('toast de exito', env.calls.toasts.some(t => t.type === 'success'));
-    check('tras PATCH el form refleja el valor',
-      env.container.querySelector('#settings-nombre-interno').value === 'acme-corp-verify');
 
-    // Form localizacion: pais cambiado + dominio vacio -> null
-    env.click(Array.from(env.container.querySelectorAll('[data-action="tab"]'))
-      .find(b => b.getAttribute('data-tab') === 'localizacion'));
+    // Correo invalido en perfil: validacion cruzada sin PATCH
+    env.container.querySelector('[name="email_contacto"]').value = 'correo-malo';
+    clickSave();
     await tick();
-    const localForm = env.container.querySelector('#settings-local-form');
-    check('form localizacion presente', !!localForm);
-    if (localForm) {
-      localForm.querySelector('[name="pais"]').value = 'Argentina';
-      localForm.dispatchEvent(new env.w.Event('submit', { bubbles: true, cancelable: true }));
-      await tick();
-      const last = env.calls.patches[env.calls.patches.length - 1];
-      check('PATCH localizacion solo pais',
-        last && Object.keys(last.body).length === 1 && last.body.pais === 'Argentina',
-        JSON.stringify(last && last.body));
-    }
+    const emailErr = env.container.querySelector('[data-field="email_contacto"]');
+    check('correo invalido: error inline y saltta a general',
+      emailErr && !emailErr.classList.contains('hidden') &&
+      env.container.querySelector('[data-panel="general"]').classList.contains('hidden') === false);
+    check('correo invalido: sin PATCH extra', env.calls.patches.length === 1, String(env.calls.patches.length));
 
     env.close();
   }
 }
 
 // =====================================================================
-// S7 - PERFIL, APARIENCIA Y PREFERENCIAS REGIONALES (v1.14.0)
+// S7 - APARIENCIA, REGIONAL, CADUCIDAD Y SMTP ENMASCARADO
 // =====================================================================
-async function s7_tenant_config() {
-  console.log('S7 perfil, apariencia y preferencias regionales');
-  const CONFIG = { perfil: { direccion: 'Av. Reforma 1' }, extra: { x: 1 } };
+async function s7_config_sections() {
+  console.log('S7 apariencia, regional, caducidad y SMTP');
+  const CONFIG = {
+    perfil: { direccion: 'Av. Reforma 1' },
+    regional: { moneda: 'MXN', formato_fecha: 'DD/MM/YYYY' },
+    seguridad: { caducidad_password_dias: 90 },
+    smtp: {
+      host: 'smtp.example.com',
+      puerto: 587,
+      encryption: 'tls',
+      username: 'user@example.com',
+      password: null,
+      password_configurada: true,
+      from_email: 'noreply@example.com',
+      from_name: 'Acme'
+    },
+    extra: { x: 1 }
+  };
   const env = createEnv({
     perms: EDIT_PERMS,
     roles: ['ADMIN'],
     getHandlers: {
-      '/tenant': () => ({ status: 200, data: { tenant: { ...TENANT, configuracion: CONFIG }, plataforma_version: '1.14.0' } }),
-      '/tenant/stats': () => STATS_PAYLOAD
+      '/tenant': () => ({ status: 200, data: { tenant: { ...TENANT, configuracion: CONFIG }, plataforma_version: '1.14.1' } })
     },
-    patchImpl: (p, body) => ({ status: 200, data: { tenant: { ...TENANT, configuracion: CONFIG, ...body } } })
+    // Simula el backend: el PATCH responde con toPublicArray (password oculta + flag)
+    patchImpl: (p, body) => {
+      const merged = JSON.parse(JSON.stringify(body.configuracion || CONFIG));
+      if (merged.smtp && typeof merged.smtp === 'object') {
+        if (merged.smtp.password != null) delete merged.smtp.password;
+        merged.smtp.password_configurada = true;
+      }
+      return { status: 200, data: { tenant: { ...TENANT, ...body, configuracion: merged } } };
+    },
+    postImpl: (p) => {
+      if (p === '/tenant/smtp/test') return { status: 200, data: { enviado_a: 'contact@acme.local' } };
+      return { status: 200, data: {} };
+    }
   });
   env.loadSettings();
   env.w.SettingsSettingsModule.init({}, env.container);
   await tick();
   await tick();
-  const submit = (f) => f.dispatchEvent(new env.w.Event('submit', { bubbles: true, cancelable: true }));
+  const clickSave = () => env.click(env.container.querySelector('[data-action="settings-save-all"]'));
 
-  const pf = env.container.querySelector('#settings-profile-form');
-  check('perfil: form presente', !!pf);
-  check('perfil: direccion desde configuracion', pf.querySelector('[name="perfil.direccion"]').value === 'Av. Reforma 1');
+  // General: direccion cargada desde configuracion
+  check('direccion desde configuracion.perfil',
+    env.container.querySelector('[name="perfil.direccion"]').value === 'Av. Reforma 1');
 
-  pf.querySelector('[name="email_contacto"]').value = 'correo-malo';
-  submit(pf);
-  await tick();
-  const emailErr = env.container.querySelector('[data-field="email_contacto"]');
-  check('perfil: correo invalido muestra error inline', emailErr && !emailErr.classList.contains('hidden'));
-  check('perfil: correo invalido sin PATCH', env.calls.patches.length === 0, JSON.stringify(env.calls.patches));
-
-  pf.querySelector('[name="email_contacto"]').value = 'nuevo@acme.local';
-  submit(pf);
-  await tick();
-  let last = env.calls.patches[env.calls.patches.length - 1];
-  check('perfil: PATCH solo email_contacto',
-    last && Object.keys(last.body).length === 1 && last.body.email_contacto === 'nuevo@acme.local',
-    JSON.stringify(last && last.body));
-
-  const pf2 = env.container.querySelector('#settings-profile-form');
-  pf2.querySelector('[name="perfil.direccion"]').value = 'Calle 2';
-  submit(pf2);
-  await tick();
-  last = env.calls.patches[env.calls.patches.length - 1];
-  check('perfil: direccion va en configuracion.perfil y conserva otras claves',
-    last && last.body.configuracion && last.body.configuracion.perfil.direccion === 'Calle 2' &&
-    last.body.configuracion.extra && last.body.configuracion.extra.x === 1,
-    JSON.stringify(last && last.body));
-
-  // Apariencia: swatch + guardar
+  // Apariencia: swatch + el guardado va por el boton global
   env.click(env.container.querySelector('[data-action="tab"][data-tab="apariencia"]'));
   await tick();
   env.click(env.container.querySelector('[data-action="settings-pick-color"][data-color="#248A3D"]'));
-  check('apariencia: swatch marcado', env.container.querySelector('.color-swatch.is-selected[data-color="#248A3D"]') !== null);
-  submit(env.container.querySelector('#settings-appearance-form'));
+  check('apariencia: swatch marcado',
+    env.container.querySelector('.color-swatch.is-selected[data-color="#248A3D"]') !== null);
+  clickSave();
   await tick();
-  last = env.calls.patches[env.calls.patches.length - 1];
-  check('apariencia: PATCH color_primario',
+  let last = env.calls.patches[env.calls.patches.length - 1];
+  check('apariencia: PATCH color_primario via boton global',
     last && last.body.configuracion && last.body.configuracion.apariencia &&
     last.body.configuracion.apariencia.color_primario === '#248A3D',
     JSON.stringify(last && last.body));
 
-  // Preferencias regionales: moneda y formato
+  // Localizacion: regional ya cargado + muestras
   env.click(env.container.querySelector('[data-action="tab"][data-tab="localizacion"]'));
   await tick();
-  const lf = env.container.querySelector('#settings-local-form');
-  lf.querySelector('[name="regional.moneda"]').value = 'MXN';
-  lf.querySelector('[name="regional.formato_fecha"]').value = 'YYYY-MM-DD';
-  submit(lf);
+  const loc = env.container.querySelector('[data-panel="localizacion"]');
+  check('regional: moneda MXN seleccionada',
+    loc.querySelector('[name="regional.moneda"]').value === 'MXN');
+  check('regional: muestra de fecha usa formato del tenant',
+    loc.querySelector('[data-sample-date]').textContent.includes('/'),
+    loc.querySelector('[data-sample-date]').textContent);
+
+  // Seguridad: caducidad cargada, password enmascarada y test SMTP
+  env.click(env.container.querySelector('[data-action="tab"][data-tab="seguridad"]'));
+  await tick();
+  const seg = env.container.querySelector('[data-panel="seguridad"]');
+  check('caducidad: valor 90 cargado',
+    seg.querySelector('[name="seguridad.caducidad_password_dias"]').value === '90');
+  check('SMTP: host cargado', seg.querySelector('[name="smtp.host"]').value === 'smtp.example.com');
+  check('SMTP: password enmascarada (vacia + placeholder)',
+    seg.querySelector('[name="smtp.password"]').value === '' &&
+    seg.querySelector('[name="smtp.password"]').placeholder === '••••••');
+  check('SMTP: boton de prueba presente', !!seg.querySelector('[data-action="settings-smtp-test"]'));
+
+  // Boton de prueba SMTP
+  env.click(seg.querySelector('[data-action="settings-smtp-test"]'));
+  await tick();
+  check('POST /tenant/smtp/test lanzado',
+    env.calls.posts.some(p => p.path === '/tenant/smtp/test'));
+  check('toast de exito del test', env.calls.toasts.some(t => t.type === 'success'));
+
+  // Cambio de caducidad via boton global (re-consultar: cada save reconstruye el DOM)
+  env.container.querySelector('[name="seguridad.caducidad_password_dias"]').value = '30';
+  clickSave();
   await tick();
   last = env.calls.patches[env.calls.patches.length - 1];
-  check('regional: PATCH moneda y formato en configuracion.regional',
-    last && last.body.configuracion && last.body.configuracion.regional &&
-    last.body.configuracion.regional.moneda === 'MXN' &&
-    last.body.configuracion.regional.formato_fecha === 'YYYY-MM-DD',
+  check('caducidad: PATCH seguridad.caducidad_password_dias=30',
+    last && last.body.configuracion && last.body.configuracion.seguridad &&
+    last.body.configuracion.seguridad.caducidad_password_dias === 30,
     JSON.stringify(last && last.body));
+  check('SMTP sin cambios: password NO enviada',
+    last && last.body.configuracion && last.body.configuracion.smtp &&
+    !('password' in last.body.configuracion.smtp),
+    JSON.stringify(last && last.body.configuracion && last.body.configuracion.smtp));
+
+  // Caducidad invalida: validacion sin PATCH (sobre el input vivo, no el nodo obsoleto)
+  const patchesBefore = env.calls.patches.length;
+  env.container.querySelector('[name="seguridad.caducidad_password_dias"]').value = '999';
+  clickSave();
+  await tick();
+  const diasErr = env.container.querySelector('[data-field="seguridad.caducidad_password_dias"]');
+  check('caducidad invalida: error de campo',
+    diasErr && !diasErr.classList.contains('hidden'));
+  check('caducidad invalida: sin PATCH', env.calls.patches.length === patchesBefore,
+    `${patchesBefore} -> ${env.calls.patches.length}`);
 
   // UI.formatDate con formato del tenant
   env.w.TenantBranding = { get: () => ({ regional: { formato_fecha: 'MM/DD/YYYY' } }) };
@@ -519,10 +544,10 @@ async function main() {
   await s1_registration();
   await s2_denied();
   await s3_read_only();
-  await s4_ciphertext_and_params();
+  await s4_tabs_and_logo();
   await s5_error_retry();
-  await s6_edit();
-  await s7_tenant_config();
+  await s6_global_save();
+  await s7_config_sections();
   console.log(`\n${pass} ok, ${fail} fail`);
   process.exit(fail > 0 ? 1 : 0);
 }

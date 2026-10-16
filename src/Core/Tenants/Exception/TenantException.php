@@ -136,6 +136,12 @@ final class TenantException extends RuntimeException
             ->withMessageKey('tenants.configuracion_invalid', ['campo' => $campo]);
     }
 
+    public static function invalidPais(string $pais): self
+    {
+        return (new self("País inválido: '{$pais}'. Use el código ISO 3166-1 alpha-2 (ej. MX).", 400))
+            ->withMessageKey('tenants.pais_invalid');
+    }
+
     public static function invalidLogoFile(string $motivo): self
     {
         return (new self("Archivo de logo inválido: {$motivo}.", 400))

@@ -159,7 +159,15 @@ $container->singleton(
         $c->get(App\Core\Authentication\Repository\UserRepositoryInterface::class),
         $c->get('password_hasher'),
         $c->get('database'),
-        $c->get('redis')
+        $c->get('redis'),
+        $c->get(App\Core\Security\Service\EncryptionService::class)
+    )
+);
+
+$container->singleton(
+    App\Core\Tenants\Service\MailerService::class,
+    fn($c) => new App\Core\Tenants\Service\MailerService(
+        $c->get(App\Core\Tenants\Service\TenantService::class)
     )
 );
 

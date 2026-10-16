@@ -6,6 +6,7 @@ namespace App\Core\Tenants\Service;
 
 use App\Core\Authentication\Repository\UserRepositoryInterface;
 use App\Core\Authentication\Service\PasswordHasher;
+use App\Core\Security\Service\EncryptionService;
 use App\Core\Tenants\Entity\Tenant;
 use App\Core\Tenants\Exception\TenantException;
 use App\Core\Tenants\Repository\TenantRepositoryInterface;
@@ -34,6 +35,7 @@ final class TenantService
     private PasswordHasher $hasher;
     private DatabaseService $db;
     private RedisService $redis;
+    private EncryptionService $encryption;
 
     private const CACHE_PREFIX = 'tenant:';
     private const CACHE_TTL = 300; // 5 minutos
@@ -44,7 +46,8 @@ final class TenantService
         ?UserRepositoryInterface $userRepo = null,
         ?PasswordHasher $hasher = null,
         ?DatabaseService $db = null,
-        ?RedisService $redis = null
+        ?RedisService $redis = null,
+        ?EncryptionService $encryption = null
     ) {
         $container = Container::getInstance();
         $this->tenants = $tenants ?? $container->get(TenantRepositoryInterface::class);
@@ -53,6 +56,7 @@ final class TenantService
         $this->hasher = $hasher ?? $container->get(PasswordHasher::class);
         $this->db = $db ?? $container->get('database');
         $this->redis = $redis ?? $container->get(RedisService::class);
+        $this->encryption = $encryption ?? $container->get(EncryptionService::class);
     }
 
     // ========================================================================
@@ -404,7 +408,7 @@ final class TenantService
             $tenant->actualizarContacto(
                 $data['email_contacto'] ?? $tenant->emailContacto(),
                 $data['telefono'] ?? $tenant->telefono(),
-                $data['pais'] ?? $tenant->pais(),
+                array_key_exists('pais', $data) ? self::normalizePais($data['pais']) : $tenant->pais(),
                 $data['zona_horaria'] ?? $tenant->zonaHoraria(),
                 $data['idioma_default'] ?? $tenant->idiomaDefault()
             );
@@ -430,7 +434,18 @@ final class TenantService
             if (!is_array($data['configuracion'])) {
                 throw TenantException::invalidConfiguracion('configuracion');
             }
-            $merged = self::mergeConfiguracion($tenant->configuracion() ?? [], $data['configuracion']);
+            $cambios = $data['configuracion'];
+            // SMTP: la password llega en texto plano y se guarda cifrada;
+            // null/vacío = no tocar la password ya almacenada (v1.14.1).
+            if (isset($cambios['smtp']) && is_array($cambios['smtp'])) {
+                $pwd = $cambios['smtp']['password'] ?? null;
+                if ($pwd === null || $pwd === '') {
+                    unset($cambios['smtp']['password']);
+                } else {
+                    $cambios['smtp']['password'] = $this->encryption->encryptForStorage((string) $pwd);
+                }
+            }
+            $merged = self::mergeConfiguracion($tenant->configuracion() ?? [], $cambios);
             self::validateConfiguracion($merged);
             $tenant->actualizarConfiguracion($merged === [] ? null : $merged);
         }
@@ -698,6 +713,9 @@ final class TenantService
     /** Mismo catalogo que el selector de Configuracion > Preferencias regionales. */
     public const MONEDAS = ['MXN', 'USD', 'EUR', 'COP', 'ARS', 'CLP', 'PEN', 'BRL', 'GTQ', 'CRC', 'UYU', 'BOB', 'PYG', 'DOP', 'GBP', 'CAD'];
 
+    /** Cifrados admitidos por el formulario SMTP (v1.14.1). */
+    public const SMTP_ENCRYPTIONS = ['tls', 'ssl', 'none'];
+
     /**
      * Fusion por secciones (v1.14.0): un PATCH parcial no borra el resto de
      * la configuracion; una clave con null se elimina y una seccion vacia
@@ -743,13 +761,16 @@ final class TenantService
         return (bool) preg_match('#^https?://[^\s"\'<>]+$#i', $url);
     }
 
-    /** Valida las claves conocidas de configuracion (perfil/apariencia/regional). */
+    /** Valida las claves conocidas de configuracion (perfil/apariencia/regional/smtp/seguridad). */
     private static function validateConfiguracion(array $config): void
     {
         $perfil = $config['perfil'] ?? [];
         $apariencia = $config['apariencia'] ?? [];
         $regional = $config['regional'] ?? [];
-        if (!is_array($perfil) || !is_array($apariencia) || !is_array($regional)) {
+        $smtp = $config['smtp'] ?? [];
+        $seguridad = $config['seguridad'] ?? [];
+        if (!is_array($perfil) || !is_array($apariencia) || !is_array($regional)
+            || !is_array($smtp) || !is_array($seguridad)) {
             throw TenantException::invalidConfiguracion('configuracion');
         }
 
@@ -772,6 +793,76 @@ final class TenantService
         if ($formato !== null && !in_array($formato, self::FORMATOS_FECHA, true)) {
             throw TenantException::invalidConfiguracion('regional.formato_fecha');
         }
+
+        self::validateSmtp($smtp);
+        self::validateSeguridad($seguridad);
+    }
+
+    /** Sección smtp: host/puerto/encryption/username/password/from_* (v1.14.1). */
+    private static function validateSmtp(array $smtp): void
+    {
+        $host = $smtp['host'] ?? null;
+        if ($host !== null && (!is_string($host) || trim($host) === '' || strlen($host) > 255)) {
+            throw TenantException::invalidConfiguracion('smtp.host');
+        }
+
+        $puerto = $smtp['puerto'] ?? null;
+        if ($puerto !== null && (!is_int($puerto) || $puerto < 1 || $puerto > 65535)) {
+            throw TenantException::invalidConfiguracion('smtp.puerto');
+        }
+
+        $enc = $smtp['encryption'] ?? null;
+        if ($enc !== null && (!is_string($enc) || !in_array($enc, self::SMTP_ENCRYPTIONS, true))) {
+            throw TenantException::invalidConfiguracion('smtp.encryption');
+        }
+
+        $username = $smtp['username'] ?? null;
+        if ($username !== null && (!is_string($username) || strlen($username) > 255)) {
+            throw TenantException::invalidConfiguracion('smtp.username');
+        }
+
+        $password = $smtp['password'] ?? null;
+        // Límite generoso: el valor almacenado es el cifrado base64 (iv+tag+texto).
+        if ($password !== null && (!is_string($password) || strlen($password) > 1024)) {
+            throw TenantException::invalidConfiguracion('smtp.password');
+        }
+
+        $fromEmail = $smtp['from_email'] ?? null;
+        if ($fromEmail !== null && (!is_string($fromEmail) || !filter_var($fromEmail, FILTER_VALIDATE_EMAIL))) {
+            throw TenantException::invalidConfiguracion('smtp.from_email');
+        }
+
+        $fromName = $smtp['from_name'] ?? null;
+        if ($fromName !== null && (!is_string($fromName) || strlen($fromName) > 255)) {
+            throw TenantException::invalidConfiguracion('smtp.from_name');
+        }
+    }
+
+    /** Sección seguridad: caducidad de contraseña en días (v1.14.1). */
+    private static function validateSeguridad(array $seguridad): void
+    {
+        $dias = $seguridad['caducidad_password_dias'] ?? null;
+        if ($dias !== null && (!is_int($dias) || $dias < 1 || $dias > 365)) {
+            throw TenantException::invalidConfiguracion('seguridad.caducidad_password_dias');
+        }
+    }
+
+    /**
+     * Normaliza el país a código ISO 3166-1 alpha-2 (v1.14.1).
+     * null/vacío se aceptan (campo opcional).
+     *
+     * @throws TenantException Si no es un código alpha-2
+     */
+    private static function normalizePais($pais): ?string
+    {
+        if ($pais === null || $pais === '') {
+            return null;
+        }
+        $pais = strtoupper(trim((string) $pais));
+        if (!preg_match('/^[A-Z]{2}$/', $pais)) {
+            throw TenantException::invalidPais($pais);
+        }
+        return $pais;
     }
 
     private function invalidateTenantCache(string $tenantId): void

@@ -464,6 +464,11 @@ final class UserService
      * Cambia el password de un usuario y limpia el marcador de cambio
      * forzado (v1.11.0): un cambio completado deja de exigir cambio.
      *
+     * Política de caducidad del tenant (v1.14.1): si configuracion.seguridad
+     * .caducidad_password_dias está definida, la nueva contraseña caduca a
+     * los N días; si no, no caduca (fecha_expiracion_password NULL). El
+     * login ya fuerza el cambio cuando la fecha vence (AuthController).
+     *
      * @throws UserException Si el usuario no existe o password inválido
      */
     public function changePassword(string $id, string $tenantId, string $newPassword): void
@@ -477,15 +482,42 @@ final class UserService
         $hash = $this->hasher->hash($newPassword);
 
         $sql = "UPDATE users
-                SET password = :password, fecha_expiracion_password = NULL, updated_at = :updated_at
+                SET password = :password, fecha_expiracion_password = :expira, updated_at = :updated_at
                 WHERE id = :id AND tenant_id = :tenant_id";
         $stmt = $this->db->getConnection()->prepare($sql);
         $stmt->execute([
             'password'   => $hash,
+            'expira'     => $this->passwordExpiryFromPolicy($tenantId),
             'updated_at' => date('Y-m-d H:i:s'),
             'id'         => $id,
             'tenant_id'  => $tenantId,
         ]);
+    }
+
+    /**
+     * Calcula la fecha de expiración según configuracion.seguridad
+     * .caducidad_password_dias del tenant (v1.14.1).
+     *
+     * @return string|null Fecha 'Y-m-d H:i:s' o null si no hay política
+     */
+    private function passwordExpiryFromPolicy(string $tenantId): ?string
+    {
+        $stmt = $this->db->getConnection()->prepare(
+            "SELECT configuracion FROM tenants WHERE id = :id AND deleted_at IS NULL"
+        );
+        $stmt->execute(['id' => $tenantId]);
+        $raw = $stmt->fetchColumn();
+        if ($raw === false || $raw === null || $raw === '') {
+            return null;
+        }
+
+        $config = json_decode((string) $raw, true);
+        $dias = $config['seguridad']['caducidad_password_dias'] ?? null;
+        if (!is_int($dias) || $dias < 1) {
+            return null;
+        }
+
+        return date('Y-m-d H:i:s', time() + $dias * 86400);
     }
 
     /**

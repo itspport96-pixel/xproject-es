@@ -1,24 +1,25 @@
 /**
- * Settings Module (v1.14.0)
+ * Settings Module (v1.14.1)
  * Configuracion del tenant: lectura y edicion inline (sin modales).
  *
  * Tabs:
- * - perfil: nombre publico, correo de contacto, telefono, direccion y logo
- *   (subida POST /api/tenant/logo o URL externa)
+ * - general: identidad tecnica (nombre_interno, dominio, estado, plan),
+ *   perfil (nombre publico, correo, telefono, direccion) y logo (subida;
+ *   sin formulario de URL externa)
  * - apariencia: color principal (paleta + selector libre) con vista previa
- * - localizacion: preferencias regionales (pais, zona horaria, idioma,
- *   moneda y formato de fecha)
- * - general: identidad tecnica (nombre_interno, dominio, estado, plan)
- * - seguridad / correo: huecos declarados (sin endpoint)
- * - resumen: contadores de GET /api/tenant/stats
+ * - localizacion: pais (ISO 3166-1 alpha-2), zona horaria (IANA TZDB),
+ *   idioma, moneda y formato de fecha
+ * - seguridad: caducidad de contrasenas, hueco MFA y formulario SMTP
+ *   (password cifrada en backend; boton de correo de prueba)
  *
- * Datos: GET /api/tenant (tenants.tenant.view) y GET /api/tenant/stats.
- * Edicion: PATCH /api/tenant (tenants.tenant.edit) solo con los campos
- * cambiados. direccion, color, moneda y formato de fecha viven en
- * tenants.configuracion (JSON): {perfil:{direccion}, apariencia:
- * {color_primario}, regional:{moneda, formato_fecha}}; el PATCH envia el
- * objeto completo fusionado (el backend lo reemplaza entero).
- * Tras guardar se refresca TenantBranding (color/logo/formatos en vivo).
+ * UN SOLO boton global de guardar (cabecera): recoge los diffs de todos
+ * los formularios y envia UN unico PATCH /api/tenant. El logo se sube de
+ * forma inmediata al elegir el archivo (POST /api/tenant/logo).
+ *
+ * Datos: GET /api/tenant (tenants.tenant.view). Edicion: PATCH /api/tenant
+ * (tenants.tenant.edit). direccion/color/moneda/formato/caducidad/SMTP
+ * viven en tenants.configuracion (JSON) y el backend los fusiona por
+ * secciones. Tras guardar se refresca TenantBranding.
  *
  * Ruta 'settings': permiso tenants.tenant.view (fallback rol ADMIN).
  * Convencion ModuleLoader: window.SettingsSettingsModule (ruta settings/settings).
@@ -30,20 +31,19 @@
 
     let container = null;
 
-    const TABS = ['perfil', 'apariencia', 'localizacion', 'general', 'seguridad', 'correo', 'resumen'];
-    const DEFAULT_TAB = 'perfil';
+    const TABS = ['general', 'apariencia', 'localizacion', 'seguridad'];
+    const DEFAULT_TAB = 'general';
 
     let state = {
         tab: DEFAULT_TAB,
         tenant: null,
         version: '',
-        stats: null,
         loading: true,
-        statsLoading: true,
         error: null,
         saving: false,
         uploading: false,
-        color: null
+        color: null,
+        colorDirty: false
     };
 
     const ESTADOS_TENANT = [
@@ -60,12 +60,19 @@
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     const PHONE_RE = /^\+?[0-9][0-9 ().\-]{5,29}$/;
     const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+    const ISO_COUNTRY_RE = /^[A-Z]{2}$/;
     const LOGO_MAX_BYTES = 819200;
     const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 
     // Mismo catalogo que TenantService::FORMATOS_FECHA
     const DATE_FORMATS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD', 'DD-MM-YYYY', 'DD.MM.YYYY'];
     const CURRENCIES = ['MXN', 'USD', 'EUR', 'COP', 'ARS', 'CLP', 'PEN', 'BRL', 'GTQ', 'CRC', 'UYU', 'BOB', 'PYG', 'DOP', 'GBP', 'CAD'];
+    // Mismo catalogo que TenantService::SMTP_ENCRYPTIONS
+    const SMTP_ENCRYPTS = [
+        { value: 'tls', label: () => t('settings.smtp_encryption.tls') },
+        { value: 'ssl', label: () => t('settings.smtp_encryption.ssl') },
+        { value: 'none', label: () => t('settings.smtp_encryption.none') }
+    ];
     const currencyLabels = () => ({
         MXN: t('settings.currency.MXN'),
         USD: t('settings.currency.USD'),
@@ -100,6 +107,16 @@
         'America/Guatemala', 'America/New_York', 'America/Los_Angeles', 'Europe/Madrid',
         'Europe/London', 'UTC'
     ];
+    // ISO 3166-1 alpha-2: el backend valida el codigo y el dato vivo ya es 'MX'.
+    const ISO_3166_ALPHA2 = ('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ ' +
+        'BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ ' +
+        'DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP ' +
+        'GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI ' +
+        'KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP ' +
+        'MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM ' +
+        'PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX ' +
+        'SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU ' +
+        'WF WS YE YT ZA ZM ZW').split(' ');
 
     // ====================================================================
     // PERMISOS
@@ -146,6 +163,16 @@
         return actual && list.indexOf(actual) === -1 ? [actual].concat(list) : list;
     }
 
+    function countryLabel(code) {
+        try {
+            const lang = (global.document && global.document.documentElement.lang) || 'es';
+            const dn = new Intl.DisplayNames([lang], { type: 'region' });
+            return dn.of(code) || code;
+        } catch (e) {
+            return code;
+        }
+    }
+
     function brandingFromTenant(tenant) {
         const c = (tenant && tenant.configuracion) || {};
         return {
@@ -186,8 +213,8 @@
             ? `<textarea id="${id}" name="${o.name}" class="input textarea w-full" rows="3" maxlength="${o.maxlength || 500}"
                    placeholder="${escapeHtml(o.placeholder || '')}" data-testid="${id}-input">${escapeHtml(o.value || '')}</textarea>`
             : `<input type="${o.type || 'text'}" id="${id}" name="${o.name}" class="input w-full"
-                   value="${escapeHtml(o.value || '')}" placeholder="${escapeHtml(o.placeholder || '')}"
-                   maxlength="${o.maxlength || 255}"${o.required ? ' required' : ''}${o.autocomplete ? ` autocomplete="${o.autocomplete}"` : ''} data-testid="${id}-input">`;
+                   value="${escapeHtml(o.value == null ? '' : o.value)}" placeholder="${escapeHtml(o.placeholder || '')}"
+                   maxlength="${o.maxlength || 255}"${o.min != null ? ` min="${o.min}"` : ''}${o.max != null ? ` max="${o.max}"` : ''}${o.required ? ' required' : ''}${o.autocomplete ? ` autocomplete="${o.autocomplete}"` : ''} data-testid="${id}-input">`;
         return `
             <div class="${o.wide ? 'md:col-span-2' : ''}">
                 <label class="block text-sm font-medium mb-1" for="${id}">${escapeHtml(o.label)}${o.required ? ' <span class="text-danger">*</span>' : ''}</label>
@@ -199,7 +226,7 @@
 
     function selectField(o) {
         const id = 'settings-' + o.name.replace(/[._]/g, '-');
-        const options = (o.empty ? `<option value="">${escapeHtml(o.empty)}</option>` : '') + o.options.map(op =>
+        const options = (o.empty !== undefined ? `<option value="">${escapeHtml(o.empty)}</option>` : '') + o.options.map(op =>
             `<option value="${escapeHtml(op.value)}"${op.value === o.value ? ' selected' : ''}>${escapeHtml(op.label)}</option>`
         ).join('');
         return `
@@ -234,7 +261,7 @@
     }
 
     // ====================================================================
-    // TEMPLATE: Perfil
+    // TEMPLATE: General (identidad + perfil + logo)
     // ====================================================================
 
     function renderLogoBox(tenant) {
@@ -262,42 +289,49 @@
             </div>`;
     }
 
-    function renderPerfilPanel() {
+    function renderGeneralPanel() {
         const guard = guardState();
         if (guard) return guard;
         const tenant = state.tenant || {};
         const direccion = section('perfil').direccion || '';
+        const identidad = `
+                <div class="grid gap-4 md:grid-cols-2 mt-4">
+                    ${labelValue(t('settings.label_id'), tenant.id)}
+                    <div>
+                        <div class="text-xs text-muted mb-1">${escapeHtml(t('settings.label_estado'))}</div>
+                        <div>${UI.estadoBadge(tenant.estado, ESTADOS_TENANT)}</div>
+                    </div>
+                    ${labelValue(t('settings.label_plan'), tenant.plan)}
+                    ${labelValue(t('settings.label_version'), state.version)}
+                </div>`;
 
         if (!canEdit()) {
             return group(t('settings.section_perfil'), `
                 <div class="grid gap-4 md:grid-cols-2">
                     ${labelValue(t('settings.label_nombre_publico'), tenant.nombre_publico)}
+                    ${labelValue(t('settings.label_nombre_interno'), tenant.nombre_interno)}
                     ${labelValue(t('settings.label_email_contacto'), tenant.email_contacto)}
                     ${labelValue(t('settings.label_telefono'), tenant.telefono)}
                     ${labelValue(t('settings.label_direccion'), direccion)}
-                </div>`) + group(t('settings.section_logo'), renderLogoBox(tenant));
+                    ${labelValue(t('settings.label_dominio_custom'), tenant.dominio_custom)}
+                </div>
+                ${identidad}`) + group(t('settings.section_logo'), renderLogoBox(tenant));
         }
 
-        return `
-            <form id="settings-profile-form" novalidate data-testid="settings-profile-form">
-                ${group(t('settings.section_perfil'), `
+        return group(t('settings.section_identidad'), `
+                    <div class="grid gap-4 md:grid-cols-2">
+                        ${inputField({ name: 'nombre_interno', label: t('settings.label_nombre_interno'), value: tenant.nombre_interno, required: true, maxlength: MAX_NOMBRE_INTERNO, placeholder: t('settings.placeholder_nombre_interno'), help: t('settings.help_nombre_interno') })}
+                        ${inputField({ name: 'dominio_custom', label: t('settings.label_dominio_custom'), value: tenant.dominio_custom, placeholder: 'ej. acme.example.com', help: t('settings.help_dominio_custom') })}
+                    </div>
+                    ${identidad}`) +
+            group(t('settings.section_perfil'), `
                     <div class="grid gap-4 md:grid-cols-2">
                         ${inputField({ name: 'nombre_publico', label: t('settings.label_nombre_publico'), value: tenant.nombre_publico, required: true, placeholder: t('settings.placeholder_nombre_publico'), autocomplete: 'organization' })}
                         ${inputField({ name: 'email_contacto', type: 'email', label: t('settings.label_email_contacto'), value: tenant.email_contacto, placeholder: 'contacto@empresa.com', help: t('settings.help_email_contacto'), autocomplete: 'email' })}
                         ${inputField({ name: 'telefono', type: 'tel', label: t('settings.label_telefono'), value: tenant.telefono, placeholder: '+52 55 1234 5678', maxlength: 30, autocomplete: 'tel' })}
                         ${inputField({ name: 'perfil.direccion', type: 'textarea', label: t('settings.label_direccion'), value: direccion, placeholder: t('settings.placeholder_direccion'), maxlength: 500, wide: true })}
-                    </div>
-                    ${UI.formFooter({ submitLabel: t('settings.btn_save'), submitAction: 'settings-save-profile' })}
-                `, t('settings.foot_perfil'))}
-            </form>
-            ${group(t('settings.section_logo'), `
-                ${renderLogoBox(tenant)}
-                <form id="settings-logo-url-form" class="mt-4" novalidate data-testid="settings-logo-url-form">
-                    <div class="grid gap-4 md:grid-cols-2">
-                        ${inputField({ name: 'logo_url', type: 'url', label: t('settings.label_logo_url'), value: /^https?:/i.test(tenant.logo_url || '') ? tenant.logo_url : '', placeholder: 'https://...', help: t('settings.help_logo_url') })}
-                    </div>
-                    ${UI.formFooter({ submitLabel: t('settings.btn_save_url'), submitAction: 'settings-save-logo-url' })}
-                </form>`)}`;
+                    </div>`) +
+            group(t('settings.section_logo'), renderLogoBox(tenant));
     }
 
     // ====================================================================
@@ -305,7 +339,8 @@
     // ====================================================================
 
     function currentColor() {
-        return state.color || section('apariencia').color_primario || null;
+        if (state.colorDirty) return state.color;
+        return section('apariencia').color_primario || null;
     }
 
     function renderSwatches(selected) {
@@ -337,7 +372,6 @@
         if (guard) return guard;
         const color = currentColor();
         const body = `
-            <form id="settings-appearance-form" novalidate data-testid="settings-appearance-form">
                 <div class="grid gap-6 md:grid-cols-2">
                     <div>
                         <label class="block text-sm font-medium mb-2">${escapeHtml(t('settings.label_color_primario'))}</label>
@@ -356,16 +390,14 @@
                     </div>
                 </div>
                 ${canEdit() ? `
-                <div class="flex items-center justify-between mt-4 gap-3 flex-wrap">
+                <div class="mt-4">
                     <button type="button" class="btn btn-ghost" data-action="settings-color-reset" data-testid="settings-color-reset-btn">${escapeHtml(t('settings.color_reset'))}</button>
-                    <button type="submit" class="btn btn-primary" data-action="settings-save-appearance" data-testid="settings-save-appearance-btn">${escapeHtml(t('settings.btn_save'))}</button>
-                </div>` : ''}
-            </form>`;
+                </div>` : ''}`;
         return group(t('settings.section_apariencia'), body, t('settings.foot_apariencia'));
     }
 
     // ====================================================================
-    // TEMPLATE: Preferencias regionales
+    // TEMPLATE: Localizacion
     // ====================================================================
 
     function sampleDate(formato) {
@@ -376,6 +408,13 @@
 
     function sampleMoney(moneda) {
         return moneda ? UI.formatMoney(1234.5, moneda) : EMPTY;
+    }
+
+    function paisOptions() {
+        const actual = state.tenant && state.tenant.pais;
+        const list = ISO_3166_ALPHA2.slice();
+        if (actual && list.indexOf(actual) === -1) list.unshift(String(actual));
+        return list.map(code => ({ value: code, label: code + ' — ' + countryLabel(code) }));
     }
 
     function renderLocalizacionPanel() {
@@ -389,7 +428,7 @@
         if (!canEdit()) {
             return group(t('settings.section_localizacion'), `
                 <div class="grid gap-4 md:grid-cols-2">
-                    ${labelValue(t('settings.label_pais'), tenant.pais)}
+                    ${labelValue(t('settings.label_pais'), tenant.pais ? tenant.pais + ' — ' + countryLabel(tenant.pais) : null)}
                     ${labelValue(t('settings.label_zona_horaria'), tenant.zona_horaria)}
                     ${labelValue(t('settings.label_idioma_default'), tenant.idioma_default)}
                     ${labelValue(t('settings.label_moneda'), moneda)}
@@ -404,9 +443,8 @@
             { value: 'fr', label: t('profile.lang.fr') }
         ];
         const body = `
-            <form id="settings-local-form" novalidate data-testid="settings-local-form">
                 <div class="grid gap-4 md:grid-cols-2">
-                    ${inputField({ name: 'pais', label: t('settings.label_pais'), value: tenant.pais, maxlength: 100, autocomplete: 'country-name' })}
+                    ${selectField({ name: 'pais', label: t('settings.label_pais'), value: tenant.pais || '', empty: t('settings.option_none'), options: paisOptions(), help: t('settings.help_pais_iso') })}
                     ${selectField({ name: 'zona_horaria', label: t('settings.label_zona_horaria'), value: tenant.zona_horaria || '', empty: t('settings.option_none'), options: timezones().map(z => ({ value: z, label: z.replace(/_/g, ' ') })) })}
                     ${selectField({ name: 'idioma_default', label: t('settings.label_idioma_default'), value: tenant.idioma_default || 'es', options: langs })}
                     ${selectField({ name: 'regional.moneda', label: t('settings.label_moneda'), value: moneda, empty: t('settings.option_none'), options: CURRENCIES.map(c => ({ value: c, label: c + ' - ' + currencyLabels()[c] })), help: t('settings.help_moneda') })}
@@ -420,103 +458,98 @@
                             <div class="format-sample" data-sample-money data-testid="settings-sample-money">${escapeHtml(sampleMoney(moneda))}</div>
                         </div>
                     </div>
-                </div>
-                ${UI.formFooter({ submitLabel: t('settings.btn_save'), submitAction: 'settings-save-local' })}
-            </form>`;
+                </div>`;
         return group(t('settings.section_localizacion'), body, t('settings.foot_localizacion'));
     }
 
     // ====================================================================
-    // TEMPLATE: General, Seguridad, Correo, Resumen
+    // TEMPLATE: Seguridad (caducidad + MFA hueco + SMTP)
     // ====================================================================
 
-    function renderGeneralPanel() {
+    function renderSeguridadPanel() {
         const guard = guardState();
         if (guard) return guard;
         const tenant = state.tenant || {};
-        const identidad = `
-                <div class="grid gap-4 md:grid-cols-2 mt-4">
-                    ${labelValue(t('settings.label_id'), tenant.id)}
-                    <div>
-                        <div class="text-xs text-muted mb-1">${escapeHtml(t('settings.label_estado'))}</div>
-                        <div>${UI.estadoBadge(tenant.estado, ESTADOS_TENANT)}</div>
-                    </div>
-                    ${labelValue(t('settings.label_plan'), tenant.plan)}
-                    ${labelValue(t('settings.label_version'), state.version)}
-                </div>`;
+        const seg = section('seguridad');
+        const smtp = section('smtp');
+        const dias = seg.caducidad_password_dias;
+        const smtpHost = smtp.host || '';
+
+        const caducidad = `
+            <div class="grid gap-4 md:grid-cols-2">
+                ${inputField({
+                    name: 'seguridad.caducidad_password_dias',
+                    type: 'number',
+                    label: t('settings.label_caducidad_password'),
+                    value: dias == null ? '' : dias,
+                    min: 1,
+                    max: 365,
+                    placeholder: '90',
+                    help: t('settings.help_caducidad_password')
+                })}
+            </div>`;
+
+        const mfa = `
+            <p class="text-muted text-sm mb-3">${escapeHtml(t('settings.mfa_body'))}</p>
+            ${UI.emptyState({ title: t('settings.mfa_title'), message: t('settings.hueco_title') })}`;
+
+        const pwdHelp = smtp.password_configurada
+            ? t('settings.help_smtp_password_saved')
+            : t('settings.help_smtp_password');
+        const smtpForm = `
+            <div class="grid gap-4 md:grid-cols-2">
+                ${inputField({ name: 'smtp.host', label: t('settings.label_smtp_host'), value: smtpHost, maxlength: 255, placeholder: 'smtp.example.com' })}
+                ${inputField({ name: 'smtp.puerto', type: 'number', label: t('settings.label_smtp_puerto'), value: smtp.puerto == null ? '' : smtp.puerto, min: 1, max: 65535, placeholder: '587' })}
+                ${selectField({ name: 'smtp.encryption', label: t('settings.label_smtp_encryption'), value: smtp.encryption || 'tls', options: SMTP_ENCRYPTS.map(e => ({ value: e.value, label: e.label() })) })}
+                ${inputField({ name: 'smtp.username', label: t('settings.label_smtp_username'), value: smtp.username || '', maxlength: 255, autocomplete: 'username' })}
+                ${inputField({ name: 'smtp.password', type: 'password', label: t('settings.label_smtp_password'), value: '', maxlength: 512, placeholder: smtp.password_configurada ? '••••••' : '', help: pwdHelp, autocomplete: 'new-password' })}
+                ${inputField({ name: 'smtp.from_email', type: 'email', label: t('settings.label_smtp_from_email'), value: smtp.from_email || '', maxlength: 255, placeholder: 'noreply@empresa.com' })}
+                ${inputField({ name: 'smtp.from_name', label: t('settings.label_smtp_from_name'), value: smtp.from_name || '', maxlength: 255, placeholder: tenant.nombre_publico || '' })}
+            </div>
+            ${canEdit() ? `
+            <div class="flex items-center gap-2 mt-4 flex-wrap">
+                <button type="button" class="btn btn-secondary" data-action="settings-smtp-test" data-testid="settings-smtp-test-btn">${escapeHtml(t('settings.btn_smtp_test'))}</button>
+                <p class="text-muted text-xs">${escapeHtml(t('settings.help_smtp_test'))}</p>
+            </div>` : ''}`;
 
         if (!canEdit()) {
-            return group(t('settings.section_identidad'), `
+            return group(t('settings.section_seguridad'), `
                 <div class="grid gap-4 md:grid-cols-2">
-                    ${labelValue(t('settings.label_nombre_interno'), tenant.nombre_interno)}
-                    ${labelValue(t('settings.label_dominio_custom'), tenant.dominio_custom)}
-                </div>
-                ${identidad}`);
+                    ${labelValue(t('settings.label_caducidad_password'), dias == null ? t('settings.option_none') : dias)}
+                    ${labelValue(t('settings.label_smtp_host'), smtpHost)}
+                    ${labelValue(t('settings.label_smtp_username'), smtp.username)}
+                    ${labelValue(t('settings.label_smtp_from_email'), smtp.from_email)}
+                </div>`) + group(t('settings.mfa_title'), mfa);
         }
 
-        return group(t('settings.section_identidad'), `
-                <form id="settings-general-form" novalidate data-testid="settings-general-form">
-                    <div class="grid gap-4 md:grid-cols-2">
-                        ${inputField({ name: 'nombre_interno', label: t('settings.label_nombre_interno'), value: tenant.nombre_interno, required: true, maxlength: MAX_NOMBRE_INTERNO, placeholder: t('settings.placeholder_nombre_interno'), help: t('settings.help_nombre_interno') })}
-                        ${inputField({ name: 'dominio_custom', label: t('settings.label_dominio_custom'), value: tenant.dominio_custom, placeholder: 'ej. acme.example.com', help: t('settings.help_dominio_custom') })}
-                    </div>
-                    ${identidad}
-                    ${UI.formFooter({ submitLabel: t('settings.btn_save'), submitAction: 'settings-save-general' })}
-                </form>`);
+        return group(t('settings.section_seguridad'), caducidad) +
+            group(t('settings.mfa_title'), mfa) +
+            group(t('settings.section_smtp'), smtpForm, t('settings.foot_smtp'));
     }
 
-    function renderHueco(titleKey, bodyKey, huecoKey) {
-        return group(t(titleKey), `
-                <p class="text-muted text-sm mb-4">${escapeHtml(t(bodyKey))}</p>
-                ${UI.emptyState({ title: t('settings.hueco_title'), message: t(huecoKey) })}`);
-    }
-
-    function renderResumenPanel() {
-        if (state.statsLoading) return UI.cardsSkeleton(6);
-        if (!state.stats) {
-            return UI.errorState({
-                title: t('settings.load_error_title'),
-                message: t('settings.stats_error'),
-                retryAction: 'settings-retry',
-                retryLabel: t('ui.retry')
-            });
-        }
-        return '<div class="grid grid-cols-2 md:grid-cols-3 gap-3" data-settings-stats data-testid="settings-stats"></div>';
-    }
-
-    function statsCards() {
-        return [
-            { label: t('settings.stats.usuarios'), value: state.stats.usuarios },
-            { label: t('settings.stats.usuarios_activos'), value: state.stats.usuarios_activos },
-            { label: t('settings.stats.roles_asignados'), value: state.stats.roles_asignados },
-            { label: t('settings.stats.productos'), value: state.stats.productos },
-            { label: t('settings.stats.ubicaciones'), value: state.stats.ubicaciones },
-            { label: t('settings.stats.unidades_fisicas'), value: state.stats.unidades_fisicas }
-        ];
-    }
+    // ====================================================================
+    // TEMPLATE: shell
+    // ====================================================================
 
     function buildTemplate() {
         const panels = [
-            { id: 'perfil', html: renderPerfilPanel() },
+            { id: 'general', html: renderGeneralPanel() },
             { id: 'apariencia', html: renderAparienciaPanel() },
             { id: 'localizacion', html: renderLocalizacionPanel() },
-            { id: 'general', html: renderGeneralPanel() },
-            { id: 'seguridad', html: renderHueco('settings.section_seguridad', 'settings.seguridad_body', 'settings.hueco_password_policy') },
-            { id: 'correo', html: renderHueco('settings.section_correo', 'settings.correo_body', 'settings.hueco_smtp') },
-            { id: 'resumen', html: renderResumenPanel() }
+            { id: 'seguridad', html: renderSeguridadPanel() }
         ];
 
         return UI.viewShell({
             title: t('settings.title'),
             subtitle: t('settings.subtitle'),
+            actionsHtml: canEdit() && !state.loading && !state.error
+                ? `<button type="button" class="btn btn-primary" data-action="settings-save-all" data-testid="settings-save-all-btn">${escapeHtml(t('settings.btn_save_all'))}</button>`
+                : '',
             tabs: [
-                { id: 'perfil', label: t('settings.tab_perfil') },
+                { id: 'general', label: t('settings.tab_general') },
                 { id: 'apariencia', label: t('settings.tab_apariencia') },
                 { id: 'localizacion', label: t('settings.tab_localizacion') },
-                { id: 'general', label: t('settings.tab_general') },
-                { id: 'seguridad', label: t('settings.tab_seguridad') },
-                { id: 'correo', label: t('settings.tab_correo') },
-                { id: 'resumen', label: t('settings.tab_resumen') }
+                { id: 'seguridad', label: t('settings.tab_seguridad') }
             ],
             activeTab: state.tab,
             panels: panels
@@ -527,12 +560,6 @@
         if (!container) return;
         container.innerHTML = buildTemplate();
         container.querySelectorAll('[data-action="tab"]').forEach(b => b.setAttribute('data-testid', 'settings-tab-' + b.getAttribute('data-tab')));
-        container.querySelectorAll('button[type="submit"][data-action]').forEach(b => {
-            if (!b.hasAttribute('data-testid')) b.setAttribute('data-testid', b.getAttribute('data-action') + '-btn');
-        });
-        if (state.stats) {
-            UI.summaryCards(container.querySelector('[data-settings-stats]'), statsCards());
-        }
     }
 
     // ====================================================================
@@ -541,39 +568,20 @@
 
     async function loadData() {
         state.loading = true;
-        state.statsLoading = true;
         state.error = null;
         render();
 
-        const tenantPromise = global.HttpClient.get('/tenant', { requiresAuth: true })
-            .then(function(response) {
-                const data = response && response.data ? response.data : response;
-                state.tenant = (data && data.tenant) || null;
-                state.version = (data && data.plataforma_version) || '';
-            });
-
-        const statsPromise = global.HttpClient.get('/tenant/stats', { requiresAuth: true })
-            .then(function(response) {
-                const data = response && response.data ? response.data : response;
-                state.stats = (data && data.stats) || null;
-            })
-            .catch(function() {
-                state.stats = null;
-            })
-            .finally(function() {
-                state.statsLoading = false;
-            });
-
         try {
-            await tenantPromise;
-            state.loading = false;
+            const response = await global.HttpClient.get('/tenant', { requiresAuth: true });
+            const data = response && response.data ? response.data : response;
+            state.tenant = (data && data.tenant) || null;
+            state.version = (data && data.plataforma_version) || '';
         } catch (err) {
             console.error('[Settings] Error loading tenant:', err);
-            state.loading = false;
             state.error = err && err.message ? err.message : t('settings.load_error_body');
         }
 
-        await statsPromise;
+        state.loading = false;
         render();
     }
 
@@ -604,6 +612,19 @@
         }
     }
 
+    /** Cambia a la pestana que contiene el campo (para ver el error). */
+    function focusField(field) {
+        const input = container.querySelector('[name="' + field + '"]');
+        if (!input) return;
+        const panel = input.closest('[data-panel]');
+        if (panel && panel.dataset.panel !== state.tab) {
+            state.tab = panel.dataset.panel;
+            UI.applyTabState(container, state.tab);
+            UI.syncTabParam(state.tab);
+        }
+        input.focus();
+    }
+
     function validateNombreInterno(value) {
         const nombre = String(value == null ? '' : value).trim();
         if (nombre === '') return t('settings.field_required');
@@ -612,34 +633,63 @@
         return null;
     }
 
-    function validateLogoUrl(value) {
-        const url = String(value == null ? '' : value).trim();
-        if (url === '') return null;
-        if (!/^https?:\/\/[^\s"'<>]+$/i.test(url)) return t('settings.logo_url_invalid');
-        return null;
-    }
-
     const VALIDATORS = {
         nombre_interno: validateNombreInterno,
-        logo_url: validateLogoUrl,
         nombre_publico: v => String(v || '').trim() === '' ? t('settings.field_required') : null,
         email_contacto: v => { const s = String(v || '').trim(); return s !== '' && !EMAIL_RE.test(s) ? t('settings.email_invalid') : null; },
         telefono: v => { const s = String(v || '').trim(); return s !== '' && !PHONE_RE.test(s) ? t('settings.telefono_invalid') : null; },
-        'perfil.direccion': v => String(v || '').length > 500 ? t('settings.direccion_max_length') : null
+        'perfil.direccion': v => String(v || '').length > 500 ? t('settings.direccion_max_length') : null,
+        pais: v => {
+            const s = String(v || '').trim();
+            if (s === '') return null;
+            return ISO_COUNTRY_RE.test(s) ? null : t('settings.pais_invalid');
+        },
+        'seguridad.caducidad_password_dias': v => {
+            const s = String(v || '').trim();
+            if (s === '') return null;
+            const n = Number(s);
+            return (Number.isInteger(n) && n >= 1 && n <= 365) ? null : t('settings.caducidad_invalid');
+        },
+        'smtp.from_email': v => { const s = String(v || '').trim(); return s !== '' && !EMAIL_RE.test(s) ? t('settings.email_invalid') : null; },
+        'smtp.puerto': v => {
+            const s = String(v || '').trim();
+            if (s === '') return null;
+            const n = Number(s);
+            return (Number.isInteger(n) && n >= 1 && n <= 65535) ? null : t('settings.smtp_puerto_invalid');
+        }
     };
 
-    function validateForm(form) {
+    function validateAll() {
         let first = null;
         Object.keys(VALIDATORS).forEach(function(name) {
-            const el = form.querySelector('[name="' + name + '"]');
+            const el = container.querySelector('[name="' + name + '"]');
             if (!el) return;
             const msg = VALIDATORS[name](el.value);
             if (msg) {
                 showFieldError(name, msg);
-                if (!first) first = el;
+                if (!first) first = name;
             }
         });
-        if (first) first.focus();
+        // SMTP: si hay cualquier campo, el host es obligatorio
+        const hostEl = container.querySelector('[name="smtp.host"]');
+        if (hostEl) {
+            const host = hostEl.value.trim();
+            const others = ['smtp.puerto', 'smtp.username', 'smtp.password', 'smtp.from_email', 'smtp.from_name'];
+            const anyOther = others.some(function(n) {
+                const el = container.querySelector('[name="' + n + '"]');
+                return el && el.value.trim() !== '';
+            });
+            if (host === '' && anyOther) {
+                showFieldError('smtp.host', t('settings.field_required'));
+                if (!first) first = 'smtp.host';
+            }
+        }
+        const color = currentColor();
+        if (state.colorDirty && color && !HEX_RE.test(color)) {
+            showFieldError('apariencia.color_primario', t('settings.color_invalid'));
+            if (!first) first = 'apariencia.color_primario';
+        }
+        if (first) focusField(first);
         return first === null;
     }
 
@@ -647,36 +697,17 @@
     // EDICION (PATCH /api/tenant)
     // ====================================================================
 
-    /** Campos planos que cambiaron respecto al tenant cargado. */
-    function diffFields(form, tenant, fields) {
-        const payload = {};
-        fields.forEach(function(name) {
-            const el = form.querySelector('[name="' + name + '"]');
-            if (!el) return;
-            let value = el.value;
-            if (value !== null && typeof value === 'string') value = value.trim();
-            if ((name === 'dominio_custom' || name === 'logo_url') && value === '') value = null;
-            const current = tenant[name] == null ? null : tenant[name];
-            if (String(value == null ? '' : value) !== String(current == null ? '' : current)) {
-                payload[name] = value;
-            }
-        });
-        return payload;
+    /** Config actual SIN las claves enmascaradas (password SMTP). */
+    function normalizedConfig() {
+        const c = JSON.parse(JSON.stringify(config()));
+        if (c.smtp && typeof c.smtp === 'object') {
+            delete c.smtp.password;
+            delete c.smtp.password_configurada;
+        }
+        return c;
     }
 
     /** Campos "seccion.clave" fusionados sobre configuracion; null si no cambia. */
-    function diffConfig(form, names, extra) {
-        const merged = JSON.parse(JSON.stringify(config()));
-        names.forEach(function(path) {
-            const el = form.querySelector('[name="' + path + '"]');
-            if (!el) return;
-            setPath(merged, path, el.value.trim() === '' ? null : el.value.trim());
-        });
-        Object.keys(extra || {}).forEach(path => setPath(merged, path, extra[path]));
-        return JSON.stringify(merged) === JSON.stringify(config()) ? null : merged;
-    }
-
-    /** null = borrar la clave (el backend fusiona y elimina los null). */
     function setPath(obj, path, value) {
         const parts = path.split('.');
         const sec = obj[parts[0]] || {};
@@ -684,8 +715,86 @@
         obj[parts[0]] = Object.assign({}, sec, { [parts[1]]: value });
     }
 
-    function setBusy(form, busy) {
-        const btn = form && form.querySelector('[type="submit"]');
+    function inputValue(name) {
+        const el = container.querySelector('[name="' + name + '"]');
+        return el ? el.value : null;
+    }
+
+    /** Payload unico con los diffs de TODOS los formularios de la vista. */
+    function buildPayload() {
+        const payload = {};
+
+        ['nombre_publico', 'email_contacto', 'telefono', 'nombre_interno', 'dominio_custom', 'pais', 'zona_horaria', 'idioma_default'].forEach(function(name) {
+            const el = container.querySelector('[name="' + name + '"]');
+            if (!el) return;
+            let value = el.value;
+            if (value !== null && typeof value === 'string') value = value.trim();
+            if (name === 'dominio_custom' && value === '') value = null;
+            if (name === 'zona_horaria' && value === '') return;
+            if (name === 'pais' && value === '') value = null;
+            const current = state.tenant[name] == null ? null : state.tenant[name];
+            if (String(value == null ? '' : value) !== String(current == null ? '' : current)) {
+                payload[name] = value;
+            }
+        });
+
+        const base = normalizedConfig();
+        const merged = JSON.parse(JSON.stringify(base));
+
+        const dir = inputValue('perfil.direccion');
+        if (dir !== null) setPath(merged, 'perfil.direccion', dir.trim() === '' ? null : dir.trim());
+
+        if (state.colorDirty) {
+            setPath(merged, 'apariencia.color_primario', state.color ? state.color.toUpperCase() : null);
+        }
+
+        const moneda = inputValue('regional.moneda');
+        if (moneda !== null) setPath(merged, 'regional.moneda', moneda === '' ? null : moneda);
+
+        const fmtEl = container.querySelector('[name="regional.formato_fecha"]');
+        if (fmtEl) {
+            const actualFmt = section('regional').formato_fecha;
+            if (actualFmt || fmtEl.value !== DATE_FORMATS[0]) {
+                setPath(merged, 'regional.formato_fecha', fmtEl.value);
+            }
+        }
+
+        const dias = inputValue('seguridad.caducidad_password_dias');
+        if (dias !== null) {
+            const raw = String(dias).trim();
+            setPath(merged, 'seguridad.caducidad_password_dias', raw === '' ? null : parseInt(raw, 10));
+        }
+
+        // SMTP: solo se toca si el host tiene valor (vacio = conservar lo guardado)
+        const hostEl = container.querySelector('[name="smtp.host"]');
+        if (hostEl && hostEl.value.trim() !== '') {
+            merged.smtp = merged.smtp || {};
+            merged.smtp.host = hostEl.value.trim();
+            const puerto = String(inputValue('smtp.puerto') || '').trim();
+            merged.smtp.puerto = puerto === '' ? null : parseInt(puerto, 10);
+            const enc = inputValue('smtp.encryption');
+            merged.smtp.encryption = enc || null;
+            const username = String(inputValue('smtp.username') || '').trim();
+            merged.smtp.username = username === '' ? null : username;
+            // password: solo si el admin escribio una nueva (vacio = no cambiar;
+            // no se anade la clave para no crear un diff espurio)
+            const pwdEl = container.querySelector('[name="smtp.password"]');
+            if (pwdEl && pwdEl.value !== '') merged.smtp.password = pwdEl.value;
+            const fromEmail = String(inputValue('smtp.from_email') || '').trim();
+            merged.smtp.from_email = fromEmail === '' ? null : fromEmail;
+            const fromName = String(inputValue('smtp.from_name') || '').trim();
+            merged.smtp.from_name = fromName === '' ? null : fromName;
+        }
+
+        if (JSON.stringify(merged) !== JSON.stringify(base)) {
+            payload.configuracion = merged;
+        }
+
+        return payload;
+    }
+
+    function setBusy(busy) {
+        const btn = container && container.querySelector('[data-action="settings-save-all"]');
         if (!btn) return;
         btn.disabled = busy;
         btn.classList.toggle('is-loading', busy);
@@ -693,6 +802,8 @@
         if (busy) {
             if (!btn.hasAttribute('data-label')) btn.setAttribute('data-label', btn.textContent);
             btn.textContent = t('settings.btn_saving');
+        } else if (btn.hasAttribute('data-label')) {
+            btn.textContent = btn.getAttribute('data-label');
         }
     }
 
@@ -702,77 +813,40 @@
         const errorField = err && err.data && err.data.field;
         if (errorField && container && container.querySelector('[data-field="' + errorField + '"]')) {
             showFieldError(errorField, errorMsg);
+            focusField(errorField);
         } else {
             showToast('danger', t('settings.update_error'), errorMsg);
         }
     }
 
-    async function patchTenant(form, payload) {
+    async function saveAll() {
+        if (state.saving || !state.tenant || !canEdit()) return;
+        clearFieldErrors();
+        if (!validateAll()) return;
+
+        const payload = buildPayload();
         if (Object.keys(payload).length === 0) {
             showToast('info', t('settings.title'), t('settings.error_nothing_changed'));
             return;
         }
+
         state.saving = true;
-        setBusy(form, true);
+        setBusy(true);
         try {
             const response = await global.HttpClient.patch('/tenant', payload, { requiresAuth: true });
             const data = response && response.data ? response.data : response;
             if (data && data.tenant) state.tenant = data.tenant;
             state.color = null;
+            state.colorDirty = false;
             syncBranding();
             showToast('success', t('settings.title'), t('settings.success_update'));
             render();
         } catch (err) {
-            setBusy(form, false);
-            const btn = form && form.querySelector('[type="submit"]');
-            if (btn) btn.textContent = btn.getAttribute('data-label') || t('settings.btn_save');
             handleSaveError(err);
         } finally {
             state.saving = false;
+            setBusy(false);
         }
-    }
-
-    const FORMS = {
-        'settings-general-form': form => diffFields(form, state.tenant, ['nombre_interno', 'dominio_custom']),
-        'settings-profile-form': function(form) {
-            const payload = diffFields(form, state.tenant, ['nombre_publico', 'email_contacto', 'telefono']);
-            const cfg = diffConfig(form, ['perfil.direccion']);
-            if (cfg) payload.configuracion = cfg;
-            return payload;
-        },
-        'settings-logo-url-form': form => diffFields(form, state.tenant, ['logo_url']),
-        'settings-local-form': function(form) {
-            const payload = diffFields(form, state.tenant, ['pais', 'zona_horaria', 'idioma_default']);
-            if (payload.zona_horaria === '') delete payload.zona_horaria;
-            const names = ['regional.moneda'];
-            // El select muestra DD/MM/YYYY por defecto: sin cambio real no se guarda
-            const fmtEl = form.querySelector('[name="regional.formato_fecha"]');
-            if (section('regional').formato_fecha || (fmtEl && fmtEl.value !== DATE_FORMATS[0])) names.push('regional.formato_fecha');
-            const cfg = diffConfig(form, names);
-            if (cfg) payload.configuracion = cfg;
-            return payload;
-        },
-        'settings-appearance-form': function() {
-            const color = currentColor();
-            if (color && !HEX_RE.test(color)) {
-                showFieldError('apariencia.color_primario', t('settings.color_invalid'));
-                return null;
-            }
-            const cfg = diffConfig(document.createElement('form'), [], { 'apariencia.color_primario': color ? color.toUpperCase() : null });
-            return cfg ? { configuracion: cfg } : {};
-        }
-    };
-
-    function handleSubmit(e) {
-        const form = e.target;
-        const build = FORMS[form.id];
-        if (!build) return;
-        e.preventDefault();
-        if (state.saving || !state.tenant) return;
-        clearFieldErrors();
-        if (!validateForm(form)) return;
-        const payload = build(form);
-        if (payload) patchTenant(form, payload);
     }
 
     // ====================================================================
@@ -811,8 +885,44 @@
     async function removeLogo() {
         if (!state.tenant || state.saving) return;
         if (!global.confirm(t('settings.logo_remove_confirm'))) return;
-        const form = container.querySelector('#settings-logo-url-form');
-        await patchTenant(form, { logo_url: null });
+        state.saving = true;
+        try {
+            const response = await global.HttpClient.patch('/tenant', { logo_url: null }, { requiresAuth: true });
+            const data = response && response.data ? response.data : response;
+            if (data && data.tenant) state.tenant = data.tenant;
+            syncBranding();
+            showToast('success', t('settings.title'), t('settings.logo_success'));
+            render();
+        } catch (err) {
+            handleSaveError(err);
+        } finally {
+            state.saving = false;
+        }
+    }
+
+    // ====================================================================
+    // SMTP: correo de prueba (POST /api/tenant/smtp/test)
+    // ====================================================================
+
+    async function testSmtp() {
+        const btn = container.querySelector('[data-action="settings-smtp-test"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('is-loading');
+        }
+        try {
+            const response = await global.HttpClient.post('/tenant/smtp/test', {}, { requiresAuth: true });
+            const data = response && response.data ? response.data : response;
+            const destino = data && data.enviado_a ? data.enviado_a : '';
+            showToast('success', t('settings.btn_smtp_test'), t('settings.smtp_test_ok', { email: destino }));
+        } catch (err) {
+            showToast('danger', t('settings.btn_smtp_test'), (err && err.message) || t('settings.smtp_test_error'));
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('is-loading');
+            }
+        }
     }
 
     // ====================================================================
@@ -821,19 +931,17 @@
 
     function switchTab(tab) {
         if (TABS.indexOf(tab) === -1) return;
-        if (state.tab === 'apariencia' && tab !== 'apariencia' && state.color) {
-            state.color = null;
+        if (state.tab === 'apariencia' && tab !== 'apariencia' && state.colorDirty && state.color) {
             if (global.TenantBranding) global.TenantBranding.restore();
-            render();
         }
         state.tab = tab;
         UI.applyTabState(container, tab);
         UI.syncTabParam(tab);
-        if (tab === 'resumen') render();
     }
 
     function pickColor(hex) {
         state.color = hex;
+        state.colorDirty = true;
         if (global.TenantBranding) global.TenantBranding.preview(hex);
         container.querySelectorAll('.color-swatch').forEach(function(b) {
             const sel = b.getAttribute('data-color') === hex.toUpperCase();
@@ -848,14 +956,9 @@
 
     function resetColor() {
         state.color = null;
+        state.colorDirty = true;
         if (global.TenantBranding) global.TenantBranding.preview(null);
-        const cfg = diffConfig(document.createElement('form'), [], { 'apariencia.color_primario': null });
-        if (!cfg) {
-            render();
-            showToast('info', t('settings.title'), t('settings.error_nothing_changed'));
-            return;
-        }
-        patchTenant(container.querySelector('#settings-appearance-form'), { configuracion: cfg });
+        render();
     }
 
     function handleClick(e) {
@@ -866,6 +969,14 @@
         }
         if (e.target.closest('[data-action="settings-retry"]')) {
             loadData();
+            return;
+        }
+        if (e.target.closest('[data-action="settings-save-all"]')) {
+            saveAll();
+            return;
+        }
+        if (e.target.closest('[data-action="settings-smtp-test"]')) {
+            testSmtp();
             return;
         }
         const swatch = e.target.closest('[data-action="settings-pick-color"]');
@@ -908,14 +1019,12 @@
 
     function bind() {
         container.addEventListener('click', handleClick);
-        container.addEventListener('submit', handleSubmit);
         container.addEventListener('change', handleChange);
         container.addEventListener('input', handleInput);
     }
 
     function unbind() {
         container.removeEventListener('click', handleClick);
-        container.removeEventListener('submit', handleSubmit);
         container.removeEventListener('change', handleChange);
         container.removeEventListener('input', handleInput);
     }
@@ -963,18 +1072,17 @@
                 unbind();
                 container.innerHTML = '';
             }
-            if (state.color && global.TenantBranding) global.TenantBranding.restore();
+            if (state.colorDirty && state.color && global.TenantBranding) global.TenantBranding.restore();
             container = null;
             state.tab = DEFAULT_TAB;
             state.tenant = null;
             state.version = '';
-            state.stats = null;
             state.loading = true;
-            state.statsLoading = true;
             state.error = null;
             state.saving = false;
             state.uploading = false;
             state.color = null;
+            state.colorDirty = false;
         }
     };
 

@@ -18,7 +18,7 @@ const TENANT_DATA = [
     'plan'           => 'FREE',
     'email_contacto' => 'contact@acme.local',
     'telefono'       => '+52 55 1234 5678',
-    'pais'           => 'México',
+    'pais'           => 'MX',
     'zona_horaria'   => 'America/Mexico_City',
     'idioma_default' => 'es',
 ];

@@ -211,6 +211,34 @@ final class TenantController
     }
 
     /**
+     * POST /api/tenant/smtp/test (v1.14.1)
+     * Envía un correo de prueba con el SMTP configurado del tenant.
+     * Body opcional: { email_destino } (por defecto el email_contacto).
+     */
+    public function smtpTest(array $request): array
+    {
+        $this->requireAdmin($request);
+        $tenantId = $this->tenantContext->getTenantId();
+
+        $body = $request['body'] ?? [];
+        $destino = isset($body['email_destino']) && is_string($body['email_destino'])
+            ? trim($body['email_destino'])
+            : null;
+
+        try {
+            $mailer = Container::getInstance()->get(\App\Core\Tenants\Service\MailerService::class);
+            $enviadoA = $mailer->sendTest($tenantId, $destino);
+            return $this->json(200, ['enviado_a' => $enviadoA]);
+        } catch (TenantException $e) {
+            $http = new HttpException($e->getMessage(), $e->getCode() ?: 400, $e);
+            if ($e->getMessageKey() !== null) {
+                $http->withMessageKey($e->getMessageKey(), $e->getMessageParams());
+            }
+            throw $http;
+        }
+    }
+
+    /**
      * POST /api/tenant/activate
      * Activa el tenant si está en estado PENDIENTE_ACTIVACION.
      */

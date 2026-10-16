@@ -141,6 +141,12 @@ final class TenantSettingsTest extends TestCase
             'formato desconocido' => [['regional' => ['formato_fecha' => 'D/M/Y']]],
             'direccion larga' => [['perfil' => ['direccion' => str_repeat('a', 501)]]],
             'seccion no objeto' => [['regional' => 'MXN']],
+            'smtp host vacio' => [['smtp' => ['host' => '']]],
+            'smtp puerto fuera de rango' => [['smtp' => ['host' => 'h', 'puerto' => 70000]]],
+            'smtp encryption invalida' => [['smtp' => ['host' => 'h', 'encryption' => 'starttls']]],
+            'smtp from_email malo' => [['smtp' => ['host' => 'h', 'from_email' => 'no-es-email']]],
+            'caducidad no entero' => [['seguridad' => ['caducidad_password_dias' => '30']]],
+            'caducidad fuera de rango' => [['seguridad' => ['caducidad_password_dias' => 366]]],
         ];
     }
 
@@ -150,5 +156,66 @@ final class TenantSettingsTest extends TestCase
     {
         $this->expectException(TenantException::class);
         $this->validate($config);
+    }
+
+    public function testConfiguracionSmtpYSeguridadValidas(): void
+    {
+        $this->validate([
+            'smtp' => [
+                'host' => 'smtp.example.com',
+                'puerto' => 587,
+                'encryption' => 'tls',
+                'username' => 'user@example.com',
+                'password' => 'ciphertext-base64',
+                'from_email' => 'noreply@example.com',
+                'from_name' => 'Acme',
+            ],
+            'seguridad' => ['caducidad_password_dias' => 90],
+        ]);
+        $this->addToAssertionCount(1);
+    }
+
+    public function testPublicArrayEnmascaraSmtpPassword(): void
+    {
+        $data = $this->tenant([
+            'smtp' => [
+                'host' => 'smtp.example.com',
+                'puerto' => 587,
+                'username' => 'u',
+                'password' => 'ciphertext-secreto',
+            ],
+        ])->toPublicArray();
+
+        $this->assertNull($data['configuracion']['smtp']['password']);
+        $this->assertTrue($data['configuracion']['smtp']['password_configurada']);
+        $this->assertSame('smtp.example.com', $data['configuracion']['smtp']['host']);
+        $this->assertStringNotContainsString('ciphertext-secreto', json_encode($data));
+    }
+
+    public function testPublicArraySinSmtpNoAgregaFlag(): void
+    {
+        $data = $this->tenant(['apariencia' => ['color_primario' => '#0066D6']])->toPublicArray();
+        $this->assertArrayNotHasKey('smtp', $data['configuracion']);
+    }
+
+    public function testNormalizePaisSoloAlpha2(): void
+    {
+        $m = new ReflectionMethod(TenantService::class, 'normalizePais');
+        $this->assertSame('MX', $m->invoke(null, 'mx'));
+        $this->assertSame('US', $m->invoke(null, 'US'));
+        $this->assertNull($m->invoke(null, null));
+        $this->assertNull($m->invoke(null, ''));
+
+        $this->expectException(TenantException::class);
+        $m->invoke(null, 'México');
+    }
+
+    public function testMergeSmtpSinPasswordConservaLaGuardada(): void
+    {
+        $m = new ReflectionMethod(TenantService::class, 'mergeConfiguracion');
+        $actual = ['smtp' => ['host' => 'a', 'password' => 'cifrado']];
+        $r = $m->invoke(null, $actual, ['smtp' => ['host' => 'b']]);
+        $this->assertSame('b', $r['smtp']['host']);
+        $this->assertSame('cifrado', $r['smtp']['password']);
     }
 }

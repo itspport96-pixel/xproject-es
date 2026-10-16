@@ -437,6 +437,8 @@ final class Tenant
      * Versión pública (sin metadatos internos).
      * Incluye nombre_interno (identificador editable en settings) y
      * configuracion (ajustes del tenant: SMTP, política de contraseñas...).
+     * La password SMTP jamás sale en claro: se sustituye por null y se
+     * expone solo el flag password_configurada (v1.14.1).
      */
     public function toPublicArray(): array
     {
@@ -453,8 +455,19 @@ final class Tenant
             'idioma_default'    => $this->idiomaDefault,
             'logo_url'          => $this->logoUrl,
             'dominio_custom'    => $this->dominioCustom,
-            'configuracion'     => $this->configuracion,
+            'configuracion'     => $this->maskSmtpPassword($this->configuracion),
         ];
+    }
+
+    /** Enmascara configuracion.smtp.password (nunca se expone el cifrado). */
+    private static function maskSmtpPassword(?array $config): ?array
+    {
+        if ($config === null || !isset($config['smtp']) || !is_array($config['smtp'])) {
+            return $config;
+        }
+        $config['smtp']['password_configurada'] = !empty($config['smtp']['password']);
+        $config['smtp']['password'] = null;
+        return $config;
     }
 
     /**

@@ -482,6 +482,14 @@ $router->post('/api/tenant/logo', [TenantController::class, 'uploadLogo'], [
     RateLimitMiddleware::class . ':api',
 ]);
 
+// POST /api/tenant/smtp/test (v1.14.1): correo de prueba con el SMTP del tenant
+$router->post('/api/tenant/smtp/test', [TenantController::class, 'smtpTest'], [
+    AuthenticationMiddleware::class,
+    TenantMiddleware::class,
+    PermissionMiddleware::class . ':tenants.tenant.edit',
+    RateLimitMiddleware::class . ':api',
+]);
+
 // POST /api/tenant/activate
 $router->post('/api/tenant/activate', [TenantController::class, 'activate'], [
     AuditMiddleware::class,
