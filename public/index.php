@@ -453,6 +453,7 @@ function renderSpaLayout(): void
     <script src="{$baseUrlHtml}/js/ui/permission-picker.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/ui/account-menu.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/core/branding.js?v={$assetsVersion}"></script>
+    <script src="{$baseUrlHtml}/js/vendor/qrcode.js?v={$assetsVersion}"></script>
 
     <!-- Dashboard / App Shell Scripts -->
     <script src="{$baseUrlHtml}/js/modules/dashboard/sidebar.js?v={$assetsVersion}"></script>

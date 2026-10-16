@@ -949,6 +949,22 @@
     // MFA (TOTP): enrolamiento del propio usuario (v1.15.0)
     // ====================================================================
 
+    // QR de enrolamiento con la libreria vendorizada (public/js/vendor/qrcode.js,
+    // qrcode-generator 1.4.4, MIT). Si no cargo, se devuelve null y la vista
+    // muestra solo el secreto manual.
+    function mfaQrSvg(uri) {
+        try {
+            const lib = window.qrcode;
+            if (typeof lib !== 'function') return null;
+            const qr = lib(0, 'M');
+            qr.addData(uri);
+            qr.make();
+            return qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+        } catch (err) {
+            return null;
+        }
+    }
+
     function renderMfaSection() {
         let html = `<p class="text-muted text-sm mb-3">${escapeHtml(t('settings.mfa_body'))}</p>`;
 
@@ -970,14 +986,30 @@
             return html;
         }
 
-        // Enrolamiento en curso: mostrar secreto/URI y pedir el código de confirmación.
+        // Enrolamiento en curso: QR (si la libreria vendorizada cargo) + secreto manual colapsable.
         if (state.mfaSetup) {
-            html += `
-                <p class="text-sm mb-2">${escapeHtml(t('settings.mfa_setup_intro'))}</p>
+            const qrSvg = mfaQrSvg(state.mfaSetup.otpauth_url);
+            html += `<p class="text-sm mb-3">${escapeHtml(t('settings.mfa_setup_intro'))}</p>`;
+            if (qrSvg) {
+                html += `
+                <div class="flex justify-center mb-3">
+                    <div class="bg-white p-3 rounded-xl border border-default" data-testid="mfa-qr" style="width: 208px; height: 208px;">${qrSvg}</div>
+                </div>
+                <details class="mb-3">
+                    <summary class="text-sm cursor-pointer text-muted">${escapeHtml(t('settings.mfa_manual_title'))}</summary>
+                    <p class="text-sm font-medium mt-2 mb-1">${escapeHtml(t('settings.mfa_setup_secret_label'))}</p>
+                    <code class="block p-2 bg-surface border border-default rounded text-sm font-mono break-all mb-2" data-testid="mfa-secret">${escapeHtml(state.mfaSetup.secret)}</code>
+                    <p class="text-xs text-muted break-all">${escapeHtml(t('settings.mfa_setup_uri_label'))}
+                        <a href="${escapeHtml(state.mfaSetup.otpauth_url)}" class="underline" data-testid="mfa-otpauth-uri">${escapeHtml(state.mfaSetup.otpauth_url)}</a></p>
+                </details>`;
+            } else {
+                html += `
                 <p class="text-sm font-medium mb-1">${escapeHtml(t('settings.mfa_setup_secret_label'))}</p>
                 <code class="block p-2 bg-surface border border-default rounded text-sm font-mono break-all mb-2" data-testid="mfa-secret">${escapeHtml(state.mfaSetup.secret)}</code>
                 <p class="text-xs text-muted mb-3 break-all">${escapeHtml(t('settings.mfa_setup_uri_label'))}
-                    <a href="${escapeHtml(state.mfaSetup.otpauth_url)}" class="underline" data-testid="mfa-otpauth-uri">${escapeHtml(state.mfaSetup.otpauth_url)}</a></p>
+                    <a href="${escapeHtml(state.mfaSetup.otpauth_url)}" class="underline" data-testid="mfa-otpauth-uri">${escapeHtml(state.mfaSetup.otpauth_url)}</a></p>`;
+            }
+            html += `
                 <div class="grid gap-4 md:grid-cols-2 items-end">
                     ${inputField({ name: 'mfa_code_setup', label: t('settings.mfa_code_label'), value: '', placeholder: '123456', maxlength: 10, autocomplete: 'one-time-code' })}
                 </div>

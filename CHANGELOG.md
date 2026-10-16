@@ -13,17 +13,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Columnas en `users` (BD viva): `mfa_secret` varchar(255) y `mfa_backup_codes` longtext `CHECK(json_valid)`; `schema.sql` regenerado (SIN DRIFT).
 - Endpoints `GET /api/auth/mfa/status` y `POST /api/auth/mfa/setup|enable|disable` (Auth + Audit + RateLimit 10/300); rama MFA en el login con rate limit propio (3/300 por email y 5/300 por IP) y limpieza de intentos tras exito.
 - `resources/locales/{es,en,pt,fr}.json`: bloque `login.mfa_*` y `settings.mfa_*` completos (pt/fr con traducciones propias).
+- `public/js/vendor/qrcode.js`: libreria vendorizada `qrcode-generator` 1.4.4 (Kazuhiko Arase, MIT, UMD) para generar el QR de enrolamiento en cliente; cargada en `public/index.php` con cache-busting `?v=` como el resto del JS (sin CDN: funciona offline y sin depender de terceros).
 
 ### Changed
 - `AuthController::login()`: con MFA habilitado devuelve 200 `{mfa_required:true}` sin tokens hasta validar el codigo; el codigo se recibe crudo (sin filtrar no-digitos en el controller) para que los codigos de respaldo alfanumericos funcionen.
 - `public/js/modules/auth/login.js`: estado `mfaPending`, grupo de codigo oculto/mostrado con `enterMfaMode()`/`exitMfaMode()`, reenvio con `mfa_code`, 401 en modo MFA marca el campo y permanece en pantalla.
-- `public/js/modules/settings/settings.js`: el hueco MFA (`UI.emptyState`) se sustituye por la seccion real de enrolamiento (estado cargando/desactivado/activado, secreto manual + URI otpauth enlaceable, confirmacion con codigo, lista de codigos de respaldo, desactivacion con codigo); `loadMfa()` se une al `Promise.all` de `loadData()`; acciones `settings-mfa-setup|enable|disable|cancel|backup-done`; reset del estado MFA en `destroy()`. El enrolamiento es servicio personal y no se gatea con `canEdit()`.
-- `tools/smoke/smoke-v11358.mjs`: handler por defecto `GET /auth/mfa/status` (desactivado), check de la seccion MFA real y fixture `plataforma_version` a 1.15.0 (68 checks).
+- `public/js/modules/settings/settings.js`: el hueco MFA (`UI.emptyState`) se sustituye por la seccion real de enrolamiento (estado cargando/desactivado/activado, **QR SVG escaneable** generado en cliente desde la `otpauth_url` del backend — con la libreria vendorizada, caja blanca fija para que se escanee tambien en tema oscuro, con fallback al secreto manual si la libreria no carga —, el secreto base32 y la URI otpauth pasan a un `<details>` colapsable "No puedes escanear?", confirmacion con codigo, lista de codigos de respaldo, desactivacion con codigo); `loadMfa()` se une al `Promise.all` de `loadData()`; acciones `settings-mfa-setup|enable|disable|cancel|backup-done`; reset del estado MFA en `destroy()`. El enrolamiento es servicio personal y no se gatea con `canEdit()`.
+- `tools/smoke/smoke-v11358.mjs`: handler por defecto `GET /auth/mfa/status` (desactivado), check de la seccion MFA real, escenario S3b del QR de enrolamiento (vendor cargado, svg en caja blanca, secreto en details) y fixture `plataforma_version` a 1.15.0 (77 checks).
 
 ### Notes
 - Opt-in por usuario: no hay ajuste global de MFA en el tenant; `GET /auth/me` y `login.user` no exponen `mfa_secret` ni `mfa_backup_codes`.
 - Codigos de respaldo: 10 de un solo uso, se muestran una vez; el TOTP se normaliza a digitos y el respaldo se compara sin guiones ni espacios (hash bcrypt del codigo sin guion).
-- Verificado en vivo: setup, enable, login con TOTP (200), login con codigo de respaldo (200), reutilizacion de respaldo (401), codigo invalido (401) y disable; `composer test` 969/969; smokes 68+89+105 OK; `check-schema-drift` SIN DRIFT; `check-data-integrity` DATOS CONSISTENTES.
+- Verificado en vivo: setup, enable, login con TOTP (200), login con codigo de respaldo (200), reutilizacion de respaldo (401), codigo invalido (401) y disable; `composer test` 969/969; smokes 77+89+105 OK; `check-schema-drift` SIN DRIFT; `check-data-integrity` DATOS CONSISTENTES.
 - Deuda preexistente reportada sin tocar: 214 avisos de claves i18n sin uso, advisory de `phpunit/php-jwt`, tests de mensaje dependientes del orden de ejecucion (`BASE_PATH`).
 
 ## [1.14.2] - 2026-10-16

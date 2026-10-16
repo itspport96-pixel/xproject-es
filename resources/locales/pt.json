@@ -252,6 +252,7 @@
     "mfa_setup_intro": "Adicione um app autenticador (Google Authenticator, Authy, 1Password…) escaneando o QR ou inserindo este código manualmente e confirme com um código de 6 dígitos.",
     "mfa_setup_secret_label": "Código secreto (entrada manual):",
     "mfa_setup_uri_label": "Link otpauth:",
+    "mfa_manual_title": "Não consegue escanear? Insira o código manualmente",
     "mfa_code_label": "Código de verificação",
     "mfa_code_required": "Introduza o código de verificação",
     "mfa_btn_enable": "Confirmar e ativar",

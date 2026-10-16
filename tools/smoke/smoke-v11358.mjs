@@ -6,6 +6,7 @@
  *  S1  Registro de ruta/modulo y wiring (loader, router)
  *  S2  Pantalla sin permiso: deniedState con el permiso requerido
  *  S3  Pantalla con permiso view: GET /tenant, 4 pestanas, datos y seccion MFA
+ *  S3b QR del enrolamiento MFA (vendor qrcode.js): svg, caja blanca, secreto en details
  *  S4  Cambio de pestanas (?tab=), pais ISO y logo sin form de URL
  *  S5  Error de carga: estado de error + reintento
  *  S6  Edicion (tenants.tenant.edit): UN boton global, validacion, PATCH diff
@@ -23,7 +24,8 @@ const FILES = {
   settings: read('modules/settings/settings.js'),
   loader: read('core/loader.js'),
   router: read('core/router.js'),
-  i18n: read('core/i18n.js')
+  i18n: read('core/i18n.js'),
+  qrcode: read('vendor/qrcode.js')
 };
 
 const UI_FILES = ['ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js'].map(read);
@@ -142,7 +144,7 @@ function createEnv({ perms = [], roles = [], getHandlers = {}, getImpl = null, p
   evalIn(FILES.i18n);
   w.i18n.inject('es', ES_DICT);
   env.evalUi = () => UI_FILES.forEach(evalIn);
-  env.loadSettings = () => { env.evalUi(); evalIn(FILES.settings); };
+  env.loadSettings = () => { env.evalUi(); evalIn(FILES.qrcode); evalIn(FILES.settings); };
 
   env.container = w.document.getElementById('module-container');
   env.click = (el) => el.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -243,6 +245,49 @@ async function s3_read_only() {
   check('seguridad read-only: etiqueta de caducidad visible',
     seg.textContent.includes(ES_DICT.settings.label_caducidad_password));
 
+  env.close();
+}
+
+// =====================================================================
+// S3b - QR DEL ENROLAMIENTO MFA (v1.15.x): vendor qrcode.js + details
+// =====================================================================
+async function s3b_mfa_qr() {
+  console.log('S3b MFA: QR de enrolamiento y secreto colapsado');
+  const SECRET = 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP';
+  const OTPAUTH = `otpauth://totp/XP:aleon@acme.local?secret=${SECRET}&issuer=XP&algorithm=SHA1&digits=6&period=30`;
+  const env = createEnv({
+    perms: VIEW_PERMS,
+    roles: ['ADMIN'],
+    getHandlers: { '/tenant': () => TENANT_PAYLOAD },
+    postImpl: (p) => {
+      if (p === '/auth/mfa/setup') {
+        return { status: 200, data: { secret: SECRET, otpauth_url: OTPAUTH } };
+      }
+      return { status: 200, data: {} };
+    }
+  });
+  env.loadSettings();
+  env.w.SettingsSettingsModule.init({}, env.container);
+  await tick();
+
+  check('S3b: window.qrcode expuesta por el vendor', typeof env.w.qrcode === 'function');
+  const btn = env.container.querySelector('[data-testid="settings-mfa-setup-btn"]');
+  check('S3b: boton Activar MFA presente', !!btn);
+  env.click(btn);
+  await tick();
+
+  const qr = env.container.querySelector('[data-testid="mfa-qr"]');
+  check('S3b: QR renderizado (svg)', !!qr && !!qr.querySelector('svg'));
+  check('S3b: QR en caja blanca (escaneable en tema oscuro)', !!qr && qr.className.includes('bg-white'));
+  const details = env.container.querySelector('[data-testid="mfa-secret"]');
+  check('S3b: secreto dentro de details colapsado',
+    !!details && !!details.closest('details') && details.closest('details').open === false);
+  check('S3b: summary manual usa i18n', env.container.textContent.includes(ES_DICT.settings.mfa_manual_title));
+  check('S3b: POST /auth/mfa/setup lanzado', env.calls.posts.some(pp => pp.path === '/auth/mfa/setup'));
+  const otpLink = env.container.querySelector('[data-testid="mfa-otpauth-uri"]');
+  check('S3b: URI otpauth dentro del details (oculta fuera de él)',
+    !!otpLink && !!otpLink.closest('details'));
+  check('S3b: campo de codigo de confirmacion presente', !!env.container.querySelector('[name="mfa_code_setup"]'));
   env.close();
 }
 
@@ -553,6 +598,7 @@ async function main() {
   await s1_registration();
   await s2_denied();
   await s3_read_only();
+  await s3b_mfa_qr();
   await s4_tabs_and_logo();
   await s5_error_retry();
   await s6_global_save();
