@@ -1,13 +1,12 @@
 /**
- * Profile Module (v1.13.36)
+ * Profile Module (v1.15.0)
  * Perfil de usuario con tabs horizontales.
  *
  * Tabs:
  * - personal: nombre, apellido, email (PATCH /api/users/me)
- * - security: cambio de contraseña (reutiliza AuthPasswordModule)
+ * - security: cambio de contraseña (reutiliza AuthPasswordModule) + MFA TOTP
+ *   (enrolamiento opt-in del propio usuario: QR, códigos de respaldo, desactivar)
  * - prefs: idioma (i18n.setLocale)
- *
- * Futuro: tab 'mfa' para configuración de segundo factor.
  *
  * Ruta 'profile': cualquier usuario autenticado, sin permiso específico.
  * Convención ModuleLoader: window.ProfileProfileModule (ruta profile/profile).
@@ -18,6 +17,14 @@
     let container = null;
     let activeTab = 'personal';
     let saving = false;
+
+    // Estado MFA del usuario autenticado (opt-in, v1.15.0)
+    let mfa = null;            // { habilitado, metodo, pending_setup, backup_codes_remaining }
+    let mfaSetup = null;       // { secret, otpauth_url } durante el enrolamiento
+    let mfaBackupCodes = null; // códigos de respaldo mostrados una sola vez
+    let mfaBusy = false;
+    let mfaError = null;
+    let mfaLoading = false;
 
     // Nombres nativos de los idiomas, vía claves i18n
     const LANG_KEYS = {
@@ -288,7 +295,7 @@
     }
 
     // ====================================================================
-    // TAB: SEGURIDAD (contraseña — reutiliza AuthPasswordModule)
+    // TAB: SEGURIDAD (contraseña + MFA TOTP)
     // ====================================================================
 
     function renderSecurityTab() {
@@ -298,6 +305,7 @@
                 <p class="text-muted text-sm mb-4">${escapeHtml(t('profile.password_body'))}</p>
                 <button type="button" class="btn btn-primary" id="profile-change-password">${escapeHtml(t('shell.change_password'))}</button>
             </div>
+            ${renderMfaCard()}
         `;
     }
 
@@ -318,6 +326,220 @@
         if (mod && typeof mod.openModal === 'function') {
             mod.openModal();
         }
+    }
+
+    // ====================================================================
+    // MFA (TOTP): enrolamiento del propio usuario (opt-in, v1.15.0)
+    // ====================================================================
+
+    // QR de enrolamiento con la libreria vendorizada (public/js/vendor/qrcode.js,
+    // qrcode-generator 1.4.4, MIT). Si no cargo, se devuelve null y la vista
+    // muestra solo el secreto manual.
+    function mfaQrSvg(uri) {
+        try {
+            const lib = window.qrcode;
+            if (typeof lib !== 'function') return null;
+            const qr = lib(0, 'M');
+            qr.addData(uri);
+            qr.make();
+            return qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function rerenderTabContent() {
+        if (!container) return;
+        const tabContent = container.querySelector('#profile-tab-content');
+        if (tabContent) {
+            tabContent.innerHTML = renderActiveTab();
+            bindTabEvents();
+        }
+    }
+
+    function renderMfaCard() {
+        let html = `
+            <div class="card p-4">
+                <h3 class="text-lg font-semibold mb-1">${escapeHtml(t('profile.mfa_title'))}</h3>
+                <p class="text-muted text-sm mb-3">${escapeHtml(t('profile.mfa_body'))}</p>`;
+
+        if (mfaError) {
+            html += `<div class="alert alert-danger mb-3">${escapeHtml(mfaError)}</div>`;
+        }
+
+        // Recién activado: mostrar códigos de respaldo UNA sola vez.
+        if (mfaBackupCodes) {
+            html += `
+                <div class="alert alert-warning mb-3">
+                    <p class="font-medium mb-2">${escapeHtml(t('profile.mfa_backup_title'))}</p>
+                    <p class="text-sm mb-2">${escapeHtml(t('profile.mfa_backup_warning'))}</p>
+                    <ul class="font-mono text-sm grid grid-cols-2 gap-1 mb-3" data-testid="mfa-backup-codes">
+                        ${mfaBackupCodes.map(function(c) { return '<li>' + escapeHtml(c) + '</li>'; }).join('')}
+                    </ul>
+                    <button type="button" class="btn btn-secondary btn-sm" data-action="profile-mfa-backup-done" data-testid="profile-mfa-backup-done-btn">${escapeHtml(t('profile.mfa_backup_done'))}</button>
+                </div>`;
+            return html + '</div>';
+        }
+
+        // Enrolamiento en curso: QR (si la libreria vendorizada cargo) + secreto manual colapsable.
+        if (mfaSetup) {
+            const qrSvg = mfaQrSvg(mfaSetup.otpauth_url);
+            html += `<p class="text-sm mb-3">${escapeHtml(t('profile.mfa_setup_intro'))}</p>`;
+            if (qrSvg) {
+                html += `
+                <div class="flex justify-center mb-3">
+                    <div class="bg-white p-3 rounded-xl border border-default" data-testid="mfa-qr" style="width: 208px; height: 208px;">${qrSvg}</div>
+                </div>
+                <details class="mb-3">
+                    <summary class="text-sm cursor-pointer text-muted">${escapeHtml(t('profile.mfa_manual_title'))}</summary>
+                    <p class="text-sm font-medium mt-2 mb-1">${escapeHtml(t('profile.mfa_setup_secret_label'))}</p>
+                    <code class="block p-2 bg-surface border border-default rounded text-sm font-mono break-all mb-2" data-testid="mfa-secret">${escapeHtml(mfaSetup.secret)}</code>
+                    <p class="text-xs text-muted break-all">${escapeHtml(t('profile.mfa_setup_uri_label'))}
+                        <a href="${escapeHtml(mfaSetup.otpauth_url)}" class="underline" data-testid="mfa-otpauth-uri">${escapeHtml(mfaSetup.otpauth_url)}</a></p>
+                </details>`;
+            } else {
+                html += `
+                <p class="text-sm font-medium mb-1">${escapeHtml(t('profile.mfa_setup_secret_label'))}</p>
+                <code class="block p-2 bg-surface border border-default rounded text-sm font-mono break-all mb-2" data-testid="mfa-secret">${escapeHtml(mfaSetup.secret)}</code>
+                <p class="text-xs text-muted mb-3 break-all">${escapeHtml(t('profile.mfa_setup_uri_label'))}
+                    <a href="${escapeHtml(mfaSetup.otpauth_url)}" class="underline" data-testid="mfa-otpauth-uri">${escapeHtml(mfaSetup.otpauth_url)}</a></p>`;
+            }
+            html += `
+                <div>
+                    <label class="block text-sm font-medium mb-1" for="profile-mfa-code-setup">${escapeHtml(t('profile.mfa_code_label'))}</label>
+                    <input type="text" id="profile-mfa-code-setup" name="mfa_code_setup" class="input w-full"
+                        placeholder="123456" maxlength="10" autocomplete="one-time-code">
+                    <p class="field-error text-danger text-sm mt-1 hidden" data-field="mfa_code_setup"></p>
+                </div>
+                <div class="flex items-center gap-2 mt-3 flex-wrap">
+                    <button type="button" class="btn btn-primary" data-action="profile-mfa-enable" data-testid="profile-mfa-enable-btn">${escapeHtml(t('profile.mfa_btn_enable'))}</button>
+                    <button type="button" class="btn btn-ghost" data-action="profile-mfa-cancel" data-testid="profile-mfa-cancel-btn">${escapeHtml(t('profile.mfa_btn_cancel'))}</button>
+                </div>`;
+            return html + '</div>';
+        }
+
+        // Cargando estado inicial.
+        if (mfaLoading || mfa === null) {
+            html += `<p class="text-muted text-sm">${escapeHtml(t('profile.mfa_loading'))}</p>`;
+            return html + '</div>';
+        }
+
+        // Sin MFA activo.
+        if (!mfa.habilitado) {
+            const pending = !!mfa.pending_setup;
+            html += `
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="badge badge-neutral">${escapeHtml(t('profile.mfa_status_off'))}</span>
+                    <button type="button" class="btn btn-primary" data-action="profile-mfa-setup" data-testid="profile-mfa-setup-btn">${escapeHtml(pending ? t('profile.mfa_btn_resume') : t('profile.mfa_btn_setup'))}</button>
+                </div>`;
+            return html + '</div>';
+        }
+
+        // MFA activo: informar y permitir desactivar con código.
+        const remaining = mfa.backup_codes_remaining || 0;
+        html += `
+            <div class="mb-3 flex items-center gap-2 flex-wrap">
+                <span class="badge badge-success">${escapeHtml(t('profile.mfa_status_on'))}</span>
+                <span class="text-muted text-sm">${escapeHtml(t('profile.mfa_backup_remaining', { count: remaining }))}</span>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1" for="profile-mfa-code-disable">${escapeHtml(t('profile.mfa_code_label'))}</label>
+                <input type="text" id="profile-mfa-code-disable" name="mfa_code_disable" class="input w-full"
+                    placeholder="123456" maxlength="10" autocomplete="one-time-code">
+                <p class="field-error text-danger text-sm mt-1 hidden" data-field="mfa_code_disable"></p>
+            </div>
+            <button type="button" class="btn btn-danger mt-3" data-action="profile-mfa-disable" data-testid="profile-mfa-disable-btn">${escapeHtml(t('profile.mfa_btn_disable'))}</button>`;
+        return html + '</div>';
+    }
+
+    /** Estado MFA del usuario autenticado (no lanza; guarda en mfa). */
+    async function loadMfa() {
+        mfaLoading = true;
+        rerenderTabContent();
+        try {
+            const response = await global.HttpClient.get('/auth/mfa/status', { requiresAuth: true });
+            const data = response && response.data ? response.data : response;
+            mfa = data || null;
+        } catch (err) {
+            console.error('[Profile] MFA status error:', err);
+            mfa = null;
+        }
+        mfaLoading = false;
+        rerenderTabContent();
+    }
+
+    async function mfaSetupAction() {
+        if (mfaBusy) return;
+        mfaBusy = true;
+        mfaError = null;
+        rerenderTabContent();
+        try {
+            const response = await global.HttpClient.post('/auth/mfa/setup', {}, { requiresAuth: true });
+            const data = response && response.data ? response.data : response;
+            mfaSetup = { secret: data.secret, otpauth_url: data.otpauth_url };
+        } catch (err) {
+            mfaError = (err && err.message) || t('profile.mfa_error_setup');
+        }
+        mfaBusy = false;
+        rerenderTabContent();
+    }
+
+    async function mfaEnableAction() {
+        if (mfaBusy) return;
+        const input = container.querySelector('[name="mfa_code_setup"]');
+        const code = input ? input.value.trim() : '';
+        if (!code) {
+            showFieldError('mfa_code_setup', t('profile.mfa_code_required'));
+            return;
+        }
+        mfaBusy = true;
+        mfaError = null;
+        rerenderTabContent();
+        try {
+            const response = await global.HttpClient.post('/auth/mfa/enable', { code: code }, { requiresAuth: true });
+            const data = response && response.data ? response.data : response;
+            mfaBackupCodes = (data && data.backup_codes) || [];
+            mfaSetup = null;
+            await loadMfa();
+        } catch (err) {
+            mfaError = (err && err.message) || t('profile.mfa_error_enable');
+        }
+        mfaBusy = false;
+        rerenderTabContent();
+    }
+
+    async function mfaDisableAction() {
+        if (mfaBusy) return;
+        const input = container.querySelector('[name="mfa_code_disable"]');
+        const code = input ? input.value.trim() : '';
+        if (!code) {
+            showFieldError('mfa_code_disable', t('profile.mfa_code_required'));
+            return;
+        }
+        mfaBusy = true;
+        mfaError = null;
+        rerenderTabContent();
+        try {
+            await global.HttpClient.post('/auth/mfa/disable', { code: code }, { requiresAuth: true });
+            mfaBackupCodes = null;
+            await loadMfa();
+            showToast('success', t('profile.mfa_title'), t('profile.mfa_disabled_ok'));
+        } catch (err) {
+            mfaError = (err && err.message) || t('profile.mfa_error_disable');
+        }
+        mfaBusy = false;
+        rerenderTabContent();
+    }
+
+    function mfaCancelSetup() {
+        mfaSetup = null;
+        mfaError = null;
+        rerenderTabContent();
+    }
+
+    function mfaBackupDone() {
+        mfaBackupCodes = null;
+        rerenderTabContent();
     }
 
     // ====================================================================
@@ -371,6 +593,10 @@
                 btn.className = isActive ? 'tab is-active' : 'tab';
             });
             bindTabEvents();
+            // Lazy-load del estado MFA al entrar en Seguridad
+            if (tabId === 'security' && mfa === null && !mfaLoading) {
+                loadMfa();
+            }
         }
     }
 
@@ -398,6 +624,28 @@
         const pwBtn = container.querySelector('#profile-change-password');
         if (pwBtn) {
             pwBtn.addEventListener('click', handleChangePasswordClick);
+        }
+
+        // Tab security: MFA buttons
+        const mfaSetupBtn = container.querySelector('[data-action="profile-mfa-setup"]');
+        if (mfaSetupBtn) {
+            mfaSetupBtn.addEventListener('click', mfaSetupAction);
+        }
+        const mfaEnableBtn = container.querySelector('[data-action="profile-mfa-enable"]');
+        if (mfaEnableBtn) {
+            mfaEnableBtn.addEventListener('click', mfaEnableAction);
+        }
+        const mfaDisableBtn = container.querySelector('[data-action="profile-mfa-disable"]');
+        if (mfaDisableBtn) {
+            mfaDisableBtn.addEventListener('click', mfaDisableAction);
+        }
+        const mfaCancelBtn = container.querySelector('[data-action="profile-mfa-cancel"]');
+        if (mfaCancelBtn) {
+            mfaCancelBtn.addEventListener('click', mfaCancelSetup);
+        }
+        const mfaBackupBtn = container.querySelector('[data-action="profile-mfa-backup-done"]');
+        if (mfaBackupBtn) {
+            mfaBackupBtn.addEventListener('click', mfaBackupDone);
         }
 
         // Tab prefs: language change
@@ -460,6 +708,12 @@
             container = null;
             activeTab = 'personal';
             saving = false;
+            mfa = null;
+            mfaSetup = null;
+            mfaBackupCodes = null;
+            mfaBusy = false;
+            mfaError = null;
+            mfaLoading = false;
         }
     };
 
