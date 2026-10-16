@@ -43,7 +43,13 @@
         saving: false,
         uploading: false,
         color: null,
-        colorDirty: false
+        colorDirty: false,
+        // MFA (v1.15.0): estado personal del usuario autenticado.
+        mfa: null,            // { habilitado, metodo, pending_setup, backup_codes_remaining }
+        mfaSetup: null,       // { secret, otpauth_url } durante el enrolamiento
+        mfaBackupCodes: null, // códigos de respaldo mostrados una sola vez
+        mfaBusy: false,
+        mfaError: null
     };
 
     const ESTADOS_TENANT = [
@@ -489,9 +495,7 @@
                 })}
             </div>`;
 
-        const mfa = `
-            <p class="text-muted text-sm mb-3">${escapeHtml(t('settings.mfa_body'))}</p>
-            ${UI.emptyState({ title: t('settings.mfa_title'), message: t('settings.hueco_title') })}`;
+        const mfa = renderMfaSection();
 
         const pwdHelp = smtp.password_configurada
             ? t('settings.help_smtp_password_saved')
@@ -572,7 +576,11 @@
         render();
 
         try {
-            const response = await global.HttpClient.get('/tenant', { requiresAuth: true });
+            const results = await Promise.all([
+                global.HttpClient.get('/tenant', { requiresAuth: true }),
+                loadMfa()
+            ]);
+            const response = results[0];
             const data = response && response.data ? response.data : response;
             state.tenant = (data && data.tenant) || null;
             state.version = (data && data.plataforma_version) || '';
@@ -583,6 +591,18 @@
 
         state.loading = false;
         render();
+    }
+
+    /** Estado MFA del usuario autenticado (no lanza; guarda en state.mfa). */
+    async function loadMfa() {
+        try {
+            const response = await global.HttpClient.get('/auth/mfa/status', { requiresAuth: true });
+            const data = response && response.data ? response.data : response;
+            state.mfa = data || null;
+        } catch (err) {
+            console.error('[Settings] MFA status error:', err);
+            state.mfa = null;
+        }
     }
 
     // ====================================================================
@@ -926,6 +946,154 @@
     }
 
     // ====================================================================
+    // MFA (TOTP): enrolamiento del propio usuario (v1.15.0)
+    // ====================================================================
+
+    function renderMfaSection() {
+        let html = `<p class="text-muted text-sm mb-3">${escapeHtml(t('settings.mfa_body'))}</p>`;
+
+        if (state.mfaError) {
+            html += `<div class="alert alert-danger mb-3">${escapeHtml(state.mfaError)}</div>`;
+        }
+
+        // Recién activado: mostrar códigos de respaldo UNA sola vez.
+        if (state.mfaBackupCodes) {
+            html += `
+                <div class="alert alert-warning mb-3">
+                    <p class="font-medium mb-2">${escapeHtml(t('settings.mfa_backup_title'))}</p>
+                    <p class="text-sm mb-2">${escapeHtml(t('settings.mfa_backup_warning'))}</p>
+                    <ul class="font-mono text-sm grid grid-cols-2 gap-1 mb-3" data-testid="mfa-backup-codes">
+                        ${state.mfaBackupCodes.map(c => `<li>${escapeHtml(c)}</li>`).join('')}
+                    </ul>
+                    <button type="button" class="btn btn-secondary btn-sm" data-action="settings-mfa-backup-done" data-testid="settings-mfa-backup-done-btn">${escapeHtml(t('settings.mfa_backup_done'))}</button>
+                </div>`;
+            return html;
+        }
+
+        // Enrolamiento en curso: mostrar secreto/URI y pedir el código de confirmación.
+        if (state.mfaSetup) {
+            html += `
+                <p class="text-sm mb-2">${escapeHtml(t('settings.mfa_setup_intro'))}</p>
+                <p class="text-sm font-medium mb-1">${escapeHtml(t('settings.mfa_setup_secret_label'))}</p>
+                <code class="block p-2 bg-surface border border-default rounded text-sm font-mono break-all mb-2" data-testid="mfa-secret">${escapeHtml(state.mfaSetup.secret)}</code>
+                <p class="text-xs text-muted mb-3 break-all">${escapeHtml(t('settings.mfa_setup_uri_label'))}
+                    <a href="${escapeHtml(state.mfaSetup.otpauth_url)}" class="underline" data-testid="mfa-otpauth-uri">${escapeHtml(state.mfaSetup.otpauth_url)}</a></p>
+                <div class="grid gap-4 md:grid-cols-2 items-end">
+                    ${inputField({ name: 'mfa_code_setup', label: t('settings.mfa_code_label'), value: '', placeholder: '123456', maxlength: 10, autocomplete: 'one-time-code' })}
+                </div>
+                <div class="flex items-center gap-2 mt-3 flex-wrap">
+                    <button type="button" class="btn btn-primary" data-action="settings-mfa-enable" data-testid="settings-mfa-enable-btn">${escapeHtml(t('settings.mfa_btn_enable'))}</button>
+                    <button type="button" class="btn btn-ghost" data-action="settings-mfa-cancel" data-testid="settings-mfa-cancel-btn">${escapeHtml(t('settings.mfa_btn_cancel'))}</button>
+                </div>`;
+            return html;
+        }
+
+        // Cargando estado inicial.
+        if (state.mfa === null) {
+            html += `<p class="text-muted text-sm">${escapeHtml(t('settings.mfa_loading'))}</p>`;
+            return html;
+        }
+
+        // Sin MFA activo.
+        if (!state.mfa.habilitado) {
+            const pending = !!state.mfa.pending_setup;
+            html += `
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="badge badge-neutral">${escapeHtml(t('settings.mfa_status_off'))}</span>
+                    <button type="button" class="btn btn-primary" data-action="settings-mfa-setup" data-testid="settings-mfa-setup-btn">${escapeHtml(pending ? t('settings.mfa_btn_resume') : t('settings.mfa_btn_setup'))}</button>
+                </div>`;
+            return html;
+        }
+
+        // MFA activo: informar y permitir desactivar con código.
+        const remaining = state.mfa.backup_codes_remaining || 0;
+        html += `
+            <div class="mb-3 flex items-center gap-2 flex-wrap">
+                <span class="badge badge-success">${escapeHtml(t('settings.mfa_status_on'))}</span>
+                <span class="text-muted text-sm">${escapeHtml(t('settings.mfa_backup_remaining', { count: remaining }))}</span>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2 items-end">
+                ${inputField({ name: 'mfa_code_disable', label: t('settings.mfa_code_label'), value: '', placeholder: '123456', maxlength: 10, autocomplete: 'one-time-code' })}
+            </div>
+            <button type="button" class="btn btn-danger mt-3" data-action="settings-mfa-disable" data-testid="settings-mfa-disable-btn">${escapeHtml(t('settings.mfa_btn_disable'))}</button>`;
+        return html;
+    }
+
+    async function mfaSetupAction() {
+        if (state.mfaBusy) return;
+        state.mfaBusy = true;
+        state.mfaError = null;
+        render();
+        try {
+            const response = await global.HttpClient.post('/auth/mfa/setup', {}, { requiresAuth: true });
+            const data = response && response.data ? response.data : response;
+            state.mfaSetup = { secret: data.secret, otpauth_url: data.otpauth_url };
+        } catch (err) {
+            state.mfaError = (err && err.message) || t('settings.mfa_error_setup');
+        }
+        state.mfaBusy = false;
+        render();
+    }
+
+    async function mfaEnableAction() {
+        if (state.mfaBusy) return;
+        const input = container.querySelector('[name="mfa_code_setup"]');
+        const code = input ? input.value.trim() : '';
+        if (!code) {
+            showFieldError('mfa_code_setup', t('settings.mfa_code_required'));
+            return;
+        }
+        state.mfaBusy = true;
+        state.mfaError = null;
+        render();
+        try {
+            const response = await global.HttpClient.post('/auth/mfa/enable', { code: code }, { requiresAuth: true });
+            const data = response && response.data ? response.data : response;
+            state.mfaBackupCodes = (data && data.backup_codes) || [];
+            state.mfaSetup = null;
+            await loadMfa();
+        } catch (err) {
+            state.mfaError = (err && err.message) || t('settings.mfa_error_enable');
+        }
+        state.mfaBusy = false;
+        render();
+    }
+
+    async function mfaDisableAction() {
+        if (state.mfaBusy) return;
+        const input = container.querySelector('[name="mfa_code_disable"]');
+        const code = input ? input.value.trim() : '';
+        if (!code) {
+            showFieldError('mfa_code_disable', t('settings.mfa_code_required'));
+            return;
+        }
+        state.mfaBusy = true;
+        state.mfaError = null;
+        render();
+        try {
+            await global.HttpClient.post('/auth/mfa/disable', { code: code }, { requiresAuth: true });
+            state.mfaBackupCodes = null;
+            await loadMfa();
+            showToast('success', t('settings.mfa_title'), t('settings.mfa_disabled_ok'));
+        } catch (err) {
+            state.mfaError = (err && err.message) || t('settings.mfa_error_disable');
+        }
+        state.mfaBusy = false;
+        render();
+    }
+
+    function mfaCancelSetup() {
+        state.mfaSetup = null;
+        state.mfaError = null;
+        render();
+    }
+
+    function mfaBackupDone() {
+        state.mfaBackupCodes = null;
+        render();
+    }
+
+    // ====================================================================
     // EVENTOS
     // ====================================================================
 
@@ -977,6 +1145,26 @@
         }
         if (e.target.closest('[data-action="settings-smtp-test"]')) {
             testSmtp();
+            return;
+        }
+        if (e.target.closest('[data-action="settings-mfa-setup"]')) {
+            mfaSetupAction();
+            return;
+        }
+        if (e.target.closest('[data-action="settings-mfa-enable"]')) {
+            mfaEnableAction();
+            return;
+        }
+        if (e.target.closest('[data-action="settings-mfa-disable"]')) {
+            mfaDisableAction();
+            return;
+        }
+        if (e.target.closest('[data-action="settings-mfa-cancel"]')) {
+            mfaCancelSetup();
+            return;
+        }
+        if (e.target.closest('[data-action="settings-mfa-backup-done"]')) {
+            mfaBackupDone();
             return;
         }
         const swatch = e.target.closest('[data-action="settings-pick-color"]');
@@ -1083,6 +1271,11 @@
             state.uploading = false;
             state.color = null;
             state.colorDirty = false;
+            state.mfa = null;
+            state.mfaSetup = null;
+            state.mfaBackupCodes = null;
+            state.mfaBusy = false;
+            state.mfaError = null;
         }
     };
 

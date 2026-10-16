@@ -68,6 +68,12 @@ const TENANT_PAYLOAD = {
 // =====================================================================
 
 function createEnv({ perms = [], roles = [], getHandlers = {}, getImpl = null, patchImpl = null, postImpl = null } = {}) {
+  // v1.15.0: settings carga también GET /auth/mfa/status (MFA personal). Se
+  // resuelve por defecto a "desactivado" para que el resto de escenarios no
+  // dependan de ese mock; un scenario puede sobreescribirlo via getHandlers.
+  const handlers = Object.assign({
+    '/auth/mfa/status': () => ({ status: 200, data: { habilitado: false, metodo: null, pending_setup: false, backup_codes_remaining: 0 } })
+  }, getHandlers);
   const dom = new JSDOM(
     '<!DOCTYPE html><html><body><div id="module-container"></div></body></html>',
     { url: 'http://localhost/xp/public/#/settings', runScripts: 'outside-only', pretendToBeVisual: true }
@@ -111,7 +117,7 @@ function createEnv({ perms = [], roles = [], getHandlers = {}, getImpl = null, p
     async get(p, options = {}) {
       calls.gets.push({ path: p, options });
       if (env.getImpl) return env.getImpl(p, options, env);
-      if (getHandlers[p]) return getHandlers[p](options, env);
+      if (handlers[p]) return handlers[p](options, env);
       throw Object.assign(new Error('GET no soportado: ' + p), { status: 404, data: null });
     },
     async post(p, body, options = {}) {
@@ -228,7 +234,10 @@ async function s3_read_only() {
   check('localizacion: zona horaria visible', loc.textContent.includes('America/Mexico_City'));
 
   const seg = env.container.querySelector('[data-panel="seguridad"]');
-  check('seguridad: hueco MFA declarado', seg.textContent.includes('Próximamente'));
+  check('seguridad: seccion MFA real (no hueco)',
+    seg.textContent.includes(ES_DICT.settings.mfa_status_off) &&
+    seg.textContent.includes(ES_DICT.settings.mfa_btn_setup),
+    'status_off/btn_setup ausentes');
   check('seguridad read-only: sin inputs editables',
     !seg.querySelector('[name="smtp.host"]') && !seg.querySelector('[name="seguridad.caducidad_password_dias"]'));
   check('seguridad read-only: etiqueta de caducidad visible',
