@@ -6,7 +6,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [1.14.2] - 2026-10-16
 
-**Refactor de almacenamiento: los ajustes del tenant dejan de vivir en el JSON `tenants.configuracion` y pasan a columnas individuales.** Todos los datos del formulario de Configuracion que hasta ahora se persistian anidados en la columna `configuracion` (direccion, color primario, moneda, formato de fecha, caducidad de contrasena y el bloque SMTP completo) se guardan ahora cada uno en su propia columna de `tenants`. El contrato de API no cambia: `GET/PATCH /api/tenant` siguen exponiendo y aceptando `configuracion` anidada; el backend la compone desde las columnas al leer y la descompone al escribir. La columna `configuracion` queda residuada a NULL y sin uso. Corrige ademas un bug: `MailerService` recibia `smtp.password` ya enmascarada (null) porque `TenantService::findById` devuelve la version publica; ahora lee la entidad cruda via `TenantService::findEntity()` y autentica de verdad contra el SMTP.
+**Refactor de almacenamiento: los ajustes del tenant dejan de vivir en el JSON `tenants.configuracion` y pasan a columnas individuales; la columna `configuracion` se elimina.** Todos los datos del formulario de Configuracion que hasta ahora se persistian anidados en la columna `configuracion` (direccion, color primario, moneda, formato de fecha, caducidad de contrasena y el bloque SMTP completo) se guardan ahora cada uno en su propia columna de `tenants`, y la columna `configuracion` se dropea de la tabla. El contrato de API no cambia: `GET/PATCH /api/tenant` siguen exponiendo y aceptando `configuracion` anidada; el backend la compone desde las columnas al leer y la descompone al escribir. Corrige ademas un bug: `MailerService` recibia `smtp.password` ya enmascarada (null) porque `TenantService::findById` devuelve la version publica; ahora lee la entidad cruda via `TenantService::findEntity()` y autentica de verdad contra el SMTP.
 
 ### Added
 - 12 columnas en `tenants` (todas nullable, anidadas tras `dominio_custom`): `direccion` varchar(500), `color_primario` varchar(7), `moneda` varchar(10), `formato_fecha` varchar(20), `caducidad_password_dias` int unsigned, `smtp_host` varchar(255), `smtp_puerto` int unsigned, `smtp_encryption` varchar(10), `smtp_username` varchar(255), `smtp_password` varchar(1024) (cifrada), `smtp_from_email` varchar(255), `smtp_from_name` varchar(255). Migracion de datos del JSON a columnas y `configuracion` a NULL en la BD viva.
@@ -20,7 +20,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Notes
 - Sin cambios de contrato de API ni de frontend; el modulo settings sigue leyendo/escribiendo `configuracion` anidada.
-- Verificado contra la BD viva (`xproject`): `composer test` 969/969, `check-schema-drift` SIN DRIFT, `check-data-integrity` DATOS CONSISTENTES, smokes 68+89+105 OK; PATCH escribe en columnas (SQL directo) y `configuracion` permanece NULL.
+- Columna `configuracion` eliminada de `tenants` (DROP); `metadatos` sigue siendo JSON propio y no se toca.
+- Verificado contra la BD viva (`xproject`): `composer test` 969/969, `check-schema-drift` SIN DRIFT, `check-data-integrity` DATOS CONSISTENTES, smokes 68+89+105 OK; PATCH escribe en columnas (SQL directo) y la API compone `configuracion` desde las columnas.
 
 ## [1.14.1] - 2026-10-16
 

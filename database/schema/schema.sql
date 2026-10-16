@@ -153,7 +153,6 @@ CREATE TABLE `tenants` (
   `smtp_password` varchar(1024) DEFAULT NULL,
   `smtp_from_email` varchar(255) DEFAULT NULL,
   `smtp_from_name` varchar(255) DEFAULT NULL,
-  `configuracion` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`configuracion`)),
   `metadatos` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadatos`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
