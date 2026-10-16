@@ -170,10 +170,10 @@
     "password_body": "Update your password. The same security rules as the rest of the application apply.",
     "section_language": "Language",
     "lang": {
-      "es": "EspaÃ±ol",
+      "es": "Español",
       "en": "English",
-      "pt": "PortuguÃªs",
-      "fr": "FranÃ§ais"
+      "pt": "Português",
+      "fr": "Français"
     },
     "password_module_unavailable": "auth/password not available",
     "language_body": "The language applies to the whole interface and is saved to your profile.",
@@ -249,7 +249,7 @@
     "mfa_status_on": "MFA enabled",
     "mfa_btn_setup": "Enable MFA",
     "mfa_btn_resume": "Continue setup",
-    "mfa_setup_intro": "Add an authenticator app (Google Authenticator, Authy, 1Passwordâ€¦) by scanning the QR or entering this code manually, then confirm with a 6-digit code.",
+    "mfa_setup_intro": "Add an authenticator app (Google Authenticator, Authy, 1Password…) by scanning the QR or entering this code manually, then confirm with a 6-digit code.",
     "mfa_setup_secret_label": "Secret key (manual entry):",
     "mfa_setup_uri_label": "otpauth link:",
     "mfa_code_label": "Verification code",
@@ -349,10 +349,10 @@
       "PEN": "Peruvian sol",
       "BRL": "Brazilian real",
       "GTQ": "Quetzal",
-      "CRC": "Costa Rican colÃ³n",
+      "CRC": "Costa Rican colón",
       "UYU": "Uruguayan peso",
       "BOB": "Boliviano",
-      "PYG": "GuaranÃ­",
+      "PYG": "Guaraní",
       "DOP": "Dominican peso",
       "GBP": "Pound sterling",
       "CAD": "Canadian dollar"
@@ -404,8 +404,8 @@
       },
       "row": {
         "disp": "avail {value}",
-        "res": "Â· res {value}",
-        "tran": "Â· trans {value}"
+        "res": "· res {value}",
+        "tran": "· trans {value}"
       },
       "actions": {
         "move": "Move",
@@ -448,11 +448,11 @@
         "event": "Event",
         "movement": "Movement",
         "correction": "Correction",
-        "cant": "qty {from} â†’ {to}",
+        "cant": "qty {from} → {to}",
         "by": "by {actor}",
         "empty_title": "No movements",
         "empty_message": "This unit has no events or movements yet.",
-        "footer_info": "{total} record(s) Â· newest first"
+        "footer_info": "{total} record(s) · newest first"
       },
       "messages": {
         "sending": "Sending...",
@@ -727,7 +727,7 @@
         "rechazada": "Rejected",
         "parcial": "Partial",
         "completa": "Complete",
-        "sin_unidad": "â€” no unit â€”"
+        "sin_unidad": "— no unit —"
       },
       "prioridad": {
         "alta": "High",
@@ -755,7 +755,7 @@
         "parcial_titulo": "Partial receipt.",
         "parcial_fallback": "A quantity discrepancy incident was recorded.",
         "evento": "Event {tipo}",
-        "evento_hash": "Â· hash {hash}...",
+        "evento_hash": "· hash {hash}...",
         "toast_rechazo_titulo": "Delivery rejected",
         "toast_rechazo_fallback": "No stock; a high priority incident was opened.",
         "toast_registrada_titulo": "Receipt recorded",
@@ -1067,7 +1067,7 @@
         "body": "You need <code>{permiso}</code> to view this screen."
       },
       "detail": {
-        "route": "origin {origen} â†’ preparation {destino}"
+        "route": "origin {origen} → preparation {destino}"
       },
       "messages": {
         "forbidden_locations": "You need {permiso} to list the preparation zones.",
@@ -1090,7 +1090,7 @@
         "barcode_not_found_title": "Barcode not found",
         "barcode_not_found_message": "Check the code or refresh the list.",
         "unit_selected_title": "Unit selected",
-        "unit_selected_message": "{barcode} Â· {producto}"
+        "unit_selected_message": "{barcode} · {producto}"
       }
     },
     "returns": {
@@ -1172,7 +1172,7 @@
         "select_unit": "Select a unit",
         "no_destination": "No destination",
         "destination_required_hint": "Required when the status is OK.",
-        "destination_optional_hint": "Ignored: DAÃ‘ADO/DETERIORADO go to the DAÃ‘ADOS zone and PERDIDO does not store a location.",
+        "destination_optional_hint": "Ignored: DAÑADO/DETERIORADO go to the DAÑADOS zone and PERDIDO does not store a location.",
         "observaciones": "Notes"
       },
       "validation": {
@@ -1327,7 +1327,7 @@
         "error_destinatario_required": "Enter the recipient.",
         "error_unidades_required": "Select at least one unit to load.",
         "loaded_title": "Units loaded",
-        "loaded_message": "{unidades} unit(s) Â· shipment {id}",
+        "loaded_message": "{unidades} unit(s) · shipment {id}",
         "loaded_fallback_id": "created",
         "load_error": "Could not load the units",
         "authorize_confirm": "Authorize the departure of shipment {id}? The units will move to EN_TRANSITO in the transit location.",
@@ -1619,7 +1619,7 @@
           "submit": "Report",
           "tipo_label": "Incident type",
           "select_tipo": "Select a type",
-          "tipo_hint": "DAÃ‘O marks the unit as DAÃ‘ADO; PERDIDA releases it; DISCREPANCIA_CANTIDAD creates a count.",
+          "tipo_hint": "DAÑO marks the unit as DAÑADO; PERDIDA releases it; DISCREPANCIA_CANTIDAD creates a count.",
           "unit_label": "Physical unit",
           "unit_search_placeholder": "Search by barcode, product, sku or location",
           "no_unit_option": "No unit (location only)",
@@ -1756,7 +1756,7 @@
       "values_before": "Values before",
       "values_after": "Values after",
       "extra_details": "Additional details",
-      "no_changes": "â€” no changes â€”"
+      "no_changes": "— no changes —"
     },
     "messages": {
       "load_error": "Could not load the audit log"
@@ -1800,7 +1800,7 @@
       "INACTIVO": "Inactive",
       "SUSPENDIDO": "Suspended",
       "PENDIENTE_CONFIRMACION": "Pending confirmation",
-      "current": "User: {email} â€” current status: {estado}",
+      "current": "User: {email} — current status: {estado}",
       "label": "New status",
       "motivo": "Reason",
       "motivo_hint": "Required: it is recorded in the audit log",
@@ -2347,7 +2347,7 @@
       "location_code_already_exists": "Location code '{code}' is already registered in this tenant.",
       "invalid_location_code": "Invalid location code: '{code}'.",
       "location_inactive": "Location with ID '{id}' is inactive.",
-      "invalid_location_type": "Invalid location type: '{type}'. Valid: ALMACENAMIENTO, PICKING, DAÃ‘ADOS, BLOQUEADOS, TRANSITO, DEVOLUCION.",
+      "invalid_location_type": "Invalid location type: '{type}'. Valid: ALMACENAMIENTO, PICKING, DAÑADOS, BLOQUEADOS, TRANSITO, DEVOLUCION.",
       "capacity_exceeded": "Location '{locationId}' exceeds its capacity ({used}/{capacity}).",
       "invalid_capacity": "Invalid capacity. Must be a positive integer and capacity_used cannot exceed capacity.",
       "location_has_stock_units": "Cannot delete location '{id}' because it has associated physical units.",
@@ -2362,7 +2362,7 @@
       "barcode_generation_failed": "Failed to generate a unique barcode for the physical unit.",
       "idempotency_key_required": "The Idempotency-Key header is required for this operation.",
       "idempotency_key_invalid": "The Idempotency-Key header is invalid.",
-      "invalid_state_transition": "State transition not allowed: '{from}' â†’ '{to}'.",
+      "invalid_state_transition": "State transition not allowed: '{from}' → '{to}'.",
       "unit_not_found": "Physical unit with ID '{id}' does not exist.",
       "unit_not_movable": "Physical unit '{id}' is in state '{estado}' and cannot be moved internally.",
       "destination_equals_origin": "Destination location must differ from origin.",
@@ -2407,7 +2407,7 @@
       "count_unit_not_in_sheet": "Physical unit '{unitId}' is not in the count theoretical list.",
       "count_results_required": "The count must record at least one unit.",
       "count_discrepancy_already_resolved": "The discrepancy of physical unit '{unitId}' already has a recorded action.",
-      "count_adjustment_state_not_allowed": "Physical unit '{unitId}' is in '{estado}': automatic adjustment is only allowed in DISPONIBLE or DAÃ‘ADO. Record the JUSTIFY action with your justification.",
+      "count_adjustment_state_not_allowed": "Physical unit '{unitId}' is in '{estado}': automatic adjustment is only allowed in DISPONIBLE or DAÑADO. Record the JUSTIFY action with your justification.",
       "count_invalid_action": "Unknown reconciliation action: '{accion}'. Valid: AJUSTAR, JUSTIFICAR.",
       "count_justification_required": "The JUSTIFY action requires a mandatory `justificacion`.",
       "count_stale_quantity": "Physical unit '{unitId}' no longer matches the count theoretical sheet: cantidad_esperada {expected}, current quantity {current}. No adjustment on stale data: record the JUSTIFY action with justification or start a new count."
