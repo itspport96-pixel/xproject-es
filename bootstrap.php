@@ -71,6 +71,14 @@ $container->singleton(
     )
 );
 
+$container->singleton(
+    App\Core\Authentication\Service\MfaService::class,
+    fn($c) => new App\Core\Authentication\Service\MfaService(
+        $c->get('database'),
+        $c->get(App\Core\Security\Service\EncryptionService::class)
+    )
+);
+
 // ============================================
 // AUTHORIZATION
 // ============================================

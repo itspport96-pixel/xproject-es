@@ -81,6 +81,30 @@ $router->post('/api/auth/change-password', [AuthController::class, 'changePasswo
     RateLimitMiddleware::class . ':10,300',
 ]);
 
+// MFA TOTP (v1.15.0): enrolamiento del propio usuario (opt-in). El secreto se
+// guarda cifrado y sólo se exige en el login una vez habilitado. Setup genera
+// el secreto pendiente; enable lo confirma con un código y devuelve códigos de
+// respaldo; disable lo apaga. "status" informa a la UI del estado actual.
+$router->get('/api/auth/mfa/status', [AuthController::class, 'mfaStatus'], [
+    RateLimitMiddleware::class . ':api',
+    AuthenticationMiddleware::class,
+]);
+$router->post('/api/auth/mfa/setup', [AuthController::class, 'mfaSetup'], [
+    AuditMiddleware::class,
+    AuthenticationMiddleware::class,
+    RateLimitMiddleware::class . ':10,300',
+]);
+$router->post('/api/auth/mfa/enable', [AuthController::class, 'mfaEnable'], [
+    AuditMiddleware::class,
+    AuthenticationMiddleware::class,
+    RateLimitMiddleware::class . ':10,300',
+]);
+$router->post('/api/auth/mfa/disable', [AuthController::class, 'mfaDisable'], [
+    AuditMiddleware::class,
+    AuthenticationMiddleware::class,
+    RateLimitMiddleware::class . ':10,300',
+]);
+
 // ============================================
 // USERS - Gestión de usuarios del tenant
 // ============================================

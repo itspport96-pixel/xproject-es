@@ -86,6 +86,8 @@ CREATE TABLE `users` (
   `fecha_expiracion_password` timestamp NULL DEFAULT NULL,
   `mfa_habilitado` tinyint(4) DEFAULT 0,
   `mfa_metodo` enum('TOTP','EMAIL','SMS') DEFAULT NULL,
+  `mfa_secret` varchar(255) DEFAULT NULL,
+  `mfa_backup_codes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`mfa_backup_codes`)),
   `preferencias` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`preferencias`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),

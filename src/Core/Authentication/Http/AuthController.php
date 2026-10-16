@@ -5,6 +5,7 @@ namespace App\Core\Authentication\Http;
 
 use App\Core\Audit\AuditLogger;
 use App\Core\Authentication\Service\JwtService;
+use App\Core\Authentication\Service\MfaService;
 use App\Core\Authentication\Service\PasswordHasher;
 use App\Core\Authentication\Service\SessionRevokerService;
 use App\Core\Authentication\Repository\UserRepositoryInterface;
@@ -30,6 +31,7 @@ class AuthController
     private ?UserService $userService;
     private ?SessionRevokerService $sessions;
     private AuthorizationService $authz;
+    private ?MfaService $mfa;
 
     public function __construct(
         ?JwtService $jwt = null,
@@ -41,7 +43,8 @@ class AuthController
         ?AuditLogger $audit = null,
         ?UserService $userService = null,
         ?SessionRevokerService $sessions = null,
-        ?AuthorizationService $authz = null
+        ?AuthorizationService $authz = null,
+        ?MfaService $mfa = null
     ) {
         $container = Container::getInstance();
         $this->jwt = $jwt ?? $container->get('jwt');
@@ -56,6 +59,18 @@ class AuthController
         $this->userService = $userService;
         $this->sessions = $sessions;
         $this->authz = $authz ?? $container->get(AuthorizationService::class);
+        $this->mfa = $mfa;
+    }
+
+    /**
+     * MfaService se resuelve de forma perezosa: el constructor no lo pide al
+     * container para no romper entornos (tests) donde no está registrado y el
+     * login no necesita MFA. Se materializa sólo cuando un usuario tiene MFA
+     * habilitado o al enrrolar/deshabilitar.
+     */
+    private function resolveMfa(): MfaService
+    {
+        return $this->mfa ??= Container::getInstance()->get(MfaService::class);
     }
 
     /**
@@ -164,6 +179,31 @@ class AuthController
                 'razon_fallo' => 'El tenant no está activo',
             ], $email);
             return $this->jsonError('El tenant no está activo', 403, 'auth.tenant_inactive');
+        }
+
+        // MFA TOTP (v1.15.0): si el usuario tiene MFA habilitado se exige un
+        // código TOTP (o de respaldo) antes de emitir tokens. El primer envío
+        // (sin código) devuelve 200 con mfa_required para que el frontend pida
+        // el código; el frontend reenvía el mismo login con mfa_code añadido.
+        if (!empty($user['mfa_habilitado']) && ($user['mfa_metodo'] ?? '') === 'TOTP') {
+            // El código llega CRUDO: MfaService.verify normaliza (TOTP dígitos,
+            // respaldo alfanumérico sin guiones). Aquí NO se filtra, o se
+            // destruirían los códigos de respaldo (contienen letras).
+            $mfaCode = is_string($data['mfa_code'] ?? null) ? trim((string) $data['mfa_code']) : '';
+            if ($mfaCode === '') {
+                return $this->json([
+                    'mfa_required' => true,
+                    'message'      => 'Se requiere un código de verificación',
+                ], 200);
+            }
+            if (!$this->resolveMfa()->verify((string) $user['id'], $mfaCode)) {
+                $this->auditLogin($request, $tenantId, (string) $user['id'], [
+                    'resultado'  => 'FAILURE',
+                    'razon_fallo' => 'Código MFA inválido',
+                ], $email);
+                usleep(random_int(50000, 150000));
+                return $this->jsonError('Código MFA inválido', 401);
+            }
         }
 
         $this->rateLimiter->clear($rateLimitKey);
@@ -402,6 +442,123 @@ class AuthController
         ]);
 
         return $this->json(['message' => 'Contraseña actualizada correctamente'], 200);
+    }
+
+    // ========================================================================
+    // MFA (TOTP) — enrolamiento del propio usuario (v1.15.0)
+    // ========================================================================
+
+    /** Estado MFA del usuario autenticado (habilitado / método / setup pendiente). */
+    public function mfaStatus(array $request = []): array
+    {
+        $claims = $request['user'] ?? null;
+        if (!is_array($claims) || empty($claims['user_id'])) {
+            return $this->jsonError('No autenticado', 401, 'auth.not_authenticated');
+        }
+        return $this->json($this->resolveMfa()->status((string) $claims['user_id']), 200);
+    }
+
+    /**
+     * Paso 1: genera y guarda (cifrado) un secreto TOTP pendiente SIN activar
+     * todavía. Devuelve el secreto y la otpauth:// URL para el QR / entrada
+     * manual. Rechaza si MFA ya está habilitado (hay que deshabilitarlo antes).
+     */
+    public function mfaSetup(array $request = []): array
+    {
+        $claims = $request['user'] ?? null;
+        if (!is_array($claims) || empty($claims['user_id']) || empty($claims['tenant_id'])) {
+            return $this->jsonError('No autenticado', 401, 'auth.not_authenticated');
+        }
+        $userId = (string) $claims['user_id'];
+        $tenantId = (string) $claims['tenant_id'];
+
+        try {
+            if ($this->resolveMfa()->status($userId)['habilitado']) {
+                throw new UserException(
+                    'MFA ya está habilitado; deshabilítalo antes de volver a configurarlo.',
+                    409, null, null, UserException::CATEGORY_CONFLICT, 'MFA_ALREADY_ENABLED'
+                );
+            }
+            $email = (string) ($claims['email'] ?? '');
+            if ($email === '') {
+                $u = $this->users->findById($userId, $tenantId);
+                $email = (string) ($u['email'] ?? '');
+            }
+            $setup = $this->resolveMfa()->setup($userId, $email);
+        } catch (UserException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new UserException($e->getMessage(), 400, null, null, UserException::CATEGORY_VALIDATION, 'MFA_SETUP_FAILED');
+        }
+
+        $this->auditEvent('auth.mfa.setup', 'UPDATE', $request, [
+            'tenant_id' => $tenantId, 'usuario_id' => $userId, 'entidad_id' => $userId,
+            'recurso' => 'mfa', 'detalles_adicionales' => ['metodo' => 'TOTP'],
+        ]);
+
+        return $this->json($setup, 200);
+    }
+
+    /** Paso 2: verifica un código y, si es válido, activa MFA y devuelve códigos de respaldo. */
+    public function mfaEnable(array $request = []): array
+    {
+        $claims = $request['user'] ?? null;
+        if (!is_array($claims) || empty($claims['user_id']) || empty($claims['tenant_id'])) {
+            return $this->jsonError('No autenticado', 401, 'auth.not_authenticated');
+        }
+        $userId = (string) $claims['user_id'];
+        $tenantId = (string) $claims['tenant_id'];
+
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?: $_POST;
+        $code = is_string($data['code'] ?? null) ? trim((string) $data['code']) : '';
+        if ($code === '') {
+            throw UserException::requiredField('code');
+        }
+
+        try {
+            $backupCodes = $this->resolveMfa()->enable($userId, $code);
+        } catch (\Throwable $e) {
+            throw new UserException('Código MFA inválido.', 400, null, 'code', UserException::CATEGORY_VALIDATION, 'MFA_INVALID_CODE');
+        }
+
+        $this->auditEvent('auth.mfa.enable', 'UPDATE', $request, [
+            'tenant_id' => $tenantId, 'usuario_id' => $userId, 'entidad_id' => $userId,
+            'recurso' => 'mfa', 'detalles_adicionales' => ['metodo' => 'TOTP', 'backup_codes' => count($backupCodes)],
+        ]);
+
+        return $this->json(['backup_codes' => $backupCodes], 200);
+    }
+
+    /** Deshabilita MFA (exige un código válido y borra secreto y códigos). */
+    public function mfaDisable(array $request = []): array
+    {
+        $claims = $request['user'] ?? null;
+        if (!is_array($claims) || empty($claims['user_id']) || empty($claims['tenant_id'])) {
+            return $this->jsonError('No autenticado', 401, 'auth.not_authenticated');
+        }
+        $userId = (string) $claims['user_id'];
+        $tenantId = (string) $claims['tenant_id'];
+
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?: $_POST;
+        $code = is_string($data['code'] ?? null) ? trim((string) $data['code']) : '';
+        if ($code === '') {
+            throw UserException::requiredField('code');
+        }
+
+        try {
+            $this->resolveMfa()->disable($userId, $code);
+        } catch (\Throwable $e) {
+            throw new UserException('Código MFA inválido.', 400, null, 'code', UserException::CATEGORY_VALIDATION, 'MFA_INVALID_CODE');
+        }
+
+        $this->auditEvent('auth.mfa.disable', 'UPDATE', $request, [
+            'tenant_id' => $tenantId, 'usuario_id' => $userId, 'entidad_id' => $userId,
+            'recurso' => 'mfa', 'detalles_adicionales' => ['metodo' => 'TOTP'],
+        ]);
+
+        return $this->json(['message' => 'MFA deshabilitado correctamente'], 200);
     }
 
     private function resolveUserService(): UserService
