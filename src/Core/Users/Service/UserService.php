@@ -9,6 +9,7 @@ use App\Core\Authentication\Service\PasswordHasher;
 use App\Core\Users\Exception\UserException;
 use App\Core\Users\Exception\UserPreferencesException;
 use App\Shared\Container\Container;
+use App\Shared\Security\PasswordPolicy;
 use App\Shared\Services\DatabaseService;
 
 /**
@@ -479,19 +480,35 @@ final class UserService
         }
 
         $this->validatePasswordStrength($newPassword);
+        $this->validatePasswordNotReused($id, $tenantId, $newPassword, (string) $user['password']);
         $hash = $this->hasher->hash($newPassword);
 
-        $sql = "UPDATE users
-                SET password = :password, fecha_expiracion_password = :expira, updated_at = :updated_at
-                WHERE id = :id AND tenant_id = :tenant_id";
-        $stmt = $this->db->getConnection()->prepare($sql);
-        $stmt->execute([
-            'password'   => $hash,
-            'expira'     => $this->passwordExpiryFromPolicy($tenantId),
-            'updated_at' => date('Y-m-d H:i:s'),
-            'id'         => $id,
-            'tenant_id'  => $tenantId,
-        ]);
+        // v1.16.0: registra el hash saliente en el historial ANTES de pisarlo,
+        // dentro de una transacción para que historial y cambio sean atómicos.
+        $pdo = $this->db->getConnection();
+        $pdo->beginTransaction();
+        try {
+            $this->recordPasswordHistory($id, $tenantId, (string) $user['password']);
+
+            $sql = "UPDATE users
+                    SET password = :password, fecha_expiracion_password = :expira, updated_at = :updated_at
+                    WHERE id = :id AND tenant_id = :tenant_id";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                'password'   => $hash,
+                'expira'     => $this->passwordExpiryFromPolicy($tenantId),
+                'updated_at' => date('Y-m-d H:i:s'),
+                'id'         => $id,
+                'tenant_id'  => $tenantId,
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
     }
 
     /**
@@ -575,17 +592,33 @@ final class UserService
         $password = $this->generateTemporaryPassword();
         $hash = $this->hasher->hash($password);
 
-        $sql = "UPDATE users
-                SET password = :password, fecha_expiracion_password = :expira, updated_at = :updated_at
-                WHERE id = :id AND tenant_id = :tenant_id";
-        $stmt = $this->db->getConnection()->prepare($sql);
-        $stmt->execute([
-            'password'   => $hash,
-            'expira'     => $this->tempPasswordExpiry(),
-            'updated_at' => date('Y-m-d H:i:s'),
-            'id'         => $id,
-            'tenant_id'  => $tenantId,
-        ]);
+        // v1.16.0: el hash saliente queda en el historial (transaccional), de
+        // modo que tras un reset el usuario no pueda recuperar la contraseña
+        // anterior (reuse check la rechazará).
+        $pdo = $this->db->getConnection();
+        $pdo->beginTransaction();
+        try {
+            $this->recordPasswordHistory($id, $tenantId, (string) $user['password']);
+
+            $sql = "UPDATE users
+                    SET password = :password, fecha_expiracion_password = :expira, updated_at = :updated_at
+                    WHERE id = :id AND tenant_id = :tenant_id";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                'password'   => $hash,
+                'expira'     => $this->tempPasswordExpiry(),
+                'updated_at' => date('Y-m-d H:i:s'),
+                'id'         => $id,
+                'tenant_id'  => $tenantId,
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
 
         return $password;
     }
@@ -780,26 +813,97 @@ final class UserService
     }
 
     /**
-     * Valida fortaleza del password:
-     * - Mínimo 8 caracteres
-     * - Al menos 1 mayúscula
-     * - Al menos 1 minúscula
-     * - Al menos 1 número
+     * Valida la fortaleza de la contraseña (v1.16.0): delega en
+     * PasswordPolicy (mínimo 9, mayúscula, minúscula, número y especial).
+     *
+     * @throws UserException Si no cumple la política
      */
     private function validatePasswordStrength(string $password): void
     {
-        if (strlen($password) < 8) {
-            throw (new UserException('El password debe tener mínimo 8 caracteres', 0, null, 'password'))->withMessageKey('auth.password_min_length');
+        $violacion = PasswordPolicy::validate($password);
+        if ($violacion === null) {
+            return;
         }
-        if (!preg_match('/[A-Z]/', $password)) {
-            throw (new UserException('El password debe contener al menos una mayúscula', 0, null, 'password'))->withMessageKey('auth.password_uppercase');
+
+        $mensajes = [
+            'auth.password_min_length' => 'El password debe tener mínimo 9 caracteres',
+            'auth.password_uppercase'  => 'El password debe contener al menos una mayúscula',
+            'auth.password_lowercase'  => 'El password debe contener al menos una minúscula',
+            'auth.password_digit'      => 'El password debe contener al menos un número',
+            'auth.password_special'    => 'El password debe contener al menos un carácter especial',
+        ];
+
+        throw (new UserException(
+            $mensajes[$violacion] ?? 'El password no cumple la política de seguridad',
+            0,
+            null,
+            'password'
+        ))->withMessageKey($violacion);
+    }
+
+    /**
+     * Impide reutilizar contraseñas anteriores (v1.16.0).
+     *
+     * Comprueba la nueva contraseña contra el hash ACTUAL (users.password) y
+     * contra todos los hashes registrados en password_history. Si coincide con
+     * cualquiera, se rechaza: ninguna contraseña ya usada vuelve a servir.
+     *
+     * @param string $currentHash Hash actual del usuario (users.password)
+     * @throws UserException Si la nueva coincide con una usada
+     */
+    private function validatePasswordNotReused(
+        string $userId,
+        string $tenantId,
+        string $newPassword,
+        string $currentHash
+    ): void {
+        if ($currentHash !== '' && $this->hasher->verify($newPassword, $currentHash)) {
+            throw (new UserException(
+                'La nueva contraseña no puede ser igual a la actual',
+                0,
+                null,
+                'password'
+            ))->withMessageKey('auth.password_reused');
         }
-        if (!preg_match('/[a-z]/', $password)) {
-            throw (new UserException('El password debe contener al menos una minúscula', 0, null, 'password'))->withMessageKey('auth.password_lowercase');
+
+        $historial = $this->db->fetchAll(
+            'SELECT password_hash FROM password_history WHERE user_id = ? AND tenant_id = ?',
+            [$userId, $tenantId]
+        );
+        foreach ($historial as $fila) {
+            if ($this->hasher->verify($newPassword, (string) $fila['password_hash'])) {
+                throw (new UserException(
+                    'La nueva contraseña no puede coincidir con una contraseña anterior',
+                    0,
+                    null,
+                    'password'
+                ))->withMessageKey('auth.password_reused');
+            }
         }
-        if (!preg_match('/[0-9]/', $password)) {
-            throw (new UserException('El password debe contener al menos un número', 0, null, 'password'))->withMessageKey('auth.password_digit');
+    }
+
+    /**
+     * Registra el hash de una contraseña que deja de estar vigente (v1.16.0).
+     *
+     * Se llama con el hash SALIENTE justo antes de pisar users.password. Sólo
+     * se guardan hashes bcrypt, nunca texto plano.
+     */
+    private function recordPasswordHistory(string $userId, string $tenantId, string $passwordHash): void
+    {
+        if ($passwordHash === '') {
+            return;
         }
+
+        $sql = "INSERT INTO password_history (id, tenant_id, user_id, password_hash, created_at)
+                VALUES (:id, :tenant_id, :user_id, :password_hash, :created_at)";
+        $stmt = $this->db->getConnection()->prepare($sql);
+        $stmt->execute([
+            'id'            => $this->generateUuid(),
+            'tenant_id'     => $tenantId,
+            'user_id'       => $userId,
+            'password_hash' => $passwordHash,
+            'created_at'    => date('Y-m-d H:i:s'),
+        ]);
     }
 
     // ========================================================================
@@ -846,21 +950,24 @@ final class UserService
 
     /**
      * Genera un password temporal de 12 caracteres que cumple la política
-     * (mínimo 8, mayúscula, minúscula y dígito). Alfabeto sin ambiguos
-     * (0/O/1/l/I): los caracteres garantizados se barajean al final.
+     * (mínimo 9, mayúscula, minúscula, dígito y carácter especial). Alfabeto
+     * sin ambiguos (0/O/1/l/I); los caracteres garantizados se barajean al
+     * final. v1.16.0: se añade un carácter especial garantizado.
      */
     private function generateTemporaryPassword(): string
     {
         $mayus = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
         $minus = 'abcdefghijkmnpqrstuvwxyz';
         $digitos = '23456789';
-        $todos = $mayus . $minus . $digitos;
+        $especial = '!@#$%&*?-_.';
+        $todos = $mayus . $minus . $digitos . $especial;
 
         $password = $mayus[random_int(0, strlen($mayus) - 1)]
             . $minus[random_int(0, strlen($minus) - 1)]
-            . $digitos[random_int(0, strlen($digitos) - 1)];
+            . $digitos[random_int(0, strlen($digitos) - 1)]
+            . $especial[random_int(0, strlen($especial) - 1)];
 
-        for ($i = 0; $i < 9; $i++) {
+        for ($i = 0; $i < 8; $i++) {
             $password .= $todos[random_int(0, strlen($todos) - 1)];
         }
 

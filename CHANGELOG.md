@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.16.0] - 2026-10-16
+
+**Refuerzo de la politica de contrasenas: minimo 9 caracteres con mayuscula, minuscula, digito y caracter especial, y prohibicion de reutilizacion mediante historial.** La politica de password pasa de exigir minimo 8 caracteres (con mayuscula, minuscula y digito) a minimo 9 con mayuscula, minuscula, digito y al menos un caracter especial no alfanumerico. Ademas, cada cambio o reset de contrasena guarda el hash saliente en una tabla nueva `password_history`, y la politica rechaza cualquier password que coincida con la contrasena actual o con cualquiera de las anteriores del usuario. El frontend (validacion en cliente del formulario de cambio) aplica las mismas reglas.
+
+### Added
+- `src/Shared/Security/PasswordPolicy.php`: politica unica `PasswordPolicy::validate()` (min 9, mayuscula, minuscula, digito, especial `[^A-Za-z0-9]`); devuelve la clave i18n de la primera violacion. Delegada por `UserService::validatePasswordStrength()`.
+- Tabla `password_history` (BD viva): id char(36) PK, tenant_id, user_id FK->users(id), password_hash varchar(255), created_at, KEY (user_id, created_at). `schema.sql` regenerado (SIN DRIFT).
+- `UserService::validatePasswordNotReused()` (compara contra `users.password` actual y todos los hashes de `password_history`; clave `auth.password_reused`) y `recordPasswordHistory()`; `changePassword()` y `resetPassword()` pasan a transaccion (INSERT hash saliente + UPDATE users).
+- Tests `tests/Unit/PasswordPolicyLiveTest.php` (11 tests, MySQL sobre `xproject_e2e`, sin SQLite): politica (5 violaciones + valida), no-reutilizacion (actual/anterior), historial acumula, create debil rechazado y password temporal de admin cumple politica.
+
+### Changed
+- `UserService::generateTemporaryPassword()`: ahora garantiza un caracter especial (`!@#$%&*?-.`), 12 caracteres.
+- `public/js/modules/auth/password.js`: validacion en cliente min 9 + check de caracter especial.
+- `resources/locales/{es,en,pt,fr}.json`: `auth.password_min_length` 8->9, hints actualizados, nuevas claves `auth.password_special`/`auth.password_reused` y `password.errors.special`.
+- `tools/smoke/smoke-v1120.mjs`: passwords de fixture con especial; nuevo check "9 sin especial" (157 OK).
+- `tools/smoke/smoke-v11358.mjs`: fixture `plataforma_version` a 1.16.0 (68 OK).
+
+### Notes
+- Verificado en vivo end-to-end (API real): login admin MFA, creacion de usuario de prueba, password debil (8 sin especial) -> 400, fuerte -> 200, reutilizar la anterior -> 400, misma actual -> 400 y borrado del usuario de prueba. `composer test` 980/980; smokes 68+29+89+105+157 OK; `check-schema-drift` SIN DRIFT; `check-data-integrity` DATOS CONSISTENTES; `check-i18n` 0 errores.
+- Desviacion reportada sin tocar (decision): `TenantService::validateAdminData()` sigue validando solo longitud >=8 para la password del admin de creacion de tenant (esa creacion de tenant con admin todavia no existe); no se aplico la nueva politica ahi.
+- Deuda preexistente reportada sin tocar: claves `password_*` de pt/fr vacias (solo se anadieron las nuevas, con traducciones propias); 216 avisos de claves i18n sin uso.
+
 ## [1.15.0] - 2026-10-16
 
 **MFA opt-in por usuario (TOTP con `spomky-labs/otphp`): enrolamiento en el Perfil > Seguridad y paso de codigo en el login.** Cada usuario puede activar su segundo factor desde la pestaña Seguridad de su Perfil (junto al cambio de contrasena): se genera un secreto TOTP (sha1, 6 digitos, 30 s) que se muestra como codigo manual y como enlace `otpauth://` para el QR, se confirma con un codigo de 6 digitos de la app autenticadora y se entregan 10 codigos de respaldo de un solo uso (hash bcrypt) que se muestran una sola vez. El login pasa a devolver `mfa_required` (HTTP 200 sin tokens) hasta recibir un codigo valido; un codigo invalido responde 401 y no emite tokens. La desactivacion requiere un codigo valido. Todo el frontend del login y del enrolamiento esta i18n en es/en/pt/fr.

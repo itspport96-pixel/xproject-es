@@ -823,8 +823,16 @@ async function s6_password() {
   check('clave debil no se envia', env.calls.posts.length === 0, JSON.stringify(env.calls.posts));
   check('error de campo en password_nuevo', !!root.querySelector('[data-error="password_nuevo"]:not(.hidden)'));
 
-  env.set(root, 'password_nuevo', 'NewPass123');
-  env.set(root, 'password_confirm', 'OtraClave1');
+  // 9 caracteres SIN especial: rechazado en cliente (v1.16.0)
+  env.set(root, 'password_nuevo', 'NewPass12');
+  env.set(root, 'password_confirm', 'NewPass12');
+  env.click(root.querySelector('[data-action="pw-submit"]'));
+  await tick();
+  check('9 sin especial no se envia', env.calls.posts.length === 0, JSON.stringify(env.calls.posts));
+  check('error de campo por falta de especial', !!root.querySelector('[data-error="password_nuevo"]:not(.hidden)'));
+
+  env.set(root, 'password_nuevo', 'NewPass123!');
+  env.set(root, 'password_confirm', 'OtraClave1!');
   env.click(root.querySelector('[data-action="pw-submit"]'));
   await tick();
   check('confirmacion que no coincide no se envia', env.calls.posts.length === 0, JSON.stringify(env.calls.posts));
@@ -860,13 +868,13 @@ async function s6_password() {
 
   // --- Cambio exitoso desde el modo obligatorio ---
   env.set(root, 'password_actual', 'Old1234');
-  env.set(root, 'password_nuevo', 'NewPass123');
-  env.set(root, 'password_confirm', 'NewPass123');
+  env.set(root, 'password_nuevo', 'NewPass123!');
+  env.set(root, 'password_confirm', 'NewPass123!');
   env.click(root.querySelector('[data-action="pw-submit"]'));
   await tick();
   check('POST /auth/change-password con la clave actual y la nueva',
     env.calls.posts.some(p => p.path === '/auth/change-password'
-      && p.body.password_actual === 'Old1234' && p.body.password_nuevo === 'NewPass123'),
+      && p.body.password_actual === 'Old1234' && p.body.password_nuevo === 'NewPass123!'),
     JSON.stringify(env.calls.posts));
   check('toast de exito', env.calls.toasts.some(t => t.type === 'success'));
   check('modal cerrado tras el cambio', w.AuthPasswordModule.isOpen() === false

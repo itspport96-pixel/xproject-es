@@ -74,7 +74,7 @@
         }
         if (!nuevo) {
             errors.password_nuevo = t('password.errors.required_new');
-        } else if (nuevo.length < 8) {
+        } else if (nuevo.length < 9) {
             errors.password_nuevo = t('password.errors.min_length');
         } else if (!/[A-Z]/.test(nuevo)) {
             errors.password_nuevo = t('password.errors.uppercase');
@@ -82,6 +82,8 @@
             errors.password_nuevo = t('password.errors.lowercase');
         } else if (!/[0-9]/.test(nuevo)) {
             errors.password_nuevo = t('password.errors.digit');
+        } else if (!/[^A-Za-z0-9]/.test(nuevo)) {
+            errors.password_nuevo = t('password.errors.special');
         } else if (nuevo === actual) {
             errors.password_nuevo = t('password.errors.same_as_current');
         }
