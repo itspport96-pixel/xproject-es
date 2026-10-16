@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../bootstrap.php';
 
 use App\Core\Audit\Seeder\AuditPermissionSeeder;
+use App\Core\Authentication\Seeder\AuthPermissionSeeder;
 use App\Core\Authorization\Seeder\InventoryPermissionSeeder;
 use App\Core\Authorization\Seeder\PlatformControlPermissionSeeder;
 use App\Core\Security\Service\BlindIndexService;
@@ -231,6 +232,17 @@ try {
             $controlStats['permissions_created'],
             $controlStats['permissions_updated'],
             $controlStats['roles_updated']
+        ));
+
+        // Permiso SSPR (v1.17.0): password_reset_self_service. Opt-in: NO se
+        // asigna a roles BUILT_IN; lo conceden/revocan administradores.
+        info('Sembrando permiso SSPR password_reset_self_service (v1.17.0)...');
+        $authStats = (new AuthPermissionSeeder($pdo))->seed();
+        success(sprintf(
+            'Permisos auth SSPR: %d creados, %d corregidos; roles actualizados: %d',
+            $authStats['permissions_created'],
+            $authStats['permissions_updated'],
+            $authStats['roles_updated']
         ));
 
         $pdo->commit();

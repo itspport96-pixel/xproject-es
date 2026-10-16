@@ -7,6 +7,7 @@ use App\Core\Audit\AuditLogger;
 use App\Core\Authentication\Service\JwtService;
 use App\Core\Authentication\Service\MfaService;
 use App\Core\Authentication\Service\PasswordHasher;
+use App\Core\Authentication\Service\PasswordResetService;
 use App\Core\Authentication\Service\SessionRevokerService;
 use App\Core\Authentication\Repository\UserRepositoryInterface;
 use App\Core\Authorization\Service\AuthorizationService;
@@ -32,6 +33,7 @@ class AuthController
     private ?SessionRevokerService $sessions;
     private AuthorizationService $authz;
     private ?MfaService $mfa;
+    private ?PasswordResetService $passwordReset;
 
     public function __construct(
         ?JwtService $jwt = null,
@@ -60,6 +62,7 @@ class AuthController
         $this->sessions = $sessions;
         $this->authz = $authz ?? $container->get(AuthorizationService::class);
         $this->mfa = $mfa;
+        $this->passwordReset = null;
     }
 
     /**
@@ -445,6 +448,83 @@ class AuthController
     }
 
     // ========================================================================
+    // PASSWORD RESET SSPR (v1.17.0) — restablecimiento por correo
+    // ========================================================================
+
+    /**
+     * POST /api/auth/forgot-password (público, sin token).
+     *
+     * Anti-enumeración: SIEMPRE responde 200 con el mismo mensaje genérico,
+     * exista o no el email, tenga o no el permiso `password_reset_self_service`
+     * o falle el SMTP. El token (si procede) lo crea PasswordResetService.
+     */
+    public function forgotPassword(array $request = []): array
+    {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?: $_POST;
+
+        $email = $this->sanitizer->sanitizeEmail(is_string($data['email'] ?? null) ? (string) $data['email'] : '');
+
+        // El formato inválido tampoco se distingue: misma respuesta que un
+        // email inexistente o no autorizado.
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            // Límite por CUENTA además del por IP de la ruta: evita el
+            // bombardeo de correo de una cuenta concreta (3 / 15 min).
+            try {
+                $this->rateLimiter->attempt('forgot:email:' . sha1(strtolower($email)), 3, 900);
+            } catch (SecurityException $e) {
+                // Mismo mensaje genérico (sin revelar rate limit por email).
+                return $this->json([
+                    'message' => 'Si el correo está asociado a una cuenta autorizada, recibirás un enlace para restablecer tu contraseña.',
+                ], 200);
+            }
+
+            $this->resolvePasswordReset()->requestReset($email, $this->resetContext($request));
+        }
+
+        return $this->json([
+            'message' => 'Si el correo está asociado a una cuenta autorizada, recibirás un enlace para restablecer tu contraseña.',
+        ], 200);
+    }
+
+    /**
+     * POST /api/auth/reset-password (público; se autentica con el token del
+     * correo, no con JWT).
+     *
+     * Re-verifica el permiso, consume el token de forma atómica (un solo uso)
+     * y aplica la política de contraseñas existente ( UserService v1.16.0 ).
+     */
+    public function resetPassword(array $request = []): array
+    {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?: $_POST;
+
+        $token = is_string($data['token'] ?? null) ? trim((string) $data['token']) : '';
+        $nuevo = is_string($data['password_nuevo'] ?? null) ? (string) $data['password_nuevo'] : '';
+
+        if ($token === '') {
+            throw UserException::requiredField('token');
+        }
+        if ($nuevo === '') {
+            throw UserException::requiredField('password_nuevo');
+        }
+
+        $this->resolvePasswordReset()->resetPassword($token, $nuevo, $this->resetContext($request));
+
+        return $this->json(['message' => 'Contraseña restablecida correctamente'], 200);
+    }
+
+    /** Contexto de auditoría de los flujos SSPR (ip, user-agent, request-id). */
+    private function resetContext(array $request): array
+    {
+        return [
+            'ip'         => $request['ip'] ?? $this->getClientIp(),
+            'user_agent' => $request['user_agent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? 'unknown'),
+            'request_id' => $request['request_id'] ?? null,
+        ];
+    }
+
+    // ========================================================================
     // MFA (TOTP) — enrolamiento del propio usuario (v1.15.0)
     // ========================================================================
 
@@ -569,6 +649,11 @@ class AuthController
     private function resolveSessions(): SessionRevokerService
     {
         return $this->sessions ??= Container::getInstance()->get(SessionRevokerService::class);
+    }
+
+    private function resolvePasswordReset(): PasswordResetService
+    {
+        return $this->passwordReset ??= Container::getInstance()->get(PasswordResetService::class);
     }
 
     /**

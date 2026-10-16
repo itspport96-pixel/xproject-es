@@ -142,6 +142,18 @@ $container->singleton(
     )
 );
 
+// Password Reset SSPR (v1.17.0): restablecimiento por correo transaccional.
+$container->singleton(
+    App\Core\Authentication\Service\PasswordResetService::class,
+    fn($c) => new App\Core\Authentication\Service\PasswordResetService(
+        $c->get('database'),
+        $c->get(App\Core\Authorization\Service\AuthorizationService::class),
+        $c->get(App\Core\Users\Service\UserService::class),
+        $c->get(App\Core\Tenants\Service\MailerService::class),
+        $c->get(App\Core\Audit\AuditLogger::class)
+    )
+);
+
 // ============================================
 // AUTHORIZATION SERVICE
 // ============================================

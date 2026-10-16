@@ -98,7 +98,33 @@
     "mfa_submit": "Verificar código",
     "mfa_back": "Voltar à senha",
     "mfa_required": "Introduza o código de verificação",
-    "mfa_invalid": "Código incorreto. Tente novamente."
+    "mfa_invalid": "Código incorreto. Tente novamente.",
+    "forgot_password": "Esqueceu a sua senha?"
+  },
+  "forgot": {
+    "title": "Recuperar senha",
+    "intro": "Introduza o seu email corporativo e enviaremos um link para redefinir a sua senha.",
+    "email_label": "Email corporativo",
+    "email_placeholder": "seu.email@empresa.com",
+    "submit": "Enviar link",
+    "submitting": "Enviando...",
+    "sent_generic": "Se o email estiver associado a uma conta autorizada, receberá um link para redefinir a sua senha.",
+    "back_to_login": "Voltar ao início de sessão",
+    "error_invalid_email": "Introduza um email válido"
+  },
+  "reset": {
+    "title": "Redefinir senha",
+    "intro": "Escolha uma nova senha para a sua conta.",
+    "password_label": "Nova senha",
+    "password_placeholder": "Introduza a nova senha",
+    "confirm_label": "Confirmar senha",
+    "confirm_placeholder": "Repita a nova senha",
+    "submit": "Guardar senha",
+    "submitting": "Guardando...",
+    "success": "Senha redefinida com sucesso. Já pode iniciar sessão.",
+    "invalid_token": "O link de redefinição não é válido ou expirou.",
+    "error_generic": "Não foi possível redefinir a senha. Solicite um novo link.",
+    "back_to_login": "Voltar ao início de sessão"
   },
   "loader": {
     "loading_module": "",
@@ -143,6 +169,8 @@
   },
   "routes": {
     "login": "",
+    "forgot_password": "Recuperar senha",
+    "reset_password": "Redefinir senha",
     "dashboard": "",
     "users": "",
     "roles": "",
@@ -2236,6 +2264,10 @@
       "password_digit": "",
       "password_special": "A senha deve conter pelo menos um caractere especial",
       "password_reused": "A nova senha não pode coincidir com uma senha anterior",
+      "reset_token_invalid": "O link de redefinição não é válido ou expirou.",
+      "reset_token_used": "O link de redefinição já foi utilizado.",
+      "reset_token_expired": "O link de redefinição expirou.",
+      "reset_permission_revoked": "A redefinição já não está autorizada.",
       "rate_limited": "",
       "email_password_required": "",
       "temp_password_expired": "",

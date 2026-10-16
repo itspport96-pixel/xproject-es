@@ -296,6 +296,8 @@
     // Sprint 1: Auth
     'auth/login': { path: 'auth/login.js' },
     'auth/state': { path: 'auth/state.js' },
+    'auth/forgot-password': { path: 'auth/forgot-password.js' },
+    'auth/reset-password': { path: 'auth/reset-password.js' },
 
     // Sprint 4.5: Dashboard
     'dashboard/dashboard': { path: 'dashboard/dashboard.js' },

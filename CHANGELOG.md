@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.0] - 2026-10-16
+
+**Password Reset SSPR (self-service password reset) por correo transaccional.** El login incorpora un enlace "¿Olvidaste tu contraseña?" siempre visible que abre una pantalla publica para solicitar un enlace de restablecimiento. El permiso `password_reset_self_service` (opt-in, concedido y revocado unicamente por administradores; sin asignar a ningun rol BUILT_IN) decide quien puede recibir y usar el enlace. El flujo: `POST /auth/forgot-password` responde SIEMPRE 200 con el mismo mensaje generico (anti-enumeracion: exista o no el email, este o no autorizado); si el usuario es elegible se crea un token criptografico (32 bytes aleatorios) del que solo se guarda el hash SHA-256, con caducidad de 15 minutos y un solo uso, y se envia por correo un enlace `#/reset-password?token=...`. `POST /auth/reset-password` re-verifica el permiso en el momento de fijar la contraseña, valida la politica de fortaleza (v1.16.0) ANTES de consumir el token, lo consume de forma atombica (`UPDATE ... WHERE used_at IS NULL`), cambia la contraseña via `UserService::changePassword` (politica + historial), revoca todas las sesiones del usuario y notifica al trabajador. La auditoria registra el resultado sin tokens ni contraseñas. La caducidad del token y la politica se validan tambien en cliente.
+
+### Added
+- `src/Core/Authentication/Service/PasswordResetService.php`: nucleo SSPR (`requestReset()` anti-enumeracion, `resetPassword()` con re-check de permiso, consumo atomico, delegacion de politica/historial a `UserService`, revocacion de sesiones y auditoria sin secretos; constantes `TOKEN_TTL_MINUTES=15` y `PERMISSION`). Sin `final` (decision: el doble de test sobreescribe `sendMail` para capturar el token sin tocar SMTP).
+- Tabla `password_reset_tokens` (BD viva): id char(36) PK, tenant_id FK->tenants, user_id FK->users, token_hash varchar(64) UNIQUE, created_at, expires_at datetime, used_at datetime NULL, ip_address varchar(45); `schema.sql` regenerado (SIN DRIFT, 33 tablas).
+- `src/Core/Authentication/Seeder/AuthPermissionSeeder.php`: siembra el permiso `password_reset_self_service` de forma idempotente, sin asignarlo a ningun rol (`ROLE_PERMISSIONS=[]`); conectado en `PlatformSeeder`.
+- Endpoints publicos `POST /api/auth/forgot-password` y `POST /api/auth/reset-password` (Audit + RateLimit `:5,900` por ruta; forgot ademas limita 3/900s por email con clave `forgot:email:` y responde igual aunque se supere el limite).
+- `public/js/modules/auth/forgot-password.js` y `reset-password.js`: formularios publicos (mensaje de exito SIEMPRE identico en forgot, politica de cliente en reset); registrados en `router.js`/`loader.js` como rutas publicas.
+- `tests/Unit/PasswordResetLiveTest.php` (10 tests, MySQL sobre `xproject_e2e`, sin SQLite): gating por permiso, hash SHA-256 (no plaintext), anti-enumeracion, un solo uso, invalidacion de token anterior, caducidad, re-check de permiso tras revocar, politica sin consumir token y no-reutilizacion.
+- `tools/smoke/smoke-sspr.mjs` (35 checks): enlace en login, formulario forgot generico (incluido en error de red) y reset (token, politica de cliente, exito + toast, error del backend).
+
+### Changed
+- `AuthController`: `forgotPassword()` (siempre 200 generico) y `resetPassword()` (lee `token` + `password_nuevo`; errores especificos 400/403 en el reset), mas `resetContext()`/`resolvePasswordReset()`.
+- `MailerService`: nuevo `sendCustom()` y `sendViaSmtp()` privado compartido con `sendTest()` para enviar el correo SSPR con la plantilla del tenant.
+- `bootstrap.php`: singleton `PasswordResetService` (database, AuthorizationService, UserService, MailerService, AuditLogger).
+- `public/js/modules/auth/login.js`: enlace `#login-forgot-wrap` (`#/forgot-password`) siempre visible; oculto en modo MFA.
+- `resources/locales/{es,en,pt,fr}.json`: `login.forgot_password`, `routes.forgot_password`/`reset_password`, bloques `forgot.*` y `reset.*`, y `api_errors.auth.reset_*` (4 claves leidas por `ErrorCatalog`).
+
+### Notes
+- Verificado en vivo end-to-end (API real): login admin MFA, GETs `/auth/me`/`/auth/mfa/status`/`/tenant` 200, forgot elegible 200 + token creado, inexistente/invalido 200 generico, reset fuerte 200, reuso 400, debil 400 sin consumir, caducado 400 y sin permiso 403 (`RESET_PERMISSION_REVOKED`); rate limit de ruta demostrado (429 en la 6a llamada) y limpiado; sin restos en la BD de trabajo. `composer test` 990/990; smokes 35+68+29+89+105+157 OK; `check-schema-drift` SIN DRIFT; `check-data-integrity` DATOS CONSISTENTES; `check-i18n` 0 errores.
+- Decision documentada: el token se CONSUME aunque el cambio posterior falle por reutilizacion de contraseña (politica), porque el consumo es atombico y previene reintentos con el mismo enlace; la politica se valida antes, asi que una password debil NO consume el token.
+- Desviacion reportada sin tocar (decision previa): `TenantService::validateAdminData()` sigue validando solo longitud >=8 para el admin de creacion de tenant (esa creacion aun no existe); no se le aplica la politica ni el SSPR.
+- Deuda preexistente reportada sin tocar: claves i18n sin uso en pt/fr y el resto (~220 avisos, ninguno SSPR); 2 deprecations de phpunit.
+
 ## [1.16.0] - 2026-10-16
 
 **Refuerzo de la politica de contrasenas: minimo 9 caracteres con mayuscula, minuscula, digito y caracter especial, y prohibicion de reutilizacion mediante historial.** La politica de password pasa de exigir minimo 8 caracteres (con mayuscula, minuscula y digito) a minimo 9 con mayuscula, minuscula, digito y al menos un caracter especial no alfanumerico. Ademas, cada cambio o reset de contrasena guarda el hash saliente en una tabla nueva `password_history`, y la politica rechaza cualquier password que coincida con la contrasena actual o con cualquiera de las anteriores del usuario. El frontend (validacion en cliente del formulario de cambio) aplica las mismas reglas.

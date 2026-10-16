@@ -19,6 +19,20 @@
       titleKey: 'routes.login',
       title: 'Log in'
     },
+    'forgot-password': {
+      module: 'auth/forgot-password',
+      container: 'module-container',
+      public: true,
+      titleKey: 'routes.forgot_password',
+      title: 'Forgot password'
+    },
+    'reset-password': {
+      module: 'auth/reset-password',
+      container: 'module-container',
+      public: true,
+      titleKey: 'routes.reset_password',
+      title: 'Reset password'
+    },
     'dashboard': {
       module: 'dashboard/dashboard',
       container: 'module-container',

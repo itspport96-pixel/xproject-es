@@ -98,7 +98,33 @@
     "mfa_submit": "Verify code",
     "mfa_back": "Back to password",
     "mfa_required": "Enter the verification code",
-    "mfa_invalid": "Incorrect code. Try again."
+    "mfa_invalid": "Incorrect code. Try again.",
+    "forgot_password": "Forgot your password?"
+  },
+  "forgot": {
+    "title": "Reset password",
+    "intro": "Enter your work email and we will send you a link to reset your password.",
+    "email_label": "Work email",
+    "email_placeholder": "you@company.com",
+    "submit": "Send link",
+    "submitting": "Sending...",
+    "sent_generic": "If the email is associated with an authorized account, you will receive a link to reset your password.",
+    "back_to_login": "Back to sign in",
+    "error_invalid_email": "Enter a valid email"
+  },
+  "reset": {
+    "title": "Reset password",
+    "intro": "Choose a new password for your account.",
+    "password_label": "New password",
+    "password_placeholder": "Enter the new password",
+    "confirm_label": "Confirm password",
+    "confirm_placeholder": "Repeat the new password",
+    "submit": "Save password",
+    "submitting": "Saving...",
+    "success": "Password reset successfully. You can now sign in.",
+    "invalid_token": "The reset link is not valid or has expired.",
+    "error_generic": "Could not reset the password. Request a new link.",
+    "back_to_login": "Back to sign in"
   },
   "loader": {
     "loading_module": "Loading module...",
@@ -143,6 +169,8 @@
   },
   "routes": {
     "login": "Sign in",
+    "forgot_password": "Forgot password",
+    "reset_password": "Reset password",
     "dashboard": "Dashboard",
     "users": "Users",
     "roles": "Roles",
@@ -2236,6 +2264,10 @@
       "password_digit": "Password must contain at least one digit",
       "password_special": "Password must contain at least one special character",
       "password_reused": "The new password cannot match a previous password",
+      "reset_token_invalid": "The reset link is not valid or has expired.",
+      "reset_token_used": "The reset link has already been used.",
+      "reset_token_expired": "The reset link has expired.",
+      "reset_permission_revoked": "Password reset is no longer authorized.",
       "rate_limited": "Too many attempts. Please wait a few minutes.",
       "email_password_required": "Email and password are required",
       "temp_password_expired": "The temporary password has expired; contact an administrator to reset it",

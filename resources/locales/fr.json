@@ -98,7 +98,33 @@
     "mfa_submit": "Vérifier le code",
     "mfa_back": "Retour au mot de passe",
     "mfa_required": "Saisissez le code de vérification",
-    "mfa_invalid": "Code incorrect. Réessayez."
+    "mfa_invalid": "Code incorrect. Réessayez.",
+    "forgot_password": "Mot de passe oublié ?"
+  },
+  "forgot": {
+    "title": "Récupérer le mot de passe",
+    "intro": "Saisissez votre e-mail professionnel et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+    "email_label": "E-mail professionnel",
+    "email_placeholder": "vous@entreprise.com",
+    "submit": "Envoyer le lien",
+    "submitting": "Envoi...",
+    "sent_generic": "Si l'e-mail est associé à un compte autorisé, vous recevrez un lien pour réinitialiser votre mot de passe.",
+    "back_to_login": "Retour à la connexion",
+    "error_invalid_email": "Saisissez un e-mail valide"
+  },
+  "reset": {
+    "title": "Réinitialiser le mot de passe",
+    "intro": "Choisissez un nouveau mot de passe pour votre compte.",
+    "password_label": "Nouveau mot de passe",
+    "password_placeholder": "Saisissez le nouveau mot de passe",
+    "confirm_label": "Confirmer le mot de passe",
+    "confirm_placeholder": "Resaisissez le nouveau mot de passe",
+    "submit": "Enregistrer le mot de passe",
+    "submitting": "Enregistrement...",
+    "success": "Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.",
+    "invalid_token": "Le lien de réinitialisation n'est pas valide ou a expiré.",
+    "error_generic": "Impossible de réinitialiser le mot de passe. Demandez un nouveau lien.",
+    "back_to_login": "Retour à la connexion"
   },
   "loader": {
     "loading_module": "",
@@ -143,6 +169,8 @@
   },
   "routes": {
     "login": "",
+    "forgot_password": "Mot de passe oublié",
+    "reset_password": "Réinitialiser le mot de passe",
     "dashboard": "",
     "users": "",
     "roles": "",
@@ -2236,6 +2264,10 @@
       "password_digit": "",
       "password_special": "Le mot de passe doit contenir au moins un caractère spécial",
       "password_reused": "Le nouveau mot de passe ne peut pas correspondre à un mot de passe précédent",
+      "reset_token_invalid": "Le lien de réinitialisation n'est pas valide ou a expiré.",
+      "reset_token_used": "Le lien de réinitialisation a déjà été utilisé.",
+      "reset_token_expired": "Le lien de réinitialisation a expiré.",
+      "reset_permission_revoked": "La réinitialisation n'est plus autorisée.",
       "rate_limited": "",
       "email_password_required": "",
       "temp_password_expired": "",

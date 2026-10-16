@@ -61,6 +61,13 @@
                         <span class="form-error hidden" data-error="password"></span>
                     </div>
 
+                    <!-- Password Reset SSPR (v1.17.0): enlace siempre visible -->
+                    <div class="text-right mb-2" id="login-forgot-wrap">
+                        <a href="#/forgot-password" id="login-forgot" class="text-xs">
+                            ${t('login.forgot_password')}
+                        </a>
+                    </div>
+
                     <!-- Paso MFA (v1.15.0): oculto hasta que el backend pida el código -->
                     <div class="form-group hidden" id="login-mfa-group">
                         <label class="form-label" for="login-mfa-code">
@@ -380,6 +387,8 @@
             const grp = el ? el.closest('.form-group') : null;
             if (grp) grp.classList.add('hidden');
         });
+        const forgotWrap = document.getElementById('login-forgot-wrap');
+        if (forgotWrap) forgotWrap.classList.add('hidden');
         const label = document.querySelector('#login-submit [data-label]');
         if (label) label.textContent = t('login.mfa_submit');
         const mfaInput = document.getElementById('login-mfa-code');
@@ -397,6 +406,8 @@
             const grp = el ? el.closest('.form-group') : null;
             if (grp) grp.classList.remove('hidden');
         });
+        const forgotWrap = document.getElementById('login-forgot-wrap');
+        if (forgotWrap) forgotWrap.classList.remove('hidden');
         const mfaInput = document.getElementById('login-mfa-code');
         if (mfaInput) {
             mfaInput.value = '';

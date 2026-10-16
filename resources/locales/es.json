@@ -98,7 +98,33 @@
     "mfa_submit": "Verificar código",
     "mfa_back": "Volver a la contraseña",
     "mfa_required": "Introduce el código de verificación",
-    "mfa_invalid": "Código incorrecto. Inténtalo de nuevo."
+    "mfa_invalid": "Código incorrecto. Inténtalo de nuevo.",
+    "forgot_password": "¿Olvidaste tu contraseña?"
+  },
+  "forgot": {
+    "title": "Recuperar contraseña",
+    "intro": "Introduce tu correo corporativo y te enviaremos un enlace para restablecer tu contraseña.",
+    "email_label": "Correo corporativo",
+    "email_placeholder": "tu.correo@empresa.com",
+    "submit": "Enviar enlace",
+    "submitting": "Enviando...",
+    "sent_generic": "Si el correo está asociado a una cuenta autorizada, recibirás un enlace para restablecer tu contraseña.",
+    "back_to_login": "Volver a iniciar sesión",
+    "error_invalid_email": "Introduce un correo válido"
+  },
+  "reset": {
+    "title": "Restablecer contraseña",
+    "intro": "Elige una nueva contraseña para tu cuenta.",
+    "password_label": "Nueva contraseña",
+    "password_placeholder": "Introduce la nueva contraseña",
+    "confirm_label": "Confirmar contraseña",
+    "confirm_placeholder": "Repite la nueva contraseña",
+    "submit": "Guardar contraseña",
+    "submitting": "Guardando...",
+    "success": "Contraseña restablecida correctamente. Ya puedes iniciar sesión.",
+    "invalid_token": "El enlace de restablecimiento no es válido o ha caducado.",
+    "error_generic": "No se pudo restablecer la contraseña. Solicita un enlace nuevo.",
+    "back_to_login": "Volver a iniciar sesión"
   },
   "loader": {
     "loading_module": "Cargando módulo...",
@@ -143,6 +169,8 @@
   },
   "routes": {
     "login": "Iniciar sesión",
+    "forgot_password": "Recuperar contraseña",
+    "reset_password": "Restablecer contraseña",
     "dashboard": "Dashboard",
     "users": "Usuarios",
     "roles": "Roles",
@@ -2236,6 +2264,10 @@
       "password_digit": "El password debe contener al menos un número",
       "password_special": "El password debe contener al menos un carácter especial",
       "password_reused": "La nueva contraseña no puede coincidir con una contraseña anterior",
+      "reset_token_invalid": "El enlace de restablecimiento no es válido o ha caducado.",
+      "reset_token_used": "El enlace de restablecimiento ya fue utilizado.",
+      "reset_token_expired": "El enlace de restablecimiento ha caducado.",
+      "reset_permission_revoked": "El restablecimiento ya no está autorizado.",
       "rate_limited": "Demasiados intentos. Espera unos minutos.",
       "email_password_required": "Email y password son obligatorios",
       "temp_password_expired": "El password temporal ha expirado; contacta con un administrador para reiniciarlo",

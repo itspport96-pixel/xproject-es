@@ -47,6 +47,19 @@ $router->post('/api/auth/refresh', [AuthController::class, 'refresh'], [
     RateLimitMiddleware::class . ':critical',
 ]);
 
+// Password Reset SSPR (v1.17.0): forgot-password y reset-password son
+// públicas (sin JWT; reset-password se autentica con el token del correo).
+// Rate limit por IP estricto; el límite por cuenta/token va en el controller
+// / servicio. AuditMiddleware registra el evento de seguridad.
+$router->post('/api/auth/forgot-password', [AuthController::class, 'forgotPassword'], [
+    AuditMiddleware::class,
+    RateLimitMiddleware::class . ':5,900',
+]);
+$router->post('/api/auth/reset-password', [AuthController::class, 'resetPassword'], [
+    AuditMiddleware::class,
+    RateLimitMiddleware::class . ':5,900',
+]);
+
 // ============================================
 // AUTH - Rutas protegidas (requieren token)
 // ============================================
