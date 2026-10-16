@@ -91,7 +91,14 @@
     "error_403": "Account not active. Contact your administrator.",
     "error_429": "Too many attempts. Wait a few minutes.",
     "error_408": "Request timed out. Check your connection.",
-    "error_invalid_response": "Invalid response from the server"
+    "error_invalid_response": "Invalid response from the server",
+    "mfa_label": "Verification code",
+    "mfa_placeholder": "123456",
+    "mfa_hint": "Enter the 6-digit code from your authenticator app, or a backup code.",
+    "mfa_submit": "Verify code",
+    "mfa_back": "Back to password",
+    "mfa_required": "Enter the verification code",
+    "mfa_invalid": "Incorrect code. Try again."
   },
   "loader": {
     "loading_module": "Loading module...",

@@ -91,7 +91,14 @@
     "error_403": "Cuenta no activa. Contacta al administrador.",
     "error_429": "Demasiados intentos. Espera unos minutos.",
     "error_408": "Tiempo de espera agotado. Verifica tu conexión.",
-    "error_invalid_response": "Respuesta inválida del servidor"
+    "error_invalid_response": "Respuesta inválida del servidor",
+    "mfa_label": "Código de verificación",
+    "mfa_placeholder": "123456",
+    "mfa_hint": "Introduce el código de 6 dígitos de tu app autenticadora, o un código de respaldo.",
+    "mfa_submit": "Verificar código",
+    "mfa_back": "Volver a la contraseña",
+    "mfa_required": "Introduce el código de verificación",
+    "mfa_invalid": "Código incorrecto. Inténtalo de nuevo."
   },
   "loader": {
     "loading_module": "Cargando módulo...",

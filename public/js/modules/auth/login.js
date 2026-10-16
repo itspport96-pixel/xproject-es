@@ -8,6 +8,10 @@
 
     let container = null;
     let isSubmitting = false;
+    // v1.15.0 MFA: cuando el backend responde mfa_required, se guarda aquí la
+    // credencial (email+password) para reenviar el login con mfa_code añadido.
+    let mfaPending = false;
+    let pendingCreds = null;
 
     // Plantilla construida en render() (NO al cargar el script): así los
     // literales pasan por t() con el diccionario ya inicializado.
@@ -57,6 +61,28 @@
                         <span class="form-error hidden" data-error="password"></span>
                     </div>
 
+                    <!-- Paso MFA (v1.15.0): oculto hasta que el backend pida el código -->
+                    <div class="form-group hidden" id="login-mfa-group">
+                        <label class="form-label" for="login-mfa-code">
+                            ${t('login.mfa_label')} <span class="required">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="login-mfa-code"
+                            name="mfa_code"
+                            class="input"
+                            placeholder="${t('login.mfa_placeholder')}"
+                            autocomplete="one-time-code"
+                            inputmode="numeric"
+                            maxlength="10"
+                        >
+                        <p class="form-hint text-xs text-muted mt-1">${t('login.mfa_hint')}</p>
+                        <span class="form-error hidden" data-error="mfa_code"></span>
+                        <button type="button" id="login-mfa-back" class="btn btn-ghost btn-sm mt-2">
+                            ${t('login.mfa_back')}
+                        </button>
+                    </div>
+
                     <button
                         type="submit"
                         id="login-submit"
@@ -94,12 +120,22 @@
         form.addEventListener('submit', handleSubmit);
 
         // Limpiar errores al escribir
-        ['email', 'password'].forEach(field => {
+        ['email', 'password', 'mfa_code'].forEach(field => {
             const input = document.getElementById(`login-${field}`);
             if (input) {
                 input.addEventListener('input', () => clearFieldError(field));
             }
         });
+
+        // Botón "volver" del paso MFA: regresa al formulario de contraseña
+        const mfaBack = document.getElementById('login-mfa-back');
+        if (mfaBack) {
+            mfaBack.addEventListener('click', () => {
+                exitMfaMode();
+                const pwd = document.getElementById('login-password');
+                if (pwd) pwd.focus();
+            });
+        }
     }
 
     function validate(data) {
@@ -150,7 +186,7 @@
     }
 
     function clearAllErrors() {
-        ['email', 'password'].forEach(clearFieldError);
+        ['email', 'password', 'mfa_code'].forEach(clearFieldError);
         const alert = document.getElementById('login-error');
         if (alert) {
             alert.textContent = '';
@@ -173,16 +209,20 @@
         const spinner = btn ? btn.querySelector('[data-spinner]') : null;
         const emailInput = document.getElementById('login-email');
         const passwordInput = document.getElementById('login-password');
+        const mfaInput = document.getElementById('login-mfa-code');
+        const mfaBack = document.getElementById('login-mfa-back');
 
         if (btn) btn.disabled = loading;
         if (emailInput) emailInput.disabled = loading;
         if (passwordInput) passwordInput.disabled = loading;
+        if (mfaInput) mfaInput.disabled = loading;
+        if (mfaBack) mfaBack.disabled = loading;
 
         if (loading) {
             if (label) label.textContent = t('login.submitting');
             if (spinner) spinner.classList.remove('hidden');
         } else {
-            if (label) label.textContent = t('login.submit');
+            if (label) label.textContent = mfaPending ? t('login.mfa_submit') : t('login.submit');
             if (spinner) spinner.classList.add('hidden');
         }
     }
@@ -196,21 +236,38 @@
 
         const emailInput = document.getElementById('login-email');
         const passwordInput = document.getElementById('login-password');
+        const mfaInput = document.getElementById('login-mfa-code');
 
         if (!emailInput || !passwordInput) return;
 
-        const data = {
-            email: emailInput.value.trim(),
-            password: passwordInput.value
-        };
-
-        const validation = validate(data);
-
-        if (!validation.valid) {
-            Object.entries(validation.errors).forEach(([field, msg]) => {
-                showFieldError(field, msg);
-            });
-            return;
+        let data;
+        if (mfaPending && pendingCreds) {
+            // Reenvío del login con el código MFA; se reutiliza la credencial
+            // guardada al entrar al paso del código.
+            const mfaCode = mfaInput ? mfaInput.value.trim() : '';
+            if (!mfaCode) {
+                showFieldError('mfa_code', t('login.mfa_required'));
+                return;
+            }
+            data = {
+                email: pendingCreds.email,
+                password: pendingCreds.password,
+                mfa_code: mfaCode
+            };
+        } else {
+            data = {
+                email: emailInput.value.trim(),
+                password: passwordInput.value
+            };
+            const validation = validate(data);
+            if (!validation.valid) {
+                Object.entries(validation.errors).forEach(([field, msg]) => {
+                    showFieldError(field, msg);
+                });
+                return;
+            }
+            // Se guarda para poder reenviar con mfa_code si el backend lo pide.
+            pendingCreds = { email: data.email, password: data.password };
         }
 
         setLoading(true);
@@ -224,9 +281,18 @@
                 requiresAuth: false
             });
 
+            // MFA requerido (200 sin tokens): entrar al paso del código.
+            if (response && response.data && response.data.mfa_required && !response.data.tokens) {
+                enterMfaMode();
+                return;
+            }
+
             if (!response || !response.data || !response.data.tokens || !response.data.user) {
                 throw new Error(t('login.error_invalid_response'));
             }
+
+            // Éxito: salir del modo MFA y continuar con la sesión.
+            exitMfaMode();
 
             // Guardar sesión
             if (global.AuthState) {
@@ -272,6 +338,16 @@
         } catch (error) {
             console.error('[LoginModule] Error:', error);
 
+            // Código MFA inválido (401 estando en el paso del código): se marca
+            // el campo y se permanece en el paso MFA para reintentar.
+            if (mfaPending && error.status === 401) {
+                showFieldError('mfa_code', t('login.mfa_invalid'));
+                return;
+            }
+
+            // Otro error (credenciales, rate limit, etc.): salir del paso MFA.
+            exitMfaMode();
+
             let message = t('login.error_generic');
 
             if (error.status === 401) {
@@ -292,6 +368,43 @@
         } finally {
             setLoading(false);
         }
+    }
+
+    /** Muestra el paso del código MFA y oculta email/contraseña. */
+    function enterMfaMode() {
+        mfaPending = true;
+        const mfaGroup = document.getElementById('login-mfa-group');
+        if (mfaGroup) mfaGroup.classList.remove('hidden');
+        ['login-email', 'login-password'].forEach(id => {
+            const el = document.getElementById(id);
+            const grp = el ? el.closest('.form-group') : null;
+            if (grp) grp.classList.add('hidden');
+        });
+        const label = document.querySelector('#login-submit [data-label]');
+        if (label) label.textContent = t('login.mfa_submit');
+        const mfaInput = document.getElementById('login-mfa-code');
+        if (mfaInput) mfaInput.focus();
+    }
+
+    /** Vuelve al formulario de contraseña y limpia el estado MFA. */
+    function exitMfaMode() {
+        mfaPending = false;
+        pendingCreds = null;
+        const mfaGroup = document.getElementById('login-mfa-group');
+        if (mfaGroup) mfaGroup.classList.add('hidden');
+        ['login-email', 'login-password'].forEach(id => {
+            const el = document.getElementById(id);
+            const grp = el ? el.closest('.form-group') : null;
+            if (grp) grp.classList.remove('hidden');
+        });
+        const mfaInput = document.getElementById('login-mfa-code');
+        if (mfaInput) {
+            mfaInput.value = '';
+            mfaInput.disabled = false;
+        }
+        clearFieldError('mfa_code');
+        const label = document.querySelector('#login-submit [data-label]');
+        if (label) label.textContent = t('login.submit');
     }
 
     const AuthLoginModule = {

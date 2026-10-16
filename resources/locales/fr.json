@@ -91,7 +91,14 @@
     "error_403": "",
     "error_429": "",
     "error_408": "",
-    "error_invalid_response": ""
+    "error_invalid_response": "",
+    "mfa_label": "Code de vérification",
+    "mfa_placeholder": "123456",
+    "mfa_hint": "Saisissez le code à 6 chiffres de votre application d'authentification, ou un code de secours.",
+    "mfa_submit": "Vérifier le code",
+    "mfa_back": "Retour au mot de passe",
+    "mfa_required": "Saisissez le code de vérification",
+    "mfa_invalid": "Code incorrect. Réessayez."
   },
   "loader": {
     "loading_module": "",
