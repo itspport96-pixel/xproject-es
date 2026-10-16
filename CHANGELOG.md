@@ -21,6 +21,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Notes
 - Sin cambios de contrato de API ni de frontend; el modulo settings sigue leyendo/escribiendo `configuracion` anidada.
 - Columna `configuracion` eliminada de `tenants` (DROP); `metadatos` sigue siendo JSON propio y no se toca.
+- `MailerService`: la password SMTP se limpia de espacios antes de autenticar (`preg_replace('/\s+/','',...)`), porque las App Password de Gmail se pegan con espacios de grupo (`xxxx xxxx xxxx xxxx`) pero el servidor las exige sin ellos en AUTH LOGIN.
 - Verificado contra la BD viva (`xproject`): `composer test` 969/969, `check-schema-drift` SIN DRIFT, `check-data-integrity` DATOS CONSISTENTES, smokes 68+89+105 OK; PATCH escribe en columnas (SQL directo) y la API compone `configuracion` desde las columnas.
 
 ## [1.14.1] - 2026-10-16

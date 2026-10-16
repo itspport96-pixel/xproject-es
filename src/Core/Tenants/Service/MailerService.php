@@ -83,7 +83,12 @@ final class MailerService
             if (!empty($smtp['username'])) {
                 $mail->SMTPAuth = true;
                 $mail->Username = (string) $smtp['username'];
-                $mail->Password = $password ?? '';
+                // App Password de Gmail: se pega con espacios de grupo
+                // (`xxxx xxxx xxxx xxxx`) pero Gmail la exige SIN espacios en
+                // AUTH LOGIN; se quitan antes de autenticar (v1.14.2).
+                $mail->Password = $password !== null
+                    ? (string) preg_replace('/\s+/', '', $password)
+                    : '';
             }
             $from = (string) ($smtp['from_email'] ?? $smtp['username'] ?? '');
             if ($from === '' || !filter_var($from, FILTER_VALIDATE_EMAIL)) {
