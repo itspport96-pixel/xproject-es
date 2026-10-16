@@ -179,7 +179,7 @@ final class MfaService
     public function status(string $userId): array
     {
         $user = $this->db->fetch(
-            "SELECT mfa_habilitado, mfa_metodo, mfa_secret
+            "SELECT mfa_habilitado, mfa_metodo, mfa_secret, mfa_backup_codes
              FROM users WHERE id = :id AND deleted_at IS NULL",
             ['id' => $userId]
         );
@@ -187,10 +187,13 @@ final class MfaService
             throw new RuntimeException('Usuario no encontrado.');
         }
         $secret = $user['mfa_secret'] ?? null;
+        $hashes = json_decode((string) ($user['mfa_backup_codes'] ?? ''), true);
         return [
             'habilitado'   => !empty($user['mfa_habilitado']),
             'metodo'       => $user['mfa_metodo'] ?? null,
             'pending_setup'=> !$user['mfa_habilitado'] && $secret !== null && $secret !== '',
+            // Códigos de respaldo aún no usados (para avisar en la UI).
+            'backup_codes_remaining' => is_array($hashes) ? count($hashes) : 0,
         ];
     }
 
