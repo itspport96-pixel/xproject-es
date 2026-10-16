@@ -39,7 +39,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $row ? Tenant::fromArray($row) : null;
+        return $row ? $this->hydrate($row) : null;
     }
 
     public function findByNombreInterno(string $nombreInterno): ?Tenant
@@ -51,7 +51,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute(['nombre_interno' => trim($nombreInterno)]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $row ? Tenant::fromArray($row) : null;
+        return $row ? $this->hydrate($row) : null;
     }
 
     public function findByDominioCustom(string $dominio): ?Tenant
@@ -63,7 +63,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute(['dominio' => trim($dominio)]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $row ? Tenant::fromArray($row) : null;
+        return $row ? $this->hydrate($row) : null;
     }
 
     public function findByOwnerUserId(string $ownerUserId): array
@@ -76,7 +76,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute(['owner' => $ownerUserId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Tenant::fromArray($row), $rows);
+        return array_map(fn(array $row) => $this->hydrate($row), $rows);
     }
 
     public function findAll(bool $soloActivos = true): array
@@ -91,7 +91,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Tenant::fromArray($row), $rows);
+        return array_map(fn(array $row) => $this->hydrate($row), $rows);
     }
 
     public function findByEstado(string $estado): array
@@ -103,7 +103,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute(['estado' => $estado]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Tenant::fromArray($row), $rows);
+        return array_map(fn(array $row) => $this->hydrate($row), $rows);
     }
 
     public function findByPlan(string $plan): array
@@ -115,7 +115,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute(['plan' => $plan]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Tenant::fromArray($row), $rows);
+        return array_map(fn(array $row) => $this->hydrate($row), $rows);
     }
 
     public function findOperativos(): array
@@ -130,7 +130,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Tenant::fromArray($row), $rows);
+        return array_map(fn(array $row) => $this->hydrate($row), $rows);
     }
 
     public function findPorExpirar(int $dias = 30): array
@@ -147,7 +147,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map(fn(array $row) => Tenant::fromArray($row), $rows);
+        return array_map(fn(array $row) => $this->hydrate($row), $rows);
     }
 
     // ========================================================================
@@ -164,16 +164,24 @@ final class TenantRepository implements TenantRepositoryInterface
             throw TenantException::dominioCustomAlreadyExists($tenant->dominioCustom());
         }
 
+        $settings = $this->decomposeConfig($tenant->configuracion());
+
         $sql = "INSERT INTO tenants
                 (id, nombre_publico, nombre_interno, estado, plan, owner_user_id,
                  fecha_creacion, fecha_expiracion, email_contacto, telefono, pais,
                  zona_horaria, idioma_default, logo_url, dominio_custom,
-                 configuracion, metadatos, created_at, updated_at)
+                 direccion, color_primario, moneda, formato_fecha, caducidad_password_dias,
+                 smtp_host, smtp_puerto, smtp_encryption, smtp_username, smtp_password,
+                 smtp_from_email, smtp_from_name,
+                 metadatos, created_at, updated_at)
                 VALUES
                 (:id, :nombre_publico, :nombre_interno, :estado, :plan, :owner_user_id,
                  :fecha_creacion, :fecha_expiracion, :email_contacto, :telefono, :pais,
                  :zona_horaria, :idioma_default, :logo_url, :dominio_custom,
-                 :configuracion, :metadatos, :created_at, :updated_at)";
+                 :direccion, :color_primario, :moneda, :formato_fecha, :caducidad_password_dias,
+                 :smtp_host, :smtp_puerto, :smtp_encryption, :smtp_username, :smtp_password,
+                 :smtp_from_email, :smtp_from_name,
+                 :metadatos, :created_at, :updated_at)";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
@@ -192,11 +200,10 @@ final class TenantRepository implements TenantRepositoryInterface
             'idioma_default'   => $tenant->idiomaDefault(),
             'logo_url'         => $tenant->logoUrl(),
             'dominio_custom'   => $tenant->dominioCustom(),
-            'configuracion'    => $this->encodeJson($tenant->configuracion()),
             'metadatos'        => $this->encodeJson($tenant->metadatos()),
             'created_at'       => $tenant->createdAt()->format('Y-m-d H:i:s'),
             'updated_at'       => $tenant->updatedAt()?->format('Y-m-d H:i:s'),
-        ]);
+        ] + $settings);
     }
 
     public function update(Tenant $tenant): void
@@ -223,6 +230,8 @@ final class TenantRepository implements TenantRepositoryInterface
             throw TenantException::nombreInternoAlreadyExists($tenant->nombreInterno());
         }
 
+        $settings = $this->decomposeConfig($tenant->configuracion());
+
         $sql = "UPDATE tenants
                 SET nombre_publico = :nombre_publico,
                     nombre_interno = :nombre_interno,
@@ -238,7 +247,18 @@ final class TenantRepository implements TenantRepositoryInterface
                     idioma_default = :idioma_default,
                     logo_url = :logo_url,
                     dominio_custom = :dominio_custom,
-                    configuracion = :configuracion,
+                    direccion = :direccion,
+                    color_primario = :color_primario,
+                    moneda = :moneda,
+                    formato_fecha = :formato_fecha,
+                    caducidad_password_dias = :caducidad_password_dias,
+                    smtp_host = :smtp_host,
+                    smtp_puerto = :smtp_puerto,
+                    smtp_encryption = :smtp_encryption,
+                    smtp_username = :smtp_username,
+                    smtp_password = :smtp_password,
+                    smtp_from_email = :smtp_from_email,
+                    smtp_from_name = :smtp_from_name,
                     metadatos = :metadatos,
                     updated_at = :updated_at
                 WHERE id = :id";
@@ -261,10 +281,9 @@ final class TenantRepository implements TenantRepositoryInterface
                 'idioma_default'     => $tenant->idiomaDefault(),
                 'logo_url'           => $tenant->logoUrl(),
                 'dominio_custom'     => $tenant->dominioCustom(),
-                'configuracion'      => $this->encodeJson($tenant->configuracion()),
                 'metadatos'          => $this->encodeJson($tenant->metadatos()),
                 'updated_at'         => $tenant->updatedAt()?->format('Y-m-d H:i:s'),
-            ]);
+            ] + $settings);
         } catch (PDOException $e) {
             // Carrera sobre el índice único uq_tenants_nombre_interno_hmac
             if ((string) $e->getCode() === '23000'
@@ -378,6 +397,80 @@ final class TenantRepository implements TenantRepositoryInterface
     // ========================================================================
     // HELPERS PRIVADOS
     // ========================================================================
+
+    /**
+     * Hidrata un tenant componiendo `configuracion` desde las columnas
+     * individuales (v1.14.2). La columna JSON `configuracion` ya no se usa
+     * para los ajustes: viven en columnas propias y aquí se reconstruye el
+     * array anidado que consumen servicio, marca y frontend.
+     */
+    private function hydrate(array $row): Tenant
+    {
+        $row['configuracion'] = $this->composeConfig($row);
+        return Tenant::fromArray($row);
+    }
+
+    /** Reconstruye el array `configuracion` (perfil/apariencia/regional/seguridad/smtp) desde las columnas. */
+    private function composeConfig(array $row): ?array
+    {
+        $config = [];
+
+        if (($row['direccion'] ?? null) !== null) {
+            $config['perfil']['direccion'] = $row['direccion'];
+        }
+        if (($row['color_primario'] ?? null) !== null) {
+            $config['apariencia']['color_primario'] = $row['color_primario'];
+        }
+        if (($row['moneda'] ?? null) !== null) {
+            $config['regional']['moneda'] = $row['moneda'];
+        }
+        if (($row['formato_fecha'] ?? null) !== null) {
+            $config['regional']['formato_fecha'] = $row['formato_fecha'];
+        }
+        if (($row['caducidad_password_dias'] ?? null) !== null) {
+            $config['seguridad']['caducidad_password_dias'] = (int) $row['caducidad_password_dias'];
+        }
+        if (($row['smtp_host'] ?? null) !== null) {
+            $config['smtp'] = [
+                'host'       => $row['smtp_host'],
+                'puerto'     => isset($row['smtp_puerto']) && $row['smtp_puerto'] !== null ? (int) $row['smtp_puerto'] : null,
+                'encryption' => $row['smtp_encryption'] ?? null,
+                'username'   => $row['smtp_username'] ?? null,
+                'password'   => $row['smtp_password'] ?? null,
+                'from_email' => $row['smtp_from_email'] ?? null,
+                'from_name'  => $row['smtp_from_name'] ?? null,
+            ];
+        }
+
+        return $config === [] ? null : $config;
+    }
+
+    /** Descompone el array `configuracion` en las columnas individuales que se persisten. */
+    private function decomposeConfig(?array $config): array
+    {
+        $config    = $config ?? [];
+        $perfil    = $config['perfil'] ?? [];
+        $apariencia = $config['apariencia'] ?? [];
+        $regional  = $config['regional'] ?? [];
+        $seguridad = $config['seguridad'] ?? [];
+        $smtp      = $config['smtp'] ?? [];
+
+        return [
+            'direccion'               => $perfil['direccion'] ?? null,
+            'color_primario'          => $apariencia['color_primario'] ?? null,
+            'moneda'                  => $regional['moneda'] ?? null,
+            'formato_fecha'           => $regional['formato_fecha'] ?? null,
+            'caducidad_password_dias' => isset($seguridad['caducidad_password_dias']) && $seguridad['caducidad_password_dias'] !== null
+                ? (int) $seguridad['caducidad_password_dias'] : null,
+            'smtp_host'       => $smtp['host'] ?? null,
+            'smtp_puerto'     => isset($smtp['puerto']) && $smtp['puerto'] !== null ? (int) $smtp['puerto'] : null,
+            'smtp_encryption' => $smtp['encryption'] ?? null,
+            'smtp_username'   => $smtp['username'] ?? null,
+            'smtp_password'   => $smtp['password'] ?? null,
+            'smtp_from_email' => $smtp['from_email'] ?? null,
+            'smtp_from_name'  => $smtp['from_name'] ?? null,
+        ];
+    }
 
     private function encodeJson(?array $data): ?string
     {

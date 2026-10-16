@@ -495,25 +495,24 @@ final class UserService
     }
 
     /**
-     * Calcula la fecha de expiración según configuracion.seguridad
-     * .caducidad_password_dias del tenant (v1.14.1).
+     * Calcula la fecha de expiración según la columna caducidad_password_dias
+     * del tenant (v1.14.1, refact. v1.14.2: la política vive en su propia
+     * columna, ya no en el JSON configuracion).
      *
      * @return string|null Fecha 'Y-m-d H:i:s' o null si no hay política
      */
     private function passwordExpiryFromPolicy(string $tenantId): ?string
     {
         $stmt = $this->db->getConnection()->prepare(
-            "SELECT configuracion FROM tenants WHERE id = :id AND deleted_at IS NULL"
+            "SELECT caducidad_password_dias FROM tenants WHERE id = :id AND deleted_at IS NULL"
         );
         $stmt->execute(['id' => $tenantId]);
-        $raw = $stmt->fetchColumn();
-        if ($raw === false || $raw === null || $raw === '') {
+        $dias = $stmt->fetchColumn();
+        if ($dias === false || $dias === null || $dias === '') {
             return null;
         }
-
-        $config = json_decode((string) $raw, true);
-        $dias = $config['seguridad']['caducidad_password_dias'] ?? null;
-        if (!is_int($dias) || $dias < 1) {
+        $dias = (int) $dias;
+        if ($dias < 1) {
             return null;
         }
 

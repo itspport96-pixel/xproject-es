@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.14.2] - 2026-10-16
+
+**Refactor de almacenamiento: los ajustes del tenant dejan de vivir en el JSON `tenants.configuracion` y pasan a columnas individuales.** Todos los datos del formulario de Configuracion que hasta ahora se persistian anidados en la columna `configuracion` (direccion, color primario, moneda, formato de fecha, caducidad de contrasena y el bloque SMTP completo) se guardan ahora cada uno en su propia columna de `tenants`. El contrato de API no cambia: `GET/PATCH /api/tenant` siguen exponiendo y aceptando `configuracion` anidada; el backend la compone desde las columnas al leer y la descompone al escribir. La columna `configuracion` queda residuada a NULL y sin uso. Corrige ademas un bug: `MailerService` recibia `smtp.password` ya enmascarada (null) porque `TenantService::findById` devuelve la version publica; ahora lee la entidad cruda via `TenantService::findEntity()` y autentica de verdad contra el SMTP.
+
+### Added
+- 12 columnas en `tenants` (todas nullable, anidadas tras `dominio_custom`): `direccion` varchar(500), `color_primario` varchar(7), `moneda` varchar(10), `formato_fecha` varchar(20), `caducidad_password_dias` int unsigned, `smtp_host` varchar(255), `smtp_puerto` int unsigned, `smtp_encryption` varchar(10), `smtp_username` varchar(255), `smtp_password` varchar(1024) (cifrada), `smtp_from_email` varchar(255), `smtp_from_name` varchar(255). Migracion de datos del JSON a columnas y `configuracion` a NULL en la BD viva.
+- `TenantService::findEntity(string $id): ?Tenant`: devuelve la entidad cruda (password SMTP sin enmascarar) para uso interno (MailerService).
+
+### Changed
+- `TenantRepository`: nuevos helpers `composeConfig()` (reconstruye el array `configuracion` desde las columnas al hidratar) y `decomposeConfig()` (la descompone al persistir); `hydrate()` aplica la composicion en todos los find; `save()`/`update()` escriben las 12 columnas y dejan de usar la columna `configuracion`.
+- `MailerService::sendTest()`: usa `findEntity()` y lee la config desde la entidad, no desde el array publico enmascarado.
+- `UserService::passwordExpiryFromPolicy()`: lee `caducidad_password_dias` de su columna (antes decodificaba el JSON `configuracion`).
+- `tools/smoke/smoke-v11358.mjs`: fixture de version a 1.14.2.
+
+### Notes
+- Sin cambios de contrato de API ni de frontend; el modulo settings sigue leyendo/escribiendo `configuracion` anidada.
+- Verificado contra la BD viva (`xproject`): `composer test` 969/969, `check-schema-drift` SIN DRIFT, `check-data-integrity` DATOS CONSISTENTES, smokes 68+89+105 OK; PATCH escribe en columnas (SQL directo) y `configuracion` permanece NULL.
+
 ## [1.14.1] - 2026-10-16
 
 **SMTP con PHPMailer y politica de caducidad de contrasena: formulario de configuracion completa del tenant en 4 pestanas con un unico boton de guardar.** El modulo de Configuracion se reorganiza en General (identidad, perfil y logo), Apariencia, Localizacion (pais ISO 3166-1 alpha-2, zona horaria, idioma, moneda y formato) y Seguridad (caducidad de contrasena, hueco MFA y SMTP); un solo boton global recoge los diffs de todos los formularios y envia un unico PATCH. El password SMTP se cifra en la BD con `EncryptionService`, se oculta en toda respuesta API (flag `password_configurada`) y nunca se reenvia al frontend. Sin cambios de esquema.

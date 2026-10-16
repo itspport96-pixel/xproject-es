@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace App\Core\Tenants\Service;
 
+use App\Core\Tenants\Entity\Tenant;
 use App\Core\Tenants\Exception\TenantException;
 use PHPMailer\PHPMailer\PHPMailer;
 use RuntimeException;
 
 /**
- * Envío de correos del tenant por su propio SMTP (v1.14.1).
+ * Envío de correos del tenant por su propio SMTP (v1.14.1, refact. v1.14.2).
  *
- * Usa PHPMailer (composer) con la sección `configuracion.smtp` del tenant:
- * {host, puerto, encryption, username, password (cifrada), from_email,
- * from_name}. La password se descifra aquí con EncryptionService; nunca
- * viaja en claro por la API (Tenant::toPublicArray la enmascara).
+ * Usa PHPMailer (composer) con las columnas `smtp_*` del tenant (host, puerto,
+ * encryption, username, password cifrada, from_email, from_name). La password
+ * se descifra aquí con EncryptionService; nunca viaja en claro por la API
+ * (Tenant::toPublicArray la enmascara).
  *
  * El primer uso práctico es el botón "Enviar correo de prueba" del
  * formulario de settings (POST /api/tenant/smtp/test).
@@ -37,12 +38,14 @@ final class MailerService
      */
     public function sendTest(string $tenantId, ?string $destino = null): string
     {
-        $tenant = $this->tenants->findById($tenantId);
+        /** @var Tenant|null $tenant Entidad cruda (password SMTP sin enmascarar). */
+        $tenant = $this->tenants->findEntity($tenantId);
         if ($tenant === null) {
             throw TenantException::tenantNotFound($tenantId);
         }
 
-        $smtp = $tenant['configuracion']['smtp'] ?? null;
+        $config = $tenant->configuracion() ?? [];
+        $smtp = $config['smtp'] ?? null;
         if (!is_array($smtp) || empty($smtp['host'])) {
             throw (new TenantException('El tenant no tiene SMTP configurado.', 400))
                 ->withMessageKey('tenants.smtp_not_configured');
@@ -50,7 +53,7 @@ final class MailerService
 
         $destino = $destino !== null && $destino !== ''
             ? trim($destino)
-            : (string) ($tenant['email_contacto'] ?? '');
+            : (string) ($tenant->emailContacto() ?? '');
         if ($destino === '' || !filter_var($destino, FILTER_VALIDATE_EMAIL)) {
             throw (new TenantException('No hay un email de destino válido.', 400))
                 ->withMessageKey('tenants.smtp_no_destino');
@@ -63,6 +66,8 @@ final class MailerService
             $encryption = $container->get(\App\Core\Security\Service\EncryptionService::class);
             $password = $encryption->decryptFromStorage((string) $smtp['password']);
         }
+
+        $nombrePublico = (string) $tenant->nombrePublico();
 
         $mail = new PHPMailer(true);
         try {
@@ -84,12 +89,12 @@ final class MailerService
             if ($from === '' || !filter_var($from, FILTER_VALIDATE_EMAIL)) {
                 $from = $destino;
             }
-            $mail->setFrom($from, (string) ($smtp['from_name'] ?? $tenant['nombre_publico'] ?? ''));
+            $mail->setFrom($from, (string) ($smtp['from_name'] ?? $nombrePublico));
             $mail->addAddress($destino);
             $mail->isHTML(true);
-            $mail->Subject = 'Prueba SMTP - ' . ($tenant['nombre_publico'] ?? 'Tenant');
+            $mail->Subject = 'Prueba SMTP - ' . $nombrePublico;
             $mail->Body = '<p>Correo de prueba enviado desde la configuración de <strong>'
-                . htmlspecialchars((string) ($tenant['nombre_publico'] ?? ''), ENT_QUOTES, 'UTF-8')
+                . htmlspecialchars($nombrePublico, ENT_QUOTES, 'UTF-8')
                 . '</strong>.</p>';
             $mail->send();
         } catch (\Throwable $e) {

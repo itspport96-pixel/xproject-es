@@ -290,6 +290,15 @@ final class TenantService
     }
 
     /**
+     * Devuelve la entidad cruda del tenant (v1.14.2), SIN enmascarar la
+     * password SMTP. Lo necesita MailerService para descifrarla y autenticar.
+     */
+    public function findEntity(string $id): ?Tenant
+    {
+        return $this->tenants->findById($id);
+    }
+
+    /**
      * Busca un tenant por nombre_interno.
      */
     public function findByNombreInterno(string $nombreInterno): ?array
