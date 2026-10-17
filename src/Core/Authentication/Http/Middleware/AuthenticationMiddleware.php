@@ -23,7 +23,8 @@ use UnexpectedValueException;
  * - Verificar que sea un token de tipo "access" (no refresh)
  * - Verificar que el usuario exista, esté activo y no esté eliminado
  * - Bloquear con 403 password_change_required cuando el usuario tiene el
- *   marcador fecha_expiracion_password (v1.11.0), salvo allowlist de rutas
+ *   marcador password_change_forced (temporal) o fecha_expiracion_password
+ *   vencida (caducidad), salvo allowlist de rutas
  * - Aplicar la ventana de inactividad (Redis session:act:{fam}):
  *   rechazar si venció o la sesión fue cerrada; renovar si está activa
  * - Inyectar los claims del usuario en $request['user']
@@ -50,8 +51,8 @@ class AuthenticationMiddleware
 {
     /**
      * Allowlist del cambio forzado de contraseña (v1.11.0): rutas a las que
-     * puede llamarse con users.fecha_expiracion_password marcada. Todo lo
-     * demás responde 403 category=password_change_required.
+     * puede llamarse con password_change_forced marcada o caducidad vencida.
+     * Todo lo demás responde 403 category=password_change_required.
      */
     private const PASSWORD_CHANGE_ALLOWED_PATHS = [
         '/api/auth/login',
@@ -107,18 +108,24 @@ class AuthenticationMiddleware
                 throw new InvalidTokenException('Claims incompletos en el token', 401);
             }
 
-            // Usuario activo + marcador de cambio de contraseña (v1.11.0)
+            // Usuario activo + marcadores de cambio de contraseña (v1.11.0)
             $state = $this->users->getAuthState((string) $claims['user_id'], (string) $claims['tenant_id']);
 
             if ($state === null || $state['estado'] !== 'ACTIVO') {
                 throw new InvalidTokenException('Usuario inactivo o eliminado', 401);
             }
 
-            if (
-                $state['fecha_expiracion_password'] !== null
-                && $state['fecha_expiracion_password'] !== ''
-                && !$this->isPasswordChangeAllowed($request)
-            ) {
+            // password_change_forced: cambio forzado temporal (admin reset /
+            // password autogenerada). Cualquier valor puesto exige cambio.
+            // fecha_expiracion_password: expiración forward de caducidad
+            // (v1.14.1). Solo fuerza cuando está en el PASADO (vencida); una
+            // fecha futura significa contraseña aún válida. Esto corrige el
+            // bucle infinito v1.17.0 (antes cualquier no-nulo forzaba cambio).
+            $caducidadVencida = !empty($state['fecha_expiracion_password'])
+                && $state['fecha_expiracion_password'] < date('Y-m-d H:i:s');
+            $debeCambiar = !empty($state['password_change_forced']) || $caducidadVencida;
+
+            if ($debeCambiar && !$this->isPasswordChangeAllowed($request)) {
                 throw new PasswordChangeRequiredException();
             }
 

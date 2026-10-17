@@ -158,12 +158,21 @@ class AuthController
 
         // Password temporal / cambio de contraseña obligatorio (v1.11.0):
         // el login se concede pero el token queda bloqueado (403
-        // password_change_required) salvo en la allowlist de cambio. Si la
-        // vigencia ya venció, ni siquiera se concede el login.
+        // password_change_required) salvo en la allowlist de cambio.
+        //
+        // Temporal (password_change_forced, admin reset / autogenerada):
+        // si la vigencia ya venció, ni siquiera se concede el login
+        // (contacta con un administrador para reiniciarla).
+        //
+        // Caducidad (fecha_expiracion_password, v1.14.1): expiración forward
+        // calculada al cambiar la contraseña. Si venció, el login se concede
+        // (exitoso) pero se fuerza el cambio; NO se bloquea el login.
         $passwordChangeRequired = false;
-        if (!empty($user['fecha_expiracion_password'])) {
+        $now = date('Y-m-d H:i:s');
+
+        if (!empty($user['password_change_forced'])) {
             $passwordChangeRequired = true;
-            if ($user['fecha_expiracion_password'] < date('Y-m-d H:i:s')) {
+            if ($user['password_change_forced'] < $now) {
                 $this->auditLogin($request, $tenantId, (string) $user['id'], [
                     'resultado' => 'FAILURE',
                     'razon_fallo' => 'Password temporal expirado',
@@ -174,6 +183,10 @@ class AuthController
                     'auth.temp_password_expired'
                 );
             }
+        }
+
+        if (!empty($user['fecha_expiracion_password']) && $user['fecha_expiracion_password'] < $now) {
+            $passwordChangeRequired = true;
         }
 
         if (!$this->isTenantActive($tenantId)) {
@@ -391,10 +404,11 @@ class AuthController
      * POST /api/auth/change-password (v1.11.0).
      *
      * Valida la contraseña actual, aplica la política de fortaleza, limpia
-     * el marcador fecha_expiracion_password y revoca el resto de sesiones
+     * el marcador password_change_forced y revoca el resto de sesiones
      * del usuario (la actual se conserva). Es la única vía de salida del
      * cambio forzado: la allowlist del middleware permite esta ruta con el
-     * marcador activo.
+     * marcador activo. La caducidad forward (fecha_expiracion_password) se
+     * recalcula en UserService::changePassword.
      */
     public function changePassword(array $request = []): array
     {

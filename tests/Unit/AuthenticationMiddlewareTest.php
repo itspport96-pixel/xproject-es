@@ -8,43 +8,63 @@ use App\Core\Authentication\Exception\PasswordChangeRequiredException;
 use App\Core\Authentication\Http\Middleware\AuthenticationMiddleware;
 use App\Core\Authentication\Repository\UserRepository;
 use App\Core\Authentication\Service\JwtService;
+use App\Shared\Container\Container;
 use App\Shared\Exceptions\InvalidTokenException;
 use App\Shared\Exceptions\TokenExpiredException;
+use App\Shared\Services\DatabaseService;
+use Dotenv\Dotenv;
 use Firebase\JWT\ExpiredException;
-use Tests\Support\PlatformControlSqliteTestCase;
+use PDO;
+use PHPUnit\Framework\TestCase;
 
 /**
- * AuthenticationMiddleware (deuda v1.13.3: sólo se testaba que las rutas
- * lo declararan, nunca su comportamiento).
+ * AuthenticationMiddleware contra MySQL REAL (xproject_e2e, regla 16).
+ *
+ * Sin SQLite: getAuthState se valida de verdad contra el motor real. Se salta
+ * (skip) si MySQL no está disponible.
  *
  * Cubre el contrato que depende de datos vivos de BD (getAuthState) y de la
- * allowlist de cambio forzado de contraseña (v1.11.0):
+ * allowlist de cambio forzado de contraseña:
  *  - sin token / claims incompletos / tipo refresh -> 401.
  *  - usuario INACTIVO o soft-deleteado -> 401.
- *  - fecha_expiracion_password marcada -> 403 password_change_required,
+ *  - password_change_forced (temporal) marcado -> 403 password_change_required,
  *    salvo rutas de la allowlist (exactas y prefijo /api/locales).
+ *  - fecha_expiracion_password VENCIDA (caducidad) -> 403 password_change_required.
+ *  - fecha_expiracion_password FUTURA (caducidad no vencida) -> NO 403
+ *    (regresión del bucle infinito v1.17.0).
  *  - token expirado (ExpiredException de Firebase) -> TokenExpiredException.
  *  - happy path: inyecta los claims en $request['user'].
  *
  * Los tokens se stubban en JwtService (el decode real está en JwtServiceTest);
- * el repositorio de usuarios es el REAL sobre SQLite porque getAuthState es
+ * el repositorio de usuarios es el REAL sobre MySQL porque getAuthState es
  * la comprobación que queremos cubrir.
  */
-final class AuthenticationMiddlewareTest extends PlatformControlSqliteTestCase
+final class AuthenticationMiddlewareTest extends TestCase
 {
     private const USER = 'u-mw-pcs';
     private const PATH = '/api/users';
 
+    private PDO $pdo;
+    private DatabaseService $db;
+    private string $tenantId;
+    /** @var int<string> ids de usuarios sembrados (para limpieza) */
+    private array $seeded = [];
     private mixed $prevAuth;
 
     protected function setUp(): void
     {
-        parent::setUp();
+        Container::setInstance(new Container());
+
+        $this->pdo = $this->connectE2e();
+        $this->db = new DatabaseService([]);
+        $this->db->setConnection($this->pdo);
 
         $this->prevAuth = $_SERVER['HTTP_AUTHORIZATION'] ?? null;
         unset($_SERVER['HTTP_AUTHORIZATION']);
 
-        $this->seedUser(self::USER);
+        $this->tenantId = $this->anyTenantId();
+        $this->seeded = [];
+        $this->seedUser(self::USER, 'ACTIVO', $this->tenantId);
     }
 
     protected function tearDown(): void
@@ -55,7 +75,11 @@ final class AuthenticationMiddlewareTest extends PlatformControlSqliteTestCase
             $_SERVER['HTTP_AUTHORIZATION'] = $this->prevAuth;
         }
 
-        parent::tearDown();
+        foreach ($this->seeded as $id) {
+            $this->pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$id]);
+        }
+
+        Container::resetInstance();
     }
 
     // ====================================================================
@@ -84,7 +108,7 @@ final class AuthenticationMiddlewareTest extends PlatformControlSqliteTestCase
         return array_merge([
             'type' => 'access',
             'user_id' => self::USER,
-            'tenant_id' => self::TENANT,
+            'tenant_id' => $this->tenantId,
         ], $overrides);
     }
 
@@ -101,6 +125,66 @@ final class AuthenticationMiddlewareTest extends PlatformControlSqliteTestCase
             'body' => [],
             'claims' => $claims,
         ];
+    }
+
+    private function seedUser(string $id, string $estado = 'ACTIVO', ?string $tenantId = null): void
+    {
+        $this->pdo->prepare(
+            'DELETE FROM users WHERE id = ?'
+        )->execute([$id]);
+
+        $this->pdo->prepare(
+            'INSERT INTO users (id, tenant_id, email, nombre, apellido, password, estado, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())'
+        )->execute([
+            $id,
+            $tenantId ?? $this->tenantId,
+            $id . '@mw-test.local',
+            'MW',
+            'Test',
+            'hash-de-test-no-valido',
+            $estado,
+        ]);
+
+        $this->seeded[] = $id;
+    }
+
+    private function connectE2e(): PDO
+    {
+        $base = dirname(__DIR__, 2);
+        (Dotenv::createImmutable($base))->safeLoad();
+
+        $host = (string) ($_ENV['DB_HOST'] ?? '127.0.0.1');
+        $port = (string) ($_ENV['DB_PORT'] ?? '3306');
+        $user = (string) ($_ENV['DB_USERNAME'] ?? 'root');
+        $pass = (string) ($_ENV['DB_PASSWORD'] ?? '');
+        $dbname = 'xproject_e2e';
+
+        try {
+            $pdo = new PDO(
+                "mysql:host={$host};port={$port};dbname={$dbname};charset=utf8mb4",
+                $user,
+                $pass,
+                [
+                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                ]
+            );
+        } catch (\Throwable $e) {
+            $this->markTestSkipped('MySQL xproject_e2e no disponible: ' . $e->getMessage());
+        }
+
+        return $pdo;
+    }
+
+    private function anyTenantId(): string
+    {
+        $id = $this->pdo->query('SELECT id FROM tenants LIMIT 1')->fetchColumn();
+        if ($id === false || $id === null || $id === '') {
+            $this->markTestSkipped('No hay tenant en xproject_e2e');
+        }
+
+        return (string) $id;
     }
 
     // ====================================================================
@@ -163,7 +247,7 @@ final class AuthenticationMiddlewareTest extends PlatformControlSqliteTestCase
     {
         $middleware = $this->middleware([
             'type' => 'access',
-            'tenant_id' => self::TENANT,
+            'tenant_id' => $this->tenantId,
         ]);
 
         $this->expectException(InvalidTokenException::class);
@@ -173,7 +257,7 @@ final class AuthenticationMiddlewareTest extends PlatformControlSqliteTestCase
     }
 
     // ====================================================================
-    // ESTADO DE LA CUENTA (getAuthState real sobre SQLite)
+    // ESTADO DE LA CUENTA (getAuthState real sobre MySQL)
     // ====================================================================
 
     public function testHappyPathInyectaLosClaimsEnElRequest(): void
@@ -185,7 +269,7 @@ final class AuthenticationMiddlewareTest extends PlatformControlSqliteTestCase
 
         $this->assertSame($claims, $result['user'], 'Debe inyectar los claims completos');
         $this->assertSame(self::USER, $result['user']['user_id']);
-        $this->assertSame(self::TENANT, $result['user']['tenant_id']);
+        $this->assertSame($this->tenantId, $result['user']['tenant_id']);
     }
 
     public function testUsuarioInactivoDevuelve401(): void
@@ -214,7 +298,8 @@ final class AuthenticationMiddlewareTest extends PlatformControlSqliteTestCase
 
     public function testUsuarioDeOtroTenantDevuelve401(): void
     {
-        $this->seedUser('u-mw-otro-tenant-pcs', 'ACTIVO', 'tenant-otro');
+        $otroTenant = 'tenant-otro-mw-' . bin2hex(random_bytes(4));
+        $this->seedUser('u-mw-otro-tenant-pcs', 'ACTIVO', $otroTenant);
         $middleware = $this->middleware($this->accessClaims(['user_id' => 'u-mw-otro-tenant-pcs']));
 
         $this->expectException(InvalidTokenException::class);
@@ -224,12 +309,12 @@ final class AuthenticationMiddlewareTest extends PlatformControlSqliteTestCase
     }
 
     // ====================================================================
-    // CAMBIO FORZADO DE CONTRASEÑA (v1.11.0)
+    // CAMBIO FORZADO DE CONTRASEÑA
     // ====================================================================
 
-    public function testPasswordExpiradaEnRutaNormalDevuelve403PasswordChangeRequired(): void
+    public function testPasswordChangeForcedEnRutaNormalDevuelve403(): void
     {
-        $this->pdo->prepare('UPDATE users SET fecha_expiracion_password = :exp WHERE id = :id')
+        $this->pdo->prepare('UPDATE users SET password_change_forced = :exp WHERE id = :id')
             ->execute(['exp' => gmdate('Y-m-d H:i:s', time() + 3600), 'id' => self::USER]);
 
         $middleware = $this->middleware($this->accessClaims());
@@ -244,10 +329,38 @@ final class AuthenticationMiddlewareTest extends PlatformControlSqliteTestCase
         }
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('allowlistProvider')]
-    public function testPasswordExpiradaPermiteLasRutasDeLaAllowlist(string $path): void
+    public function testCaducidadVencidaDevuelve403PasswordChangeRequired(): void
     {
         $this->pdo->prepare('UPDATE users SET fecha_expiracion_password = :exp WHERE id = :id')
+            ->execute(['exp' => gmdate('Y-m-d H:i:s', time() - 60), 'id' => self::USER]);
+
+        $middleware = $this->middleware($this->accessClaims());
+
+        try {
+            $middleware->handle($this->authRequest());
+            $this->fail('Se esperaba PasswordChangeRequiredException');
+        } catch (PasswordChangeRequiredException $e) {
+            $this->assertSame(403, $e->getStatusCode());
+            $this->assertSame('password_change_required', $e->getCategory());
+        }
+    }
+
+    public function testCaducidadFuturaNoFuerzaCambio(): void
+    {
+        $this->pdo->prepare('UPDATE users SET fecha_expiracion_password = :exp WHERE id = :id')
+            ->execute(['exp' => gmdate('Y-m-d H:i:s', time() + 3600), 'id' => self::USER]);
+
+        $middleware = $this->middleware($this->accessClaims());
+
+        $result = $middleware->handle($this->authRequest());
+
+        $this->assertSame(self::USER, $result['user']['user_id'], 'Caducidad futura NO debe forzar cambio (regresión del bucle v1.17.0)');
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('allowlistProvider')]
+    public function testPasswordChangeForcedPermiteLasRutasDeLaAllowlist(string $path): void
+    {
+        $this->pdo->prepare('UPDATE users SET password_change_forced = :exp WHERE id = :id')
             ->execute(['exp' => gmdate('Y-m-d H:i:s', time() + 3600), 'id' => self::USER]);
 
         $middleware = $this->middleware($this->accessClaims());
@@ -268,11 +381,8 @@ final class AuthenticationMiddlewareTest extends PlatformControlSqliteTestCase
         ];
     }
 
-    public function testPasswordExpiradaNoAplicaSiLaMarcaEstaVacia(): void
+    public function testSinMarcadoresNoAplicaCambioForzado(): void
     {
-        $this->pdo->prepare("UPDATE users SET fecha_expiracion_password = '' WHERE id = :id")
-            ->execute(['id' => self::USER]);
-
         $middleware = $this->middleware($this->accessClaims());
 
         $result = $middleware->handle($this->authRequest());

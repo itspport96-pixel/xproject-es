@@ -84,6 +84,7 @@ CREATE TABLE `users` (
   `avatar_url` varchar(255) DEFAULT NULL,
   `ultimo_login` timestamp NULL DEFAULT NULL,
   `fecha_expiracion_password` timestamp NULL DEFAULT NULL,
+  `password_change_forced` timestamp NULL DEFAULT NULL,
   `mfa_habilitado` tinyint(4) DEFAULT 0,
   `mfa_metodo` enum('TOTP','EMAIL','SMS') DEFAULT NULL,
   `mfa_secret` varchar(255) DEFAULT NULL,

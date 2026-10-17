@@ -99,9 +99,9 @@ final class UserService
         // Insertar usuario
         $now = date('Y-m-d H:i:s');
         $sql = "INSERT INTO users
-                (id, tenant_id, email, nombre, apellido, password, estado, telefono, fecha_expiracion_password, created_at, updated_at)
+                (id, tenant_id, email, nombre, apellido, password, estado, telefono, password_change_forced, created_at, updated_at)
                 VALUES
-                (:id, :tenant_id, :email, :nombre, :apellido, :password, 'ACTIVO', :telefono, :fecha_expiracion_password, :created_at, :updated_at)";
+                (:id, :tenant_id, :email, :nombre, :apellido, :password, 'ACTIVO', :telefono, :password_change_forced, :created_at, :updated_at)";
 
         $stmt = $this->db->getConnection()->prepare($sql);
         $stmt->execute([
@@ -112,7 +112,7 @@ final class UserService
             'apellido'   => trim((string) $data['apellido']),
             'password'   => $passwordHash,
             'telefono'   => isset($data['telefono']) ? trim((string) $data['telefono']) : null,
-            'fecha_expiracion_password' => $autogenerado ? $this->tempPasswordExpiry() : null,
+            'password_change_forced' => $autogenerado ? $this->tempPasswordExpiry() : null,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -462,13 +462,16 @@ final class UserService
     }
 
     /**
-     * Cambia el password de un usuario y limpia el marcador de cambio
-     * forzado (v1.11.0): un cambio completado deja de exigir cambio.
+     * Cambia el password de un usuario. Limpia el marcador de cambio
+     * forzado temporal (password_change_forced, v1.11.0): un cambio
+     * completado deja de exigir cambio.
      *
-     * Política de caducidad del tenant (v1.14.1): si configuracion.seguridad
-     * .caducidad_password_dias está definida, la nueva contraseña caduca a
-     * los N días; si no, no caduca (fecha_expiracion_password NULL). El
-     * login ya fuerza el cambio cuando la fecha vence (AuthController).
+     * Política de caducidad del tenant (v1.14.1): si tenants
+     * .caducidad_password_dias está definida, la nueva contraseña expira a
+     * los N días (fecha_expiracion_password forward); si no, no expira
+     * (NULL). El middleware y el login solo fuerzan el cambio cuando la
+     * fecha está en el PASADO (caducidad vencida), no con solo estar
+     * puesta — esto era el bug del bucle infinito v1.17.0.
      *
      * @throws UserException Si el usuario no existe o password inválido
      */
@@ -491,7 +494,7 @@ final class UserService
             $this->recordPasswordHistory($id, $tenantId, (string) $user['password']);
 
             $sql = "UPDATE users
-                    SET password = :password, fecha_expiracion_password = :expira, updated_at = :updated_at
+                    SET password = :password, fecha_expiracion_password = :expira, password_change_forced = NULL, updated_at = :updated_at
                     WHERE id = :id AND tenant_id = :tenant_id";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
@@ -575,7 +578,7 @@ final class UserService
     /**
      * Resetea el password de un usuario a uno temporal nuevo (v1.11.0).
      *
-     * Marca fecha_expiracion_password con la vigencia TEMP_PASSWORD_TTL_DAYS
+     * Marca password_change_forced con la vigencia TEMP_PASSWORD_TTL_DAYS
      * para que el usuario deba cambiarlo en el siguiente inicio de sesión.
      * Las sesiones activas las revoca la capa HTTP (SessionRevokerService).
      *
@@ -601,7 +604,7 @@ final class UserService
             $this->recordPasswordHistory($id, $tenantId, (string) $user['password']);
 
             $sql = "UPDATE users
-                    SET password = :password, fecha_expiracion_password = :expira, updated_at = :updated_at
+                    SET password = :password, password_change_forced = :expira, updated_at = :updated_at
                     WHERE id = :id AND tenant_id = :tenant_id";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([

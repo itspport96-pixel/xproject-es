@@ -117,19 +117,10 @@ class UserRepository implements UserRepositoryInterface
 
     public function getAuthState(string $userId, string $tenantId): ?array
     {
-        $sql = "SELECT estado, fecha_expiracion_password FROM users
+        $sql = "SELECT estado, password_change_forced, fecha_expiracion_password FROM users
                 WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL
                 LIMIT 1";
 
         return $this->db->fetch($sql, [$userId, $tenantId]);
-    }
-
-    public function updatePassword(string $userId, string $tenantId, string $passwordHash, bool $clearPasswordExpiry): bool
-    {
-        $expiryUpdate = $clearPasswordExpiry ? ", fecha_expiracion_password = NULL" : "";
-        $sql = "UPDATE users SET password = ?, updated_at = NOW(){$expiryUpdate}
-                WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL";
-
-        return $this->db->query($sql, [$passwordHash, $userId, $tenantId])->rowCount() > 0;
     }
 }

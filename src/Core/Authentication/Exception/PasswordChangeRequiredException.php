@@ -10,8 +10,9 @@ use Throwable;
 /**
  * El usuario debe cambiar su contraseña antes de continuar (v1.11.0).
  *
- * Se lanza desde AuthenticationMiddleware cuando users.fecha_expiracion_password
- * está marcada (alta con password temporal o expiración de vigencia) y la ruta
+ * Se lanza desde AuthenticationMiddleware cuando users.password_change_forced
+ * está marcada (alta con password temporal o reset de admin) o
+ * users.fecha_expiracion_password está vencida (caducidad) y la ruta
  * solicitada no está en la allowlist de cambio forzado. El manejador global de
  * public/index.php devuelve el 403 con category=password_change_required, que
  * el frontend interpreta como redirección al formulario de cambio de contraseña.
