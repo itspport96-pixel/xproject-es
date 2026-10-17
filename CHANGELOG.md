@@ -23,8 +23,24 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Notes
 - Verificado end-to-end: `composer test` 992/992; smokes sspr 35 + v1120 157 + profile-mfa 29 + v162 89 + v171 105 OK; `check-i18n` 0 errores (1930 claves en paridad); `check-schema-drift` SIN DRIFT; `check-data-integrity` DATOS CONSISTENTES; `GET /api/locales/es.json` responde 200 SIN token con `reset`/`forgot`/`password`/`ui.show_password` presentes.
-- Desviacion reportada sin tocar (regla 4): la password del admin de creacion de tenant sigue sin aplicar SSPR ni politica completa (`TenantService::validateAdminData`, decision previa).
-- Pendiente sin commitear (separado): `AuthPermissionSeeder` (v1.17.1) asigna `password_reset_self_service` al rol ADMIN.
+- Desviacion reportada sin tocar (regla 4): la password del admin de creacion de tenant sigue sin aplicar SSPR ni politica completa (`TenantService::validateAdminData`, decision previa); ademas los textos de longitud de password del cliente no coinciden con `PasswordPolicy::MIN_LENGTH = 9` (`BUILTIN_ES.login.error_short_password` dice 6 y `resources/locales/*.json` dicen 8; la clave de backend `password_min_length` si dice 9).
+- Commiteado en este ciclo junto con los tres arreglos: `AuthPermissionSeeder` asigna `password_reset_self_service` al rol ADMIN (ver 1.17.1).
+
+## [1.17.1] - 2026-10-16
+
+**Correccion del bucle infinito de cambio obligatorio de password de v1.17.0 y pertenencia del permiso SSPR al rol ADMIN.** v1.17.0 trataba cualquier valor no-nulo de `fecha_expiracion_password` como "debe cambiar la password", de modo que una password temporal (reset de administrador o autogenerada) o una caducidad forward ya vencida forzaba el cambio sin salida: cada intento volvia a forzar la pantalla de cambio. El cambio forzado temporal pasa a su propia columna `users.password_change_forced`; `fecha_expiracion_password` queda como lo que es (expiracion forward de la politica de caducidad del tenant, v1.14.1) y solo fuerza cuando esta VENCIDA.
+
+### Added
+- Columna `users.password_change_forced` (timestamp NULL, BD viva): vigencia del cambio forzado temporal; `schema.sql` regenerado (`check-schema-drift` SIN DRIFT, 33 tablas).
+- `AuthPermissionSeeder`: `ROLE_PERMISSIONS['ADMIN']` recibe `password_reset_self_service` (directamente o heredado via grupos), de modo que los administradores quedan elegibles para el SSPR por defecto; idempotente.
+
+### Fixed
+- **Bucle de cambio obligatorio**: `AuthenticationMiddleware` solo fuerza el cambio si `password_change_forced` esta marcada o `fecha_expiracion_password` esta en el PASADO (antes cualquier no-nulo forzaba). `AuthController::login`: la password temporal vencida ni siquiera concede el login (contactar con un administrador), mientras que una caducidad forward vencida concede el login y fuerza el cambio. Verificado en vivo con 5 escenarios.
+- `UserService::createUser/changePassword/resetPassword` escriben `password_change_forced` en lugar de reciclar `fecha_expiracion_password`.
+
+### Changed
+- `UserRepository::getAuthState` lee ambos marcadores (`UserRepositoryInterface` actualizado); se elimina `updatePassword` (codigo muerto, sin callers). Entity `User` expone `passwordChangeForced`. `PasswordChangeRequiredException` documenta los dos marcadores.
+- `tests/Unit/AuthenticationMiddlewareTest.php` reescrito contra MySQL `xproject_e2e` (sin SQLite), 17 tests con regresion "caducidad futura NO fuerza el cambio".
 
 ## [1.17.0] - 2026-10-16
 
