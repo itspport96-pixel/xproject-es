@@ -360,6 +360,12 @@ final class PasswordResetLiveTest extends TestCase
         } catch (UserException $e) {
             $this->assertSame('auth.password_reused', $e->getMessageKey());
         }
+
+        // v1.17.2: el reuso se valida ANTES de consumir el token; el enlace no
+        // se quema y el mismo token sirve con una contraseña distinta.
+        $this->assertFalse($this->tokenUsed($token), 'El reuso no debe consumir el token');
+        $this->service->resetPassword($token, self::PASSWORD_NUEVA);
+        $this->assertTrue($this->hasher->verify(self::PASSWORD_NUEVA, $this->currentHash()));
     }
 
     // ------------------------------------------------------------------

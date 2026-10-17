@@ -515,6 +515,23 @@ final class UserService
     }
 
     /**
+     * Valida que la nueva contraseña no reutilice la actual ni una anterior
+     * (v1.16.0) SIN aplicar el cambio. Exuesto para que PasswordResetService
+     * pueda verificarlo ANTES de consumir el token de reset: un reuso no debe
+     * quemar el enlace, sino dejar al usuario reintentar con la misma liga.
+     *
+     * @throws UserException Si la contraseña reutiliza la actual o una anterior
+     */
+    public function assertPasswordNotReused(string $id, string $tenantId, string $newPassword): void
+    {
+        $user = $this->users->findById($id, $tenantId);
+        if ($user === null) {
+            throw UserException::userNotFound($id);
+        }
+        $this->validatePasswordNotReused($id, $tenantId, $newPassword, (string) $user['password']);
+    }
+
+    /**
      * Calcula la fecha de expiración según la columna caducidad_password_dias
      * del tenant (v1.14.1, refact. v1.14.2: la política vive en su propia
      * columna, ya no en el JSON configuracion).

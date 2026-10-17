@@ -180,6 +180,11 @@ class PasswordResetService
         // liga). El consumo atomico de mas abajo sigue impidiendo reutilizacion.
         $this->assertPasswordPolicy($newPassword);
 
+        // El reuso (contrasena actual o del historial) tambien se valida ANTES
+        // de consumir el token: no debe quemar el enlace, para que el usuario
+        // pueda reintentar con la misma liga y una contrasena distinta.
+        $this->users()->assertPasswordNotReused($userId, $tenantId, $newPassword);
+
         // Consumo ATOMICO del token: si otra peticion concurrente ya lo uso,
         // rowCount = 0 y se rechaza (un solo uso garantizado).
         if (!$this->consumeToken((string) $row['id'])) {
@@ -190,9 +195,10 @@ class PasswordResetService
             ))->withMessageKey('auth.reset_token_used');
         }
 
-        // Politica + historial + transaccion (UserService v1.16.0). Si falla
-        // (p. ej. reutilizacion de una contrasena anterior) el token ya quedo
-        // consumido: hay que solicitar un enlace nuevo, lo cual es correcto.
+        // Politica + historial + transaccion (UserService v1.16.0). La
+        // politica y el reuso ya se validaron arriba (sin consumir el enlace);
+        // el consumo del token es atomico. Si el UPDATE falla por una carrera
+        // concurrente, el enlace ya quedo consumido: hay que pedir uno nuevo.
         $this->users()->changePassword($userId, $tenantId, $newPassword);
 
         // El reset llega desde fuera de la sesion: se revocan TODAS las
