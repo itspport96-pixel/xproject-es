@@ -1837,52 +1837,37 @@ margin-left: var(--sidebar-width-collapsed);
 }
 
 /* Colapsado: sólo quedan los iconos. La marca conserva sólo el logo o la
-   inicial centrada (texto oculto) y la etiqueta del item se reaprovecha
-   como tooltip flotante en hover/foco (no se elimina del boton, que ademas
-   lleva aria-label). */
+   inicial centrada (texto oculto). La etiqueta del item queda oculta: el
+   tooltip del rail vive en document.body (.rail-tooltip, sidebar.js v1.17.9)
+   para que el scroll del nav no lo recorte; el boton conserva aria-label. */
 .app-layout.sidebar-collapsed .sidebar-brand-text,
 .app-layout.sidebar-collapsed .sidebar-section-title,
 .app-layout.sidebar-collapsed .sidebar-user-info {
-display: none;
+  display: none;
 }
 
-/* El nav no debe recortar los tooltips que salen del rail a la derecha
-   (overflow en un eje convierte el otro en auto). En modo icono todas las
-   secciones se muestran siempre (ver mas abajo), asi que perder el
-   scroll vertical aqui es un tradeoff aceptable. */
+/* Rail scrolleable (v1.17.9): en modo icono todas las secciones se muestran
+   siempre (ver mas abajo) y con 18+ items la lista supera la altura de la
+   pantalla; el overflow:visible de 1.17.5 (aqui para que los tooltips
+   salieran del nav) dejaba los items del final inalcanzables. El tooltip ya
+   vive en body, asi que el nav recupera scroll vertical con barra oculta. */
 .app-layout.sidebar-collapsed .sidebar-nav {
-overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.app-layout.sidebar-collapsed .sidebar-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .app-layout.sidebar-collapsed .sidebar-item {
-position: relative;
+  position: relative;
 }
 
 .app-layout.sidebar-collapsed .sidebar-item-label {
-position: absolute;
-left: calc(100% + 0.5rem);
-top: 50%;
-transform: translateY(-50%);
-flex: none;
-padding: 0.3rem 0.5rem;
-font-size: 0.75rem;
-font-weight: 500;
-color: rgb(var(--color-text));
-background-color: rgb(var(--color-surface));
-border: 1px solid rgb(var(--color-border));
-border-radius: var(--radius-md);
-box-shadow: var(--shadow-md);
-white-space: nowrap;
-opacity: 0;
-visibility: hidden;
-pointer-events: none;
-transition: opacity 0.15s ease;
-}
-
-.app-layout.sidebar-collapsed .sidebar-item:hover .sidebar-item-label,
-.app-layout.sidebar-collapsed .sidebar-item:focus-visible .sidebar-item-label {
-opacity: 1;
-visibility: visible;
+  display: none;
 }
 
 .app-layout.sidebar-collapsed .sidebar-header,
@@ -1900,7 +1885,28 @@ padding-right: 0.625rem;
 /* Modo icono: los títulos de sección están ocultos, así que el colapso por
    sección se desactiva y los items se muestran siempre (sólo iconos). */
 .app-layout.sidebar-collapsed .sidebar-section.is-collapsed .sidebar-section-items {
-display: block;
+  display: block;
+}
+
+/* Tooltip del rail (v1.17.9): nodo unico en document.body, posicion fixed
+   para que el scroll del nav no lo recorte; se posiciona en sidebar.js. */
+.rail-tooltip {
+  position: fixed;
+  z-index: calc(var(--z-sidebar) + 1);
+  padding: 0.3rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgb(var(--color-text));
+  background-color: rgb(var(--color-surface));
+  border: 1px solid rgb(var(--color-border));
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.rail-tooltip[hidden] {
+  display: none;
 }
 
 /* Cierre del panel lateral (solo mobile) */

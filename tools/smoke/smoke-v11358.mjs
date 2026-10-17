@@ -632,9 +632,26 @@ async function s9_sidebar_icon_rail() {
     const item = env.w.document.querySelector('.sidebar-item');
     check('items con aria-label', !!(item && item.getAttribute('aria-label')));
 
+    // Tooltip del rail en body (v1.17.9): el hover lo pinta fuera del nav
+    // (asi el scroll del rail no lo recorta) y al salir del item se oculta.
+    const etiqueta = item.querySelector('.sidebar-item-label').textContent;
+    item.dispatchEvent(new env.w.MouseEvent('mouseover', { bubbles: true }));
+    const tip = env.w.document.querySelector('.rail-tooltip');
+    check('rail: tooltip del item en body',
+      !!tip && tip.textContent === etiqueta,
+      tip ? tip.textContent : 'sin tooltip');
+    item.dispatchEvent(new env.w.MouseEvent('mouseout', { bubbles: true, relatedTarget: env.w.document.body }));
+    check('rail: tooltip oculto al salir del item',
+      !env.w.document.querySelector('.rail-tooltip:not([hidden])'));
+
     env.w.AppSidebar.toggle();
     check('segundo toggle: expandido', !app.classList.contains('sidebar-collapsed'));
     check('expandir persiste false', env.w.Storage.get('sidebar.collapsed', false) === false);
+
+    // Expandido: el hover no pinta tooltip de rail (se rige por CSS normal).
+    item.dispatchEvent(new env.w.MouseEvent('mouseover', { bubbles: true }));
+    check('expandido: sin tooltip de rail',
+      !env.w.document.querySelector('.rail-tooltip:not([hidden])'));
     env.close();
   }
 

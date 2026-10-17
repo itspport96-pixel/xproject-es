@@ -95,6 +95,9 @@
   let isOpen = false;
   let initialized = false;
   let userRoles = [];
+  // Tooltip del rail (v1.17.9): un unico nodo en document.body, fuera del
+  // nav, para que el scroll vertical del rail no lo recorte.
+  let railTip = null;
 
   // Estado de colapso de los grupos: se guarda tras cada clic del usuario
   // mediante el wrapper Storage (namespace xp.) sobre localStorage. Lectura y
@@ -292,6 +295,54 @@
   }
 
   // ============================================
+  // TOOLTIP DEL RAIL (v1.17.9)
+  // ============================================
+
+  function isRailMode() {
+    const app = document.getElementById('app');
+    return !!(app && app.classList.contains('sidebar-collapsed'));
+  }
+
+  // En modo rail el label del boton esta oculto por CSS y el nav scrollea
+  // (con 18+ items el overflow visible de 1.17.5 dejaba la mitad del menu
+  // inalcanzable). El tooltip se posicionar en body con position:fixed:
+  // no lo recorta el scroll y se coloca a la derecha del item, dentro del
+  // viewport (a la izquierda si no cabe).
+  function showRailTooltip(item) {
+    if (!isRailMode() || !item) return;
+    const label = item.querySelector('.sidebar-item-label');
+    const texto = label ? label.textContent.trim() : '';
+    if (!texto) return;
+
+    if (!railTip) {
+      railTip = document.createElement('div');
+      railTip.className = 'rail-tooltip';
+      railTip.setAttribute('role', 'tooltip');
+      railTip.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(railTip);
+    }
+    railTip.textContent = texto;
+    railTip.hidden = false;
+
+    const r = item.getBoundingClientRect();
+    railTip.style.left = '0px';
+    railTip.style.top = '0px';
+    const tip = railTip.getBoundingClientRect();
+    let left = r.right + 8;
+    if (left + tip.width > window.innerWidth - 8) {
+      left = Math.max(8, r.left - tip.width - 8);
+    }
+    let top = r.top + r.height / 2 - tip.height / 2;
+    top = Math.min(Math.max(8, top), Math.max(8, window.innerHeight - tip.height - 8));
+    railTip.style.left = left + 'px';
+    railTip.style.top = top + 'px';
+  }
+
+  function hideRailTooltip() {
+    if (railTip) railTip.hidden = true;
+  }
+
+  // ============================================
   // EVENTOS
   // ============================================
 
@@ -310,6 +361,7 @@
       global.AppRouter.navigate(route);
       closeMobile();
     }
+    hideRailTooltip();
   }
 
   function toggleSection(sectionTitle) {
@@ -353,6 +405,13 @@
         e.preventDefault();
         if (global.AuthState) global.AuthState.logout();
       });
+    }
+
+    // El nav se recrea en cada render (innerHTML): el scroll del rail se
+    // escucha aqui para ocultar el tooltip al desplazar la lista.
+    const nav = container.querySelector('.sidebar-nav');
+    if (nav) {
+      nav.addEventListener('scroll', hideRailTooltip, { passive: true });
     }
   }
 
@@ -459,6 +518,12 @@
         section.classList.remove('is-collapsed');
         if (panel) panel.removeAttribute('hidden');
       }
+
+      // Rail: el item activo entra en la zona visible del scroll sin
+      // arrastrar al resto de la pagina (block:'nearest').
+      if (isRailMode() && typeof activeItem.scrollIntoView === 'function') {
+        activeItem.scrollIntoView({ block: 'nearest' });
+      }
     }
   }
 
@@ -483,6 +548,7 @@
     const collapsed = app ? app.classList.toggle('sidebar-collapsed') : false;
     isOpen = !collapsed;
     persistCollapsed(collapsed);
+    hideRailTooltip();
     if (global.EventBus) {
       global.EventBus.emit('sidebar:toggled', { isOpen });
     }
@@ -497,6 +563,7 @@
     document.getElementById('app')?.classList.remove('sidebar-collapsed');
     persistCollapsed(false);
     isOpen = true;
+    hideRailTooltip();
   }
 
   function close() {
@@ -508,6 +575,7 @@
     document.getElementById('app')?.classList.add('sidebar-collapsed');
     persistCollapsed(true);
     isOpen = false;
+    hideRailTooltip();
   }
 
   function closeMobile() {
@@ -515,7 +583,7 @@
   }
 
   function show() { container?.classList.remove('hidden'); }
-  function hide() { container?.classList.add('hidden'); }
+  function hide() { container?.classList.add('hidden'); hideRailTooltip(); }
 
   function init() {
     if (initialized) return;
@@ -547,6 +615,31 @@
     }
 
     container.addEventListener('click', handleNavClick);
+
+    // Delegacion unica (el contenedor #sidebar no se reemplaza): el tooltip
+    // del rail responde a hover y a foco de teclado, y se oculta al salir,
+    // al cambiar de ancho de ventana o al perder la sesion.
+    container.addEventListener('mouseover', (e) => {
+      const item = e.target.closest('.sidebar-item');
+      if (item) showRailTooltip(item);
+    });
+    container.addEventListener('mouseout', (e) => {
+      const item = e.target.closest('.sidebar-item');
+      if (!item) return;
+      if (e.relatedTarget && item.contains(e.relatedTarget)) return;
+      hideRailTooltip();
+    });
+    container.addEventListener('focusin', (e) => {
+      const item = e.target.closest('.sidebar-item');
+      if (item) showRailTooltip(item);
+    });
+    container.addEventListener('focusout', (e) => {
+      const item = e.target.closest('.sidebar-item');
+      if (!item) return;
+      if (e.relatedTarget && item.contains(e.relatedTarget)) return;
+      hideRailTooltip();
+    });
+    window.addEventListener('resize', hideRailTooltip);
 
     bindGlobalEvents();
     render();

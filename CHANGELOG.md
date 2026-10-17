@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.9] - 2026-10-17
+
+**El rail de la sidebar ya no deja items fuera de pantalla.** En modo iconos (v1.17.5) todos los items se fuerzan visibles (los titulos de seccion no estan, no hay forma de expandirlos), pero el nav pasaba a `overflow: visible` para que los tooltips salieran del rail: eso elimina el scroll vertical y con 18+ items del menu de ADMIN la mitad inferior del rail quedaba inalcanzable. Ahora el nav del rail vuelve a scrollear (barra oculta, mismo aspecto de columna de iconos) y el tooltip flota en `document.body` con posicion `fixed` (nodo unico `.rail-tooltip`, generado y posicionado en `sidebar.js`): no lo recorta el scroll, se coloca a la derecha del item dentro del viewport (a la izquierda si no cabe) y responde tanto a hover como a foco de teclado. El label del boton queda oculto por CSS en modo rail (el `aria-label` sigue cubriendo accesibilidad). El item activo entra en la vista con `scrollIntoView({block:'nearest'})` al navegar, y el tooltip se oculta al hacer clic, al scrollear, al redimensionar, al alternar de modo y al cerrar sesion.
+
+### Fixed
+- `components.css`: `.app-layout.sidebar-collapsed .sidebar-nav` pasa de `overflow: visible` a `overflow-y: auto` con barra oculta (`scrollbar-width: none` + webkit); el tooltip absoluto del label del item (recortado por el scroll) se sustituye por `display: none` + estilos de `.rail-tooltip` en body.
+- `sidebar.js`: flyout de tooltip en body (`showRailTooltip`/`hideRailTooltip` con delegacion `mouseover`/`mouseout`/`focusin`/`focusout`, ocultado en scroll del nav, resize, toggle/open/close y logout); `updateActiveItem()` hace `scrollIntoView` del item activo en modo rail.
+
+### Notes
+- Smoke `smoke-v11358.mjs` S9 anade 3 checks (tooltip en body con la etiqueta del item, oculto al salir, y sin tooltip en modo expandido). Bateria completa: v1120 169, v162 91, v171 107, profile-mfa 29, sspr 35, v11358 88; drift SIN DRIFT; GETs en vivo 401 sin 500.
+
 ## [1.17.8] - 2026-10-17
 
 **Se termina la familia del desfase horario de fechas: reservas de stock y envios tambien convierten a UTC al enviar.** Tras 1.17.7 (permisos temporales), quedaban dos `datetime-local` de escritura enviando hora local cruda a backends que la interpretan como UTC: la fecha de expiracion de una reserva (`POST /inventory/reservations`; `Reservation` la parsea con `DateTimeImmutable` bajo `date.timezone=UTC` y `ReservationExpirationService` compara contra un ahora UTC, asi que la reserva caducaba desfasada su offset) y la hora de entrega esperada de un envio (`POST /inventory/shipments/load`; `LoadShipmentUseCase::normalizeExpectedDeliveryTime` usa `createFromFormat` con el mismo supuesto UTC). Ahora las dos conversiones usan `UI.datetimeLocalToUtc()` — helper nuevo en `ui/dom.js`, unico desde 1.17.7 — aplicada justo antes de montar el payload; la validacion local de "futura" en reservas sigue mirando la hora que el admin ve. El modal de permisos temporales paso a usar el helper compartido (su copia local desaparece).
