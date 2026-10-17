@@ -14,11 +14,10 @@ use PDO;
  *  - Las asignaciones viven en la junction `role_permissions`.
  *  - Idempotente: repetirlo no duplica ni reescribe lo que ya coincide.
  *
- * Decisión de alcance: `password_reset_self_service` NO se asigna a ningún
- * rol BUILT_IN. El permiso se concede o revoca EXCLUSIVAMENTE por
- * administradores autorizados (mediante la gestión de roles/permisos o
- * permisos temporales ya existentes), por lo que el SSPR es opt-in por
- * usuario/rol y queda deshabilitado por defecto.
+ * Alcance (v1.17.1): `password_reset_self_service` se asigna al rol BUILT_IN
+ * ADMIN, de modo que todos los usuarios con ese rol (directamente o heredado
+ * vía grupos) quedan elegibles para el SSPR por defecto. Otros roles siguen
+ * recibiendo el permiso solo si un administrador lo concede explícitamente.
  */
 final class AuthPermissionSeeder
 {
@@ -34,11 +33,14 @@ final class AuthPermissionSeeder
     ];
 
     /**
-     * Sin asignación a roles BUILT_IN: opt-in exclusivo de administradores.
+     * Asignación a roles BUILT_IN: el rol ADMIN recibe el SSPR por defecto
+     * (hereda a todos sus usuarios, directos o vía grupos).
      *
      * @var array<string, array<int, string>>
      */
-    public const ROLE_PERMISSIONS = [];
+    public const ROLE_PERMISSIONS = [
+        'ADMIN' => ['password_reset_self_service'],
+    ];
 
     public function __construct(private readonly PDO $pdo)
     {
