@@ -6,12 +6,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [1.17.7] - 2026-10-17
 
-**Modo "Fecha" del permiso temporal: el picker opera en hora UTC.** El campo `datetime-local` del modal de concesion se inicializaba con la hora local del navegador (compensando `getTimezoneOffset`), pero la convencion de la plataforma es que los `Y-m-d H:i:s` naive viajan, se almacenan y se muestran como UTC (PHP escribe en UTC y el backend parsea `fecha_expiracion` con `DateTimeImmutable` en UTC, `TemporaryPermissionController.php`). En un navegador con desfase horario la caducidad elegida se guardaba corrida su offset: 17:00 locales se almacenaban 17:00 UTC (= 18:00 locales), y la validacion "debe ser futura" del servidor comparaba contra un reloj distinto. El default pasa a `new Date().toISOString().slice(0, 16)` (hora UTC ahora, la misma literal que muestra el resto de la interfaz via `ui/dom.js`) y el valor elegido sigue viajando tal cual, ya alineado. Los modos Horas y Minutos no cambian: el backend los calcula desde `now`.
+**Modo "Fecha" del permiso temporal: el picker opera en hora local y convierte a UTC al enviar (supera a eb158b5).** El campo `datetime-local` del modal de concesion trabajaba en hora de pared local y su valor viajaba tal cual, pero el backend interpreta `fecha_expiracion` con `DateTimeImmutable` bajo `date.timezone=UTC` (mismo almacenable que calculan `duracion_horas`/`duracion_minutos`): en una maquina con desfase horario, elegir "hoy 18:00" caducaba a las 19:00 hora local (el offset entero). El commit eb158b5 lo parcheo moviendo el prefill a hora UTC, pero eso solo corregia el valor por defecto: cualquier hora que el admin editara a mano se seguia interpretando como UTC y quedaba corrida (y el picker mostraba un reloj distinto al del escritorio). Ahora el modal opera entero en hora local — lo que el admin ve en su reloj es lo que caduca — y `datetimeLocalToUtc()` convierte el valor elegido a naive `'Y-m-d H:i:s'` en UTC justo antes de montar el payload (inverso del prefill `ahora`, que va de UTC a local). Los modos Horas y Minutos no cambian: el backend los calcula desde `now` UTC.
+
+### Fixed
+- `users.js`: `datetimeLocalToUtc()` aplicada en `submitGrant()` para `modo === 'fecha'`; se recupera el prefill local `ahora` que eb158b5 habia pasado a UTC.
 
 ### Notes
-- `tools/smoke/smoke-v1120.mjs` S7 anade 3 checks: campo fecha visible al elegir el modo, default en hora UTC con tolerancia de 1 min (fallaria con el codigo anterior: en esta maquina +01 el desfase era 3600 s) y `payload.fecha_expiracion` enviado tal cual sin campos de duracion.
-- Bateria completa: v1120 169, v162 89, v171 105, profile-mfa 29, sspr 35, v11358 85; composer test 996; drift SIN DRIFT; integridad DATOS CONSISTENTES; GETs en vivo 401 sin 500.
-- Desviaciones de la misma clase, no tocadas: `inventory/stock.js` (`fecha_expiracion` del articulo) e `inventory/shipments.js` (`hora_entrega_esperada`) envian el valor local del `datetime-local` sin convertir, con el mismo desfase potencial en maquinas no UTC.
+- Sin cambios de backend: el contrato de `fecha_expiracion` sigue siendo naive UTC.
+- Smoke `tools/smoke/smoke-v1120.mjs` S7: sustituye el bloque de prefill UTC de eb158b5 por 3 checks del enfoque local (campo visible, el payload trae el UTC del instante elegido y, con offset != 0, nunca la hora local cruda). Bateria completa: v1120 169, v162 89, v171 105, profile-mfa 29, sspr 35, v11358 85; `composer test` 996 verdes; drift SIN DRIFT; GETs en vivo 401 sin 500.
+- Desviaciones de la misma clase, no tocadas (contrato backend sin revisar): `inventory/stock.js` (`fecha_expiracion` del articulo) e `inventory/shipments.js` (`hora_entrega_esperada`) envian el valor local del `datetime-local` sin convertir, con el mismo desfase potencial en maquinas no UTC.
 
 ## [1.17.6] - 2026-10-17
 

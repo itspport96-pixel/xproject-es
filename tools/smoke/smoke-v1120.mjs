@@ -895,7 +895,7 @@ async function s6_password() {
 // S7 - PERMISO TEMPORAL: MINUTOS Y AUTO-REFRESCO (v1.17.6)
 // =====================================================================
 async function s7_temp_minutes_autorefresh() {
-  console.log('S7 temporal: modo minutos y auto-refresco al expirar');
+  console.log('S7 temporal: minutos, modo fecha en UTC y auto-refresco al expirar');
 
   // --- Modal de concesion: modo minutos envia duracion_minutos ---
   {
@@ -928,6 +928,42 @@ async function s7_temp_minutes_autorefresh() {
       env.calls.posts.some(p => p.path === '/temporary-permissions'
         && p.body.duracion_minutos === 2 && !('duracion_horas' in p.body)),
       JSON.stringify(env.calls.posts.filter(p => p.path === '/temporary-permissions')));
+    env.close();
+  }
+
+  // --- Modal de concesion: modo fecha envia hora local como UTC (v1.17.7) ---
+  {
+    const env = createEnv({ perms: ADMIN_PERMS, roles: ['ADMIN'] });
+    env.loadUsers();
+    await tick();
+    env.click(env.container.querySelector('[data-action="open-grant"]'));
+    await tick(12);
+    const root = env.modalRoot();
+
+    env.click(root.querySelector('[data-expiry-mode][value="fecha"]'));
+    await tick();
+    const fechaField = root.querySelector('[data-modal-field="fecha_expiracion"]');
+    check('campo fecha visible al elegir el modo fecha', !!fechaField);
+
+    // hora de pared local (lo que el admin ve en su reloj); el valor esperado
+    // en el payload es el instante en UTC naive, no la hora local cruda.
+    const elegidaLocal = '2030-05-20T18:30';
+    const esperadoUtc = new Date(elegidaLocal).toISOString().slice(0, 19).replace('T', ' ');
+    env.set(root, 'fecha_expiracion', elegidaLocal);
+    env.set(root, 'user_id', 'u1');
+    env.set(root, 'permission_id', 'p1');
+    env.set(root, 'motivo', 'Prueba fecha');
+    env.click(root.querySelector('[data-action="submit-grant"]'));
+    await tick();
+    const posts = env.calls.posts.filter(p => p.path === '/temporary-permissions');
+    check('POST modo fecha con la expiracion en UTC naive',
+      posts.some(p => p.body.fecha_expiracion === esperadoUtc),
+      JSON.stringify(posts.map(p => p.body.fecha_expiracion)) + ' esperado ' + esperadoUtc);
+    if (new Date(elegidaLocal).getTimezoneOffset() !== 0) {
+      check('POST modo fecha no envia la hora local sin convertir',
+        !posts.some(p => p.body.fecha_expiracion === elegidaLocal),
+        JSON.stringify(posts.map(p => p.body.fecha_expiracion)));
+    }
     env.close();
   }
 
@@ -974,45 +1010,6 @@ async function s7_temp_minutes_autorefresh() {
     check('recarga automatica al pasar la expiracion', temporales().length >= 2,
       String(temporales().length));
     check('la fila vencida ya no se pinta', !/inventory\.stock\.view/.test(env.container.textContent));
-    env.close();
-  }
-
-  // --- Modo fecha: el datetime-local opera en hora UTC (v1.17.7) ---
-  {
-    const env = createEnv({ perms: ADMIN_PERMS, roles: ['ADMIN'] });
-    env.loadUsers();
-    await tick();
-    env.click(env.container.querySelector('[data-action="open-grant"]'));
-    await tick(12);
-    const root = env.modalRoot();
-
-    env.click(root.querySelector('[data-expiry-mode][value="fecha"]'));
-    await tick();
-    const campo = root.querySelector('[data-modal-field="fecha_expiracion"]');
-    check('campo fecha visible al elegir el modo', !!campo);
-
-    // El valor por defecto es la hora UTC ahora: en una maquina con desfase
-    // horario NO debe coincidir con el muro local (ese era el bug: el default
-    // local se enviaba tal cual y el backend lo guardaba como UTC).
-    const utcAhora = Date.parse(new Date().toISOString().slice(0, 16) + ':00Z');
-    const valorMs = campo ? Date.parse(campo.value + ':00Z') : NaN;
-    check('default de fecha en hora UTC (tolerancia 1 min)',
-      !Number.isNaN(valorMs) && Math.abs(valorMs - utcAhora) <= 60000,
-      (campo ? campo.value : 'sin campo') + ' vs utc ' + new Date().toISOString().slice(0, 16));
-
-    // El payload se enviaba tal cual: el valor elegido (ya en UTC) viaja sin
-    // conversion y sin campos de duracion.
-    campo.value = '2099-01-15T10:30';
-    env.set(root, 'user_id', 'u1');
-    env.set(root, 'permission_id', 'p1');
-    env.set(root, 'motivo', 'Prueba fecha');
-    env.click(root.querySelector('[data-action="submit-grant"]'));
-    await tick();
-    check('POST con fecha_expiracion en UTC tal cual',
-      env.calls.posts.some(p => p.path === '/temporary-permissions'
-        && p.body.fecha_expiracion === '2099-01-15T10:30'
-        && !('duracion_horas' in p.body) && !('duracion_minutos' in p.body)),
-      JSON.stringify(env.calls.posts.filter(p => p.path === '/temporary-permissions')));
     env.close();
   }
 }

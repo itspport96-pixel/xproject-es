@@ -1464,13 +1464,7 @@
             }))
         );
 
-        // datetime-local en hora UTC: la convencion de la plataforma (ui/dom.js)
-        // es mostrar los naive 'Y-m-d H:i:s' de la BD tal cual (PHP escribe en
-        // UTC y el backend parsea fecha_expiracion con DateTimeImmutable en UTC).
-        // Con el valor local, un navegador con desfase horario guardaba la
-        // expiracion corrida su offset (17:00 locales se almacenaban 17:00 UTC
-        // = 18:00 locales).
-        const ahora = new Date().toISOString().slice(0, 16);
+        const ahora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
         // Layout (M2): una columna para campo a campo (sin columnas
         // fantasma en un UI.grid de un solo hijo), ritmo uniforme de
@@ -1521,6 +1515,21 @@
         `;
     }
 
+    /**
+     * Valor de un input datetime-local (hora de pared LOCAL del navegador,
+     * 'YYYY-MM-DDTHH:mm') -> naive 'Y-m-d H:i:s' en UTC, el formato de
+     * cable que espera el backend (lo parsea con DateTimeImmutable bajo
+     * date.timezone=UTC y asi se guardan tambien duracion_horas/minutos).
+     * Sin esta conversion, un grant por "Fecha" caducaba desfasado el offset
+     * horario en maquinas no UTC (v1.17.7). Es el inverso del prefill
+     * `ahora` del modal, que va de UTC a hora local.
+     */
+    function datetimeLocalToUtc(valor) {
+        const d = new Date(valor);
+        if (isNaN(d.getTime())) return valor;
+        return d.toISOString().slice(0, 19).replace('T', ' ');
+    }
+
     async function submitGrant() {
         if (state.sending) return;
         const root = getModalRoot();
@@ -1554,7 +1563,7 @@
         const payload = { user_id: userId, permission_id: permissionId, motivo };
         if (modo === 'horas') payload.duracion_horas = parseInt(horas, 10);
         else if (modo === 'minutos') payload.duracion_minutos = parseInt(minutos, 10);
-        else payload.fecha_expiracion = fecha;
+        else payload.fecha_expiracion = datetimeLocalToUtc(fecha);
 
         setSending(true);
 
