@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Continue'
+$ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot '_env.ps1')   # BD E2E + servidor PHP embebido
 $script:failures = 0
 $script:runId = [guid]::NewGuid().ToString('N').Substring(0, 8)
@@ -86,8 +86,8 @@ function New-ActivatedUser($token, $tag) {
     $lt = LoginFull $email $temp
     if (-not $lt) { return $null }
     $tTemp = $lt.data.tokens.access_token
-    $null = Invoke-Post '/auth/change-password' (@{ password_actual = $temp; password_nuevo = 'V1121Pass123' } | ConvertTo-Json) $null $tTemp
-    $ln = LoginFull $email 'V1121Pass123'
+    $null = Invoke-Post '/auth/change-password' (@{ password_actual = $temp; password_nuevo = 'V1121Pass123!' } | ConvertTo-Json) $null $tTemp
+    $ln = LoginFull $email 'V1121Pass123!'
     if (-not $ln) { return $null }
     return @{ Id = $uid; Email = $email; Login = $ln; Token = $ln.data.tokens.access_token }
 }
@@ -133,7 +133,7 @@ if ($r.Status -eq 201) { Ok 'ROL asignado al grupo' '201' } else { Bad 'ROL asig
 
 # Re-login tras la concesion: el login de New-ActivatedUser es anterior al
 # rol de grupo, por lo que no puede reflejarlo.
-$u1.Login = LoginFull $u1.Email 'V1121Pass123'
+$u1.Login = LoginFull $u1.Email 'V1121Pass123!'
 if ($u1.Login) { $u1.Token = $u1.Login.data.tokens.access_token; Ok 'LOGIN u1 tras concesion' '200' }
 else { Bad 'LOGIN u1 tras concesion' 'sin respuesta' }
 
@@ -184,7 +184,7 @@ if ($r.Status -eq 201) {
 
 # Re-login tras la concesion: el login de New-ActivatedUser es anterior al
 # permiso temporal, por lo que no puede reflejarlo.
-$u2.Login = LoginFull $u2.Email 'V1121Pass123'
+$u2.Login = LoginFull $u2.Email 'V1121Pass123!'
 if ($u2.Login) { $u2.Token = $u2.Login.data.tokens.access_token; Ok 'LOGIN u2 tras concesion' '200' }
 else { Bad 'LOGIN u2 tras concesion' 'sin respuesta' }
 
@@ -278,7 +278,7 @@ if ($r.Status -eq 200) { Ok 'ASIGNAR ADMIN a u4' '200' } else { Bad 'ASIGNAR ADM
 $r = Invoke-Post "/users/$($u4.Id)/roles" (@{ role_id = $croleId } | ConvertTo-Json) $null $ta
 if ($r.Status -eq 200) { Ok 'ASIGNAR rol auxiliar a u4' '200' } else { Bad 'ASIGNAR rol auxiliar a u4' "status=$($r.Status) $($r.Content)" }
 
-$lg4 = LoginFull $u4.Email 'V1121Pass123'
+$lg4 = LoginFull $u4.Email 'V1121Pass123!'
 if (-not $lg4) { Bad 'LOGIN u4' 'sin token'; exit 1 }
 $t4 = $lg4.data.tokens.access_token
 

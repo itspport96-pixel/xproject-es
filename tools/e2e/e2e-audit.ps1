@@ -53,10 +53,10 @@ $HM = @{ Authorization = "Bearer $tokenMgr" }
 Add-R 'login manager@acme.local (200)' $loginMgr.code $loginMgr.json.data.user.email
 
 # Cuenta con rol USER (sin tenants.tenant.edit) para el check de 403.
-$loginUsr = Call 'POST' "$base/auth/login" @{ email = 'user@acme.local'; password = 'Admin123!' } @{}
+$loginUsr = Call 'POST' "$base/auth/login" @{ email = 'mpinilla@acme.local'; password = 'Admin123!' } @{}
 $tokenUsr = $loginUsr.json.data.tokens.access_token
 $HU = @{ Authorization = "Bearer $tokenUsr" }
-Add-R 'login user@acme.local (200)' $loginUsr.code $loginUsr.json.data.user.email
+Add-R 'login mpinilla@acme.local (200)' $loginUsr.code $loginUsr.json.data.user.email
 
 # ============ 2. CRUD PRODUCTO ============
 $prod = Call 'POST' "$base/inventory/products" @{

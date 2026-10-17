@@ -144,13 +144,13 @@ if ($r.Status -eq 200 -or $r.Status -eq 404) { Ok 'ALLOWLIST locales' "status=$(
 else { Bad 'ALLOWLIST locales' "status=$($r.Status) $($r.Content)" }
 
 # ============================================ 4) cambio de contraseña propio
-$r = Invoke-Post '/auth/change-password' (@{ password_actual = 'Incorrecta1'; password_nuevo = 'NuevaF2Pass123' } | ConvertTo-Json) $null $tTemp
+$r = Invoke-Post '/auth/change-password' (@{ password_actual = 'Incorrecta1'; password_nuevo = 'NuevaF2Pass123!' } | ConvertTo-Json) $null $tTemp
 $c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
 if ($r.Status -eq 400 -and $c.data.field -eq 'password_actual') {
     Ok 'CAMBIO password actual incorrecta' '400 field=password_actual'
 } else { Bad 'CAMBIO password actual incorrecta' "status=$($r.Status) $($r.Content)" }
 
-$r = Invoke-Post '/auth/change-password' (@{ password_actual = $temp1; password_nuevo = 'NuevaF2Pass123' } | ConvertTo-Json) $null $tTemp
+$r = Invoke-Post '/auth/change-password' (@{ password_actual = $temp1; password_nuevo = 'NuevaF2Pass123!' } | ConvertTo-Json) $null $tTemp
 if ($r.Status -eq 200) { Ok 'CAMBIO password' '200' }
 else { Bad 'CAMBIO password' "status=$($r.Status) $($r.Content)" }
 
@@ -160,9 +160,10 @@ if ($r.Status -eq 403 -and $c.data.category -ne 'password_change_required') {
     Ok 'DESPUES del cambio (sesion y marcador)' '403 por permisos: sesion viva y marcador limpio'
 } else { Bad 'DESPUES del cambio (sesion y marcador)' "status=$($r.Status) $($r.Content)" }
 
-# marker limpio en BD
-$marker = Scalar "SELECT IFNULL(fecha_expiracion_password, 'NULL') FROM users WHERE id = '$uid'"
-if ("$marker" -eq 'NULL') { Ok 'MARCADOR limpio' 'fecha_expiracion_password=NULL' }
+# marker limpio en BD (password_change_forced; fecha_expiracion_password
+# desde v1.14.1 guarda la caducidad forward, no el marcador)
+$marker = Scalar "SELECT IFNULL(password_change_forced, 'NULL') FROM users WHERE id = '$uid'"
+if ("$marker" -eq 'NULL') { Ok 'MARCADOR limpio' 'password_change_forced=NULL' }
 else { Bad 'MARCADOR limpio' "valor=$marker" }
 
 # ============================================================ 5) ciclo de estado
@@ -207,7 +208,7 @@ if ($tTemp2 -and $lt2.data.password_change_required -eq $true) {
     Ok 'LOGIN tras reset' 'flag=true'
 } else { Bad 'LOGIN tras reset' "resp=$($lt2 | ConvertTo-Json -Depth 6)" }
 
-$r = Invoke-Post '/auth/change-password' (@{ password_actual = $temp2; password_nuevo = 'FinalF2Pass123' } | ConvertTo-Json) $null $tTemp2
+$r = Invoke-Post '/auth/change-password' (@{ password_actual = $temp2; password_nuevo = 'FinalF2Pass123!' } | ConvertTo-Json) $null $tTemp2
 if ($r.Status -eq 200) { Ok 'CAMBIO final' '200' }
 else { Bad 'CAMBIO final' "status=$($r.Status) $($r.Content)" }
 
@@ -464,7 +465,7 @@ if (-not $tMgr) { Bad 'GRUPO mgr-lite login' 'sin token'; exit 1 }
 Ok 'GRUPO mgr-lite login' 'token ok'
 
 # salir del cambio forzado (password temporal) antes de usar el token
-$r = Invoke-Post '/auth/change-password' (@{ password_actual = $tempMgr; password_nuevo = 'MgrLitePass123' } | ConvertTo-Json) $null $tMgr
+$r = Invoke-Post '/auth/change-password' (@{ password_actual = $tempMgr; password_nuevo = 'MgrLitePass123!' } | ConvertTo-Json) $null $tMgr
 if ($r.Status -eq 200) { Ok 'GRUPO mgr-lite cambio pass' '200' }
 else { Bad 'GRUPO mgr-lite cambio pass' "status=$($r.Status) $($r.Content)" }
 

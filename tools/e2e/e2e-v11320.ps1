@@ -1,4 +1,4 @@
-﻿# e2e-v11320.ps1 - BLOQUE 1B: rol heredado por grupo en el modal de Roles (v1.13.20).
+# e2e-v11320.ps1 - BLOQUE 1B: rol heredado por grupo en el modal de Roles (v1.13.20).
 #
 # Escenarios:
 #   E1) Borrado de un rol asignado DIRECTAMENTE -> 200 y el rol desaparece.
@@ -92,8 +92,8 @@ function New-ActivatedUser($token, $tag) {
     $lt = LoginFull $email $temp
     if (-not $lt) { return $null }
     $tTemp = $lt.data.tokens.access_token
-    $null = Invoke-Post '/auth/change-password' (@{ password_actual = $temp; password_nuevo = 'V11320Pass123' } | ConvertTo-Json) $null $tTemp
-    $ln = LoginFull $email 'V11320Pass123'
+    $null = Invoke-Post '/auth/change-password' (@{ password_actual = $temp; password_nuevo = 'V11320Pass123!' } | ConvertTo-Json) $null $tTemp
+    $ln = LoginFull $email 'V11320Pass123!'
     if (-not $ln) { return $null }
     return @{ Id = $uid; Email = $email; Login = $ln; Token = $ln.data.tokens.access_token }
 }
@@ -122,11 +122,10 @@ if (-not $tenantId) { Bad 'TENANT' 'sin tenant de aleon'; exit 1 }
 
 # Rol de grupo con al menos un permiso activo (E3 comprueba que los
 # permisos efectivos entran y salen con el grupo).
-$par = Scalar ("SELECT CONCAT_WS('|', r.id, JSON_UNQUOTE(JSON_EXTRACT(r.permisos, '$[0]'))) " +
-    "FROM roles r INNER JOIN permissions p ON p.identificador = JSON_UNQUOTE(JSON_EXTRACT(r.permisos, '$[0]')) " +
+$par = Scalar ("SELECT CONCAT_WS('|', r.id, p.identificador) " +
+    "FROM roles r INNER JOIN role_permissions rp ON rp.role_id = r.id INNER JOIN permissions p ON p.id = rp.permission_id " +
     "WHERE r.nombre <> 'ADMIN' AND r.deleted_at IS NULL AND r.activo = 1 AND p.activo = 1 " +
-    "AND JSON_VALID(r.permisos) AND JSON_TYPE(r.permisos) = 'ARRAY' AND JSON_LENGTH(r.permisos) > 0 " +
-    "ORDER BY r.nombre LIMIT 1")
+    "ORDER BY r.nombre, p.identificador LIMIT 1")
 if (-not $par -or "$par" -notlike '*|*') { Bad 'ROL base' "sin rol con permisos (par=$par)"; exit 1 }
 $parts = "$par".Split('|')
 $roleId = $parts[0].Trim()
@@ -242,10 +241,13 @@ else {
 }
 
 # ================== E4) sin manage_members -> sin accion y 403
-$adm2 = LoginFull 'admin@acme.local' 'Admin123!'
-if (-not $adm2) { Bad 'E4 LOGIN manager' 'sin token'; exit 1 }
-$tNoPerm = $adm2.data.tokens.access_token
-$noPermId = $adm2.data.user.id
+# Control negativo con usuario temporal sin roles (permiso ausente): no
+# depende de ninguna cuenta sembrada (admin@acme.local quedo con el password
+# resetado en la BD viva: password_change_forced=2026-10-24).
+$uNoPerm = New-ActivatedUser $ta 'noperm'
+if (-not $uNoPerm) { Bad 'E4 alta usuario sin permiso' 'no se pudo crear/activar'; exit 1 }
+$tNoPerm = $uNoPerm.Token
+$noPermId = $uNoPerm.Id
 
 $meAdm = Invoke-Get '/auth/me' $tNoPerm
 if ($meAdm.Status -ne 200) { Bad 'E4 /auth/me sin permiso' "status=$($meAdm.Status)" }

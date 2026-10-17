@@ -6,6 +6,7 @@ namespace Tests\Unit;
 use App\Modules\Inventory\Application\Services\StockCalculationService;
 use App\Modules\Inventory\Domain\Exceptions\InventoryException;
 use App\Modules\Inventory\Domain\ValueObjects\StockState;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -36,9 +37,7 @@ final class StockCalculationServiceTest extends TestCase
         $this->assertSame(0.0, $this->service->disponible(30.0, 30.0, 0.0));
     }
 
-    /**
-     * @dataProvider estadosQueNoSumanDisponible
-     */
+    #[DataProvider('estadosQueNoSumanDisponible')]
     public function testDisponibleEsCeroParaCualquierEstadoDistintoDeDisponible(string $estado): void
     {
         $this->assertSame(
@@ -154,9 +153,7 @@ final class StockCalculationServiceTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider estadosQueNoSumanDisponible
-     */
+    #[DataProvider('estadosQueNoSumanDisponible')]
     public function testLedgerPoneElDisponibleACeroEnEstadosQueNoSuman(string $estado): void
     {
         $ledger = $this->service->crearLedger('ledger-' . $estado, 'tenant-1', 'unidad-1', 50.0, StockState::DISPONIBLE);

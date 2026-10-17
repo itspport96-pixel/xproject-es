@@ -1,8 +1,9 @@
 /**
  * Smoke jsdom GUI de idioma v1.10.2 (ajustado en v1.10.3).
  *
- * Cubre: carga pre-sesion sin GET (evita el 401 con efectos secundarios),
- * descarga del diccionario tras el login, selector en el menu de usuario,
+ * Cubre: descarga pre-sesion del diccionario (v1.17.2: GET /locales es
+ * PUBLICO, se pide 1 vez antes del login y el login no lo repite),
+ * selector en el menu de usuario,
  * cambio de idioma sin recarga (shell + sidebar + pantalla activa via
  * router.refresh), persistencia en localStorage['lang'], prioridad
  * usuario > localStorage > default y el PATCH /users/me/preferences que
@@ -234,11 +235,6 @@ function createEnv({ token = null, storedLang = null } = {}) {  const dom = new 
     async get(p, options = {}) {
       calls.gets.push({ path: p, options });
       if (p.startsWith('/locales/')) {
-        if (!store.token) {
-          const err = new Error('Unauthorized');
-          err.status = 401;
-          throw err;
-        }
         const loc = p.slice('/locales/'.length).replace(/\.json$/, '');
         if (!DICT[loc]) {
           const err = new Error('Not Found');
@@ -344,22 +340,24 @@ async function s1_s4_ciclo() {
   await w.i18n.init();
   await tick();
 
-  check('sin sesion NO se pide el diccionario (cero GET /locales)',
-    env.localeGets().length === 0, JSON.stringify(env.localeGets()));
+  check('la API publica se pide el diccionario pre-sesion (1 GET /locales/es.json)',
+    env.localeGets().length === 1 && env.localeGets()[0].path === '/locales/es.json',
+    JSON.stringify(env.localeGets()));
   check('selector presente con 4 idiomas', [...env.select().options].map(o => o.value).join(',') === 'es,en,pt,fr');
   check('idioma actual marcado en el selector', env.select().value === 'es', env.select().value);
   check('shell pintado con builtin (label Idioma)', env.label() === 'Idioma', env.label());
   check('lang attribute es', w.document.documentElement.getAttribute('lang') === 'es');
-  check('clave de modulo sin diccionario se devuelve en crudo (builtin parcial)',
-    w.t('dashboard.cards.quick_access') === 'dashboard.cards.quick_access');
+  check('clave de modulo resuelta pre-sesion (diccionario descargado sin token)',
+    w.t('dashboard.cards.quick_access') === 'Accesos rápidos',
+    w.t('dashboard.cards.quick_access'));
 
-  console.log('S2 tras el login se descarga el diccionario completo');
+  console.log('S2 el login reutiliza el diccionario ya descargado (sin segundo GET)');
   w.AuthState.init();
   w.AuthState.setSession(USER, { access_token: JWT, refresh_token: 'rk-1' });
   await tick();
 
   const esGets = env.localeGets();
-  check('auth:login dispara la descarga de es.json', esGets.length === 1 && esGets[0].path === '/locales/es.json',
+  check('el login NO re-descarga es.json (fetched pre-sesion)', esGets.length === 1 && esGets[0].path === '/locales/es.json',
     JSON.stringify(esGets));
   check('clave de modulo resuelta tras el login',
     w.t('dashboard.cards.quick_access') === 'Accesos rápidos',

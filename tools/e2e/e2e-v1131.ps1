@@ -85,8 +85,8 @@ function New-ActivatedUser($token, $tag) {
     $lt = LoginFull $email $temp
     if (-not $lt) { return $null }
     $tTemp = $lt.data.tokens.access_token
-    $null = Invoke-Post '/auth/change-password' (@{ password_actual = $temp; password_nuevo = 'V1131Pass123' } | ConvertTo-Json) $null $tTemp
-    $ln = LoginFull $email 'V1131Pass123'
+    $null = Invoke-Post '/auth/change-password' (@{ password_actual = $temp; password_nuevo = 'V1131Pass123!' } | ConvertTo-Json) $null $tTemp
+    $ln = LoginFull $email 'V1131Pass123!'
     if (-not $ln) { return $null }
     return @{ Id = $uid; Email = $email; Login = $ln; Token = $ln.data.tokens.access_token }
 }
@@ -204,8 +204,8 @@ if ($r.Status -eq 200) { Ok 'ROL cache asignado a ud (directo)' '200' }
 else { Bad 'ROL cache asignado a ud (directo)' "status=$($r.Status) $($r.Content)"; exit 1 }
 
 # Calentar las dos caches (grupo y directo)
-$lgUg = LoginFull $ug.Email 'V1131Pass123'
-$lgUd = LoginFull $ud.Email 'V1131Pass123'
+$lgUg = LoginFull $ug.Email 'V1131Pass123!'
+$lgUd = LoginFull $ud.Email 'V1131Pass123!'
 if (-not $lgUg -or -not $lgUd) { Bad 'LOGIN ug/ud' 'sin token'; exit 1 }
 $tUg = $lgUg.data.tokens.access_token
 $tUd = $lgUd.data.tokens.access_token

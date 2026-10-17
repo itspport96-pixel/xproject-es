@@ -72,8 +72,8 @@ function New-ActivatedUser($token, $tag) {
     $lt = LoginFull $email $temp
     if (-not $lt) { return $null }
     $tTemp = $lt.data.tokens.access_token
-    $null = Invoke-Post '/auth/change-password' (@{ password_actual = $temp; password_nuevo = 'V1130Pass123' } | ConvertTo-Json) $null $tTemp
-    $ln = LoginFull $email 'V1130Pass123'
+    $null = Invoke-Post '/auth/change-password' (@{ password_actual = $temp; password_nuevo = 'V1130Pass123!' } | ConvertTo-Json) $null $tTemp
+    $ln = LoginFull $email 'V1130Pass123!'
     if (-not $ln) { return $null }
     return @{ Id = $uid; Email = $email; Login = $ln; Token = $ln.data.tokens.access_token }
 }
@@ -157,7 +157,7 @@ $r = Invoke-Post "/users/$($uv.Id)/roles" (@{ role_id = $viewRoleId } | ConvertT
 if ($r.Status -eq 200) { Ok 'ASIGNAR rol vista a uv' '200' }
 else { Bad 'ASIGNAR rol vista a uv' "status=$($r.Status) $($r.Content)" }
 
-$lgv = LoginFull $uv.Email 'V1130Pass123'
+$lgv = LoginFull $uv.Email 'V1130Pass123!'
 if (-not $lgv) { Bad 'LOGIN uv' 'sin token'; exit 1 }
 $tv = $lgv.data.tokens.access_token
 
@@ -306,7 +306,7 @@ $r = Invoke-Post '/temporary-permissions' (@{ user_id = $u5.Id; permission_id = 
 if ($r.Status -eq 201) { Ok 'CONCESION temporal a +40s' "201 expira=$expiraEn" }
 else { Bad 'CONCESION temporal a +40s' "status=$($r.Status) $($r.Content)"; exit 1 }
 
-$lg5 = LoginFull $u5.Email 'V1130Pass123'
+$lg5 = LoginFull $u5.Email 'V1130Pass123!'
 if (-not $lg5) { Bad 'LOGIN u5' 'sin token'; exit 1 }
 $t5 = $lg5.data.tokens.access_token
 if (($lg5.data.user.permisos -is [array]) -and ($lg5.data.user.permisos -contains 'users.user.view')) {

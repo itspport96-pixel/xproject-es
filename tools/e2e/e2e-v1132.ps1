@@ -73,8 +73,8 @@ function New-ActivatedUser($token, $tag) {
     $lt = LoginFull $email $temp
     if (-not $lt) { return $null }
     $tTemp = $lt.data.tokens.access_token
-    $null = Invoke-Post '/auth/change-password' (@{ password_actual = $temp; password_nuevo = 'V1132Pass123' } | ConvertTo-Json) $null $tTemp
-    $ln = LoginFull $email 'V1132Pass123'
+    $null = Invoke-Post '/auth/change-password' (@{ password_actual = $temp; password_nuevo = 'V1132Pass123!' } | ConvertTo-Json) $null $tTemp
+    $ln = LoginFull $email 'V1132Pass123!'
     if (-not $ln) { return $null }
     return @{ Id = $uid; Email = $email; Login = $ln; Token = $ln.data.tokens.access_token }
 }
@@ -154,7 +154,7 @@ if (-not $cp) { Bad 'ALTA cp' 'no se pudo crear/activar'; exit 1 }
 
 $at429 = 0
 for ($i = 1; $i -le 12; $i++) {
-    $r = Invoke-Post '/auth/change-password' (@{ password_actual = 'Erronea123'; password_nuevo = 'NuevaCp1234' } | ConvertTo-Json) $null $cp.Token
+    $r = Invoke-Post '/auth/change-password' (@{ password_actual = 'Erronea123'; password_nuevo = 'NuevaCp1234!' } | ConvertTo-Json) $null $cp.Token
     if ($r.Status -eq 429) { $at429 = $i; break }
 }
 # Intento 1 (alta) + 10 incorrectos = 11 > 10 => 429 en el incorrecto 10.

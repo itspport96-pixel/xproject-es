@@ -83,21 +83,21 @@ $script:tokenB = $tokenB
 
 # ================================================= 2) permisos sembrados (Sprint 8)
 $permTotal = Scalar "SELECT COUNT(*) FROM permissions WHERE identificador LIKE 'inventory.%'"
-Assert-Eq 'PERM total inventory.*' $permTotal '34'
+Assert-Eq 'PERM total inventory.*' $permTotal '35'
 
 foreach ($p in 'inventory.delivery.view', 'inventory.delivery.confirm', 'inventory.return.view', 'inventory.return.create') {
     $c = Scalar ("SELECT COUNT(*) FROM permissions WHERE identificador='" + $p + "' AND activo=1")
     Assert-Eq "PERM $p existe y activo" $c '1'
 }
 
-# view -> ADMIN/MANAGER/USER/VIEWER (4 roles): roles.permisos (JSON)
-$c = Scalar "SELECT COUNT(*) FROM roles WHERE deleted_at IS NULL AND nombre IN ('ADMIN','MANAGER','USER','VIEWER') AND permisos LIKE '%inventory.delivery.view%'"
+# view -> ADMIN/MANAGER/USER/VIEWER (4 roles): role_permissions
+$c = Scalar "SELECT COUNT(DISTINCT r.id) FROM roles r INNER JOIN role_permissions rp ON rp.role_id = r.id INNER JOIN permissions p ON p.id = rp.permission_id WHERE r.deleted_at IS NULL AND r.nombre IN ('ADMIN','MANAGER','USER','VIEWER') AND p.identificador = 'inventory.delivery.view'"
 Assert-Eq 'PERM delivery.view en 4 roles' $c '4'
-$c = Scalar "SELECT COUNT(*) FROM roles WHERE deleted_at IS NULL AND nombre IN ('ADMIN','MANAGER','USER','VIEWER') AND permisos LIKE '%inventory.return.view%'"
+$c = Scalar "SELECT COUNT(DISTINCT r.id) FROM roles r INNER JOIN role_permissions rp ON rp.role_id = r.id INNER JOIN permissions p ON p.id = rp.permission_id WHERE r.deleted_at IS NULL AND r.nombre IN ('ADMIN','MANAGER','USER','VIEWER') AND p.identificador = 'inventory.return.view'"
 Assert-Eq 'PERM return.view en 4 roles' $c '4'
-$c = Scalar "SELECT COUNT(*) FROM roles WHERE deleted_at IS NULL AND nombre IN ('ADMIN','MANAGER') AND permisos LIKE '%inventory.delivery.confirm%'"
+$c = Scalar "SELECT COUNT(DISTINCT r.id) FROM roles r INNER JOIN role_permissions rp ON rp.role_id = r.id INNER JOIN permissions p ON p.id = rp.permission_id WHERE r.deleted_at IS NULL AND r.nombre IN ('ADMIN','MANAGER') AND p.identificador = 'inventory.delivery.confirm'"
 Assert-Eq 'PERM delivery.confirm en ADMIN+MANAGER' $c '2'
-$c = Scalar "SELECT COUNT(*) FROM roles WHERE deleted_at IS NULL AND nombre IN ('ADMIN','MANAGER') AND permisos LIKE '%inventory.return.create%'"
+$c = Scalar "SELECT COUNT(DISTINCT r.id) FROM roles r INNER JOIN role_permissions rp ON rp.role_id = r.id INNER JOIN permissions p ON p.id = rp.permission_id WHERE r.deleted_at IS NULL AND r.nombre IN ('ADMIN','MANAGER') AND p.identificador = 'inventory.return.create'"
 Assert-Eq 'PERM return.create en ADMIN+MANAGER' $c '2'
 
 # ================================================================= 3) recursos base

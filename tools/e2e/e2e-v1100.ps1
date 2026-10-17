@@ -114,9 +114,9 @@ if (-not $tokenA) { Bad 'LOGIN aleon' 'sin token'; exit 1 }
 Ok 'LOGIN aleon@acme.local' "ADMIN token len=$($tokenA.Length)"
 
 # USER: tiene inventory.stock.view pero NO inventory.stock.block.
-$tokenU = Login 'user@acme.local' 'Admin123!'
-if (-not $tokenU) { Bad 'LOGIN user@acme.local' 'sin token'; exit 1 }
-Ok 'LOGIN user@acme.local (sin stock.block)' "USER token len=$($tokenU.Length)"
+$tokenU = Login 'mpinilla@acme.local' 'Admin123!'
+if (-not $tokenU) { Bad 'LOGIN mpinilla@acme.local' 'sin token'; exit 1 }
+Ok 'LOGIN mpinilla@acme.local (sin stock.block)' "USER token len=$($tokenU.Length)"
 
 # ==================================================== 2) recursos base
 $almacen = (Scalar "SELECT id FROM locations WHERE codigo='E2E-ALMACEN' AND activa=1")

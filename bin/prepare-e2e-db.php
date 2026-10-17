@@ -9,8 +9,9 @@ declare(strict_types=1);
  *   1. Crea la BD destino si no existe (mismo juego de caracteres que la fuente).
  *   2. Si no tiene tablas, aplica database/schema/schema.sql (unico DDL).
  *   3. Copia desde la BD de trabajo SOLO las tablas de identidad y acceso:
- *      tenants, users, roles, permissions, role_assignments. Nunca stock,
- *      movimientos ni auditoria: cada E2E genera sus propios datos.
+ *      tenants, users, roles, permissions, role_assignments,
+ *      role_permissions. Nunca stock, movimientos ni auditoria: cada E2E
+ *      genera sus propios datos.
  *   4. Garantiza los fixtures que los E2E asumen: producto PROD-001 y las
  *      ubicaciones ALMACENAMIENTO y PICKING activas. TRANSITO y DANADOS los
  *      crea el seeder real del dominio (bin/seed-transit-locations.php).
@@ -37,7 +38,7 @@ require_once $baseDir . '/vendor/autoload.php';
 Dotenv::createImmutable($baseDir)->safeLoad();
 
 /** @var list<string> Tablas de identidad y acceso copiadas desde la BD de trabajo. */
-$tablasIdentidad = ['tenants', 'users', 'roles', 'permissions', 'role_assignments'];
+$tablasIdentidad = ['tenants', 'users', 'roles', 'permissions', 'role_assignments', 'role_permissions'];
 
 function fail(string $msg): never
 {

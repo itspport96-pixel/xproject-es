@@ -151,9 +151,13 @@ final class PasswordResetLiveTest extends TestCase
         // Limpieza a la inversa (FKs).
         $this->pdo->prepare('DELETE FROM password_reset_tokens WHERE user_id = ?')->execute([$this->userId]);
         $this->pdo->prepare('DELETE FROM role_assignments WHERE user_id = ?')->execute([$this->userId]);
+        // Barrido acotado a los roles de ESTE test: en la BD de E2E conviven
+        // restos de otros scripts (roles CUSTOM en group_roles) y no deben
+        // bloquear la limpieza (FK group_roles_ibfk_2).
         $this->pdo->prepare(
             'DELETE r FROM roles r LEFT JOIN role_assignments ra ON ra.role_id = r.id
-              WHERE r.tenant_id = ? AND r.tipo = \'CUSTOM\' AND ra.role_id IS NULL'
+              WHERE r.tenant_id = ? AND r.tipo = \'CUSTOM\'
+                AND r.nombre LIKE \'SSPR-Test-%\' AND ra.role_id IS NULL'
         )->execute([$this->tenantId]);
         $this->pdo->prepare('DELETE FROM password_history WHERE user_id = ?')->execute([$this->userId]);
         $this->pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$this->userId]);
