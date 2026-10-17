@@ -1464,7 +1464,13 @@
             }))
         );
 
-        const ahora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        // datetime-local en hora UTC: la convencion de la plataforma (ui/dom.js)
+        // es mostrar los naive 'Y-m-d H:i:s' de la BD tal cual (PHP escribe en
+        // UTC y el backend parsea fecha_expiracion con DateTimeImmutable en UTC).
+        // Con el valor local, un navegador con desfase horario guardaba la
+        // expiracion corrida su offset (17:00 locales se almacenaban 17:00 UTC
+        // = 18:00 locales).
+        const ahora = new Date().toISOString().slice(0, 16);
 
         // Layout (M2): una columna para campo a campo (sin columnas
         // fantasma en un UI.grid de un solo hijo), ritmo uniforme de

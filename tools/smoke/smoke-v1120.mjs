@@ -976,6 +976,45 @@ async function s7_temp_minutes_autorefresh() {
     check('la fila vencida ya no se pinta', !/inventory\.stock\.view/.test(env.container.textContent));
     env.close();
   }
+
+  // --- Modo fecha: el datetime-local opera en hora UTC (v1.17.7) ---
+  {
+    const env = createEnv({ perms: ADMIN_PERMS, roles: ['ADMIN'] });
+    env.loadUsers();
+    await tick();
+    env.click(env.container.querySelector('[data-action="open-grant"]'));
+    await tick(12);
+    const root = env.modalRoot();
+
+    env.click(root.querySelector('[data-expiry-mode][value="fecha"]'));
+    await tick();
+    const campo = root.querySelector('[data-modal-field="fecha_expiracion"]');
+    check('campo fecha visible al elegir el modo', !!campo);
+
+    // El valor por defecto es la hora UTC ahora: en una maquina con desfase
+    // horario NO debe coincidir con el muro local (ese era el bug: el default
+    // local se enviaba tal cual y el backend lo guardaba como UTC).
+    const utcAhora = Date.parse(new Date().toISOString().slice(0, 16) + ':00Z');
+    const valorMs = campo ? Date.parse(campo.value + ':00Z') : NaN;
+    check('default de fecha en hora UTC (tolerancia 1 min)',
+      !Number.isNaN(valorMs) && Math.abs(valorMs - utcAhora) <= 60000,
+      (campo ? campo.value : 'sin campo') + ' vs utc ' + new Date().toISOString().slice(0, 16));
+
+    // El payload se enviaba tal cual: el valor elegido (ya en UTC) viaja sin
+    // conversion y sin campos de duracion.
+    campo.value = '2099-01-15T10:30';
+    env.set(root, 'user_id', 'u1');
+    env.set(root, 'permission_id', 'p1');
+    env.set(root, 'motivo', 'Prueba fecha');
+    env.click(root.querySelector('[data-action="submit-grant"]'));
+    await tick();
+    check('POST con fecha_expiracion en UTC tal cual',
+      env.calls.posts.some(p => p.path === '/temporary-permissions'
+        && p.body.fecha_expiracion === '2099-01-15T10:30'
+        && !('duracion_horas' in p.body) && !('duracion_minutos' in p.body)),
+      JSON.stringify(env.calls.posts.filter(p => p.path === '/temporary-permissions')));
+    env.close();
+  }
 }
 
 // =====================================================================

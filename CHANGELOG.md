@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.7] - 2026-10-17
+
+**Modo "Fecha" del permiso temporal: el picker opera en hora UTC.** El campo `datetime-local` del modal de concesion se inicializaba con la hora local del navegador (compensando `getTimezoneOffset`), pero la convencion de la plataforma es que los `Y-m-d H:i:s` naive viajan, se almacenan y se muestran como UTC (PHP escribe en UTC y el backend parsea `fecha_expiracion` con `DateTimeImmutable` en UTC, `TemporaryPermissionController.php`). En un navegador con desfase horario la caducidad elegida se guardaba corrida su offset: 17:00 locales se almacenaban 17:00 UTC (= 18:00 locales), y la validacion "debe ser futura" del servidor comparaba contra un reloj distinto. El default pasa a `new Date().toISOString().slice(0, 16)` (hora UTC ahora, la misma literal que muestra el resto de la interfaz via `ui/dom.js`) y el valor elegido sigue viajando tal cual, ya alineado. Los modos Horas y Minutos no cambian: el backend los calcula desde `now`.
+
+### Notes
+- `tools/smoke/smoke-v1120.mjs` S7 anade 3 checks: campo fecha visible al elegir el modo, default en hora UTC con tolerancia de 1 min (fallaria con el codigo anterior: en esta maquina +01 el desfase era 3600 s) y `payload.fecha_expiracion` enviado tal cual sin campos de duracion.
+- Bateria completa: v1120 169, v162 89, v171 105, profile-mfa 29, sspr 35, v11358 85; composer test 996; drift SIN DRIFT; integridad DATOS CONSISTENTES; GETs en vivo 401 sin 500.
+- Desviaciones de la misma clase, no tocadas: `inventory/stock.js` (`fecha_expiracion` del articulo) e `inventory/shipments.js` (`hora_entrega_esperada`) envian el valor local del `datetime-local` sin convertir, con el mismo desfase potencial en maquinas no UTC.
+
 ## [1.17.6] - 2026-10-17
 
 **Borrado de rol con purga de asignaciones, permiso temporal por minutos y auto-refresco de la lista temporal.** (1) `DELETE /api/roles/{id}` solo hacia el soft delete: las filas de `role_assignments` y `group_roles` del rol quedaban huerfanas en las tablas (el rol ya no se listaba ni daba permisos, pero el registro sobrevivia para cualquier consulta que no filtrara `deleted_at`). Ahora `RoleController::destroy()` purga ambas junctions tras invalidar la cache de portadores y deja el recuento en la auditoria (`detalles_adicionales.asignaciones_eliminadas`); de paso, `GET /api/groups/{id}/roles` deja de devolver roles borrados (filtro `r.deleted_at IS NULL`; desaparece el badge `role_deleted_at` que solo pintaba basura heredada). (2) El modal de concesion ofrecia Horas o Fecha, pero no Minutos: no se podia conceder "2 minutos" desde la UI aunque el API ya lo aceptaba via `duracion_minutos`. Ahora hay segmento Minutos con su campo (entero > 0, validado en cliente y en servidor). (3) La pestana Temporales no se refrescaba sola: la fila vencida seguia visible hasta que el admin recargaba a mano. Un timer calcula la expiracion vigente mas proxima de la lista y recarga la pestana cuando pasa (se limpia al salir de la pestana o del modulo).
