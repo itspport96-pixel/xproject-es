@@ -632,6 +632,12 @@ async function s9_sidebar_icon_rail() {
     const item = env.w.document.querySelector('.sidebar-item');
     check('items con aria-label', !!(item && item.getAttribute('aria-label')));
 
+    // El pie del rail es el boton de logout, con su title/aria-label
+    // (v1.17.10: el avatar se oculta por CSS en modo rail).
+    const logout = env.w.document.querySelector('#sidebar-logout-btn');
+    check('rail: boton de cerrar sesion presente con title',
+      !!(logout && logout.getAttribute('title') && logout.getAttribute('aria-label')));
+
     // Tooltip del rail en body (v1.17.9): el hover lo pinta fuera del nav
     // (asi el scroll del rail no lo recorta) y al salir del item se oculta.
     const etiqueta = item.querySelector('.sidebar-item-label').textContent;

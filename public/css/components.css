@@ -1767,8 +1767,13 @@ text-overflow: ellipsis;
 }
 
 /* Logout del pie del sidebar (v1.13.7): icono alineado a la derecha.
-   Con el sidebar colapsado (info oculta) queda solo avatar + logout,
-   centrados, sin romper el layout (margin-left auto desactivado). */
+   En el rail (v1.17.10) el avatar y la info del usuario se ocultan: el
+   ultimo icono de la columna es exactamente el boton de cerrar sesion,
+   centrado (margin-left auto desactivado). */
+.app-layout.sidebar-collapsed .sidebar-user .avatar {
+  display: none;
+}
+
 .sidebar-logout {
 display: flex;
 align-items: center;

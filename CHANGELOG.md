@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.10] - 2026-10-17
+
+**Rail de la sidebar: el ultimo icono es solo cerrar sesion.** El pie del rail mostraba avatar (iniciales) junto al icono de logout. Ahora el avatar y la info del usuario quedan ocultos en modo colapsado (`.app-layout.sidebar-collapsed .sidebar-user .avatar`): la columna de iconos termina en un unico boton de cerrar sesion, centrado, con su `title`/`aria-label` nativos ("Cerrar sesion"). El sidebar expandido no cambia: conserva avatar, nombre y rol.
+
+### Notes
+- Cambio solo de CSS (`components.css`); smoke S9 anade 1 check (logout presente con title/aria-label en rail). Bateria: v1120 169, v162 91, v171 107, profile-mfa 29, sspr 35, v11358 89; drift SIN DRIFT.
+
 ## [1.17.9] - 2026-10-17
 
 **El rail de la sidebar ya no deja items fuera de pantalla.** En modo iconos (v1.17.5) todos los items se fuerzan visibles (los titulos de seccion no estan, no hay forma de expandirlos), pero el nav pasaba a `overflow: visible` para que los tooltips salieran del rail: eso elimina el scroll vertical y con 18+ items del menu de ADMIN la mitad inferior del rail quedaba inalcanzable. Ahora el nav del rail vuelve a scrollear (barra oculta, mismo aspecto de columna de iconos) y el tooltip flota en `document.body` con posicion `fixed` (nodo unico `.rail-tooltip`, generado y posicionado en `sidebar.js`): no lo recorta el scroll, se coloca a la derecha del item dentro del viewport (a la izquierda si no cabe) y responde tanto a hover como a foco de teclado. El label del boton queda oculto por CSS en modo rail (el `aria-label` sigue cubriendo accesibilidad). El item activo entra en la vista con `scrollIntoView({block:'nearest'})` al navegar, y el tooltip se oculta al hacer clic, al scrollear, al redimensionar, al alternar de modo y al cerrar sesion.
