@@ -35,6 +35,9 @@ use Tests\Support\RecordingAuditLogger;
  *  - POST /users/{id}/mfa/reset (v1.17.14): auto-reset 403, wipe completo
  *    (flag + metodo + secreto + codigos), revoca de sesiones con motivo
  *    admin_mfa_reset, idempotente y 404 si el usuario no existe.
+ *  - GET /users y /users/{id} (v1.17.15): sanitizeUser recorta password,
+ *    mfa_secret y mfa_backup_codes — el SELECT * del repositorio no puede
+ *    exponer el material MFA en el listado ni en el detalle.
  */
 final class UserControllerTest extends PlatformControlSqliteTestCase
 {
@@ -417,6 +420,49 @@ final class UserControllerTest extends PlatformControlSqliteTestCase
             $this->assertSame(404, $e->getStatusCode());
             $this->assertSame('users.user_not_found', $e->getMessageKey());
         }
+    }
+
+    // ====================================================================
+    // GET /users y /users/{id} — sin material MFA (v1.17.15)
+    // ====================================================================
+
+    public function testShowNoExponeMfaSecretNiBackupCodes(): void
+    {
+        $this->enableMfa(self::USER);
+
+        $result = $this->controller->show(['id' => self::USER]);
+        $user = $result['data']['user'];
+
+        $this->assertSame(200, $result['status']);
+        $this->assertArrayHasKey('mfa_habilitado', $user);
+        $this->assertTrue((bool) $user['mfa_habilitado'], 'El indicador MFA sigue disponible para la UI');
+        $this->assertArrayNotHasKey('mfa_secret', $user);
+        $this->assertArrayNotHasKey('mfa_backup_codes', $user);
+        $this->assertArrayNotHasKey('password', $user);
+
+        // El secreto sigue en la tabla: solo deja de exponerse.
+        $row = $this->mfaRow(self::USER);
+        $this->assertSame('sec-test', $row['mfa_secret']);
+    }
+
+    public function testIndexNoExponeMfaSecretNiBackupCodes(): void
+    {
+        $this->enableMfa(self::USER);
+        $_GET = ['per_page' => '50'];
+
+        $result = $this->controller->index();
+        $fila = null;
+        foreach ($result['data']['data'] as $row) {
+            if ($row['id'] === self::USER) {
+                $fila = $row;
+            }
+        }
+
+        $this->assertNotNull($fila, 'La fila propia aparece en el listado');
+        $this->assertArrayHasKey('mfa_habilitado', $fila);
+        $this->assertArrayNotHasKey('mfa_secret', $fila);
+        $this->assertArrayNotHasKey('mfa_backup_codes', $fila);
+        $this->assertArrayNotHasKey('password', $fila);
     }
 
     // ====================================================================

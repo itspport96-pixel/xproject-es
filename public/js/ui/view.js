@@ -267,7 +267,11 @@
         menu.style.visibility = 'hidden';
 
         const t = trigger.getBoundingClientRect();
-        const m = menu.getBoundingClientRect();
+        // offsetWidth/Height miden la caja de layout sin la transformacion:
+        // la animacion scaleIn (scale 0.95 -> 1) hacia que el rect llegara un
+        // 5% pequeno y el flip/clamp se calculase tarde, dejando el menu
+        // desbordado por abajo en pantallas bajas.
+        const m = { width: menu.offsetWidth, height: menu.offsetHeight };
         const vw = document.documentElement.clientWidth || window.innerWidth;
         const vh = document.documentElement.clientHeight || window.innerHeight;
 

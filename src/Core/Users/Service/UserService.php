@@ -963,14 +963,19 @@ final class UserService
     // ========================================================================
 
     /**
-     * Elimina el password del array de usuario antes de retornarlo.
+     * Elimina del array de usuario los campos sensiveles antes de retornarlo:
+     * password, el secreto TOTP y los codigos de respaldo (v1.17.15: el
+     * repositorio hace SELECT *, asi que sin este recorte cualquier GET del
+     * modulo usuarios expondria el material con el que se verifica/revoca MFA).
+     * La autenticacion (login, /auth/me, flujos MFA) usa el repositorio en
+     * crudo y no pasa por aqui.
      */
     private function sanitizeUser(?array $user): ?array
     {
         if ($user === null) {
             return null;
         }
-        unset($user['password']);
+        unset($user['password'], $user['mfa_secret'], $user['mfa_backup_codes']);
         return $user;
     }
 

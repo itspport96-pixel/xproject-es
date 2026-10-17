@@ -8,8 +8,8 @@
  * Comprueba: sin scroll horizontal de la tabla, columna de acciones a la
  * derecha, chips sin partir, menu de tres puntos accesible (aria), opciones
  * por grupos con Eliminar al final en rojo, menu dentro del viewport, sin
- * Eliminar/Estado sobre el propio usuario, escalada sobre ADMIN para un
- * actor no ADMIN y ?tab= en la URL.
+ * Eliminar/Estado/Restablecer contrasena sobre el propio usuario (v1.17.15),
+ * escalada sobre ADMIN para un actor no ADMIN y ?tab= en la URL.
  */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -31,7 +31,7 @@ async function login(page, email, pass) {
   await page.waitForSelector('input[type="email"], input[name="email"], #email', { timeout: 15000 });
   await page.locator('input[type="email"], input[name="email"], #email').first().fill(email);
   await page.locator('input[type="password"], input[name="password"], #password').first().fill(pass);
-  await page.locator('button[type="submit"], form button').first().click();
+  await page.getByRole('button', { name: 'Iniciar sesión' }).click();
   await page.waitForURL(/dashboard|\/#\/dashboard/, { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1200);
 }
@@ -168,10 +168,17 @@ async function main() {
       check(`admin@${size.label} sin Eliminar ni Estado sobre si mismo`,
         !!self && !self.acts.some(a => a.action === 'open-delete' || a.action === 'open-status'),
         JSON.stringify(self && self.acts));
-      // Sobre otro usuario no-ADMIN sí hay ambas.
-      const otro = await rowByEmail(page, 'fgal@acme.local');
-      check(`admin@${size.label} sobre otro usuario: Estado y Eliminar`,
-        !!otro && otro.acts.some(a => a.action === 'open-status') && otro.acts.some(a => a.action === 'open-delete'),
+      // v1.17.15: el reset de contrasena propio se hace en Perfil, no aqui.
+      check(`admin@${size.label} sin Restablecer contrasena sobre si mismo`,
+        !!self && !self.acts.some(a => a.action === 'open-reset'),
+        JSON.stringify(self && self.acts));
+      // Sobre otro usuario no-ADMIN si hay ambas y el reset de contrasena.
+      // (fgal@acme.local ya no existe en la BD viva; el usuario activo
+      //  no-ADMIN es mpinilla@acme.local, rol USER.)
+      const otro = await rowByEmail(page, 'mpinilla@acme.local');
+      check(`admin@${size.label} sobre otro usuario: Estado, Eliminar y Restablecer contrasena`,
+        !!otro && otro.acts.some(a => a.action === 'open-status') && otro.acts.some(a => a.action === 'open-delete')
+          && otro.acts.some(a => a.action === 'open-reset'),
         JSON.stringify(otro && otro.acts));
 
       // ?tab= en la URL.

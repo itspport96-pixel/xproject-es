@@ -244,7 +244,7 @@
         const estado = canStatus() && canActOnUser(u, true)
             ? { action: 'open-status', id: u.id, label: t('users.actions.status') }
             : null;
-        const reset = canReset() && canActOnUser(u, false)
+        const reset = canReset() && canActOnUser(u, true)
             ? { action: 'open-reset', id: u.id, label: t('users.actions.reset') }
             : null;
         const resetMfa = canResetMfa() && canActOnUser(u, true)
