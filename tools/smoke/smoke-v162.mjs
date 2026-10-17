@@ -669,6 +669,59 @@ async function s6_shell_registration() {
 }
 
 // =====================================================================
+// S7 - SKELETON DE PRIMERA CARGA (v1.17.12)
+// =====================================================================
+async function s7_first_load_skeleton() {
+  console.log('S7 skeleton: primera carga de stock y auditoria pinta skeleton, no spinner');
+
+  let liberarStock;
+  const env = createEnv({
+    perms: ADMIN_PERMS, roles: ['ADMIN'],
+    getHandlers: {
+      '/inventory/stock': () => new Promise(r => { liberarStock = () => r(STOCK_PAYLOAD); })
+    }
+  });
+  env.loadStock();
+  await tick();
+  check('stock: skeleton visible mientras carga',
+    env.container.querySelectorAll('.skeleton').length > 0,
+    `skeletons=${env.container.querySelectorAll('.skeleton').length}`);
+  check('stock: sin spinner', !env.container.querySelector('.spinner'));
+  liberarStock();
+  await tick();
+  check('stock: 3 filas tras resolver',
+    env.container.querySelectorAll('tbody tr').length === 3,
+    `rows=${env.container.querySelectorAll('tbody tr').length}`);
+  check('stock: skeleton fuera tras resolver',
+    env.container.querySelectorAll('.skeleton').length === 0,
+    `skeletons=${env.container.querySelectorAll('.skeleton').length}`);
+  env.close();
+
+  let liberarAudit;
+  const env2 = createEnv({
+    perms: ADMIN_PERMS, roles: ['ADMIN'],
+    getHandlers: {
+      '/audit/logs': () => new Promise(r => { liberarAudit = () => r(AUDIT_PAYLOAD); })
+    }
+  });
+  env2.loadAudit();
+  await tick();
+  check('audit: skeleton visible mientras carga',
+    env2.container.querySelectorAll('.skeleton').length > 0,
+    `skeletons=${env2.container.querySelectorAll('.skeleton').length}`);
+  check('audit: sin spinner', !env2.container.querySelector('.spinner'));
+  liberarAudit();
+  await tick();
+  check('audit: 2 filas tras resolver',
+    env2.container.querySelectorAll('tbody tr').length === 2,
+    `rows=${env2.container.querySelectorAll('tbody tr').length}`);
+  check('audit: skeleton fuera tras resolver',
+    env2.container.querySelectorAll('.skeleton').length === 0,
+    `skeletons=${env2.container.querySelectorAll('.skeleton').length}`);
+  env2.close();
+}
+
+// =====================================================================
 async function main() {
   await s1_stock_actions();
   await s2_move_modal();
@@ -676,6 +729,7 @@ async function main() {
   await s4_reservations_screen();
   await s5_audit_viewer();
   await s6_shell_registration();
+  await s7_first_load_skeleton();
 
   console.log(`\nRESULTADO: ${pass} OK, ${fail} FAIL`);
   if (fail > 0) process.exitCode = 1;

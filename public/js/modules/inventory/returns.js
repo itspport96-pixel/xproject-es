@@ -210,10 +210,17 @@
         if (!root) return;
 
         if (state.listLoading) {
-            root.innerHTML = `
-                <div class="flex items-center justify-center py-12">
-                    <div class="spinner"></div>
-                </div>`;
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('inventory.returns.columns.devolucion') },
+                { label: t('inventory.returns.columns.envio') },
+                { label: t('inventory.returns.columns.barcode') },
+                { label: t('inventory.returns.columns.cantidad'), className: 'text-right' },
+                { label: t('inventory.returns.columns.motivo') },
+                { label: t('inventory.returns.columns.estado') },
+                { label: t('inventory.returns.columns.destino') },
+                { label: t('inventory.returns.columns.detalle') },
+                { label: t('inventory.returns.columns.fecha') }
+            ], 8, [12, 12, 14, 8, 12, 10, 10, 10, 12]);
             return;
         }
 
@@ -533,8 +540,7 @@
     // ====================================================================
 
     async function loadHistory(page = 1) {
-        state.listLoading = true;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'listLoading', renderTable);
 
         try {
             const params = { page, per_page: state.pagination.per_page };
@@ -560,7 +566,7 @@
             }
             return false;
         } finally {
-            state.listLoading = false;
+            gate.done();
             renderAll();
         }
     }

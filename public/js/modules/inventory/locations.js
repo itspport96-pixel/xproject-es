@@ -157,10 +157,15 @@
         if (!root) return;
 
         if (state.loading) {
-            root.innerHTML = `
-                <div class="flex items-center justify-center py-12">
-                    <div class="spinner"></div>
-                </div>`;
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('inventory.locations.columns.code') },
+                { label: t('inventory.locations.columns.name_hierarchy') },
+                { label: t('inventory.locations.columns.type') },
+                { label: t('inventory.locations.columns.capacity') },
+                { label: t('inventory.locations.columns.state') },
+                { label: t('inventory.locations.columns.created') },
+                { label: t('inventory.locations.columns.actions') }
+            ], 8, [14, 24, 14, 12, 12, 12, 12]);
             return;
         }
 
@@ -338,9 +343,7 @@
                         <button class="modal-close" data-action="close-modal">×</button>
                     </div>
                     <div class="modal-body">
-                        <div class="flex items-center justify-center py-10">
-                            <div class="spinner"></div>
-                        </div>
+                        ${UI.rowsSkeleton(5)}
                     </div>
                 </div>
             </div>`;
@@ -433,8 +436,7 @@
     // ====================================================================
 
     async function loadLocations(page = 1) {
-        state.loading = true;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'loading', renderTable);
 
         try {
             const params = { page, per_page: state.pagination.per_page };
@@ -455,7 +457,7 @@
             state.items = [];
             return false;
         } finally {
-            state.loading = false;
+            gate.done();
             renderTable();
             renderPagination();
         }

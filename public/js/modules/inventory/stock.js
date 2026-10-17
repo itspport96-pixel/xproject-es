@@ -205,10 +205,14 @@
         if (!root) return;
 
         if (state.loading) {
-            root.innerHTML = `
-                <div class="flex items-center justify-center py-12">
-                    <div class="spinner"></div>
-                </div>`;
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('inventory.stock.columns.barcode') },
+                { label: t('inventory.stock.columns.producto') },
+                { label: t('inventory.stock.columns.ubicacion') },
+                { label: t('inventory.stock.columns.cantidad') },
+                { label: t('inventory.stock.columns.estado') },
+                { label: t('inventory.stock.columns.acciones') }
+            ], 8, [22, 24, 16, 10, 14, 14]);
             return;
         }
 
@@ -603,7 +607,7 @@
 
         let body;
         if (h.loading) {
-            body = '<div class="flex items-center justify-center py-8"><div class="spinner"></div></div>';
+            body = UI.rowsSkeleton(5);
         } else if (h.data.length === 0) {
             body = `<div class="empty-state"><div class="empty-state-title">${t('inventory.stock.history.empty_title')}</div>`
                 + `<p class="text-muted">${t('inventory.stock.history.empty_message')}</p></div>`;
@@ -1009,8 +1013,7 @@
     // ====================================================================
 
     async function loadStock(page = 1) {
-        state.loading = true;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'loading', renderTable);
 
         try {
             const params = { page, per_page: state.pagination.per_page };
@@ -1032,7 +1035,7 @@
             state.items = [];
             return false;
         } finally {
-            state.loading = false;
+            gate.done();
             renderSummary();
             renderTable();
             renderPagination();

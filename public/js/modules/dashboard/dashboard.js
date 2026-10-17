@@ -60,10 +60,7 @@
         wrapperClass: 'mb-6'
       })}
 
-      <div data-dashboard-content>
-        <div class="flex items-center justify-center py-20">
-          <div class="spinner"></div>
-        </div>
+      <div data-dashboard-content>${UI.cardsSkeleton(4)}
       </div>
     </div>
   `;
@@ -89,11 +86,7 @@
     }
 
     if (state.loading) {
-      content.innerHTML = `
-        <div class="flex items-center justify-center py-20">
-          <div class="spinner"></div>
-        </div>
-      `;
+      content.innerHTML = UI.cardsSkeleton(4);
       return;
     }
 
@@ -300,9 +293,8 @@
   const canLocationView = () => canView('inventory.location.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
 
   async function loadStats() {
-    state.loading = true;
     state.error = null;
-    render();
+    const gate = UI.skeletonGate(state, 'loading', render);
 
     // Capas del dashboard (spec §9): fuera del camino crítico de las stats.
     // Sólo se piden si el usuario tiene inventory.stock.view (evita 403).
@@ -311,7 +303,7 @@
     }
 
     if (!global.HttpClient) {
-      state.loading = false;
+      gate.done();
       state.error = t('dashboard.messages.http_unavailable');
       render();
       return;
@@ -323,13 +315,13 @@
         const response = await global.HttpClient.get('/tenant/stats');
         state.stats = (response && response.data && response.data.stats) || response.stats || {};
         state.scope = 'tenant';
-        state.loading = false;
+        gate.done();
         render();
         return;
       } catch (err) {
         if (err.status !== 403) {
           console.error('[Dashboard] loadStats error:', err);
-          state.loading = false;
+          gate.done();
           state.error = err.message || t('dashboard.messages.stats_load_error');
           render();
           return;
@@ -343,7 +335,7 @@
     if (!wantsItems && !wantsLocations) {
       state.stats = null;
       state.scope = 'none';
-      state.loading = false;
+      gate.done();
       render();
       return;
     }
@@ -363,11 +355,11 @@
         ubicaciones: wantsLocations ? totalOf(results[wantsItems ? 1 : 0]) : 0
       };
       state.scope = 'inventory';
-      state.loading = false;
+      gate.done();
       render();
     } catch (err) {
       console.error('[Dashboard] loadStats (inventory) error:', err);
-      state.loading = false;
+      gate.done();
       state.error = err.message || t('dashboard.messages.stats_load_error');
       render();
     }

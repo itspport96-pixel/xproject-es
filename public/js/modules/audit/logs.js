@@ -175,10 +175,14 @@
         if (!root) return;
 
         if (state.loading) {
-            root.innerHTML = `
-                <div class="flex items-center justify-center py-12">
-                    <div class="spinner"></div>
-                </div>`;
+            root.innerHTML = UI.tableSkeleton([
+                { label: t('audit.columns.date') },
+                { label: t('audit.columns.user') },
+                { label: t('audit.columns.action') },
+                { label: t('audit.columns.entity') },
+                { label: t('audit.columns.result') },
+                { label: t('audit.columns.detail') }
+            ], 8, [18, 18, 22, 16, 12, 14]);
             return;
         }
 
@@ -376,8 +380,7 @@
     // ====================================================================
 
     async function loadLogs(page = 1) {
-        state.loading = true;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'loading', renderTable);
 
         try {
             const params = { page, per_page: state.pagination.per_page };
@@ -397,7 +400,7 @@
             showToast('danger', t('ui.error_generic'), err.message || t('audit.messages.load_error'));
             state.items = [];
         } finally {
-            state.loading = false;
+            gate.done();
             renderSummary();
             renderTable();
             renderPagination();
