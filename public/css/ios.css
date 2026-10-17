@@ -31,7 +31,7 @@ h1, h2, h3, h4 {
     font-size: 0.9375rem;
 }
 
-#module-container {
+#module-container > * {
     animation: iosFadeUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 

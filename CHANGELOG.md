@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.13] - 2026-10-17
+
+**Transicion suave al cambiar de pagina: una linea de CSS que reutiliza la animacion que ya existia.** La animacion de entrada de vista (`iosFadeUp`, fade + subida de 6px, 0.28s, `cubic-bezier(0.2, 0.8, 0.2, 1)`) esta en el proyecto desde v1.14.0, pero estaba aplicada a `#module-container`, el nodo que vive toda la sesion: se ejecutaba una unica vez al cargar la app y **nunca al navegar**, asi que cambiar de modulo seguia siendo un corte seco (spinner de carga o vista previa -> vista nueva, sin fundido). Ahora la regla apunta a `#module-container > *`: el loader (`showSpinner`) y cada modulo (`init` con `container.innerHTML`) recrean el hijo en cada navegacion, asi que toda pagina nueva entra con el mismo fade que ya disenaba el tema, sin tocar JS, sin delays y sin dependencias. Al pulsar la ruta ya activa solo corre `onActivate` (no se recrea el `innerHTML`): no hay animacion donde no hay cambio de pagina. La vista anterior sale de golpe a la par que entra la nueva (sin retardo artificial); `prefers-reduced-motion` (themes.css) ya desactiva la transicion.
+
+### Changed
+- `ios.css`: selector de la animacion de vista `#module-container` -> `#module-container > *` (keyframes `iosFadeUp` intactos).
+
+### Notes
+- Sin cambios JS ni de backend; solo CSS. Bateria completa: v1120 180, v162 99, v171 107, profile-mfa 29, sspr 35, v11358 89 (539 OK, 0 FAIL); drift SIN DRIFT; GETs en vivo 401 sin 500.
+
 ## [1.17.12] - 2026-10-17
 
 **Las seis vistas que quedaban con spinner pasan a skeleton y se cierra la decision de los filtros type=date (dia UTC).** (1) products, locations, stock, auditoria, dashboard y returns pintaban un spinner centrado en la primera carga y refrescaban a pelo en recargas: ahora seguen el mismo patron que el resto de la plataforma desde 1.17.11 — `UI.skeletonGate` (primera carga con skeleton inmediato; en recargas el contenido estable se conserva y el skeleton solo se enciende al pasar de 180 ms) y `UI.tableSkeleton` con las cabeceras reales de cada tabla (7 columnas en products/locations, 6 en stock, 6 en auditoria, 9 en devoluciones). Los spinners de los modales (stock de products, unidades de locations, historial de stock) pasan a `UI.rowsSkeleton(5)` y el dashboard (shell inicial y rama de carga) a `UI.cardsSkeleton(4)`. Ya no queda ningun `.spinner` en estas vistas. (2) Filtros `type=date` (`fecha_desde`/`fecha_hasta` en auditoria, conteos, entregas, incidencias, movimientos y devoluciones): se cierra la decision que dejo pendiente 1.17.8 — **dia UTC**, que era y sigue siendo el comportamiento. Motivo: la plataforma exibe las fechas naive de la BD tal cual (UTC de pared, convencion v1.14.0 en `ui/dom.js`), de modo que un filtro de dia civil local devolveria filas etiquetadas con otro dia (su madrugada UTC del dia siguiente) y excluiria filas cuyo dia en pantalla coincide con el elegido; el limite de dia UTC selecciona exactamente las filas que el usuario ve con esa fecha y ademas es el contrato declarado en los backends (`assertDate`: "columna TIMESTAMP, UTC"). Cambiar a dia civil exige antes convertir tambien la exibicion a la zona del tenant (`tenants.zona_horaria`, ya disponible en `TenantBranding`); eso es alcance aparte.
