@@ -8,6 +8,22 @@
 
     let container = null;
     let isSubmitting = false;
+
+    const EYE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const EYE_OFF_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+    function togglePasswordField(inputId, button) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        const showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        button.innerHTML = showing ? EYE_ICON : EYE_OFF_ICON;
+        button.setAttribute('aria-pressed', showing ? 'false' : 'true');
+        const label = showing ? t('ui.show_password') : t('ui.hide_password');
+        button.setAttribute('aria-label', label);
+        button.setAttribute('title', label);
+    }
+
     // v1.15.0 MFA: cuando el backend responde mfa_required, se guarda aquí la
     // credencial (email+password) para reenviar el login con mfa_code añadido.
     let mfaPending = false;
@@ -48,16 +64,19 @@
                         <label class="form-label" for="login-password">
                             ${t('login.password')} <span class="required">*</span>
                         </label>
-                        <input
-                            type="password"
-                            id="login-password"
-                            name="password"
-                            class="input"
-                            placeholder="${t('login.password_placeholder')}"
-                            autocomplete="current-password"
-                            required
-                            minlength="8"
-                        >
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                id="login-password"
+                                name="password"
+                                class="input"
+                                placeholder="${t('login.password_placeholder')}"
+                                autocomplete="current-password"
+                                required
+                                minlength="8"
+                            >
+                            <button type="button" class="input-addon btn-eye" data-eye-for="login-password" aria-label="${t('ui.show_password')}" aria-pressed="false">${EYE_ICON}</button>
+                        </div>
                         <span class="form-error hidden" data-error="password"></span>
                     </div>
 
@@ -132,6 +151,11 @@
             if (input) {
                 input.addEventListener('input', () => clearFieldError(field));
             }
+        });
+
+        // Ojito show/hide del campo de contraseña
+        document.querySelectorAll('[data-eye-for]').forEach(btn => {
+            btn.addEventListener('click', () => togglePasswordField(btn.getAttribute('data-eye-for'), btn));
         });
 
         // Botón "volver" del paso MFA: regresa al formulario de contraseña
@@ -224,6 +248,7 @@
         if (passwordInput) passwordInput.disabled = loading;
         if (mfaInput) mfaInput.disabled = loading;
         if (mfaBack) mfaBack.disabled = loading;
+        document.querySelectorAll('[data-eye-for]').forEach(el => { el.disabled = loading; });
 
         if (loading) {
             if (label) label.textContent = t('login.submitting');

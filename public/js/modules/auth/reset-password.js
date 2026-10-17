@@ -14,6 +14,21 @@
     let isSubmitting = false;
     let token = '';
 
+    const EYE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const EYE_OFF_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+    function togglePasswordField(inputId, button) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        const showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        button.innerHTML = showing ? EYE_ICON : EYE_OFF_ICON;
+        button.setAttribute('aria-pressed', showing ? 'false' : 'true');
+        const label = showing ? t('ui.show_password') : t('ui.hide_password');
+        button.setAttribute('aria-label', label);
+        button.setAttribute('title', label);
+    }
+
     function buildTemplate() {
         return `
         <div class="login-container">
@@ -33,16 +48,19 @@
                         <label class="form-label" for="reset-password_nuevo">
                             ${t('reset.password_label')} <span class="required">*</span>
                         </label>
-                        <input
-                            type="password"
-                            id="reset-password_nuevo"
-                            name="password_nuevo"
-                            class="input"
-                            placeholder="${t('reset.password_placeholder')}"
-                            autocomplete="new-password"
-                            required
-                            autofocus
-                        >
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                id="reset-password_nuevo"
+                                name="password_nuevo"
+                                class="input"
+                                placeholder="${t('reset.password_placeholder')}"
+                                autocomplete="new-password"
+                                required
+                                autofocus
+                            >
+                            <button type="button" class="input-addon btn-eye" data-eye-for="reset-password_nuevo" aria-label="${t('ui.show_password')}" aria-pressed="false">${EYE_ICON}</button>
+                        </div>
                         <p class="form-hint text-xs text-muted mt-1">${t('password.fields.rules_hint')}</p>
                         <span class="form-error hidden" data-error="password_nuevo"></span>
                     </div>
@@ -51,15 +69,18 @@
                         <label class="form-label" for="reset-password_confirm">
                             ${t('reset.confirm_label')} <span class="required">*</span>
                         </label>
-                        <input
-                            type="password"
-                            id="reset-password_confirm"
-                            name="password_confirm"
-                            class="input"
-                            placeholder="${t('reset.confirm_placeholder')}"
-                            autocomplete="new-password"
-                            required
-                        >
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                id="reset-password_confirm"
+                                name="password_confirm"
+                                class="input"
+                                placeholder="${t('reset.confirm_placeholder')}"
+                                autocomplete="new-password"
+                                required
+                            >
+                            <button type="button" class="input-addon btn-eye" data-eye-for="reset-password_confirm" aria-label="${t('ui.show_password')}" aria-pressed="false">${EYE_ICON}</button>
+                        </div>
                         <span class="form-error hidden" data-error="password_confirm"></span>
                     </div>
 
@@ -106,6 +127,9 @@
         ['password_nuevo', 'password_confirm'].forEach(field => {
             const input = document.getElementById(`reset-${field}`);
             if (input) input.addEventListener('input', () => clearFieldError(field));
+        });
+        document.querySelectorAll('[data-eye-for]').forEach(btn => {
+            btn.addEventListener('click', () => togglePasswordField(btn.getAttribute('data-eye-for'), btn));
         });
     }
 
@@ -178,8 +202,10 @@
         const spinner = btn ? btn.querySelector('[data-spinner]') : null;
         const inputs = ['reset-password_nuevo', 'reset-password_confirm']
             .map(id => document.getElementById(id));
+        const eyeButtons = document.querySelectorAll('[data-eye-for]');
         if (btn) btn.disabled = loading;
         inputs.forEach(el => { if (el) el.disabled = loading; });
+        eyeButtons.forEach(el => { el.disabled = loading; });
         if (loading) {
             if (label) label.textContent = t('reset.submitting');
             if (spinner) spinner.classList.remove('hidden');

@@ -355,6 +355,33 @@
     border-bottom-right-radius: var(--radius-md);
 }
 
+/* Botón ojo (show/hide de contraseña) dentro de .input-group. Hereda el
+   aspecto de .input-addon y sólo se le dan comportamiento de botón y hover. */
+.input-addon.btn-eye {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: rgb(var(--color-surface-alt));
+    border: 1px solid rgb(var(--color-border));
+    border-left: none;
+    border-top-right-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+    color: rgb(var(--color-text-muted));
+    font: inherit;
+    line-height: 1;
+}
+
+.input-addon.btn-eye:hover,
+.input-addon.btn-eye:focus-visible {
+    color: rgb(var(--color-text));
+}
+
+.input-addon.btn-eye svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    display: block;
+}
+
 /* Checkbox & Radio */
 .checkbox,
 .radio {
