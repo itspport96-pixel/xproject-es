@@ -32,6 +32,8 @@
     "toast_rejected": "Operation rejected",
     "toast_lang_save_title": "Language",
     "toast_lang_save_failed": "Could not save the language on the server; it only applies to this browser.",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "row_actions": "Actions",
     "picker": {
       "base": "Base on",

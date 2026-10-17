@@ -547,14 +547,16 @@ $router->post('/api/tenant/activate', [TenantController::class, 'activate'], [
 // I18N (v1.10.1, spec Internacionalizacion)
 // ============================================
 // Diccionarios de traduccion: resources/locales/{es,en,pt,fr}.json con cache
-// en Redis, ETag y version del diccionario. Autenticado SI, sin permiso de
-// modulo (el contenido es el mismo para toda la aplicacion); cualquier
-// idioma fuera de la whitelist => 404 (sin path traversal: el nombre de
-// fichero se construye despues de validar, ver LocaleDictionaryService).
+// en Redis, ETag y version del diccionario. PUBLICO (v1.17.2): las rutas
+// publicas (login/forgot/reset) no tienen sesion y deben poder descargar el
+// diccionario para respetar el idioma elegido; el contenido son solo cadenas
+// de traduccion y el catalogo de mensajes de error (sin secretos), con el
+// locale validado contra whitelist => 404 fuera de ella (sin path traversal:
+// el nombre de fichero se construye tras validar, ver
+// LocaleDictionaryService). Sin permiso de modulo.
 // Frontend: GET /api/locales/es.json (la extension .json es opcional).
 $router->get('/api/locales/{locale}', [LocaleController::class, 'show'], [
     RateLimitMiddleware::class . ':api',
-    AuthenticationMiddleware::class,
 ]);
 
 // GET /api/audit/logs?fecha_desde=&fecha_hasta=&usuario_id=&accion=&entidad=&resultado=&page=&per_page=

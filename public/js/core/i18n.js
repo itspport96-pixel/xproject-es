@@ -61,7 +61,9 @@
       toast_conflict: 'Conflicto',
       toast_rejected: 'Operación rechazada',
       toast_lang_save_title: 'Idioma',
-      toast_lang_save_failed: 'No se pudo guardar el idioma en el servidor; se mantiene solo en este navegador.'
+      toast_lang_save_failed: 'No se pudo guardar el idioma en el servidor; se mantiene solo en este navegador.',
+      show_password: 'Mostrar contraseña',
+      hide_password: 'Ocultar contraseña'
     },
     theme: {
       action_dark: 'Claro',
@@ -98,7 +100,55 @@
       error_401: 'Credenciales inválidas. Verifica tu correo y contraseña.',
       error_403: 'Cuenta no activa. Contacta al administrador.',
       error_429: 'Demasiados intentos. Espera unos minutos.',
-      error_408: 'Tiempo de espera agotado. Verifica tu conexión.'
+      error_408: 'Tiempo de espera agotado. Verifica tu conexión.',
+      forgot_password: '¿Olvidaste tu contraseña?',
+      mfa_label: 'Código de verificación',
+      mfa_placeholder: '123456',
+      mfa_hint: 'Introduce el código de 6 dígitos de tu app autenticadora, o un código de respaldo.',
+      mfa_submit: 'Verificar código',
+      mfa_back: 'Volver a la contraseña',
+      mfa_required: 'Introduce el código de verificación',
+      mfa_invalid: 'Código incorrecto. Inténtalo de nuevo.'
+    },
+    forgot: {
+      title: 'Recuperar contraseña',
+      intro: 'Introduce tu correo corporativo y te enviaremos un enlace para restablecer tu contraseña.',
+      email_label: 'Correo corporativo',
+      email_placeholder: 'tu.correo@empresa.com',
+      submit: 'Enviar enlace',
+      submitting: 'Enviando...',
+      sent_generic: 'Si el correo está asociado a una cuenta autorizada, recibirás un enlace para restablecer tu contraseña.',
+      back_to_login: 'Volver a iniciar sesión',
+      error_invalid_email: 'Introduce un correo válido'
+    },
+    reset: {
+      title: 'Restablecer contraseña',
+      intro: 'Elige una nueva contraseña para tu cuenta.',
+      password_label: 'Nueva contraseña',
+      password_placeholder: 'Introduce la nueva contraseña',
+      confirm_label: 'Confirmar contraseña',
+      confirm_placeholder: 'Repite la nueva contraseña',
+      submit: 'Guardar contraseña',
+      submitting: 'Guardando...',
+      success: 'Contraseña restablecida correctamente. Ya puedes iniciar sesión.',
+      invalid_token: 'El enlace de restablecimiento no es válido o ha caducado.',
+      error_generic: 'No se pudo restablecer la contraseña. Solicita un enlace nuevo.',
+      back_to_login: 'Volver a iniciar sesión'
+    },
+    password: {
+      fields: {
+        rules_hint: 'Mínimo 9 caracteres, con mayúscula, minúscula, número y al menos un carácter especial.'
+      },
+      errors: {
+        required_new: 'La nueva contraseña es obligatoria',
+        min_length: 'La contraseña debe tener mínimo 9 caracteres',
+        uppercase: 'Debe contener al menos una mayúscula',
+        lowercase: 'Debe contener al menos una minúscula',
+        digit: 'Debe contener al menos un número',
+        special: 'Debe contener al menos un carácter especial',
+        required_confirm: 'Confirma la nueva contraseña',
+        mismatch: 'Las contraseñas no coinciden'
+      }
     },
     loader: {
       loading_module: 'Cargando módulo...',
@@ -155,7 +205,9 @@
       incidents: 'Incidencias',
       counts: 'Conteos',
       audit: 'Auditoría',
-      settings: 'Configuración'
+      settings: 'Configuración',
+      forgot_password: 'Recuperar contraseña',
+      reset_password: 'Restablecer contraseña'
     }
   };
 
@@ -247,14 +299,9 @@
       return Promise.reject(new Error('HttpClient not available'));
     }
 
-    // La API de locales exige sesion (401 sin token). Sin sesion no se pide
-    // nada: http.js trataria el 401 como sesion caducada (limpia la auth y
-    // redirige). La descarga se reintenta tras el login via ensureLoaded().
-    const hasSession = global.Storage &&
-      typeof global.Storage.getToken === 'function' && !!global.Storage.getToken();
-    if (!hasSession) {
-      return Promise.reject(new Error('no session: dictionary pending download'));
-    }
+    // v1.17.2: la API de locales es PUBLICA, asi que el diccionario se
+    // descarga tambien pre-sesion (pantallas login/forgot/reset) y se
+    // respeta el idioma elegido. Sin red o con error se cae al builtin es.
 
     if (inflight[locale]) return inflight[locale];
 

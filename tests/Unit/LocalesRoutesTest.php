@@ -77,7 +77,9 @@ final class LocalesRoutesTest extends TestCase
         $this->assertSame('show', $route['handler'][1]);
 
         $middleware = $route['middleware'];
-        $this->assertContains(AuthenticationMiddleware::class, $middleware, 'Autenticacion obligatoria');
+        // v1.17.2: la ruta es publica para que login/forgot/reset puedan
+        // descargar el diccionario pre-sesion y respetar el idioma elegido.
+        $this->assertNotContains(AuthenticationMiddleware::class, $middleware, 'Ruta publica: sin autenticacion');
         $this->assertContains(RateLimitMiddleware::class . ':api', $middleware, 'Rate limit');
     }
 

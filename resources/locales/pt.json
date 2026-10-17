@@ -32,6 +32,8 @@
     "toast_rejected": "",
     "toast_lang_save_title": "",
     "toast_lang_save_failed": "",
+    "show_password": "Mostrar senha",
+    "hide_password": "Ocultar senha",
     "row_actions": "",
     "picker": {
       "base": "",
