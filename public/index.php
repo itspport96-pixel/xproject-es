@@ -399,7 +399,7 @@ function renderSpaLayout(): void
                         </svg>
                     </button>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1">
                     <button id="theme-toggle" class="btn btn-ghost header-icon-btn" aria-label="Toggle theme" data-i18n-aria="shell.toggle_theme" title="">
                         <span>...</span>
                     </button>

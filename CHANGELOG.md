@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.3] - 2026-10-17
+
+**Topbar mas compacta y padding de botones reducido.** El grupo derecho del header (tema, idioma, cuenta) pasa de `gap-2` (8px) a `gap-1` (4px) (`public/index.php`). `.btn` en `ios.css` reduce el padding horizontal de `1.125rem` a `0.8rem`; al cargarse `ios.css` despues de `components.css`, ese padding es el que aplica a todos los botones, incluidos los iconos del topbar. Verificado en vivo: pagina 200 con `gap-1` servido, `php -l` OK, `check-schema-drift` SIN DRIFT.
+
 ## [1.17.2] - 2026-10-16
 
 **Tres arreglos del flujo SSPR y de las pantallas publicas de autenticacion.** (1) El enlace de restablecimiento ya no se quema cuando la password propuesta reutiliza la actual o una del historial: el reuso se valida ANTES de consumir el token, igual que la politica de fortaleza, de modo que el usuario puede reintentar con la misma liga y una password distinta. (2) Los campos de password de login y de restablecimiento incorporan un ojo show/hide (boton dentro de un `.input-group`, SVG inline, `aria-label`/`aria-pressed`). (3) Las paginas publicas (login/forgot/reset) respetan el idioma elegido: `GET /api/locales/{locale}` pasa a ser PUBLICO (solo rate-limit) y el frontend descarga el diccionario tambien pre-sesion; ademas `BUILTIN_ES` se completa con las claves que faltaban (`reset.*`, `forgot.*`, `password.*`, `login.forgot_password`, `login.mfa_*`, `routes.forgot_password`/`reset_password`, `ui.show_password`/`hide_password`) para no pintar claves crudas si la red falla.
