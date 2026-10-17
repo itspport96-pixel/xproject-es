@@ -20,6 +20,7 @@
 
     /* Layout del shell */
     --sidebar-width: 260px;
+    --sidebar-width-collapsed: 4rem;
 
     /* Capas (z-index), escala unica de toda la app. El orden real, de menor
        a mayor: header/dropdown < overlay del sidebar < sidebar < modal < toast.
@@ -140,7 +141,7 @@ html.dark {
     --color-primary-foreground: 255 255 255;
 
     /* Surfaces */
-    --color-background: 0 0 0;          /* #000000 */
+    --color-background: #04060D;          /* #000000 */
     --color-surface: 28 28 30;          /* #1c1c1e */
     --color-surface-alt: 44 44 46;      /* #2c2c2e */
     --color-surface-hover: 58 58 60;    /* #3a3a3c */

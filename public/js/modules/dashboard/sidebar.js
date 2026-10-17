@@ -124,6 +124,32 @@
     }
   }
 
+  // Estado del rail de iconos en desktop (hamburguesa del header): se guarda
+  // tras cada toggle y se restaura en init() para no arrancar siempre
+  // expandido. Mismo patron try/catch que las secciones.
+  const COLLAPSED_STORAGE_KEY = 'sidebar.collapsed';
+
+  function readCollapsed() {
+    try {
+      if (global.Storage && typeof global.Storage.get === 'function') {
+        return global.Storage.get(COLLAPSED_STORAGE_KEY, false) === true;
+      }
+    } catch (e) {
+      // Sin storage legible: fallback a expandido.
+    }
+    return false;
+  }
+
+  function persistCollapsed(collapsed) {
+    try {
+      if (global.Storage && typeof global.Storage.set === 'function') {
+        global.Storage.set(COLLAPSED_STORAGE_KEY, collapsed === true);
+      }
+    } catch (e) {
+      // Sin storage escribible: la sesion actual sigue con su estado en el DOM.
+    }
+  }
+
   // Precedencia: la ruta activa dentro del grupo lo abre siempre; si no,
   // el estado guardado por el usuario; si no hay valor (o la lectura
   // falló), cerrado.
@@ -218,7 +244,7 @@
       const label = item.labelKey ? t(item.labelKey) : item.label;
 
       return `
-        <button class="sidebar-item" data-route="${escapeHtml(item.route)}">
+        <button class="sidebar-item" data-route="${escapeHtml(item.route)}" aria-label="${escapeHtml(label)}">
           <span class="sidebar-item-icon" aria-hidden="true">${iconSvg}</span>
           <span class="sidebar-item-label">${escapeHtml(label)}</span>
         </button>
@@ -451,10 +477,12 @@
       return;
     }
 
-    // Desktop: colapsar/expandir (el nombre de plataforma vive en el sidebar)
+    // Desktop: colapsar/expandir a rail de iconos (el nombre de plataforma
+    // vive en el sidebar); la eleccion se persiste entre sesiones.
     const app = document.getElementById('app');
     const collapsed = app ? app.classList.toggle('sidebar-collapsed') : false;
     isOpen = !collapsed;
+    persistCollapsed(collapsed);
     if (global.EventBus) {
       global.EventBus.emit('sidebar:toggled', { isOpen });
     }
@@ -467,6 +495,7 @@
       return;
     }
     document.getElementById('app')?.classList.remove('sidebar-collapsed');
+    persistCollapsed(false);
     isOpen = true;
   }
 
@@ -477,6 +506,7 @@
       return;
     }
     document.getElementById('app')?.classList.add('sidebar-collapsed');
+    persistCollapsed(true);
     isOpen = false;
   }
 
@@ -496,6 +526,13 @@
       console.warn('[Sidebar] Container #sidebar not found');
       initialized = false;
       return;
+    }
+
+    // Restaura el rail de iconos elegido en sesiones anteriores (v1.17.5):
+    // se aplica antes del render para no flash de sidebar expandido.
+    const appEl = document.getElementById('app');
+    if (appEl && readCollapsed()) {
+      appEl.classList.add('sidebar-collapsed');
     }
 
     if (global.AuthState) {

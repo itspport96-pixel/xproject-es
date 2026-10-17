@@ -24,7 +24,9 @@ const FILES = {
   loader: read('core/loader.js'),
   router: read('core/router.js'),
   i18n: read('core/i18n.js'),
-  branding: read('core/branding.js')
+  branding: read('core/branding.js'),
+  sidebar: read('modules/dashboard/sidebar.js'),
+  storage: read('core/storage.js')
 };
 
 const UI_FILES = ['ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js'].map(read);
@@ -602,6 +604,67 @@ async function s8_tenant_default_lang() {
 }
 
 // =====================================================================
+// S9 - SIDEBAR: RAIL DE ICONOS EN DESKTOP (v1.17.5, sidebar.js)
+// =====================================================================
+async function s9_sidebar_icon_rail() {
+  console.log('S9 sidebar: rail de iconos, persistencia y mobile');
+
+  function seedShell(env) {
+    env.w.document.body.insertAdjacentHTML('beforeend',
+      '<div id="app" class="app-layout"><aside id="sidebar"></aside><main class="main-content"></main></div>');
+    env.w.AuthState.getUser = () => ({ nombre: 'Test', apellido: 'User', email: 'test@acme.local', roles: ['ADMIN'] });
+    env.evalIn(FILES.storage);
+    env.evalIn(FILES.sidebar);
+  }
+
+  // Desktop (jsdom arranca con innerWidth 1024): toggle alterna rail y persiste
+  {
+    const env = createEnv({ perms: EDIT_PERMS, roles: ['ADMIN'] });
+    seedShell(env);
+    const app = env.w.document.getElementById('app');
+    env.w.AppSidebar.init();
+    check('inicial: sidebar expandido', !app.classList.contains('sidebar-collapsed'));
+
+    env.w.AppSidebar.toggle();
+    check('toggle: rail de iconos', app.classList.contains('sidebar-collapsed'));
+    check('toggle: persiste true', env.w.Storage.get('sidebar.collapsed', false) === true);
+
+    const item = env.w.document.querySelector('.sidebar-item');
+    check('items con aria-label', !!(item && item.getAttribute('aria-label')));
+
+    env.w.AppSidebar.toggle();
+    check('segundo toggle: expandido', !app.classList.contains('sidebar-collapsed'));
+    check('expandir persiste false', env.w.Storage.get('sidebar.collapsed', false) === false);
+    env.close();
+  }
+
+  // Sesion nueva con estado guardado: init() lo restaura sin flash
+  {
+    const env = createEnv({ perms: EDIT_PERMS, roles: ['ADMIN'] });
+    seedShell(env);
+    env.w.Storage.set('sidebar.collapsed', true);
+    env.w.AppSidebar.init();
+    const app = env.w.document.getElementById('app');
+    check('init restaura rail persistido', app.classList.contains('sidebar-collapsed'));
+    env.close();
+  }
+
+  // Mobile (innerWidth 500): el toggle abre el panel, no colapsa a rail
+  {
+    const env = createEnv({ perms: EDIT_PERMS, roles: ['ADMIN'] });
+    seedShell(env);
+    Object.defineProperty(env.w, 'innerWidth', { value: 500, configurable: true });
+    env.w.AppSidebar.init();
+    const app = env.w.document.getElementById('app');
+    const sidebar = env.w.document.getElementById('sidebar');
+    env.w.AppSidebar.toggle();
+    check('mobile: abre panel deslizante', sidebar.classList.contains('is-open'));
+    check('mobile: sin rail colapsado', !app.classList.contains('sidebar-collapsed'));
+    env.close();
+  }
+}
+
+// =====================================================================
 // RUN
 // =====================================================================
 async function main() {
@@ -613,6 +676,7 @@ async function main() {
   await s6_global_save();
   await s7_config_sections();
   await s8_tenant_default_lang();
+  await s9_sidebar_icon_rail();
   console.log(`\n${pass} ok, ${fail} fail`);
   process.exit(fail > 0 ? 1 : 0);
 }

@@ -1604,7 +1604,7 @@ top: 0;
 left: 0;
 bottom: 0;
 z-index: var(--z-sidebar);
-transition: transform 0.2s ease;
+transition: width 0.2s ease, transform 0.2s ease;
 }
 
 .sidebar-header {
@@ -1824,21 +1824,65 @@ display: none;
 margin-left: 0;
 }
 
-/* Colapso del sidebar en desktop (hamburguesa del header) */
+/* Colapso del sidebar en desktop (hamburguesa del header): rail de iconos
+   siempre visible. Antes se aplicaba translateX(-100%) y el sidebar
+   desaparecia entero; ahora se reduce a ancho de rail (v1.17.5). */
 .app-layout.sidebar-collapsed .sidebar {
-transform: translateX(-100%);
+width: var(--sidebar-width-collapsed);
+transform: none;
 }
 
 .app-layout.sidebar-collapsed .main-content {
-margin-left: 0;
+margin-left: var(--sidebar-width-collapsed);
 }
 
-/* Colapsado: sólo quedan los iconos */
-.app-layout.sidebar-collapsed .sidebar-brand,
+/* Colapsado: sólo quedan los iconos. La marca conserva sólo el logo o la
+   inicial centrada (texto oculto) y la etiqueta del item se reaprovecha
+   como tooltip flotante en hover/foco (no se elimina del boton, que ademas
+   lleva aria-label). */
+.app-layout.sidebar-collapsed .sidebar-brand-text,
 .app-layout.sidebar-collapsed .sidebar-section-title,
-.app-layout.sidebar-collapsed .sidebar-item-label,
 .app-layout.sidebar-collapsed .sidebar-user-info {
 display: none;
+}
+
+/* El nav no debe recortar los tooltips que salen del rail a la derecha
+   (overflow en un eje convierte el otro en auto). En modo icono todas las
+   secciones se muestran siempre (ver mas abajo), asi que perder el
+   scroll vertical aqui es un tradeoff aceptable. */
+.app-layout.sidebar-collapsed .sidebar-nav {
+overflow: visible;
+}
+
+.app-layout.sidebar-collapsed .sidebar-item {
+position: relative;
+}
+
+.app-layout.sidebar-collapsed .sidebar-item-label {
+position: absolute;
+left: calc(100% + 0.5rem);
+top: 50%;
+transform: translateY(-50%);
+flex: none;
+padding: 0.3rem 0.5rem;
+font-size: 0.75rem;
+font-weight: 500;
+color: rgb(var(--color-text));
+background-color: rgb(var(--color-surface));
+border: 1px solid rgb(var(--color-border));
+border-radius: var(--radius-md);
+box-shadow: var(--shadow-md);
+white-space: nowrap;
+opacity: 0;
+visibility: hidden;
+pointer-events: none;
+transition: opacity 0.15s ease;
+}
+
+.app-layout.sidebar-collapsed .sidebar-item:hover .sidebar-item-label,
+.app-layout.sidebar-collapsed .sidebar-item:focus-visible .sidebar-item-label {
+opacity: 1;
+visibility: visible;
 }
 
 .app-layout.sidebar-collapsed .sidebar-header,
@@ -1895,9 +1939,19 @@ transform: translateX(-100%);
 transform: translateX(0);
 }
 
-/* El estado colapsado de desktop no debe impedir abrir el panel en mobile */
+/* El estado colapsado de desktop no debe alterar el panel en mobile: ancho
+   completo, deslizante cerrado por defecto y abierto con .is-open */
+.app-layout.sidebar-collapsed .sidebar {
+width: var(--sidebar-width);
+transform: translateX(-100%);
+}
+
 .app-layout.sidebar-collapsed .sidebar.is-open {
 transform: translateX(0);
+}
+
+.app-layout.sidebar-collapsed .main-content {
+margin-left: 0;
 }
 
 .sidebar.is-open + .sidebar-overlay {

@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.5] - 2026-10-17
+
+**La hamburguesa del sidebar ya no esconde la navegacion: colapsa a rail de iconos.** En desktop, al tocar la hamburguesa del header el sidebar se reducia entero fuera de pantalla (`translateX(-100%)`); ahora queda un rail visible de 4rem con los iconos, tooltip flotante al hover/foco y la marca reducida a su logo centrado. La eleccion se persiste entre sesiones (`xp.sidebar.collapsed`, mismo patron try/catch que el estado de las secciones) y se restaura en `init()` sin flash. En mobile no cambia nada: sigue siendo panel deslizante con overlay.
+
+### Added
+- `components.css`: el modo icono que ya existia sin cablear (ocultar etiquetas, centrar items, forzar items visibles) ahora es el estado real del colapso; ancho de rail con el nuevo token `--sidebar-width-collapsed: 4rem` (`themes.css`), transicion de ancho 0.2s y reset en el media query mobile (ancho completo + deslizante).
+- `components.css`: tooltip CSS flotante en hover/foco de cada item en modo rail, reaprovechando la propia etiqueta traducida (sin `title` nativo para no duplicar tooltips); el `nav` deja de recortar en ese modo (`overflow: visible`).
+- `sidebar.js`: `aria-label` en cada item (su nombre accesible no depende de la etiqueta oculta); persistencia del estado con `readCollapsed()`/`persistCollapsed()` y restauracion en `init()`.
+
+### Notes
+- Sin cambios de backend. `tools/smoke/smoke-v11358.mjs` anade el escenario S9 (9 checks): toggle desktop crea/quita la clase y persiste, `aria-label` presente, `init()` restaura el estado guardado y el toggle mobile abre el panel sin aplicar el rail. Bateria completa en verde: v11358 85, sspr 35, v1120 157, profile-mfa 29, v162 89, v171 105; drift SIN DRIFT; GET / en vivo 200.
+
 ## [1.17.4] - 2026-10-17
 
 **El idioma por defecto del tenant ahora se aplica.** Configuracion > preferencias regionales ya guardaba `tenants.idioma_default` en el backend (el `PATCH /api/tenant` lo persiste y `/api/tenant/branding` lo expone), pero nada lo usaba: el idioma de la interfaz solo miraba la preferencia propia del usuario y localStorage, de modo que elegir otro idioma por defecto mostraba el toast de exito y no cambiaba nada. `i18n` ahora se suscribe a `branding:changed` y aplica `branding.idioma_default` cuando no manda una eleccion explicita de la sesion ni una preferencia propia del usuario. Jerarquia: eleccion de sesion > preferencia del usuario > idioma por defecto del tenant > localStorage > 'es'.
