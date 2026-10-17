@@ -14,6 +14,12 @@
  *        login; las llamadas posteriores a /auth/me NO cambian el idioma
  *      * la eleccion explicita de la sesion (sessionChoice) gana sobre
  *        cualquier preferencia entrante hasta que el PATCH confirme
+ * - Idioma por defecto del tenant (tenants.idioma_default, v1.17.4): el
+ *   branding del tenant lo trae en 'branding:changed' (refresh tras login,
+ *   boot autenticado y guardado en Configuracion) y se aplica SOLO cuando
+ *   no manda una eleccion de la sesion ni una preferencia propia del
+ *   usuario. Jerarquia: eleccion de sesion > preferencia del usuario >
+ *   idioma por defecto del tenant > localStorage > 'es'.
  * - Cambio de idioma SIN recargar: vuelve a buscar el diccionario, aplica
  *   data-i18n del shell y emite 'i18n:changed' (sidebar y router re-renderizan).
  * - Sesion: sin token no se pide el diccionario (la API devuelve 401 y
@@ -220,6 +226,10 @@
   // directa a setLocale). Manda sobre lo que devuelva /auth/me hasta que el
   // PATCH de preferencias confirme; se reinicia al cerrar sesion.
   let sessionChoice = false;
+  // El usuario tiene preferencia PROPIA guardada (users.preferencias.idioma);
+  // mientras sea asi, el idioma por defecto del tenant no lo pisa. Se
+  // recalcula en cada login (syncFromUser) y se limpia al cerrar sesion.
+  let userPreference = false;
   // Ultimo idioma confirmado en el servidor (evita PATCH duplicados cuando
   // 'auth:login' se emite mas de una vez o al re-elegir el mismo idioma).
   let lastPersisted = null;
@@ -618,10 +628,20 @@
         if (sessionChoice) persistIdioma(current);
       });
 
+      // Idioma por defecto del tenant (Configuracion > preferencias
+      // regionales): llega con cada 'branding:changed' (refresh tras login,
+      // boot autenticado y guardado en settings). Manda solo si no hay
+      // eleccion explicita de sesion ni preferencia propia del usuario.
+      global.EventBus.on('branding:changed', function(e) {
+        applyTenantDefault(e && e.branding);
+      });
+
       // Sesion cerrada: la proxima eleccion de idioma de un nuevo login
-      // vuelve a regir la preferencia del servidor.
+      // vuelve a regir la preferencia del servidor (y, en su ausencia, el
+      // idioma por defecto del tenant).
       global.EventBus.on('auth:logout', function() {
         sessionChoice = false;
+        userPreference = false;
       });
     }
 
@@ -663,6 +683,21 @@
   }
 
   /**
+   * Idioma por defecto del tenant (tenants.idioma_default, v1.17.4). Se
+   * aplica con cada 'branding:changed' SOLO si no manda una eleccion de la
+   * sesion ni una preferencia propia del usuario: el tenant fija el idioma
+   * de los usuarios que aun no han elegido. No marca sessionChoice ni
+   * persiste en el servidor (el valor ya viene del propio tenant).
+   * @param {{idioma_default?: string}|null} branding
+   */
+  function applyTenantDefault(branding) {
+    if (sessionChoice || userPreference) return;
+    const def = branding && branding.idioma_default;
+    if (!def || !isSupported(def) || def === current) return;
+    applyLocale(def);
+  }
+
+  /**
    * Preferencia de idioma guardada del usuario. Se llama SOLO en el login
    * (AuthState.setSession); las respuestas posteriores de /auth/me pasan por
    * updateUser y ya no disparan sincronia (v1.10.3: la eleccion explicita
@@ -673,6 +708,7 @@
     if (sessionChoice) return;
     const preferred = user && user.preferencias && user.preferencias.idioma;
     if (!preferred || !isSupported(preferred)) return;
+    userPreference = true;
     if (preferred === current && fetched[current]) return;
     applyLocale(preferred);
   }

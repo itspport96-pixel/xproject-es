@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.4] - 2026-10-17
+
+**El idioma por defecto del tenant ahora se aplica.** Configuracion > preferencias regionales ya guardaba `tenants.idioma_default` en el backend (el `PATCH /api/tenant` lo persiste y `/api/tenant/branding` lo expone), pero nada lo usaba: el idioma de la interfaz solo miraba la preferencia propia del usuario y localStorage, de modo que elegir otro idioma por defecto mostraba el toast de exito y no cambiaba nada. `i18n` ahora se suscribe a `branding:changed` y aplica `branding.idioma_default` cuando no manda una eleccion explicita de la sesion ni una preferencia propia del usuario. Jerarquia: eleccion de sesion > preferencia del usuario > idioma por defecto del tenant > localStorage > 'es'.
+
+### Added
+- `i18n.js`: `applyTenantDefault()` (interno), enganchado a `branding:changed` en `init()`; aplica el idioma del tenant solo si es soportado y no lo pisa una eleccion superior.
+- `i18n.js`: flag interno `userPreference` (preferencia propia del usuario en el servidor, fijado por `syncFromUser`) que protege el default del tenant; se limpia en `auth:logout`.
+
+### Notes
+- Sin cambios de backend: la persistencia ya funcionaba (verificado con el servicio real sobre la BD de E2E: 'es' -> update -> 'en' en la tabla `tenants`) y `toBrandingArray()` ya incluia `idioma_default`.
+- `tools/smoke/smoke-v11358.mjs` anade el escenario S8 (8 checks): aplicacion del default, no pisar con preferencia de usuario, no pisar con eleccion de sesion y reaplicacion tras logout. Bateria completa en verde: v11358 76, sspr 35, v1120 157, profile-mfa 29, v162 89, v171 105.
+
 ## [1.17.3] - 2026-10-17
 
 **Topbar mas compacta y padding de botones reducido.** El grupo derecho del header (tema, idioma, cuenta) pasa de `gap-2` (8px) a `gap-1` (4px) (`public/index.php`). `.btn` en `ios.css` reduce el padding horizontal de `1.125rem` a `0.8rem`; al cargarse `ios.css` despues de `components.css`, ese padding es el que aplica a todos los botones, incluidos los iconos del topbar. Verificado en vivo: pagina 200 con `gap-1` servido, `php -l` OK, `check-schema-drift` SIN DRIFT.

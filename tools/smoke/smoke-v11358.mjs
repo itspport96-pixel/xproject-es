@@ -23,7 +23,8 @@ const FILES = {
   settings: read('modules/settings/settings.js'),
   loader: read('core/loader.js'),
   router: read('core/router.js'),
-  i18n: read('core/i18n.js')
+  i18n: read('core/i18n.js'),
+  branding: read('core/branding.js')
 };
 
 const UI_FILES = ['ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js'].map(read);
@@ -539,6 +540,68 @@ async function s7_config_sections() {
 }
 
 // =====================================================================
+// S8 - IDIOMA POR DEFECTO DEL TENANT (v1.17.4, i18n + TenantBranding)
+// =====================================================================
+async function s8_tenant_default_lang() {
+  console.log('S8 idioma por defecto del tenant via branding:changed');
+
+  // Sin eleccion previa: el default del tenant se aplica
+  {
+    const env = createEnv({ perms: EDIT_PERMS, roles: ['ADMIN'] });
+    env.evalIn(FILES.branding);
+    env.w.i18n.init();
+    await tick(2);
+    check('inicial: locale es', env.w.i18n.getLocale() === 'es', env.w.i18n.getLocale());
+
+    env.w.TenantBranding.set({ idioma_default: 'en', zona_horaria: null, apariencia: null, regional: null });
+    await tick(2);
+    check('branding con idioma_default: se aplica', env.w.i18n.getLocale() === 'en', env.w.i18n.getLocale());
+
+    env.w.TenantBranding.set({ idioma_default: null, zona_horaria: null, apariencia: null, regional: null });
+    await tick(2);
+    check('branding sin idioma_default: no cambia', env.w.i18n.getLocale() === 'en', env.w.i18n.getLocale());
+
+    env.w.EventBus.emit('auth:logout', {});
+    env.w.TenantBranding.set({ idioma_default: 'fr', zona_horaria: null, apariencia: null, regional: null });
+    await tick(2);
+    check('tras logout se vuelve a aplicar el default', env.w.i18n.getLocale() === 'fr', env.w.i18n.getLocale());
+
+    env.close();
+  }
+
+  // Preferencia propia del usuario: gana sobre el default del tenant
+  {
+    const env = createEnv({ perms: EDIT_PERMS, roles: ['ADMIN'] });
+    env.evalIn(FILES.branding);
+    env.w.i18n.init();
+    await tick(2);
+    env.w.i18n.syncFromUser({ preferencias: { idioma: 'fr' } });
+    await tick(2);
+    check('preferencia de usuario aplicada', env.w.i18n.getLocale() === 'fr', env.w.i18n.getLocale());
+
+    env.w.TenantBranding.set({ idioma_default: 'en', zona_horaria: null, apariencia: null, regional: null });
+    await tick(2);
+    check('preferencia de usuario gana sobre el tenant', env.w.i18n.getLocale() === 'fr', env.w.i18n.getLocale());
+    env.close();
+  }
+
+  // Eleccion explicita de la sesion: gana sobre el default del tenant
+  {
+    const env = createEnv({ perms: EDIT_PERMS, roles: ['ADMIN'] });
+    env.evalIn(FILES.branding);
+    env.w.i18n.init();
+    await tick(2);
+    await env.w.i18n.setLocale('pt');
+    check('sessionChoice aplicado', env.w.i18n.getLocale() === 'pt', env.w.i18n.getLocale());
+
+    env.w.TenantBranding.set({ idioma_default: 'en', zona_horaria: null, apariencia: null, regional: null });
+    await tick(2);
+    check('sessionChoice gana sobre el tenant', env.w.i18n.getLocale() === 'pt', env.w.i18n.getLocale());
+    env.close();
+  }
+}
+
+// =====================================================================
 // RUN
 // =====================================================================
 async function main() {
@@ -549,6 +612,7 @@ async function main() {
   await s5_error_retry();
   await s6_global_save();
   await s7_config_sections();
+  await s8_tenant_default_lang();
   console.log(`\n${pass} ok, ${fail} fail`);
   process.exit(fail > 0 ? 1 : 0);
 }
