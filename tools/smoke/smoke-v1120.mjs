@@ -5,7 +5,8 @@
  *
  * Cobertura:
  *  S1  Registro de rutas/modulos y wiring (loader, router, state, login)
- *  S2  Pantalla de Usuarios: listado, filtros, alta, estado, temporales
+ *  S2  Pantalla de Usuarios: listado, filtros, alta, estado, reset MFA,
+ *      temporales
  *  S3  Pantalla de Roles: listado, selector maestro-detalle, alta y baja
  *  S4  Pantalla de Grupos: listado, detalle, miembros, roles, CRUD
  *  S5  Sidebar: items users/roles/groups segun permisos
@@ -50,10 +51,10 @@ async function tick(n = 8) {
 // =====================================================================
 
 const USERS = [
-  { id: 'u1', email: 'ana@acme.local', nombre: 'Ana', apellido: 'Torres', estado: 'ACTIVO', ultimo_login: '2026-10-01 09:00:00' },
-  { id: 'u2', email: 'bruno@acme.local', nombre: 'Bruno', apellido: 'Diaz', estado: 'SUSPENDIDO', ultimo_login: null },
+  { id: 'u1', email: 'ana@acme.local', nombre: 'Ana', apellido: 'Torres', estado: 'ACTIVO', ultimo_login: '2026-10-01 09:00:00', mfa_habilitado: 1 },
+  { id: 'u2', email: 'bruno@acme.local', nombre: 'Bruno', apellido: 'Diaz', estado: 'SUSPENDIDO', ultimo_login: null, mfa_habilitado: 0 },
   // Candidato externo al grupo g1: alimenta el combobox de añadir miembro (M1).
-  { id: 'u3', email: 'lucia@acme.local', nombre: 'Lucia', apellido: 'Vidal', estado: 'ACTIVO', ultimo_login: null }
+  { id: 'u3', email: 'lucia@acme.local', nombre: 'Lucia', apellido: 'Vidal', estado: 'ACTIVO', ultimo_login: null, mfa_habilitado: 0 }
 ];
 
 const ROLES = [
@@ -263,7 +264,7 @@ function createEnv({ perms = [], roles = ['ADMIN'], realEventBus = false, getHan
 
 const ADMIN_PERMS = [
   'users.user.view', 'users.user.create', 'users.user.edit', 'users.user.status',
-  'users.password.reset', 'temporary.permission.view', 'temporary.permission.grant',
+  'users.password.reset', 'users.mfa.reset', 'temporary.permission.view', 'temporary.permission.grant',
   'temporary.permission.revoke', 'roles.role.view', 'roles.role.create',
   'roles.role.edit', 'roles.role.delete', 'groups.group.view', 'groups.group.create',
   'groups.group.edit', 'groups.group.delete', 'groups.group.manage_members',
@@ -380,6 +381,42 @@ async function s2_users_screen() {
     env.calls.posts.some(p => p.path === '/users/u1/status' && p.body.motivo === 'Revision de acceso'),
     JSON.stringify(env.calls.posts.map(p => p.path)));
 
+  // --- Badge MFA y reset de MFA por el admin (v1.17.14) ---
+  const mfaChips = env.container.querySelectorAll('[data-mfa-state]');
+  check('badge MFA presente en las 3 filas', mfaChips.length === 3, String(mfaChips.length));
+  check('badge MFA activo para mfa_habilitado=1',
+    env.container.querySelectorAll('[data-mfa-state="on"]').length === 1,
+    String(env.container.querySelectorAll('[data-mfa-state="on"]').length));
+  check('badge MFA inactivo para el resto',
+    env.container.querySelectorAll('[data-mfa-state="off"]').length === 2,
+    String(env.container.querySelectorAll('[data-mfa-state="off"]').length));
+  check('texto del badge MFA', ES_DICT.users.mfa.badge_on.length > 0 && ES_DICT.users.mfa.badge_off.length > 0);
+
+  check('accion Reset MFA visible para ADMIN con users.mfa.reset',
+    !!env.container.querySelector('[data-action="open-reset-mfa"]'));
+
+  const exitosPreMfa = env.calls.toasts.filter(t => t.type === 'success').length;
+  env.click(env.container.querySelector('[data-action="open-reset-mfa"]'));
+  await tick();
+  root = env.modalRoot();
+  check('modal de reset MFA abierto',
+    !!root && /Restablecer MFA/.test(root.textContent),
+    root ? root.textContent.slice(0, 120) : 'sin modal');
+  check('el modal avisa del cierre de sesiones',
+    !!root && root.textContent.indexOf(ES_DICT.users.mfa_reset.warning) !== -1);
+  env.click(root.querySelector('[data-action="submit-reset-mfa"]'));
+  await tick();
+  check('POST /users/u1/mfa/reset',
+    env.calls.posts.some(p => p.path === '/users/u1/mfa/reset'),
+    JSON.stringify(env.calls.posts.map(p => p.path)));
+  check('toast de exito del reset MFA',
+    env.calls.toasts.filter(t => t.type === 'success').length > exitosPreMfa,
+    JSON.stringify(env.calls.toasts));
+  check('modal cerrado tras el reset MFA', !env.modalRoot().querySelector('.modal'));
+  check('listado recargado tras el reset MFA',
+    env.calls.gets.filter(g => g.path === '/users').length >= 3,
+    JSON.stringify(env.calls.gets.map(g => g.path)));
+
   // --- Permiso temporal (concesion) ---
   env.click(env.container.querySelector('[data-action="open-grant"]'));
   await tick(12);
@@ -440,6 +477,16 @@ async function s2_users_screen() {
   check('sin users.user.view: sin llamadas al backend', env2.calls.gets.length === 0, JSON.stringify(env2.calls.gets));
   check('sin users.user.view: sin boton crear', !env2.container.querySelector('[data-action="open-create"]'));
   env2.close();
+
+  // --- Con users.user.view pero SIN users.mfa.reset ---
+  const env3 = createEnv({ perms: ['users.user.view'], roles: ['VIEWER'] });
+  env3.loadUsers();
+  await tick();
+  check('sin users.mfa.reset: sin accion de reset MFA',
+    !env3.container.querySelector('[data-action="open-reset-mfa"]'));
+  check('sin users.mfa.reset: el resto de acciones de fila siguen',
+    !!env3.container.querySelector('[data-action="open-roles"]'));
+  env3.close();
 }
 
 // =====================================================================

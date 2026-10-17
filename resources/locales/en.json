@@ -1807,6 +1807,7 @@
       "edit": "Edit",
       "status": "Change status",
       "reset": "Reset password",
+      "reset_mfa": "Reset MFA",
       "roles": "Roles",
       "temp_view": "View temporary permissions",
       "delete": "Delete"
@@ -1883,6 +1884,19 @@
       "success_body": "Temporary password generated successfully.",
       "temp_title": "Temporary password"
     },
+    "mfa": {
+      "badge_on": "MFA on",
+      "badge_off": "MFA off"
+    },
+    "mfa_reset": {
+      "title": "Reset MFA",
+      "submit": "Reset MFA",
+      "body": "MFA will be disabled for {email}.",
+      "warning": "The user will have to enable it again from their profile. Their open sessions will be signed out.",
+      "success_title": "MFA reset",
+      "success_body": "MFA for {email} is disabled; they must enable it again from their profile.",
+      "already_body": "User {email} already had MFA disabled."
+    },
     "temp_password": {
       "title": "Temporary password",
       "warning": "Save this password now: it will not be shown again.",
@@ -1929,6 +1943,7 @@
       "edit": "Changes could not be saved",
       "status": "The status could not be changed",
       "reset": "The password could not be reset",
+      "mfa_reset": "MFA could not be reset",
       "delete": "The user could not be deleted"
     },
     "temp": {

@@ -14,6 +14,8 @@ use PDO;
  *  - permissions.permission.view               (catálogo de permisos)
  *  - groups.group.*                            (grupos de trabajo)
  *  - temporary.permission.*                    (permisos temporales)
+ * Y desde v1.17.14:
+ *  - users.mfa.reset                           (reset de MFA, sólo ADMIN)
  *
  * Regla (igual que InventoryPermissionSeeder/AuditPermissionSeeder):
  *  - Los permisos son GLOBALES (tabla `permissions`, sin tenant_id).
@@ -36,6 +38,7 @@ final class PlatformControlPermissionSeeder
     public const PERMISSIONS = [
         ['users.user.status', 'Cambiar Estado de Usuario', 'users', 'user', 'status', 'HIGH', 0, 1],
         ['users.password.reset', 'Resetear Contraseña', 'users', 'password', 'reset', 'HIGH', 0, 1],
+        ['users.mfa.reset', 'Resetear MFA de Usuario', 'users', 'mfa', 'reset', 'HIGH', 0, 1],
         ['permissions.permission.view', 'Ver Permisos', 'permissions', 'permission', 'view', 'MEDIUM', 0, 1],
         ['groups.group.view', 'Ver Grupos', 'groups', 'group', 'view', 'MEDIUM', 0, 1],
         ['groups.group.create', 'Crear Grupos', 'groups', 'group', 'create', 'MEDIUM', 0, 1],
@@ -55,6 +58,7 @@ final class PlatformControlPermissionSeeder
         'ADMIN' => [
             'users.user.status',
             'users.password.reset',
+            'users.mfa.reset',
             'permissions.permission.view',
             'groups.group.view',
             'groups.group.create',

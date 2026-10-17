@@ -1807,6 +1807,7 @@
       "edit": "Editar",
       "status": "Cambiar estado",
       "reset": "Restablecer contraseña",
+      "reset_mfa": "Restablecer MFA",
       "roles": "Roles",
       "temp_view": "Ver permisos temporales",
       "delete": "Eliminar"
@@ -1883,6 +1884,19 @@
       "success_body": "Contraseña temporal generada correctamente.",
       "temp_title": "Contraseña temporal"
     },
+    "mfa": {
+      "badge_on": "MFA activo",
+      "badge_off": "MFA inactivo"
+    },
+    "mfa_reset": {
+      "title": "Restablecer MFA",
+      "submit": "Restablecer MFA",
+      "body": "Se desactivará el MFA de {email}.",
+      "warning": "El usuario deberá volver a activarlo desde su perfil. Sus sesiones abiertas quedarán cerradas.",
+      "success_title": "MFA restablecido",
+      "success_body": "El MFA de {email} está desactivado; deberá activarlo de nuevo desde su perfil.",
+      "already_body": "El usuario {email} ya tenía el MFA desactivado."
+    },
     "temp_password": {
       "title": "Contraseña temporal",
       "warning": "Guarda esta contraseña ahora: no se volverá a mostrar.",
@@ -1929,6 +1943,7 @@
       "edit": "No se pudieron guardar los cambios",
       "status": "No se pudo cambiar el estado",
       "reset": "No se pudo restablecer la contraseña",
+      "mfa_reset": "No se pudo restablecer el MFA",
       "delete": "No se pudo eliminar el usuario"
     },
     "temp": {

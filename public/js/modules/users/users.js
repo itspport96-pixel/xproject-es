@@ -1,7 +1,8 @@
 /**
  * Users Module (pantalla de control de usuarios) - v1.12.0.
  * GET/POST/PATCH/DELETE /api/users, POST /users/{id}/status,
- * POST /users/{id}/password/reset, roles por usuario y la pestana de
+ * POST /users/{id}/password/reset, POST /users/{id}/mfa/reset (v1.17.14),
+ * roles por usuario y la pestana de
  * permisos temporales (GET/POST /api/temporary-permissions, DELETE .../revoke).
  *
  * Convencion ModuleLoader: window.UsersUsersModule (ruta users/users).
@@ -59,6 +60,7 @@
     const canStatus = () => can('users.user.status', ['ADMIN', 'MANAGER']);
     const canReset = () => can('users.password.reset', ['ADMIN', 'MANAGER']);
     const canDelete = () => can('users.user.delete', ['ADMIN']);
+    const canResetMfa = () => can('users.mfa.reset', ['ADMIN']);
     const canViewTemp = () => can('temporary.permission.view', ['ADMIN', 'MANAGER']);
     const canGrant = () => can('temporary.permission.grant', ['ADMIN']);
     const canRevoke = () => can('temporary.permission.revoke', ['ADMIN', 'MANAGER']);
@@ -245,6 +247,9 @@
         const reset = canReset() && canActOnUser(u, false)
             ? { action: 'open-reset', id: u.id, label: t('users.actions.reset') }
             : null;
+        const resetMfa = canResetMfa() && canActOnUser(u, true)
+            ? { action: 'open-reset-mfa', id: u.id, label: t('users.actions.reset_mfa') }
+            : null;
         const eliminar = canDelete() && canActOnUser(u, true)
             ? { action: 'open-delete', id: u.id, label: t('users.actions.delete'), danger: true }
             : null;
@@ -253,11 +258,17 @@
             primary: canEdit() ? { action: 'open-edit', id: u.id, label: t('users.actions.edit') } : null,
             groups: [
                 [verRoles, verTemp],
-                [estado, reset],
+                [estado, reset, resetMfa],
                 [eliminar]
             ],
             ariaLabel: t('users.columns.actions')
         });
+    }
+
+    function mfaChip(u) {
+        const activo = !!u.mfa_habilitado;
+        const label = activo ? t('users.mfa.badge_on') : t('users.mfa.badge_off');
+        return `<span class="badge badge-${activo ? 'info' : 'neutral'}" data-mfa-state="${activo ? 'on' : 'off'}">${label}</span>`;
     }
 
     function renderUsersTable() {
@@ -297,7 +308,7 @@
                         ${u.telefono ? `<div class="text-xs text-muted">${UI.escapeHtml(u.telefono)}</div>` : ''}
                     </td>
                     <td>${UI.escapeHtml(((u.nombre || '') + ' ' + (u.apellido || '')).trim())}</td>
-                    <td>${estado}</td>
+                    <td>${estado} ${mfaChip(u)}</td>
                     <td class="nowrap-cell">${rolesCell(u)}</td>
                     <td class="text-xs nowrap-cell">${u.ultimo_login
                         ? `<span title="${UI.escapeHtml(u.ultimo_login)}">${UI.escapeHtml(UI.formatDateTime(u.ultimo_login))}</span>`
@@ -1015,6 +1026,57 @@
         }
     }
 
+    // ----------------------------------------------------------- Reset MFA
+
+    function openResetMfa(id) {
+        if (!canResetMfa()) return;
+        const user = state.items.find(u => u.id === id);
+        if (!user) return;
+        state.modal = { mode: 'reset-mfa', id, user, errors: {}, formError: '' };
+        renderModal();
+    }
+
+    function resetMfaBody(modal) {
+        return `
+            <div class="form-error hidden mb-3" data-form-error></div>
+            <p>${t('users.mfa_reset.body', { email: UI.escapeHtml(modal.user.email || '') })}</p>
+            <div class="alert alert-warning mt-3">${t('users.mfa_reset.warning')}</div>
+        `;
+    }
+
+    async function submitResetMfa() {
+        if (state.sending) return;
+        const modal = state.modal;
+        setSending(true);
+
+        try {
+            const response = await global.HttpClient.post(
+                '/users/' + encodeURIComponent(modal.id) + '/mfa/reset'
+            );
+            const data = response && response.data ? response.data : response;
+            const cambio = !data || data.cambio !== false;
+
+            closeModal();
+            const recargado = await loadUsers(state.pagination.page || 1);
+            if (recargado) {
+                const email = UI.escapeHtml(modal.user.email || '');
+                const body = cambio
+                    ? t('users.mfa_reset.success_body', { email })
+                    : t('users.mfa_reset.already_body', { email });
+                UI.toast('success', t('users.mfa_reset.success_title'), body);
+            }
+        } catch (err) {
+            UI.handleActionError(err, {
+                fallbackMessage: t('users.errors.mfa_reset'),
+                root: getModalRoot(),
+                inline: true,
+                tag: 'Users'
+            });
+        } finally {
+            setSending(false);
+        }
+    }
+
     // ------------------------------------------- Password temporal (aviso)
 
     function openTempPassword(password, titleKey) {
@@ -1671,6 +1733,14 @@
                     <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>
                     <button class="btn btn-danger" data-action="submit-reset" data-modal-send${state.sending ? ' disabled' : ''}>${t('users.reset.submit')}</button>`;
                 break;
+            case 'reset-mfa':
+                title = t('users.mfa_reset.title');
+                size = 'sm';
+                body = resetMfaBody(modal);
+                footer = `
+                    <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>
+                    <button class="btn btn-danger" data-action="submit-reset-mfa" data-modal-send${state.sending ? ' disabled' : ''}>${t('users.mfa_reset.submit')}</button>`;
+                break;
             case 'temp-password':
                 title = t(modal.titleKey);
                 size = 'sm';
@@ -1785,6 +1855,9 @@
             case 'open-reset':
                 openReset(id);
                 break;
+            case 'open-reset-mfa':
+                openResetMfa(id);
+                break;
             case 'open-roles':
                 openRoles(id);
                 break;
@@ -1819,6 +1892,9 @@
                 break;
             case 'submit-reset':
                 submitReset();
+                break;
+            case 'submit-reset-mfa':
+                submitResetMfa();
                 break;
             case 'submit-delete':
                 submitDelete();

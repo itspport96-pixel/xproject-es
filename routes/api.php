@@ -198,6 +198,17 @@ $router->post('/api/users/{id}/password/reset', [UserController::class, 'resetPa
     RateLimitMiddleware::class . ':api',
 ]);
 
+// POST /api/users/{id}/mfa/reset (v1.17.14): el admin desactiva el MFA del
+// usuario (wipe de flag + metodo + secreto + codigos de respaldo), revoca sus
+// sesiones y lo audita; el usuario lo vuelve a activar desde su perfil.
+$router->post('/api/users/{id}/mfa/reset', [UserController::class, 'resetMfa'], [
+    AuditMiddleware::class,
+    AuthenticationMiddleware::class,
+    TenantMiddleware::class,
+    PermissionMiddleware::class . ':users.mfa.reset',
+    RateLimitMiddleware::class . ':api',
+]);
+
 // PATCH /api/users/{id}
 $router->patch('/api/users/{id}', [UserController::class, 'update'], [
     AuditMiddleware::class,

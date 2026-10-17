@@ -11,12 +11,12 @@ use Tests\Support\PlatformControlSqliteTestCase;
  * Seeder de la capa de control (v1.11.0, spec §4/§5): los 12 permisos
  * users.user.status / users.password.reset / permissions.permission.view /
  * groups.group.* / temporary.permission.* y su reparto entre los roles
- * BUILT_IN.
+ * BUILT_IN, mas users.mfa.reset (v1.17.14, reset de MFA, sólo ADMIN).
  *
  * Reglas verificadas:
- *  - Siembra exacta de los 12 identificadores con sus metadatos.
- *  - Reparto aprobado: ADMIN=12, MANAGER=10 (sin los CRITICAL),
- *    USER=VIEWER=2 (sólo view de groups y permissions).
+ *  - Siembra exacta de los 13 identificadores con sus metadatos.
+ *  - Reparto aprobado: ADMIN=13, MANAGER=10 (sin los CRITICAL ni el
+ *    reset de MFA), USER=VIEWER=2 (sólo view de groups y permissions).
  *  - Jerarquía VIEWER ⊂ USER ⊂ MANAGER ⊂ ADMIN.
  *  - Idempotente y no toca permisos/roles ajenos.
  */
@@ -80,13 +80,13 @@ final class PlatformControlPermissionSeederTest extends PlatformControlSqliteTes
     // PERMISOS
     // ====================================================================
 
-    public function testSiembraLos12PermisosDelSprint(): void
+    public function testSiembraLos13PermisosDelSprint(): void
     {
         $result = $this->seeder->seed();
 
-        $this->assertSame(12, $result['permissions_created']);
+        $this->assertSame(13, $result['permissions_created']);
         $this->assertSame(0, $result['permissions_updated']);
-        $this->assertSame(12, $this->countRows('permissions'));
+        $this->assertSame(13, $this->countRows('permissions'));
 
         foreach (PlatformControlPermissionSeeder::PERMISSIONS as $definition) {
             [$identificador, $nombre, $modulo, $recurso, $accion, $criticidad, $requiereMfa, $activo] = $definition;
@@ -103,15 +103,16 @@ final class PlatformControlPermissionSeederTest extends PlatformControlSqliteTes
         }
     }
 
-    public function testLosDoceIdentificadoresSonUnicosYDeLosModulosDelSprint(): void
+    public function testLosIdentificadoresSonUnicosYDeLosModulosDelSprint(): void
     {
         $identificadores = $this->permissionIdentifiers();
 
-        $this->assertCount(12, $identificadores);
+        $this->assertCount(13, $identificadores);
         $this->assertSame($identificadores, array_values(array_unique($identificadores)));
 
         $this->assertContains('users.user.status', $identificadores);
         $this->assertContains('users.password.reset', $identificadores);
+        $this->assertContains('users.mfa.reset', $identificadores);
         $this->assertContains('permissions.permission.view', $identificadores);
         $this->assertContains('temporary.permission.grant', $identificadores);
 
@@ -128,10 +129,10 @@ final class PlatformControlPermissionSeederTest extends PlatformControlSqliteTes
         $first = $this->seeder->seed();
         $second = $this->seeder->seed();
 
-        $this->assertSame(12, $first['permissions_created']);
+        $this->assertSame(13, $first['permissions_created']);
         $this->assertSame(0, $second['permissions_created']);
         $this->assertSame(0, $second['permissions_updated']);
-        $this->assertSame(12, $this->countRows('permissions'));
+        $this->assertSame(13, $this->countRows('permissions'));
     }
 
     public function testNoTocaPermisosAjenos(): void
@@ -140,8 +141,8 @@ final class PlatformControlPermissionSeederTest extends PlatformControlSqliteTes
 
         $result = $this->seeder->seed();
 
-        $this->assertSame(12, $result['permissions_created']);
-        $this->assertSame(13, $this->countRows('permissions'));
+        $this->assertSame(13, $result['permissions_created']);
+        $this->assertSame(14, $this->countRows('permissions'));
 
         $ajeno = $this->permissionRow('inventory.item.view');
         $this->assertNotNull($ajeno);
@@ -183,7 +184,7 @@ final class PlatformControlPermissionSeederTest extends PlatformControlSqliteTes
         $this->assertSame(4, $result['roles_updated']);
 
         $esperado = [
-            'ADMIN' => 12,
+            'ADMIN' => 13,
             'MANAGER' => 10,
             'USER' => 2,
             'VIEWER' => 2,
@@ -247,6 +248,16 @@ final class PlatformControlPermissionSeederTest extends PlatformControlSqliteTes
         }
     }
 
+    public function testUsersMfaResetSoloParaAdmin(): void
+    {
+        $rp = PlatformControlPermissionSeeder::ROLE_PERMISSIONS;
+
+        $this->assertContains('users.mfa.reset', $rp['ADMIN']);
+        $this->assertNotContains('users.mfa.reset', $rp['MANAGER'], 'MANAGER no resetea MFA');
+        $this->assertNotContains('users.mfa.reset', $rp['USER']);
+        $this->assertNotContains('users.mfa.reset', $rp['VIEWER']);
+    }
+
     public function testUserYViewerSoloVenGruposYPermisos(): void
     {
         $esperado = ['groups.group.view', 'permissions.permission.view'];
@@ -294,7 +305,7 @@ final class PlatformControlPermissionSeederTest extends PlatformControlSqliteTes
         $result = $this->seeder->seed();
 
         $this->assertSame(0, $result['roles_updated']);
-        $this->assertSame(0, $result['permissions_created'], 'Los 12 permisos ya existen');
+        $this->assertSame(0, $result['permissions_created'], 'Los 13 permisos ya existen');
     }
 
     public function testAnadeSoloLoQueFaltaSinBorrarLoPreexistente(): void

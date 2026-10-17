@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.14] - 2026-10-17
+
+**El admin puede resetear el MFA de cualquier usuario (wipe completo) y el usuario lo vuelve a activar solo desde su perfil.** Hasta ahora el MFA era 100% self-service: `POST /api/auth/mfa/disable` exige un codigo valido del propio usuario, de modo que quien perdio su dispositivo no podia desactivarlo ni siquiera con ayuda del admin. Aparece `POST /api/users/{id}/mfa/reset` con permiso nuevo `users.mfa.reset` (HIGH, **solo rol ADMIN**): hace wipe completo — `mfa_habilitado=0` y `mfa_metodo`/`mfa_secret`/`mfa_backup_codes` a NULL, "como si nunca lo hubiera activado" —, revoca todas las sesiones del objetivo (`revoked_reason='admin_mfa_reset'`, mismo criterio que el reset de contrasena) y audita `user.mfa.reset` con el estado previo. El auto-reset devuelve 403 (para eso esta `POST /api/auth/mfa/disable`); repetir sobre un usuario ya sin MFA es idempotente (200 con `cambio:false`, sin revocar sesiones) y se audita igualmente. En la tabla de usuarios se anade un chip MFA (activo/inactivo) en la celda de estado — `GET /api/users` ya devolvia `mfa_habilitado`, asi que el indicador es solo frontend — y la accion "Restablecer MFA" en el menu de fila, con modal de confirmacion que avisa del cierre de sesiones. La reactivacion no toca nada: el enrolamiento del perfil (`profile.js` + `/api/auth/mfa/*`) ya existia.
+
+### Added
+- `routes/api.php`: `POST /api/users/{id}/mfa/reset` (AuditMiddleware primero, Auth, Tenant, `PermissionMiddleware:users.mfa.reset`, RateLimit).
+- `UserController::resetMfa` + `UserService::resetMfa`: wipe idempotente, revoca de sesiones con motivo `admin_mfa_reset` y auditoria `user.mfa.reset`; 403 en auto-reset y 404 si el usuario no existe.
+- `PlatformControlPermissionSeeder`: permiso `users.mfa.reset` (HIGH) asignado solo a ADMIN; siembra idempotente ejecutada contra la BD viva (permissions_created 1, roles_updated 1).
+- `users.js`: `canResetMfa()`, accion `open-reset-mfa` en `UI.rowActions` (oculta en la propia fila via `canActOnUser(u, true)`), modal `reset-mfa` con confirmacion, chip `[data-mfa-state]` en la celda de estado.
+- Locales: `users.actions.reset_mfa`, `users.mfa.*`, `users.mfa_reset.*`, `users.errors.mfa_reset` en es/en/pt/fr (pt/fr con claves vacias, mismo patron que el resto de sus stubs).
+
+### Tests
+- `UserControllerTest` +4: auto-reset 403, wipe completo con revoca de sesiones y auditoria, idempotente sin revocar, 404; el esquema SQLite de `PlatformControlSqliteTestCase` se completa con `mfa_secret`/`mfa_backup_codes` (faltaba la equivalencia con schema.sql).
+- `PlatformControlPermissionSeederTest`: recuentos 12 -> 13 y `testUsersMfaResetSoloParaAdmin`.
+- `UserMfaResetRouteTest`: existencia de la ruta, handler y cadena de middleware.
+- `smoke-v1120` S2 anade 13 checks (chips on/off, accion para ADMIN, modal con aviso de sesiones, `POST /users/u1/mfa/reset`, toast, recarga, y accion ausente sin `users.mfa.reset`).
+
+### Notes
+- Bateria completa: v1120 193, v162 99, v171 107, profile-mfa 29, sspr 35, v11358 89 (552 OK, 0 FAIL); extras bloque2 20, v184 100, verify-rowactions-vistas 128 OK. `composer test`: 1002 OK (los 2 PHPUnit deprecations son preexistentes de StockCalculationServiceTest). drift SIN DRIFT; datos DATOS CONSISTENTES; GETs en vivo del modulo con admin todos 200 (no existe `GET /users/me`: solo `PATCH`, no es endpoint).
+- Desviaciones detectadas, no tocadas: (1) `GET /api/users/{id}` expone `mfa_secret` y `mfa_backup_codes` (el repositorio hace `SELECT *` y `sanitizeUser` solo elimina `password`) — pre-existente y verificada en vivo; (2) `verify-rowactions-users` falla 6 checks y hace timeout con su selector de login `button[type="submit"], form button` (pincha un boton previo); el flujo login -> users verificado aparte con Playwright deja la tabla, 4 chips y 3 acciones sin errores JS; (3) `mfa_metodo` admite EMAIL/SMS en el ENUM pero solo TOTP esta implementado; (4) `open-reset` de contrasena se muestra en la propia fila y la API responde 403 (el nuevo reset de MFA si la oculta); (5) `pt`/`fr` siguen de stub.
+
 ## [1.17.13] - 2026-10-17
 
 **Transicion suave al cambiar de pagina: una linea de CSS que reutiliza la animacion que ya existia.** La animacion de entrada de vista (`iosFadeUp`, fade + subida de 6px, 0.5s, `cubic-bezier(0.2, 0.8, 0.2, 1)`) esta en el proyecto desde v1.14.0, pero estaba aplicada a `#module-container`, el nodo que vive toda la sesion: se ejecutaba una unica vez al cargar la app y **nunca al navegar**, asi que cambiar de modulo seguia siendo un corte seco (spinner de carga o vista previa -> vista nueva, sin fundido). Ahora la regla apunta a `#module-container > *`: el loader (`showSpinner`) y cada modulo (`init` con `container.innerHTML`) recrean el hijo en cada navegacion, asi que toda pagina nueva entra con el mismo fade que ya disenaba el tema, sin tocar JS, sin delays y sin dependencias. Al pulsar la ruta ya activa solo corre `onActivate` (no se recrea el `innerHTML`): no hay animacion donde no hay cambio de pagina. La duracion sube de 0.28s a 0.5s: se nota el fundido sin que la navegacion espere (la curva resuelve la mayor del movimiento al principio, y `prefers-reduced-motion` en themes.css la desactiva).

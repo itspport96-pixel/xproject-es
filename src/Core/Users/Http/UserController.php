@@ -539,6 +539,65 @@ final class UserController
     }
 
     // ========================================================================
+    // POST /api/users/{id}/mfa/reset  (v1.17.14)
+    // ========================================================================
+
+    public function resetMfa(array $params, array $request = []): array
+    {
+        $claims = $this->requireAuthenticated();
+        $tenantId = (string) $claims['tenant_id'];
+        $actorId = (string) $claims['user_id'];
+        $userId = (string) ($params['id'] ?? '');
+
+        if ($userId === '') {
+            throw (new HttpException('ID de usuario requerido', 400))->withMessageKey('common.id_usuario_requerido');
+        }
+
+        if ($userId === $actorId) {
+            throw new UserException(
+                'No puedes resetear tu propio MFA desde usuarios; usa POST /api/auth/mfa/disable.',
+                403,
+                null,
+                null,
+                UserException::CATEGORY_FORBIDDEN
+            );
+        }
+
+        $target = $this->userService->findById($userId, $tenantId);
+        if ($target === null) {
+            throw UserException::userNotFound($userId);
+        }
+
+        $this->authz->assertCanActOnUser($actorId, $tenantId, $userId);
+
+        $mfaAnterior = (bool) ($target['mfa_habilitado'] ?? false);
+        $desactivado = $this->userService->resetMfa($userId, $tenantId);
+
+        if ($desactivado) {
+            $this->resolveSessions()->revokeAllForUser($userId, null, 'admin_mfa_reset');
+        }
+
+        $this->auditEvent('user.mfa.reset', 'UPDATE', $request, $claims, [
+            'entidad_id' => $userId,
+            'valores_anteriores' => ['mfa_habilitado' => $mfaAnterior],
+            'valores_nuevos' => ['mfa_habilitado' => false],
+            'detalles_adicionales' => [
+                'wipe' => ['mfa_metodo', 'mfa_secret', 'mfa_backup_codes'],
+                'ya_estaba_desactivado' => !$desactivado,
+            ],
+        ]);
+
+        return ['status' => 200, 'data' => [
+            'message' => $desactivado
+                ? 'MFA desactivado; el usuario podra volver a activarlo desde su perfil'
+                : 'El usuario ya tenia el MFA desactivado',
+            'mfa_habilitado' => false,
+            'cambio' => $desactivado,
+            'sesiones_revocadas' => $desactivado,
+        ]];
+    }
+
+    // ========================================================================
     // POST /api/users/{id}/roles
     // ========================================================================
 

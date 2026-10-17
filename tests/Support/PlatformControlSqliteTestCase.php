@@ -379,6 +379,8 @@ abstract class PlatformControlSqliteTestCase extends TestCase
                 fecha_expiracion_password TEXT,
                 mfa_habilitado INTEGER DEFAULT 0,
                 mfa_metodo TEXT,
+                mfa_secret TEXT,
+                mfa_backup_codes TEXT,
                 preferencias TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,

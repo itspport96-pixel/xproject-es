@@ -644,6 +644,38 @@ final class UserService
     }
 
     /**
+     * Desactiva el MFA de un usuario (v1.17.14, reset por el admin).
+     *
+     * Wipe completo: flag, metodo, secreto cifrado y codigos de respaldo a
+     * NULL, de modo que el usuario queda como si nunca lo hubiera activado y
+     * debe re-enrolarse desde su perfil. Las sesiones activas las revoca la
+     * capa HTTP (SessionRevokerService).
+     *
+     * @return bool true si se desactivo ahora; false si ya estaba desactivado
+     * @throws UserException 404 si el usuario no existe
+     */
+    public function resetMfa(string $id, string $tenantId): bool
+    {
+        $user = $this->users->findById($id, $tenantId);
+        if ($user === null) {
+            throw UserException::userNotFound($id);
+        }
+
+        if ((int) ($user['mfa_habilitado'] ?? 0) !== 1) {
+            return false;
+        }
+
+        $sql = "UPDATE users
+                SET mfa_habilitado = 0, mfa_metodo = NULL, mfa_secret = NULL,
+                    mfa_backup_codes = NULL, updated_at = NOW()
+                WHERE id = :id AND tenant_id = :tenant_id";
+        $stmt = $this->db->getConnection()->prepare($sql);
+        $stmt->execute(['id' => $id, 'tenant_id' => $tenantId]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
      * Soft delete de un usuario.
      */
     public function delete(string $id, string $tenantId): bool

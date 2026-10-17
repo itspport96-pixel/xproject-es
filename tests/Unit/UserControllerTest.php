@@ -7,10 +7,12 @@ namespace Tests\Unit;
 use App\Core\Authentication\Repository\UserRepository;
 use App\Core\Authentication\Service\JwtService;
 use App\Core\Authentication\Service\PasswordHasher;
+use App\Core\Authentication\Service\SessionRevokerService;
 use App\Core\Users\Exception\UserException;
 use App\Core\Users\Http\UserController;
 use App\Core\Users\Service\UserService;
 use App\Shared\Exceptions\HttpException;
+use App\Shared\Services\RedisService;
 use Tests\Support\PlatformControlSqliteTestCase;
 use Tests\Support\RecordingAuditLogger;
 
@@ -30,6 +32,9 @@ use Tests\Support\RecordingAuditLogger;
  *    assertCanActOnUser exige rol ADMIN para tocar a otro ADMIN, la única
  *    vía que llega a la guarda con un solo admin es la auto-actualización;
  *    por eso el actor de los tests es el propio objetivo.
+ *  - POST /users/{id}/mfa/reset (v1.17.14): auto-reset 403, wipe completo
+ *    (flag + metodo + secreto + codigos), revoca de sesiones con motivo
+ *    admin_mfa_reset, idempotente y 404 si el usuario no existe.
  */
 final class UserControllerTest extends PlatformControlSqliteTestCase
 {
@@ -37,6 +42,7 @@ final class UserControllerTest extends PlatformControlSqliteTestCase
 
     private UserController $controller;
     private RecordingAuditLogger $audit;
+    private SessionRevokerService $sessions;
     private mixed $prevGet;
 
     protected function setUp(): void
@@ -63,8 +69,9 @@ final class UserControllerTest extends PlatformControlSqliteTestCase
         ]);
 
         $this->audit = new RecordingAuditLogger();
+        $this->sessions = new SessionRevokerService($this->db, $this->createStub(RedisService::class));
 
-        $this->controller = new UserController($service, $jwt, $this->authz, $this->audit);
+        $this->controller = new UserController($service, $jwt, $this->authz, $this->audit, $this->sessions);
 
         $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token-de-test';
         $_POST = [];
@@ -321,5 +328,139 @@ final class UserControllerTest extends PlatformControlSqliteTestCase
         $this->expectExceptionMessage('No autenticado');
 
         $this->controller->update(['id' => self::USER]);
+    }
+
+    // ====================================================================
+    // POST /users/{id}/mfa/reset — reset de MFA por el admin (v1.17.14)
+    // ====================================================================
+
+    public function testResetMfaPropioDevuelve403(): void
+    {
+        $this->enableMfa(self::USER);
+
+        try {
+            $this->controller->resetMfa(['id' => self::USER], $this->request());
+            $this->fail('Se esperaba UserException 403 para el auto-reset');
+        } catch (UserException $e) {
+            $this->assertSame(403, $e->getStatusCode());
+            $this->assertSame('forbidden', $e->getCategory());
+        }
+
+        // El MFA del actor sigue intacto y no se audita nada.
+        $row = $this->mfaRow(self::USER);
+        $this->assertNotNull($row);
+        $this->assertSame('1', (string) $row['mfa_habilitado']);
+        $this->assertNull($this->audit->byOperacion('user.mfa.reset'));
+    }
+
+    public function testResetMfaHaceWipeRevocaSesionesYAudita(): void
+    {
+        $this->seedUser('u-mfa-pcs');
+        $this->enableMfa('u-mfa-pcs');
+        $this->seedRefreshToken('u-mfa-pcs');
+
+        $result = $this->controller->resetMfa(['id' => 'u-mfa-pcs'], $this->request());
+
+        $this->assertSame(200, $result['status']);
+        $this->assertFalse($result['data']['mfa_habilitado']);
+        $this->assertTrue($result['data']['cambio']);
+        $this->assertTrue($result['data']['sesiones_revocadas']);
+
+        $row = $this->mfaRow('u-mfa-pcs');
+        $this->assertNotNull($row);
+        $this->assertSame('0', (string) $row['mfa_habilitado']);
+        $this->assertNull($row['mfa_metodo']);
+        $this->assertNull($row['mfa_secret']);
+        $this->assertNull($row['mfa_backup_codes']);
+
+        // La familia de refresh tokens del objetivo queda revocada.
+        $stmt = $this->pdo->prepare('SELECT revoked, revoked_reason FROM refresh_tokens WHERE user_id = :uid');
+        $stmt->execute(['uid' => 'u-mfa-pcs']);
+        $token = $stmt->fetch();
+        $this->assertSame('1', (string) $token['revoked']);
+        $this->assertSame('admin_mfa_reset', $token['revoked_reason']);
+
+        $entrada = $this->audit->byOperacion('user.mfa.reset');
+        $this->assertNotNull($entrada, 'El reset debe quedar auditado');
+        $this->assertTrue($entrada['valores_anteriores']['mfa_habilitado']);
+        $this->assertFalse($entrada['valores_nuevos']['mfa_habilitado']);
+        $this->assertFalse($entrada['detalles_adicionales']['ya_estaba_desactivado']);
+    }
+
+    public function testResetMfaIdempotenteCuandoYaEstaDesactivado(): void
+    {
+        $this->seedUser('u-mfa-off-pcs');
+        $this->seedRefreshToken('u-mfa-off-pcs');
+
+        $result = $this->controller->resetMfa(['id' => 'u-mfa-off-pcs'], $this->request());
+
+        $this->assertSame(200, $result['status']);
+        $this->assertFalse($result['data']['cambio']);
+        $this->assertFalse($result['data']['sesiones_revocadas']);
+
+        // Sin cambio no se revoca ninguna sesión.
+        $stmt = $this->pdo->prepare('SELECT revoked FROM refresh_tokens WHERE user_id = :uid');
+        $stmt->execute(['uid' => 'u-mfa-off-pcs']);
+        $this->assertSame('0', (string) $stmt->fetchColumn());
+
+        $entrada = $this->audit->byOperacion('user.mfa.reset');
+        $this->assertNotNull($entrada, 'La accion administrativa se audita aunque sea no-op');
+        $this->assertTrue($entrada['detalles_adicionales']['ya_estaba_desactivado']);
+    }
+
+    public function testResetMfaDeUsuarioInexistenteDevuelve404(): void
+    {
+        try {
+            $this->controller->resetMfa(['id' => 'no-existe'], $this->request());
+            $this->fail('Se esperaba UserException 404');
+        } catch (UserException $e) {
+            $this->assertSame(404, $e->getStatusCode());
+            $this->assertSame('users.user_not_found', $e->getMessageKey());
+        }
+    }
+
+    // ====================================================================
+    // HELPERS MFA
+    // ====================================================================
+
+    private function enableMfa(string $userId): void
+    {
+        $stmt = $this->pdo->prepare(
+            "UPDATE users
+                SET mfa_habilitado = 1, mfa_metodo = 'TOTP',
+                    mfa_secret = 'sec-test', mfa_backup_codes = '[\"code1\"]'
+              WHERE id = :id"
+        );
+        $stmt->execute(['id' => $userId]);
+    }
+
+    private function mfaRow(string $userId): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT mfa_habilitado, mfa_metodo, mfa_secret, mfa_backup_codes
+               FROM users WHERE id = :id'
+        );
+        $stmt->execute(['id' => $userId]);
+        $row = $stmt->fetch();
+
+        return $row === false ? null : $row;
+    }
+
+    private function seedRefreshToken(string $userId): void
+    {
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO refresh_tokens
+                (id, user_id, tenant_id, family_id, used, revoked, expires_at, created_at)
+             VALUES
+                (:id, :uid, :tenant, :fam, 0, 0, :expira, :now)'
+        );
+        $stmt->execute([
+            'id' => 'rt-mfa-' . $userId,
+            'uid' => $userId,
+            'tenant' => self::TENANT,
+            'fam' => 'fam-mfa-' . $userId,
+            'expira' => '2030-01-01 00:00:00',
+            'now' => gmdate('Y-m-d H:i:s'),
+        ]);
     }
 }

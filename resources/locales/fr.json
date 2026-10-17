@@ -1807,6 +1807,7 @@
       "edit": "",
       "status": "",
       "reset": "",
+      "reset_mfa": "",
       "roles": "",
       "temp_view": "",
       "delete": ""
@@ -1883,6 +1884,19 @@
       "success_body": "",
       "temp_title": ""
     },
+    "mfa": {
+      "badge_on": "",
+      "badge_off": ""
+    },
+    "mfa_reset": {
+      "title": "",
+      "submit": "",
+      "body": "",
+      "warning": "",
+      "success_title": "",
+      "success_body": "",
+      "already_body": ""
+    },
     "temp_password": {
       "title": "",
       "warning": "",
@@ -1929,6 +1943,7 @@
       "edit": "",
       "status": "",
       "reset": "",
+      "mfa_reset": "",
       "delete": ""
     },
     "temp": {
