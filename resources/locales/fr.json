@@ -16,6 +16,7 @@
   },
   "ui": {
     "empty_title": "",
+    "slow_load": "Cela prend plus de temps que d'habitude...",
     "error_title": "",
     "retry": "",
     "pagination": "",

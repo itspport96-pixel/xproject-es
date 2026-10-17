@@ -187,8 +187,7 @@
     // ====================================================================
 
     async function loadRoles() {
-        state.loading = true;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'loading', renderTable);
 
         try {
             const params = {};
@@ -203,7 +202,7 @@
             state.items = [];
             return false;
         } finally {
-            state.loading = false;
+            gate.done();
             renderTable();
         }
     }
@@ -398,7 +397,7 @@
     }
 
     function createBody(modal) {
-        if (modal.loading) return UI.loadingState();
+        if (modal.loading) return UI.rowsSkeleton(5);
 
         return `
             <div class="form-error hidden mb-3" data-form-error></div>
@@ -485,7 +484,7 @@
     }
 
     function editBody(modal) {
-        if (modal.loading) return UI.loadingState();
+        if (modal.loading) return UI.rowsSkeleton(5);
         const r = modal.role;
 
         return `
@@ -582,7 +581,7 @@
     }
 
     function permissionsBody(modal) {
-        if (modal.loading || modal.permisos === null) return UI.loadingState();
+        if (modal.loading || modal.permisos === null) return UI.rowsSkeleton(8);
 
         const readonly = pickerReadonly(modal);
 

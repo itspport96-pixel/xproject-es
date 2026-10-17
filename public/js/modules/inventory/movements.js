@@ -236,8 +236,7 @@
     // ====================================================================
 
     async function loadMovements(page = 1) {
-        state.loading = true;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'loading', renderTable);
 
         try {
             const params = { page, per_page: state.pagination.per_page };
@@ -263,7 +262,7 @@
                 UI.toast('danger', t('ui.error_generic'), (err && err.message) || t('inventory.movements.messages.load_error'));
             }
         } finally {
-            state.loading = false;
+            gate.done();
             renderSummary();
             renderTable();
             renderPagination();

@@ -1498,6 +1498,24 @@
     height: 6rem;
 }
 
+/* Aviso de carga larga (v1.17.11): nota global discreta que aparece cuando
+   alguna peticion pendiente supera ~8 s (UI.skeletonGate). role=status. */
+.load-slow-note {
+    position: fixed;
+    left: 50%;
+    bottom: 1.25rem;
+    transform: translateX(-50%);
+    z-index: calc(var(--z-sidebar) + 2);
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+    color: rgb(var(--color-text-muted));
+    background-color: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-border));
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    pointer-events: none;
+}
+
 /* ============================================
    PROGRESS BAR
    ============================================ */

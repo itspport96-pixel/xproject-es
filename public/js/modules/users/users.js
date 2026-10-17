@@ -437,8 +437,7 @@
     // ====================================================================
 
     async function loadUsers(page = 1) {
-        state.loading = true;
-        renderUsersTable();
+        const gate = UI.skeletonGate(state, 'loading', renderUsersTable);
 
         try {
             const params = { page, per_page: state.pagination.per_page };
@@ -458,7 +457,7 @@
             state.items = [];
             return false;
         } finally {
-            state.loading = false;
+            gate.done();
             renderUsersTable();
             renderUsersPagination();
         }
@@ -502,9 +501,8 @@
     }
 
     async function loadTemp(page = 1) {
-        state.temp.loading = true;
         state.temp.page = page;
-        renderTempTable();
+        const gate = UI.skeletonGate(state.temp, 'loading', renderTempTable);
 
         try {
             const params = { page, per_page: state.temp.per_page };
@@ -523,7 +521,7 @@
             state.temp.items = [];
             return false;
         } finally {
-            state.temp.loading = false;
+            gate.done();
             renderTempFilterUser();
             renderTempTable();
             renderTempPagination();
@@ -1129,7 +1127,7 @@
         if (modal.confirmGroup) return confirmGroupBody(modal);
 
         const actuales = modal.roles === null
-            ? UI.loadingState()
+            ? UI.rowsSkeleton(4)
             : (modal.roles.length === 0
                 ? `<p class="text-muted text-sm">${t('users.roles.none')}</p>`
                 : `<ul class="mb-3">${modal.roles.map(r => `
@@ -1448,7 +1446,7 @@
         const holder = root.querySelector('[data-grant-users]');
         if (!holder) return;
 
-        holder.innerHTML = UI.loadingState();
+        holder.innerHTML = UI.rowsSkeleton(3);
         const actual = fieldValue(root, 'user_id');
         await searchUsersDirectory(term);
         if (getModalRoot() !== root || !state.modal || state.modal.mode !== 'grant') return;

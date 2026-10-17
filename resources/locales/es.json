@@ -16,6 +16,7 @@
   },
   "ui": {
     "empty_title": "Sin datos",
+    "slow_load": "La carga está tardando más de lo normal...",
     "error_title": "Error al cargar",
     "retry": "Reintentar",
     "pagination": "Mostrando {shown} de {total} {label}",

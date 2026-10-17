@@ -597,8 +597,7 @@
     }
 
     async function loadReservations() {
-        state.reservationsLoading = true;
-        renderReservations();
+        const gate = UI.skeletonGate(state, 'reservationsLoading', renderReservations);
 
         try {
             const response = await global.HttpClient.get('/inventory/reservations', {
@@ -626,14 +625,13 @@
             }
             return false;
         } finally {
-            state.reservationsLoading = false;
+            gate.done();
             renderReservations();
         }
     }
 
     async function loadPickings(page = 1) {
-        state.pickingLoading = true;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'pickingLoading', renderTable);
 
         try {
             const params = { page, per_page: state.pickingPagination.per_page };
@@ -661,7 +659,7 @@
             }
             return false;
         } finally {
-            state.pickingLoading = false;
+            gate.done();
             renderAll();
         }
     }

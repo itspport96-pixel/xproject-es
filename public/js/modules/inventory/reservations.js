@@ -191,8 +191,7 @@
     // ====================================================================
 
     async function loadReservations(page = 1) {
-        state.loading = true;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'loading', renderTable);
 
         try {
             const response = await global.HttpClient.get('/inventory/reservations', {
@@ -217,7 +216,7 @@
             }
             return false;
         } finally {
-            state.loading = false;
+            gate.done();
             renderSummary();
             renderTable();
             renderPagination();

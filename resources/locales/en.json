@@ -16,6 +16,7 @@
   },
   "ui": {
     "empty_title": "No data",
+    "slow_load": "This is taking longer than usual...",
     "error_title": "Load error",
     "retry": "Retry",
     "pagination": "Showing {shown} of {total} {label}",

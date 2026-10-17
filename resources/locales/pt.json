@@ -16,6 +16,7 @@
   },
   "ui": {
     "empty_title": "",
+    "slow_load": "Esta demorando mais que o normal...",
     "error_title": "",
     "retry": "",
     "pagination": "",

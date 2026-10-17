@@ -248,7 +248,7 @@
     }
 
     function guardState() {
-        if (state.loading) return UI.loadingState();
+        if (state.loading) return UI.cardsSkeleton(3);
         if (state.error) {
             return UI.errorState({
                 title: t('settings.load_error_title'),

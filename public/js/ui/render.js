@@ -126,6 +126,138 @@
     }
 
     /**
+     * Skeleton de lista/panel (v1.17.11): N barras apiladas con anchos
+     * variados. Para modales, paneles de detalle y holders donde
+     * tableSkeleton (con thead) no encaja. Sustituye a loadingState()
+     * (spinner) en esas regiones.
+     *
+     * @param {number} count numero de barras (default 5)
+     * @param {Array<number>} widths anchos relativos en % (opcional)
+     */
+    function rowsSkeleton(count, widths) {
+        const n = Math.max(1, Number(count) || 5);
+        const defecto = [92, 78, 85, 64, 88, 70, 80, 75];
+        const filas = Array.from({ length: n }, (_, i) => {
+            const w = Array.isArray(widths) && widths[i] != null ? widths[i] : defecto[i % defecto.length];
+            return `<div class="skeleton" style="height:0.875rem;width:${w}%;margin-bottom:0.625rem;border-radius:var(--radius-sm)"></div>`;
+        }).join('');
+        return `<div class="skeleton-rows" aria-hidden="true">${filas}</div>`;
+    }
+
+    // ==================================================================
+    // UMBRAL DE SKELETON + AVISO DE CARGA LARGA (v1.17.11)
+    // ==================================================================
+
+    const SKELETON_GATE_DELAY = 180;
+    const gateTimers = new WeakMap();
+    const gateSeen = new WeakMap();
+    let skeletonSlowMs = 8000;
+    let pendingGates = 0;
+    let slowTimer = null;
+    let slowNote = null;
+
+    // El aviso de carga larga es global: mientras haya al menos una carga
+    // pendiente mas de skeletonSlowMs, se muestra una nota discreta fija.
+    // Sin cableado por vista: cualquier gate la alimenta.
+    function slowNoteShow() {
+        if (slowNote || !document.body) return;
+        slowNote = document.createElement('div');
+        slowNote.className = 'load-slow-note';
+        slowNote.setAttribute('role', 'status');
+        slowNote.textContent = t('ui.slow_load');
+        document.body.appendChild(slowNote);
+    }
+
+    function slowNoteHide() {
+        if (slowNote && slowNote.parentNode) slowNote.parentNode.removeChild(slowNote);
+        slowNote = null;
+    }
+
+    function pendingTrack(delta) {
+        pendingGates = Math.max(0, pendingGates + delta);
+        if (pendingGates === 0) {
+            if (slowTimer) { clearTimeout(slowTimer); slowTimer = null; }
+            slowNoteHide();
+        } else if (!slowTimer) {
+            slowTimer = setTimeout(() => {
+                slowTimer = null;
+                if (pendingGates > 0) slowNoteShow();
+            }, skeletonSlowMs);
+        }
+    }
+
+    /**
+     * Umbral de skeleton (v1.17.11): la region NO pinta skeleton al instante
+     * en cada recarga. Primera carga del estado+clave: skeleton inmediato
+     * (no hay contenido previo que conservar). Recargas: el contenido
+     * estable permanece y el skeleton se enciende solo si la peticion
+     * supera ~180 ms — respuestas rapidas no producen parpadeo.
+     *
+     * Uso:
+     *   const gate = UI.skeletonGate(state, 'loading', renderTabla);
+     *   try { ... } finally { gate.done(); renderTabla(); }
+     *
+     * @param {object} state objeto de estado de la vista (o subobjeto)
+     * @param {string} key nombre de la flag de loading en state
+     * @param {Function} render repintado de la region
+     * @param {number} delay umbral en ms (default 180)
+     */
+    function skeletonGate(state, key, render, delay) {
+        const ms = (typeof delay === 'number' && delay >= 0) ? delay : SKELETON_GATE_DELAY;
+        const slot = gateTimers.get(state) || {};
+        if (slot[key]) {
+            clearTimeout(slot[key].timer);
+            slot[key] = null;
+            pendingTrack(-1);
+        }
+
+        const seenMap = gateSeen.get(state) || {};
+        const primera = !seenMap[key];
+        seenMap[key] = true;
+        gateSeen.set(state, seenMap);
+
+        let finalized = false;
+
+        if (primera) {
+            state[key] = true;
+            render();
+        } else {
+            state[key] = false;
+        }
+
+        const entry = {};
+        entry.timer = setTimeout(() => {
+            entry.timer = null;
+            pendingTrack(-1);
+            if (finalized || primera) return;
+            state[key] = true;
+            render();
+        }, ms);
+        slot[key] = entry;
+        gateTimers.set(state, slot);
+        pendingTrack(1);
+
+        return {
+            done() {
+                if (finalized) return;
+                finalized = true;
+                if (entry.timer) {
+                    clearTimeout(entry.timer);
+                    entry.timer = null;
+                    pendingTrack(-1);
+                }
+                state[key] = false;
+            }
+        };
+    }
+
+    // Exposed para tests (smoke): el umbral de "carga larga" por defecto
+    // es 8 s; los smokes lo bajan para no esperar.
+    function setSkeletonSlowMs(ms) {
+        if (typeof ms === 'number' && ms > 0) skeletonSlowMs = ms;
+    }
+
+    /**
      * @param {Array<{label: string, className?: string}>} columnas
      * @param {string} filasHtml
      */
@@ -204,6 +336,9 @@
         loadingState: loadingState,
         tableSkeleton: tableSkeleton,
         cardsSkeleton: cardsSkeleton,
+        rowsSkeleton: rowsSkeleton,
+        skeletonGate: skeletonGate,
+        setSkeletonSlowMs: setSkeletonSlowMs,
         tableShell: tableShell,
         renderPagination: renderPagination,
         summaryCards: summaryCards

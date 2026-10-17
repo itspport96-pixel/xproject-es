@@ -499,7 +499,7 @@
                 <div class="modal-overlay" data-modal>
                     <div class="modal">
                         <div class="modal-body">
-                            ${UI.loadingState()}
+                            ${UI.rowsSkeleton(5)}
                         </div>
                     </div>
                 </div>`;
@@ -774,9 +774,8 @@
     }
 
     async function loadHistory(page = 1) {
-        state.listLoading = true;
         state.listError = false;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'listLoading', renderTable);
 
         try {
             const params = { page, per_page: state.pagination.per_page };
@@ -804,7 +803,7 @@
             }
             return false;
         } finally {
-            state.listLoading = false;
+            gate.done();
             renderAll();
         }
     }

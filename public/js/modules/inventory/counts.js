@@ -280,8 +280,7 @@
     // ====================================================================
 
     async function loadCounts(page = 1) {
-        state.loading = true;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'loading', renderTable);
 
         try {
             const params = { page, per_page: state.pagination.per_page };
@@ -308,7 +307,7 @@
             }
             return false;
         } finally {
-            state.loading = false;
+            gate.done();
             renderAll();
         }
     }
@@ -1083,7 +1082,7 @@
             title = t('inventory.counts.modals.detail.title');
             size = 'xl';
             body = modal.loading
-                ? UI.loadingState()
+                ? UI.rowsSkeleton(6)
                 : (modal.data ? renderDetailBody(modal.data) : UI.emptyState({ title: t('ui.empty_title'), message: '' }));
             footer = renderDetailFooter(modal.data);
         }

@@ -175,8 +175,7 @@
     // ====================================================================
 
     async function loadGroups() {
-        state.loading = true;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'loading', renderTable);
 
         try {
             const params = {};
@@ -191,7 +190,7 @@
             state.items = [];
             return false;
         } finally {
-            state.loading = false;
+            gate.done();
             renderTable();
             // El conteo viene en `miembros` (v1.13.0); el N+1 queda como
             // fallback solo si alguna respuesta no lo trae.
@@ -304,7 +303,7 @@
                 ${estadoBadge(!!detail.group.activo)}
             </div>`;
 
-        if (detail.loading) return header + tabs + UI.loadingState();
+        if (detail.loading) return header + tabs + UI.rowsSkeleton(5);
         if (detail.error) return header + tabs + UI.emptyState({ title: t('groups.errors.detail'), message: '' });
 
         const contenido = detail.tab === 'members' ? membersTab(detail) : rolesTab(detail);
@@ -724,7 +723,7 @@
             return `<p class="text-sm text-danger">${t('groups.roles.catalog_error')}</p>`;
         }
 
-        if (!state.rolesLoaded) return UI.loadingState();
+        if (!state.rolesLoaded) return UI.rowsSkeleton(6);
 
         const asignados = (detail.roles || []).map(r => r.role_id);
         const disponibles = state.roles.filter(r => r.activo && asignados.indexOf(r.id) === -1);

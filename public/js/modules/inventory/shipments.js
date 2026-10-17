@@ -366,7 +366,7 @@
         });
 
         if (state.preparedLoading) {
-            root.innerHTML = UI.loadingState();
+            root.innerHTML = UI.rowsSkeleton(4);
             return;
         }
 
@@ -646,7 +646,7 @@
                 <div class="modal-overlay" data-modal>
                     <div class="modal">
                         <div class="modal-body">
-                            ${UI.loadingState()}
+                            ${UI.rowsSkeleton(5)}
                         </div>
                     </div>
                 </div>`;
@@ -849,8 +849,7 @@
     }
 
     async function loadShipments(page = 1) {
-        state.listLoading = true;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'listLoading', renderTable);
 
         try {
             const params = { page, per_page: state.pagination.per_page };
@@ -876,7 +875,7 @@
             }
             return false;
         } finally {
-            state.listLoading = false;
+            gate.done();
             renderAll();
         }
     }

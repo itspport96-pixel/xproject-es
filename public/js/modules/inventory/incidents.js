@@ -347,8 +347,7 @@
     // ====================================================================
 
     async function loadIncidents(page = 1) {
-        state.loading = true;
-        renderTable();
+        const gate = UI.skeletonGate(state, 'loading', renderTable);
 
         try {
             const params = { page, per_page: state.pagination.per_page };
@@ -375,7 +374,7 @@
             }
             return false;
         } finally {
-            state.loading = false;
+            gate.done();
             renderAll();
         }
     }
@@ -1121,7 +1120,7 @@
             title = t('inventory.incidents.modals.detail.title');
             size = 'lg';
             body = modal.loading
-                ? UI.loadingState()
+                ? UI.rowsSkeleton(6)
                 : (modal.data ? renderDetailBody(modal.data) : UI.emptyState({ title: t('ui.empty_title'), message: '' }));
             footer = modal.data ? renderDetailFooter(modal.data)
                 : `<button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>`;

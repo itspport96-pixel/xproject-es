@@ -1015,6 +1015,78 @@ async function s7_temp_minutes_autorefresh() {
 }
 
 // =====================================================================
+// S10 - SKELETON: UMBRAL, rowsSkeleton Y AVISO DE CARGA LARGA (v1.17.11)
+// =====================================================================
+async function s10_skeleton_gate() {
+  console.log('S10 skeleton: umbral de carga, rowsSkeleton y aviso de carga larga');
+
+  // rowsSkeleton: N barras apiladas (sustituye a loadingState en paneles)
+  {
+    const env = createEnv({ perms: ADMIN_PERMS, roles: ['ADMIN'] });
+    env.evalUi();
+    const html = env.w.UI.rowsSkeleton(3);
+    const barras = (html.match(/class="skeleton"/g) || []).length;
+    check('rowsSkeleton pinta 3 barras', barras === 3, String(barras));
+    env.close();
+  }
+
+  // Umbral: primera carga inmediata; en recarga el skeleton solo se enciende
+  // si la peticion supera el umbral (respuestas rapidas no parpadean).
+  {
+    const env = createEnv({ perms: ADMIN_PERMS, roles: ['ADMIN'] });
+    env.evalUi();
+    const state = { loading: false };
+    let pintados = 0;
+    const render = () => { pintados++; };
+
+    const g1 = env.w.UI.skeletonGate(state, 'loading', render, 40);
+    check('primera carga: skeleton inmediato', state.loading === true && pintados === 1,
+      `loading=${state.loading} pintados=${pintados}`);
+    g1.done();
+    check('done: loading apagado', state.loading === false);
+
+    const g2 = env.w.UI.skeletonGate(state, 'loading', render, 120);
+    check('recarga: sin skeleton al instante bajo el umbral',
+      state.loading === false && pintados === 1, `loading=${state.loading} pintados=${pintados}`);
+    await new Promise(r => setTimeout(r, 50));
+    check('recarga: sigue sin skeleton a los 50ms (< 120)',
+      state.loading === false && pintados === 1, `loading=${state.loading} pintados=${pintados}`);
+    g2.done();
+    await new Promise(r => setTimeout(r, 140));
+    check('cancelado: el timer no pinta tras done',
+      state.loading === false && pintados === 1, `loading=${state.loading} pintados=${pintados}`);
+
+    const g3 = env.w.UI.skeletonGate(state, 'loading', render, 50);
+    await new Promise(r => setTimeout(r, 130));
+    check('recarga lenta: skeleton pintado al superar el umbral',
+      state.loading === true && pintados === 2, `loading=${state.loading} pintados=${pintados}`);
+    g3.done();
+    check('done tras umbral: loading apagado', state.loading === false);
+    env.close();
+  }
+
+  // Aviso de carga larga (umbral bajado para el test): aparece mientras la
+  // carga siga pendiente y desaparece al terminar.
+  {
+    const env = createEnv({ perms: ADMIN_PERMS, roles: ['ADMIN'] });
+    env.evalUi();
+    env.w.UI.setSkeletonSlowMs(80);
+    const state = { loading: false };
+    const g = env.w.UI.skeletonGate(state, 'loading', () => {}, 5000);
+    await new Promise(r => setTimeout(r, 200));
+    const note = env.w.document.querySelector('.load-slow-note');
+    check('aviso de carga larga visible', !!note && note.textContent.trim().length > 0,
+      note ? note.textContent : 'sin aviso');
+    check('aviso con role=status', !!note && note.getAttribute('role') === 'status');
+    g.done();
+    await new Promise(r => setTimeout(r, 30));
+    check('aviso desaparece al terminar la carga',
+      !env.w.document.querySelector('.load-slow-note'));
+    env.close();
+  }
+}
+
+// =====================================================================
 async function main() {
   await s1_registration();
   await s2_users_screen();
@@ -1023,6 +1095,7 @@ async function main() {
   await s5_sidebar();
   await s6_password();
   await s7_temp_minutes_autorefresh();
+  await s10_skeleton_gate();
 
   console.log(`\nRESULTADO: ${pass} OK, ${fail} FAIL`);
   if (fail > 0) process.exitCode = 1;

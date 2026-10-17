@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.11] - 2026-10-17
+
+**Skeleton loading: umbral de 180 ms, panel contextual en todas las cargas de lista y aviso de carga larga (Plan B).** La plataforma ya tenia skeletons (shimmer 1.5 s, `UI.tableSkeleton`/`cardsSkeleton` en 13 paneles, `prefers-reduced-motion` global), pero se pintaban al instante: cualquier recarga (filtro, pagina, auto-refresco) vaciaba la tabla un frame y la volvia a llenar, un parpadeo que es peor que el spinner. Ahora `UI.skeletonGate(state, clave, render, umbral=180)` decide por carga: la primera de cada lista pinta el skeleton inmediato (la tabla todavia esta vacia), en recargas el contenido estable se conserva y el skeleton solo se enciende si la peticion pasa de 180 ms — respuestas rapidas ya no parpadean. El gate cancela su timer al cerrarse, asi que la condicion de carrera "resuelve antes del umbral" no deja `loading` huerfano. Doce cargas de lista pasan al gate (usuarios y temporales, roles, grupos, movimientos, reservas, conteos, entregas, historial de envios, incidencias, picking de reservas y de envios). Los 13 `UI.loadingState()` que quedaban (cuerpos de modal y paneles de detalle) se sustituyen por `UI.rowsSkeleton(n)` o `UI.cardsSkeleton(n)` con el numero de filas esperado; `loadingState` se mantiene como export por compatibilidad (lo referencia `smoke-v193`). Si una carga pasa de 8 s, un aviso global (`role="status"`, i18n `ui.slow_load` en los 4 idiomas) indica que algo va mal; el umbral es configurable para el test (`UI.setSkeletonSlowMs`).
+
+### Added
+- `ui/render.js`: `skeletonGate()` (umbral por carga, primera carga inmediata, cancelable), `rowsSkeleton(n, widths)` (barras apiladas para paneles que no son tabla), `pendingTrack()`/aviso `.load-slow-note` y `setSkeletonSlowMs(ms)`.
+- `components.css`: `.load-slow-note` (fixed inferior centrado, rol de status).
+- Locales: `ui.slow_load` en `es`/`en`/`pt`/`fr` (traduccion real, no stub).
+
+### Changed
+- Gate aplicado en `users.js` (`loadUsers`, `loadTemp`), `roles.js`, `groups.js`, `movements.js`, `reservations.js`, `counts.js`, `deliveries.js`, `incidents.js` y `picking.js` (`loadReservations`, `loadPickings`), `shipments.js`: reemplaza el par `loading = true; render();`.
+- Migracion de los 13 `UI.loadingState()`: `groups.js` (detalle + roles), `counts.js`, `deliveries.js`, `incidents.js`, `shipments.js` (detalle y paneles preparados), `roles.js` (crear, editar, permisos), `settings.js` (3 tarjetas) y `users.js` (roles y temporal).
+
+### Notes
+- Desviacion (no tocada): `products`, `locations`, `stock`, auditoria, `dashboard` y `returns` usan `loading = true` sin skeleton; quedan fuera del alcance de esta iteracion.
+- Smoke `smoke-v1120.mjs` S10 anade 11 checks (rowsSkeleton, primera carga inmediata, umbral en recarga, timer cancelado, skeleton tras el umbral, aviso de carga larga visible/con role y retirado al terminar). Bateria completa: v1120 180, v162 91, v171 107, profile-mfa 29, sspr 35, v11358 89 (531 OK, 0 FAIL); drift SIN DRIFT; GETs en vivo 401 sin 500.
+
 ## [1.17.10] - 2026-10-17
 
 **Rail de la sidebar: el ultimo icono es solo cerrar sesion.** El pie del rail mostraba avatar (iniciales) junto al icono de logout. Ahora el avatar y la info del usuario quedan ocultos en modo colapsado (`.app-layout.sidebar-collapsed .sidebar-user .avatar`): la columna de iconos termina en un unico boton de cerrar sesion, centrado, con su `title`/`aria-label` nativos ("Cerrar sesion"). El sidebar expandido no cambia: conserva avatar, nombre y rol.
