@@ -1516,20 +1516,12 @@
     }
 
     /**
-     * Valor de un input datetime-local (hora de pared LOCAL del navegador,
-     * 'YYYY-MM-DDTHH:mm') -> naive 'Y-m-d H:i:s' en UTC, el formato de
-     * cable que espera el backend (lo parsea con DateTimeImmutable bajo
-     * date.timezone=UTC y asi se guardan tambien duracion_horas/minutos).
-     * Sin esta conversion, un grant por "Fecha" caducaba desfasado el offset
-     * horario en maquinas no UTC (v1.17.7). Es el inverso del prefill
-     * `ahora` del modal, que va de UTC a hora local.
+     * El picker del modo Fecha trabaja en hora local del admin (el prefill
+     * `ahora` convierte de UTC a local) y el backend interpreta
+     * `fecha_expiracion` como UTC naive (DateTimeImmutable bajo
+     * date.timezone=UTC). La conversion local -> UTC vive ahora en
+     * `UI.datetimeLocalToUtc` (ui/dom.js) y se aplica al enviar (v1.17.7).
      */
-    function datetimeLocalToUtc(valor) {
-        const d = new Date(valor);
-        if (isNaN(d.getTime())) return valor;
-        return d.toISOString().slice(0, 19).replace('T', ' ');
-    }
-
     async function submitGrant() {
         if (state.sending) return;
         const root = getModalRoot();
@@ -1563,7 +1555,7 @@
         const payload = { user_id: userId, permission_id: permissionId, motivo };
         if (modo === 'horas') payload.duracion_horas = parseInt(horas, 10);
         else if (modo === 'minutos') payload.duracion_minutos = parseInt(minutos, 10);
-        else payload.fecha_expiracion = datetimeLocalToUtc(fecha);
+        else payload.fecha_expiracion = UI.datetimeLocalToUtc(fecha);
 
         setSending(true);
 

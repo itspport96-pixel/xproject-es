@@ -399,11 +399,24 @@ async function s3_reserve_modal() {
   check('muestra disponible', /Disponible/.test(form.textContent));
 
   form.querySelector('input[name="cantidad"]').value = '3';
+  // hora de pared local (v1.17.8): el payload debe traer el instante en UTC
+  // naive, no la hora local cruda (el backend lo parsea como UTC).
+  const elegidaLocal = '2030-05-20T18:30';
+  const esperadoUtc = new Date(elegidaLocal).toISOString().slice(0, 19).replace('T', ' ');
+  form.querySelector('input[name="fecha_expiracion"]').value = elegidaLocal;
   env.submit(form);
   await tick();
 
   check('POST /inventory/reservations', env.calls.posts[0] && env.calls.posts[0].path === '/inventory/reservations', JSON.stringify(env.calls.posts[0] || null));
   check('payload con cantidad', env.calls.posts[0].body.cantidad === '3' && env.calls.posts[0].body.unidad_fisica_id === 'u1');
+  check('payload con fecha_expiracion en UTC naive',
+    env.calls.posts[0].body.fecha_expiracion === esperadoUtc,
+    (env.calls.posts[0] ? env.calls.posts[0].body.fecha_expiracion : 'sin post') + ' esperado ' + esperadoUtc);
+  if (new Date(elegidaLocal).getTimezoneOffset() !== 0) {
+    check('fecha_expiracion nunca viaja como hora local cruda',
+      env.calls.posts[0].body.fecha_expiracion !== elegidaLocal,
+      JSON.stringify(env.calls.posts[0] ? env.calls.posts[0].body.fecha_expiracion : null));
+  }
   check('cabecera Idempotency-Key', !!env.calls.posts[0].options.headers['Idempotency-Key']);
   check('toast de éxito', env.calls.toasts.some(t => t.type === 'success'));
   env.close();

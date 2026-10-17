@@ -600,6 +600,11 @@ async function s1_shipments_load() {
   form.querySelector('input[name="conductor_nombre"]').value = 'Chofer Demo';
   form.querySelector('input[name="vehiculo_referencia"]').value = 'XYZ999';
   form.querySelector('textarea[name="observaciones"]').value = 'Entregar en horario de oficina';
+  // hora de pared local (v1.17.8): el backend normaliza el valor interpretandolo
+  // como UTC, asi que el payload debe traer el instante convertido a UTC naive.
+  const entregaLocal = '2030-05-20T18:30';
+  const entregaUtc = new Date(entregaLocal).toISOString().slice(0, 19).replace('T', ' ');
+  form.querySelector('input[name="hora_entrega_esperada"]').value = entregaLocal;
   env.submit(form);
   await tick();
 
@@ -612,6 +617,14 @@ async function s1_shipments_load() {
     load.body.shipment.destino_direccion === 'Calle Falsa 123' &&
     load.body.shipment.observaciones === 'Entregar en horario de oficina',
     JSON.stringify(load && load.body.shipment));
+  check('hora_entrega_esperada en UTC naive',
+    !!load && load.body.shipment.hora_entrega_esperada === entregaUtc,
+    JSON.stringify(load && load.body.shipment.hora_entrega_esperada) + ' esperado ' + entregaUtc);
+  if (new Date(entregaLocal).getTimezoneOffset() !== 0) {
+    check('hora_entrega_esperada nunca viaja como hora local cruda',
+      !!load && load.body.shipment.hora_entrega_esperada !== entregaLocal,
+      JSON.stringify(load && load.body.shipment.hora_entrega_esperada));
+  }
   check('cabecera Idempotency-Key', !!load && load.options.headers['Idempotency-Key'] === keyBefore,
     JSON.stringify(load && load.options.headers));
   check('toast de carga exitosa', env.calls.toasts.some(t => t.type === 'success' && /cargadas/i.test(t.title)));

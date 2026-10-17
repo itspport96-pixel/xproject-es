@@ -95,6 +95,21 @@
         return formatDate(value, { time: true });
     }
 
+    /**
+     * Valor de un input datetime-local (hora de pared LOCAL del navegador,
+     * 'YYYY-MM-DDTHH:mm') -> naive 'Y-m-d H:i:s' en UTC, el formato de
+     * cable que esperan los backends (PHP parsea bajo date.timezone=UTC:
+     * TemporaryPermissionController, Reservation/LoadShipmentUseCase, etc.).
+     * Sin esta conversion, una fecha elegida en un navegador con desfase
+     * horario se guardaba corrida su offset (v1.17.7-v1.17.8). El inverso
+     * del prefill que algunas vistas calculan de UTC a hora local.
+     */
+    function datetimeLocalToUtc(valor) {
+        const d = new Date(valor);
+        if (isNaN(d.getTime())) return valor;
+        return d.toISOString().slice(0, 19).replace('T', ' ');
+    }
+
     /** Importe con la moneda del tenant (o la indicada); sin moneda, solo número. */
     function formatMoney(amount, currency) {
         const n = parseFloat(amount);
@@ -114,6 +129,7 @@
         formatNumber: formatNumber,
         formatDate: formatDate,
         formatDateTime: formatDateTime,
+        datetimeLocalToUtc: datetimeLocalToUtc,
         formatMoney: formatMoney,
         toast: toast
     });

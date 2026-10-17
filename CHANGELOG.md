@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.8] - 2026-10-17
+
+**Se termina la familia del desfase horario de fechas: reservas de stock y envios tambien convierten a UTC al enviar.** Tras 1.17.7 (permisos temporales), quedaban dos `datetime-local` de escritura enviando hora local cruda a backends que la interpretan como UTC: la fecha de expiracion de una reserva (`POST /inventory/reservations`; `Reservation` la parsea con `DateTimeImmutable` bajo `date.timezone=UTC` y `ReservationExpirationService` compara contra un ahora UTC, asi que la reserva caducaba desfasada su offset) y la hora de entrega esperada de un envio (`POST /inventory/shipments/load`; `LoadShipmentUseCase::normalizeExpectedDeliveryTime` usa `createFromFormat` con el mismo supuesto UTC). Ahora las dos conversiones usan `UI.datetimeLocalToUtc()` — helper nuevo en `ui/dom.js`, unico desde 1.17.7 — aplicada justo antes de montar el payload; la validacion local de "futura" en reservas sigue mirando la hora que el admin ve. El modal de permisos temporales paso a usar el helper compartido (su copia local desaparece).
+
+### Added
+- `ui/dom.js`: `UI.datetimeLocalToUtc(valor)` — `datetime-local` local -> naive `'Y-m-d H:i:s'` UTC; documenta el contrato de cable de la plataforma.
+
+### Fixed
+- `stock.js` `submitReserve()`: convierte `fecha_expiracion` al instante UTC antes del POST (tras la validacion en hora local).
+- `shipments.js` `readLoadForm()`: `hora_entrega_esperada` sale ya convertida a UTC naive (sale de la lista de textos planos).
+- `users.js`: usa `UI.datetimeLocalToUtc` en `submitGrant()`; se elimina la copia local del helper.
+
+### Notes
+- Auditoria de fechas completada: los tres unicos `datetime-local` de escritura del frontend (permisos temporales, reservas, envios) ya convierten al enviar. `ReservationExpirationService` ya trabajaba en UTC (`new DateTimeImmutable()` con el timezone del servidor). Los filtros `type="date"` (`fecha_desde`/`fecha_hasta` en auditoria, conteos, entregas, incidencias, movimientos, devoluciones) se comparan contra el almacenamiento UTC con limites de dia UTC (`assertDate` anade 00:00:00/23:59:59): para un tenant cuya jornada local cruza la medianoche UTC el filtro de dia civil local puede recortar eventos del borde. Es semantica de contrato de filtrado, no el desfase de escritura; corregirla exige decidir "dia local vs dia UTC" (idealmente por zona del tenant) y tocar backends — se reporta, no se cambia aqui.
+- Smoke: v162 S3 anade 2 checks (payload de reserva con UTC naive y, con offset != 0, nunca hora local cruda); v171 S1 anade los 2 equivalentes para `hora_entrega_esperada`. Bateria completa: v1120 169, v162 91, v171 107, profile-mfa 29, sspr 35, v11358 85; `composer test` 996 verdes; drift SIN DRIFT; GETs en vivo 401 sin 500.
+
 ## [1.17.7] - 2026-10-17
 
 **Modo "Fecha" del permiso temporal: el picker opera en hora local y convierte a UTC al enviar (supera a eb158b5).** El campo `datetime-local` del modal de concesion trabajaba en hora de pared local y su valor viajaba tal cual, pero el backend interpreta `fecha_expiracion` con `DateTimeImmutable` bajo `date.timezone=UTC` (mismo almacenable que calculan `duracion_horas`/`duracion_minutos`): en una maquina con desfase horario, elegir "hoy 18:00" caducaba a las 19:00 hora local (el offset entero). El commit eb158b5 lo parcheo moviendo el prefill a hora UTC, pero eso solo corregia el valor por defecto: cualquier hora que el admin editara a mano se seguia interpretando como UTC y quedaba corrida (y el picker mostraba un reloj distinto al del escritorio). Ahora el modal opera entero en hora local — lo que el admin ve en su reloj es lo que caduca — y `datetimeLocalToUtc()` convierte el valor elegido a naive `'Y-m-d H:i:s'` en UTC justo antes de montar el payload (inverso del prefill `ahora`, que va de UTC a local). Los modos Horas y Minutos no cambian: el backend los calcula desde `now` UTC.

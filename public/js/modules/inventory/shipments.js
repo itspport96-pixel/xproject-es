@@ -892,13 +892,20 @@
         const textos = [
             'tipo', 'referencia_externa', 'origen_ubicacion_id', 'destinatario_nombre',
             'destinatario_contacto', 'conductor_nombre', 'conductor_contacto',
-            'vehiculo_referencia', 'hora_entrega_esperada', 'destino_direccion', 'observaciones'
+            'vehiculo_referencia', 'destino_direccion', 'observaciones'
         ];
 
         textos.forEach(campo => {
             const valor = (raw[campo] || '').trim();
             if (valor !== '') shipment[campo] = valor;
         });
+
+        // LoadShipmentUseCase normaliza hora_entrega_esperada a Y-m-d H:i:s
+        // interpretando el string como UTC (createFromFormat bajo
+        // date.timezone=UTC): el valor del datetime-local llega en hora local,
+        // asi que se convierte el instante antes de enviar (v1.17.8).
+        const entrega = (raw.hora_entrega_esperada || '').trim();
+        if (entrega !== '') shipment.hora_entrega_esperada = UI.datetimeLocalToUtc(entrega);
 
         return {
             shipment,

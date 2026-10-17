@@ -909,6 +909,15 @@
             return;
         }
 
+        // La validacion de "futura" usa la hora local elegida; el backend
+        // interpreta fecha_expiracion como UTC naive (Reservation entity:
+        // DateTimeImmutable bajo date.timezone=UTC) y ReservationExpirationService
+        // compara contra un ahora UTC: convertimos el instante antes de enviar
+        // para que caduque cuando el admin ve en su reloj (v1.17.8).
+        if (payload.fecha_expiracion) {
+            payload.fecha_expiracion = UI.datetimeLocalToUtc(payload.fecha_expiracion);
+        }
+
         setSending(true);
 
         try {
