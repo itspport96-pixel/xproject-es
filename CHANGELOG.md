@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.2] - 2026-10-16
+
+**Tres arreglos del flujo SSPR y de las pantallas publicas de autenticacion.** (1) El enlace de restablecimiento ya no se quema cuando la password propuesta reutiliza la actual o una del historial: el reuso se valida ANTES de consumir el token, igual que la politica de fortaleza, de modo que el usuario puede reintentar con la misma liga y una password distinta. (2) Los campos de password de login y de restablecimiento incorporan un ojo show/hide (boton dentro de un `.input-group`, SVG inline, `aria-label`/`aria-pressed`). (3) Las paginas publicas (login/forgot/reset) respetan el idioma elegido: `GET /api/locales/{locale}` pasa a ser PUBLICO (solo rate-limit) y el frontend descarga el diccionario tambien pre-sesion; ademas `BUILTIN_ES` se completa con las claves que faltaban (`reset.*`, `forgot.*`, `password.*`, `login.forgot_password`, `login.mfa_*`, `routes.forgot_password`/`reset_password`, `ui.show_password`/`hide_password`) para no pintar claves crudas si la red falla.
+
+### Added
+- `UserService::assertPasswordNotReused()` (publico): valida reuso sin aplicar el cambio; delega en el privado `validatePasswordNotReused()`.
+- Ojito show/hide en `public/js/modules/auth/reset-password.js` (password_nuevo + password_confirm) y `login.js` (login-password); helper `togglePasswordField()` e iconos SVG eye/eye-off en cada modulo.
+- `public/css/components.css`: estilo `.input-addon.btn-eye` (boton-ojo heredando el aspecto del addon).
+- `resources/locales/{es,en,pt,fr}.json`: claves nuevas `ui.show_password` / `ui.hide_password` (traducidas en los cuatro idiomas).
+
+### Changed
+- `PasswordResetService::resetPassword()`: llama `assertPasswordNotReused()` justo despues de `assertPasswordPolicy()` y ANTES de `consumeToken()`; el reuso ya no quema el enlace.
+- `routes/api.php`: `GET /api/locales/{locale}` deja de incluir `AuthenticationMiddleware` (queda solo `RateLimitMiddleware`); la ruta es publica para que login/forgot/reset descarguen el diccionario pre-sesion.
+- `public/js/core/i18n.js`: `fetchDictionary()` elimina el guard `hasSession` (ahora la descarga es pre-sesion); `BUILTIN_ES` ampliado con todas las claves de forgot/reset/password/login SSPR/rutas y `ui.show_password`/`hide_password`.
+- `tests/Unit/PasswordResetLiveTest.php`: `testNoPermiteReutilizarLaContrasenaAnterior` refuerza que el reuso NO consume el token y que el mismo token sirve despues con otra password.
+- `tests/Unit/LocalesRoutesTest.php`: la ruta de diccionarios se asierta ahora como PUBLICA (sin `AuthenticationMiddleware`, con rate-limit).
+
+### Notes
+- Verificado end-to-end: `composer test` 992/992; smokes sspr 35 + v1120 157 + profile-mfa 29 + v162 89 + v171 105 OK; `check-i18n` 0 errores (1930 claves en paridad); `check-schema-drift` SIN DRIFT; `check-data-integrity` DATOS CONSISTENTES; `GET /api/locales/es.json` responde 200 SIN token con `reset`/`forgot`/`password`/`ui.show_password` presentes.
+- Desviacion reportada sin tocar (regla 4): la password del admin de creacion de tenant sigue sin aplicar SSPR ni politica completa (`TenantService::validateAdminData`, decision previa).
+- Pendiente sin commitear (separado): `AuthPermissionSeeder` (v1.17.1) asigna `password_reset_self_service` al rol ADMIN.
+
 ## [1.17.0] - 2026-10-16
 
 **Password Reset SSPR (self-service password reset) por correo transaccional.** El login incorpora un enlace "¿Olvidaste tu contraseña?" siempre visible que abre una pantalla publica para solicitar un enlace de restablecimiento. El permiso `password_reset_self_service` (opt-in, concedido y revocado unicamente por administradores; sin asignar a ningun rol BUILT_IN) decide quien puede recibir y usar el enlace. El flujo: `POST /auth/forgot-password` responde SIEMPRE 200 con el mismo mensaje generico (anti-enumeracion: exista o no el email, este o no autorizado); si el usuario es elegible se crea un token criptografico (32 bytes aleatorios) del que solo se guarda el hash SHA-256, con caducidad de 15 minutos y un solo uso, y se envia por correo un enlace `#/reset-password?token=...`. `POST /auth/reset-password` re-verifica el permiso en el momento de fijar la contraseña, valida la politica de fortaleza (v1.16.0) ANTES de consumir el token, lo consume de forma atombica (`UPDATE ... WHERE used_at IS NULL`), cambia la contraseña via `UserService::changePassword` (politica + historial), revoca todas las sesiones del usuario y notifica al trabajador. La auditoria registra el resultado sin tokens ni contraseñas. La caducidad del token y la politica se validan tambien en cliente.
