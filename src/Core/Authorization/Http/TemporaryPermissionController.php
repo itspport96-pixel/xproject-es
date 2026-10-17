@@ -108,7 +108,8 @@ final class TemporaryPermissionController
 
     /**
      * POST /api/temporary-permissions
-     * Body: user_id, permission_id, motivo, (fecha_expiracion XOR duracion_horas),
+     * Body: user_id, permission_id, motivo,
+     *       (fecha_expiracion XOR duracion_horas XOR duracion_minutos),
      *       recurso_id (opcional).
      */
     public function store(array $request): array
@@ -278,8 +279,9 @@ final class TemporaryPermissionController
     // ========================================================================
 
     /**
-     * Resuelve la fecha de expiración desde fecha_expiracion (parseable) o
-     * duracion_horas (entero positivo). Exclusión mutua.
+     * Resuelve la fecha de expiración desde fecha_expiracion (parseable),
+     * duracion_horas o duracion_minutos (enteros positivos). Mutuamente
+     * exclusivos (v1.17.6: el modo minutos permite grants de pocos minutos).
      *
      * @param array<string, mixed> $body
      * @throws TemporaryPermissionException 400 si falta, es inválida o son exclusivos.
@@ -287,34 +289,45 @@ final class TemporaryPermissionController
     private function resolveExpiracion(array $body): DateTimeImmutable
     {
         $fecha = trim((string) ($body['fecha_expiracion'] ?? ''));
-        $duracion = trim((string) ($body['duracion_horas'] ?? ''));
+        $horas = trim((string) ($body['duracion_horas'] ?? ''));
+        $minutos = trim((string) ($body['duracion_minutos'] ?? ''));
 
-        $tieneFecha = $fecha !== '';
-        $tieneDuracion = $duracion !== '';
-
-        if ($tieneFecha && $tieneDuracion) {
+        $modos = ($fecha !== '' ? 1 : 0) + ($horas !== '' ? 1 : 0) + ($minutos !== '' ? 1 : 0);
+        if ($modos > 1) {
             throw TemporaryPermissionException::invalidField(
                 'fecha_expiracion',
-                'Indica sólo uno de fecha_expiracion o duracion_horas.'
+                'Indica sólo uno de fecha_expiracion, duracion_horas o duracion_minutos.'
             );
         }
-        if (!$tieneFecha && !$tieneDuracion) {
+        if ($modos === 0) {
             throw TemporaryPermissionException::invalidField(
                 'fecha_expiracion',
-                'Indica fecha_expiracion o duracion_horas.'
+                'Indica fecha_expiracion, duracion_horas o duracion_minutos.'
             );
         }
 
-        if ($tieneDuracion) {
-            $horas = filter_var($duracion, FILTER_VALIDATE_INT);
-            if ($horas === false || (int) $horas <= 0) {
+        if ($minutos !== '') {
+            $m = filter_var($minutos, FILTER_VALIDATE_INT);
+            if ($m === false || (int) $m <= 0) {
+                throw TemporaryPermissionException::invalidField(
+                    'duracion_minutos',
+                    'duracion_minutos debe ser un entero positivo (minutos).'
+                );
+            }
+
+            return (new DateTimeImmutable('now'))->modify('+' . (int) $m . ' minutes');
+        }
+
+        if ($horas !== '') {
+            $horasInt = filter_var($horas, FILTER_VALIDATE_INT);
+            if ($horasInt === false || (int) $horasInt <= 0) {
                 throw TemporaryPermissionException::invalidField(
                     'duracion_horas',
                     'duracion_horas debe ser un entero positivo (horas).'
                 );
             }
 
-            return (new DateTimeImmutable('now'))->modify('+' . (int) $horas . ' hours');
+            return (new DateTimeImmutable('now'))->modify('+' . (int) $horasInt . ' hours');
         }
 
         try {

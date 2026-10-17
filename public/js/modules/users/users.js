@@ -464,6 +464,43 @@
         }
     }
 
+    // Recarga automática cuando la expiración más próxima de la lista pase
+    // (v1.17.6): la fila vigente que caduca desaparece sola sin esperar a
+    // que el admin recargue la pestaña. Un sólo timer; se limpia al salir.
+    let tempRefreshTimer = null;
+
+    function clearTempAutoRefresh() {
+        if (tempRefreshTimer !== null) {
+            clearTimeout(tempRefreshTimer);
+            tempRefreshTimer = null;
+        }
+    }
+
+    function scheduleTempAutoRefresh() {
+        clearTempAutoRefresh();
+        if (state.tab !== 'temp') return;
+        const now = Date.now();
+        let nearest = null;
+        (state.temp.items || []).forEach(row => {
+            if (!row.activo || !row.fecha_expiracion) return;
+            // fecha_expiracion es naive 'Y-m-d H:i:s' en UTC (la escribe PHP en
+            // UTC; misma convencion que el badge de la fila y que ui/dom.js):
+            // se anade la Z para que el epoch no dependa de la zona del
+            // navegador. Sin ella, un navegador con desfase horario calculaba
+            // el instante equivocado y el timer no se programaba.
+            const raw = String(row.fecha_expiracion).replace(' ', 'T');
+            const ts = Date.parse(/[zZ]|[+\-]\d{2}:?\d{2}$/.test(raw) ? raw : raw + 'Z');
+            if (Number.isNaN(ts) || ts <= now) return;
+            if (nearest === null || ts < nearest) nearest = ts;
+        });
+        if (nearest === null) return;
+        const delay = Math.min(nearest - now + 1000, 2147483000);
+        tempRefreshTimer = setTimeout(() => {
+            tempRefreshTimer = null;
+            if (state.tab === 'temp') loadTemp(state.temp.page || 1);
+        }, delay);
+    }
+
     async function loadTemp(page = 1) {
         state.temp.loading = true;
         state.temp.page = page;
@@ -490,6 +527,7 @@
             renderTempFilterUser();
             renderTempTable();
             renderTempPagination();
+            scheduleTempAutoRefresh();
         }
     }
 
@@ -547,6 +585,7 @@
         });
 
         if (tab === 'users') {
+            clearTempAutoRefresh();
             return loadUsers(state.pagination.page || 1);
         }
         return loadTemp();
@@ -1454,6 +1493,10 @@
                         ${t('users.grant.mode_hours')}
                     </label>
                     <label class="segment">
+                        <input type="radio" name="expiry_mode" value="minutos" data-expiry-mode${modal.expiry_mode === 'minutos' ? ' checked' : ''}>
+                        ${t('users.grant.mode_minutes')}
+                    </label>
+                    <label class="segment">
                         <input type="radio" name="expiry_mode" value="fecha" data-expiry-mode${modal.expiry_mode === 'fecha' ? ' checked' : ''}>
                         ${t('users.grant.mode_date')}
                     </label>
@@ -1461,6 +1504,9 @@
             </div>
             <div data-expiry-hours class="${modal.expiry_mode === 'horas' ? '' : 'hidden'}">
                 ${UI.field({ label: t('users.grant.hours'), name: 'duracion_horas', type: 'number', value: '24' })}
+            </div>
+            <div data-expiry-minutes class="${modal.expiry_mode === 'minutos' ? '' : 'hidden'}">
+                ${UI.field({ label: t('users.grant.minutes'), name: 'duracion_minutos', type: 'number', value: '5' })}
             </div>
             <div data-expiry-date class="${modal.expiry_mode === 'fecha' ? '' : 'hidden'}">
                 ${UI.field({ label: t('users.grant.date'), name: 'fecha_expiracion', type: 'datetime-local', value: ahora })}
@@ -1479,6 +1525,7 @@
         const motivo = fieldValue(root, 'motivo');
         const modo = (root.querySelector('[data-expiry-mode]:checked') || {}).value || 'horas';
         const horas = fieldValue(root, 'duracion_horas');
+        const minutos = fieldValue(root, 'duracion_minutos');
         const fecha = fieldValue(root, 'fecha_expiracion');
 
         const errors = {};
@@ -1487,6 +1534,9 @@
         if (!motivo) errors.motivo = t('users.errors.required');
         if (modo === 'horas' && (!horas || parseInt(horas, 10) <= 0)) {
             errors.duracion_horas = t('users.errors.required');
+        }
+        if (modo === 'minutos' && (!minutos || parseInt(minutos, 10) <= 0)) {
+            errors.duracion_minutos = t('users.errors.required');
         }
         if (modo === 'fecha' && !fecha) errors.fecha_expiracion = t('users.errors.required');
 
@@ -1497,6 +1547,7 @@
 
         const payload = { user_id: userId, permission_id: permissionId, motivo };
         if (modo === 'horas') payload.duracion_horas = parseInt(horas, 10);
+        else if (modo === 'minutos') payload.duracion_minutos = parseInt(minutos, 10);
         else payload.fecha_expiracion = fecha;
 
         setSending(true);
@@ -1827,8 +1878,10 @@
             const root = getModalRoot();
             if (!root) return;
             const horas = root.querySelector('[data-expiry-hours]');
+            const minutos = root.querySelector('[data-expiry-minutes]');
             const fecha = root.querySelector('[data-expiry-date]');
             if (horas) horas.classList.toggle('hidden', modo !== 'horas');
+            if (minutos) minutos.classList.toggle('hidden', modo !== 'minutos');
             if (fecha) fecha.classList.toggle('hidden', modo !== 'fecha');
         }
     }
@@ -1904,6 +1957,7 @@
         },
 
         destroy() {
+            clearTempAutoRefresh();
             if (container) {
                 container.removeEventListener('click', handleClick);
                 container.removeEventListener('submit', handleSubmit);

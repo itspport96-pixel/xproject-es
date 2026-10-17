@@ -184,7 +184,7 @@ final class TemporaryPermissionControllerTest extends PlatformControlSqliteTestC
 
         $this->assertSame(400, $e->getCode());
         $this->assertSame('fecha_expiracion', $e->getField());
-        $this->assertStringContainsString('Indica fecha_expiracion o duracion_horas', $e->getMessage());
+        $this->assertStringContainsString('Indica fecha_expiracion', $e->getMessage());
     }
 
     public function testFechaYDuracionJuntasDa400(): void
@@ -197,6 +197,28 @@ final class TemporaryPermissionControllerTest extends PlatformControlSqliteTestC
         $this->assertSame(400, $e->getCode());
         $this->assertSame('fecha_expiracion', $e->getField());
         $this->assertStringContainsString('sólo uno', $e->getMessage());
+    }
+
+    public function testDuracionMinutosYHorasJuntasDa400(): void
+    {
+        $e = $this->storeFails($this->body([
+            'duracion_horas' => 24,
+            'duracion_minutos' => 5,
+        ]));
+
+        $this->assertSame(400, $e->getCode());
+        $this->assertSame('fecha_expiracion', $e->getField());
+        $this->assertStringContainsString('sólo uno', $e->getMessage());
+        $this->assertSame(0, $this->countRows('temporary_permissions'));
+    }
+
+    public function testDuracionMinutosInvalidaDa400ConCampoDuracion_minutos(): void
+    {
+        $e = $this->storeFails($this->body(['duracion_horas' => '', 'duracion_minutos' => 0]));
+
+        $this->assertSame(400, $e->getCode());
+        $this->assertSame('duracion_minutos', $e->getField());
+        $this->assertStringContainsString('entero positivo', $e->getMessage());
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('duracionesInvalidas')]
@@ -446,6 +468,20 @@ final class TemporaryPermissionControllerTest extends PlatformControlSqliteTestC
         $expiracion = strtotime((string) $result['data']['temporary_permission']['fecha_expiracion']);
         $this->assertGreaterThan(time() + 115 * 60, $expiracion, 'Debe expirar en ~2 horas');
         $this->assertLessThan(time() + 125 * 60, $expiracion, 'Debe expirar en ~2 horas');
+    }
+
+    public function testAltaConDuracionMinutosFijaLaExpiracion(): void
+    {
+        $result = $this->controller->store($this->request(
+            ['body' => $this->body(['duracion_horas' => '', 'duracion_minutos' => 5])],
+            $this->claims(self::U_ACTOR)
+        ));
+
+        $this->assertSame(201, $result['status']);
+
+        $expiracion = strtotime((string) $result['data']['temporary_permission']['fecha_expiracion']);
+        $this->assertGreaterThan(time() + 4 * 60, $expiracion, 'Debe expirar en ~5 minutos');
+        $this->assertLessThan(time() + 6 * 60, $expiracion, 'Debe expirar en ~5 minutos');
     }
 
     public function testAltaConRecursoId(): void

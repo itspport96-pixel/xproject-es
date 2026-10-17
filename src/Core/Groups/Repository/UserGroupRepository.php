@@ -191,11 +191,14 @@ final class UserGroupRepository implements UserGroupRepositoryInterface
 
     public function listRoles(string $groupId): array
     {
+        // v1.17.6: un rol borrado ya no se lista en el grupo (el borrado
+        // purga sus asignaciones; el filtro cubre huérfanos legacy).
         $sql = "SELECT gr.id AS assignment_id, gr.role_id, gr.assigned_at,
-                       r.nombre, r.tipo, r.descripcion, r.activo, r.deleted_at AS role_deleted_at
+                       r.nombre, r.tipo, r.descripcion, r.activo
                 FROM group_roles gr
                 INNER JOIN roles r ON r.id = gr.role_id
                 WHERE gr.group_id = :gid
+                  AND r.deleted_at IS NULL
                 ORDER BY r.nombre ASC";
 
         return $this->db->fetchAll($sql, ['gid' => $groupId]);

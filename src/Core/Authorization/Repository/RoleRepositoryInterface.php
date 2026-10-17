@@ -91,6 +91,14 @@ interface RoleRepositoryInterface
     public function findRawIncludingDeleted(string $id): ?array;
 
     /**
+     * Borrado físico de las asignaciones del rol (role_assignments y
+     * group_roles) tras su soft delete; devuelve los recuentos para auditoría.
+     *
+     * @return array{usuarios: int, grupos: int}
+     */
+    public function purgeAssignments(string $roleId): array;
+
+    /**
      * Verifica si ya existe un rol con el nombre dado.
      *
      * Sin $tenantId comprueba en toda la tabla. Con $tenantId comprueba el

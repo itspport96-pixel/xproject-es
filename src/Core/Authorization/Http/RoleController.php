@@ -281,8 +281,13 @@ final class RoleController
 
         $this->roles->softDelete($id, (string) $claims['tenant_id']);
 
-        // Invalidar cache
+        // Invalidar cache ANTES de purgar: la invalidación por rol localiza
+        // a los portadores en role_assignments/group_roles.
         $this->auth->invalidateCacheForRole((string) $id, (string) $claims['tenant_id']);
+
+        // v1.17.6: el rol borrado no se restaura, así que sus asignaciones
+        // tampoco sobreviven (usuarios y grupos); recuentos en auditoría.
+        $purged = $this->roles->purgeAssignments((string) $id);
 
         // v1.13.1: auditoría de dominio del borrado con los permisos previos
         // del rol (antes sólo quedaba la fila genérica de la ruta).
@@ -290,7 +295,10 @@ final class RoleController
         $this->auditEvent('role.delete', 'DELETE', $request, $claims, [
             'entidad_id' => (string) $id,
             'valores_anteriores' => $role->toArray(),
-            'detalles_adicionales' => ['valores_despues' => $after],
+            'detalles_adicionales' => [
+                'valores_despues' => $after,
+                'asignaciones_eliminadas' => $purged,
+            ],
         ]);
 
         return $this->json(200, ['message' => 'Rol eliminado correctamente']);

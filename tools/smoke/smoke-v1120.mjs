@@ -892,6 +892,93 @@ async function s6_password() {
 }
 
 // =====================================================================
+// S7 - PERMISO TEMPORAL: MINUTOS Y AUTO-REFRESCO (v1.17.6)
+// =====================================================================
+async function s7_temp_minutes_autorefresh() {
+  console.log('S7 temporal: modo minutos y auto-refresco al expirar');
+
+  // --- Modal de concesion: modo minutos envia duracion_minutos ---
+  {
+    const env = createEnv({ perms: ADMIN_PERMS, roles: ['ADMIN'] });
+    env.loadUsers();
+    await tick();
+    env.click(env.container.querySelector('[data-action="open-grant"]'));
+    await tick(12);
+    const root = env.modalRoot();
+
+    const minutosRadio = root.querySelector('[data-expiry-mode][value="minutos"]');
+    check('radio minutos presente', !!minutosRadio);
+    check('campo minutos oculto hasta elegir el modo',
+      !!root.querySelector('[data-expiry-minutes].hidden'));
+
+    env.click(minutosRadio);
+    await tick();
+    const minutosField = root.querySelector('[data-modal-field="duracion_minutos"]');
+    check('campo duracion_minutos visible al elegir minutos', !!minutosField);
+    check('campo horas oculto en modo minutos',
+      !!root.querySelector('[data-expiry-hours].hidden'));
+
+    env.set(root, 'user_id', 'u1');
+    env.set(root, 'permission_id', 'p1');
+    env.set(root, 'motivo', 'Prueba minutos');
+    env.set(root, 'duracion_minutos', '2');
+    env.click(root.querySelector('[data-action="submit-grant"]'));
+    await tick();
+    check('POST con duracion_minutos y sin horas',
+      env.calls.posts.some(p => p.path === '/temporary-permissions'
+        && p.body.duracion_minutos === 2 && !('duracion_horas' in p.body)),
+      JSON.stringify(env.calls.posts.filter(p => p.path === '/temporary-permissions')));
+    env.close();
+  }
+
+  // --- Auto-refresco: la fila que caduca recarga la pestana sola ---
+  {
+    let servidos = 0;
+    const env = createEnv({
+      perms: ADMIN_PERMS,
+      roles: ['ADMIN'],
+      getHandlers: {
+        '/temporary-permissions': () => {
+          servidos++;
+            // Primera carga: fila que caduca en ~2 s. El API escribe la fecha
+            // en UTC naive ('Y-m-d H:i:s' sin Z); se replica con toISOString
+            // (el sello se trunca a segundos, asi que hace falta >= 1 s de
+            // margen). Recargas posteriores: lista ya sin la fila (vencida).
+            const items = servidos === 1 ? [{
+            id: 'tp-soon',
+            user_email: 'mpinilla@acme.local',
+            user_id: 'u1',
+            permission_id: 'p1',
+            permission_identificador: 'inventory.stock.view',
+            permission_criticidad: 'MEDIUM',
+            motivo: 'Corta',
+            granted_by_email: 'admin@acme.local',
+            fecha_expiracion: new Date(Date.now() + 2000).toISOString().slice(0, 19).replace('T', ' '),
+            activo: 1
+          }] : [];
+          return { status: 200, data: { temporary_permissions: items, total: items.length } };
+        }
+      }
+    });
+    env.loadUsers();
+    await tick();
+    env.click(env.container.querySelector('[data-action="tab"][data-tab="temp"]'));
+    await tick();
+    const temporales = () => env.calls.gets.filter(g => g.path === '/temporary-permissions');
+    check('primera carga de la pestana temporal', temporales().length >= 1,
+      String(temporales().length));
+    check('fila proxima a vencer visible', /inventory\.stock\.view/.test(env.container.textContent));
+
+    // scheduleTempAutoRefresh programa expiracion + 1s de margen; esperamos 4.2s.
+    await new Promise(r => setTimeout(r, 4200));
+    check('recarga automatica al pasar la expiracion', temporales().length >= 2,
+      String(temporales().length));
+    check('la fila vencida ya no se pinta', !/inventory\.stock\.view/.test(env.container.textContent));
+    env.close();
+  }
+}
+
+// =====================================================================
 async function main() {
   await s1_registration();
   await s2_users_screen();
@@ -899,6 +986,7 @@ async function main() {
   await s4_groups_screen();
   await s5_sidebar();
   await s6_password();
+  await s7_temp_minutes_autorefresh();
 
   console.log(`\nRESULTADO: ${pass} OK, ${fail} FAIL`);
   if (fail > 0) process.exitCode = 1;

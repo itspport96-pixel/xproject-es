@@ -297,6 +297,30 @@ final class RoleRepository implements RoleRepositoryInterface
         return $row !== false ? $row : null;
     }
 
+    /**
+     * Borrado físico de las asignaciones de un rol (usuarios y grupos).
+     *
+     * Se ejecuta tras el soft delete del rol (v1.17.6): la plataforma no
+     * restaura registros borrados, así que sus asignaciones no deben
+     * sobrevivir huérfanas en role_assignments ni group_roles. El caller
+     * debe invalidar la caché de permisos ANTES de purgar, porque la
+     * invalidación por rol localiza a los portadores en esas mismas tablas.
+     *
+     * @return array{usuarios: int, grupos: int} recuentos borrados (auditoría)
+     */
+    public function purgeAssignments(string $roleId): array
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM role_assignments WHERE role_id = :rid');
+        $stmt->execute(['rid' => $roleId]);
+        $usuarios = $stmt->rowCount();
+
+        $stmt = $this->pdo->prepare('DELETE FROM group_roles WHERE role_id = :rid');
+        $stmt->execute(['rid' => $roleId]);
+        $grupos = $stmt->rowCount();
+
+        return ['usuarios' => $usuarios, 'grupos' => $grupos];
+    }
+
     // ========================================================================
     // CONSULTAS
     // ========================================================================

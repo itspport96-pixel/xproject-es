@@ -306,6 +306,41 @@ final class RoleControllerGuardTest extends PlatformControlSqliteTestCase
         $this->assertSame('0', (string) $this->roleRow('role-custom')['activo']);
     }
 
+    public function testEliminarRolCustomPurgaAsignacionesDeUsuariosYGrupos(): void
+    {
+        // Asignación directa y de grupo del rol CUSTOM (v1.17.6): el borrado
+        // no restaura, así que las asignaciones tampoco sobreviven.
+        $this->seedUser('u-portador-rol');
+        $this->assignRole('u-portador-rol', 'role-custom');
+        $this->seedGroup('g-almacen');
+        $this->attachGroupRole('g-almacen', 'role-custom');
+
+        $result = $this->controller->destroy($this->adminRequest(), ['id' => 'role-custom']);
+
+        $this->assertSame(200, $result['status']);
+
+        // Soft delete del rol (la fila queda para auditoría)
+        $row = $this->roleRow('role-custom');
+        $this->assertNotNull($row['deleted_at']);
+
+        // Sin huérfanos en las junctions de asignación
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM role_assignments WHERE role_id = :rid');
+        $stmt->execute(['rid' => 'role-custom']);
+        $this->assertSame(0, (int) $stmt->fetchColumn(), 'role_assignments debe quedar vacío');
+
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM group_roles WHERE role_id = :rid');
+        $stmt->execute(['rid' => 'role-custom']);
+        $this->assertSame(0, (int) $stmt->fetchColumn(), 'group_roles debe quedar vacío');
+
+        // Auditoría con el recuento de la purga
+        $entry = $this->audit->byOperacion('role.delete');
+        $this->assertNotNull($entry, 'Falta la auditoría role.delete');
+        $this->assertSame(
+            ['usuarios' => 1, 'grupos' => 1],
+            $entry['detalles_adicionales']['asignaciones_eliminadas']
+        );
+    }
+
     public function testRolNoExistenteDa404(): void
     {
         try {
