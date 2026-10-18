@@ -1856,19 +1856,16 @@
       "no_role": "No initial role",
       "role_hint": "The initial role can be assigned later from the user row.",
       "success_title": "User created",
-      "success_body": "{email} has been created.",
-      "temp_title": "Temporary password"
+      "success_email_sent": "{email} has been created and a welcome link has been sent so they can set their password.",
+      "success_email_failed": "{email} has been created, but the welcome link could not be sent:"
     },
     "fields": {
       "email": "Email",
       "nombre": "First name",
       "apellido": "Last name",
       "telefono": "Phone",
-      "password": "Temporary password",
-      "password_hint": "At least 9 characters, with an uppercase letter, a lowercase letter, a number and at least one special character.",
       "role": "Initial role"
     },
-    "gen_password": "Generate password",
     "edit": {
       "title": "Edit user",
       "submit": "Save changes",
@@ -1878,11 +1875,10 @@
     "reset": {
       "title": "Reset password",
       "submit": "Reset",
-      "body": "A temporary password will be generated for {email}.",
-      "warning": "Give the temporary password to the user; they will be asked to change it on first sign-in.",
+      "body": "A password reset link will be emailed to {email}.",
+      "warning": "Their current password stops working immediately. The link expires in 60 minutes and can only be used once.",
       "success_title": "Password reset",
-      "success_body": "Temporary password generated successfully.",
-      "temp_title": "Temporary password"
+      "success_body": "Link sent to {email}; the previous password is no longer valid."
     },
     "mfa": {
       "badge_on": "MFA on",
@@ -1896,15 +1892,6 @@
       "success_title": "MFA reset",
       "success_body": "MFA for {email} is disabled; they must enable it again from their profile.",
       "already_body": "User {email} already had MFA disabled."
-    },
-    "temp_password": {
-      "title": "Temporary password",
-      "warning": "Save this password now: it will not be shown again.",
-      "label": "Temporary password",
-      "copy": "Copy",
-      "copied": "Copied to clipboard",
-      "copy_failed": "Could not copy; select it and copy it manually.",
-      "close": "Got it"
     },
     "roles": {
       "title": "User roles",
@@ -1946,6 +1933,9 @@
       "mfa_reset": "MFA could not be reset",
       "delete": "The user could not be deleted"
     },
+    "reset_email_missing": "The user has no valid email address: set it before sending the link.",
+    "password_not_allowed": "User creation does not accept explicit passwords: the user receives a link by email.",
+    "welcome_email_failed": "The welcome link could not be sent.",
     "temp": {
       "subtitle": "Permissions granted with an expiry date",
       "grant": "Grant permission",
@@ -2318,7 +2308,10 @@
       "preference_invalid_value": "Invalid preference value in '{field}': {value}. Allowed: {allowed}.",
       "no_fields_to_update": "No fields to update",
       "password_required_for_email": "Current password required to change email",
-      "password_incorrect": "Current password does not match"
+      "password_incorrect": "Current password does not match",
+      "reset_email_missing": "The user has no valid email address: set it before sending the link.",
+      "password_not_allowed": "User creation does not accept explicit passwords: the user receives a welcome link by email.",
+      "welcome_email_failed": "The welcome link could not be sent by email."
     },
     "roles": {
       "role_not_found": "Role with ID '{id}' does not exist.",

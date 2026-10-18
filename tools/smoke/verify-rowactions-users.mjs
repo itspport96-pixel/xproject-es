@@ -174,8 +174,8 @@ async function main() {
         JSON.stringify(self && self.acts));
       // Sobre otro usuario no-ADMIN si hay ambas y el reset de contrasena.
       // (fgal@acme.local ya no existe en la BD viva; el usuario activo
-      //  no-ADMIN es mpinilla@acme.local, rol USER.)
-      const otro = await rowByEmail(page, 'mpinilla@acme.local');
+      //  no-ADMIN es mpinilla, hoy con email itspport96@gmail.com, rol USER.)
+      const otro = await rowByEmail(page, 'itspport96@gmail.com');
       check(`admin@${size.label} sobre otro usuario: Estado, Eliminar y Restablecer contrasena`,
         !!otro && otro.acts.some(a => a.action === 'open-status') && otro.acts.some(a => a.action === 'open-delete')
           && otro.acts.some(a => a.action === 'open-reset'),

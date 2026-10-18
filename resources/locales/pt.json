@@ -1856,19 +1856,16 @@
       "no_role": "Sem função inicial",
       "role_hint": "A função inicial é atribuída depois a partir da linha do utilizador.",
       "success_title": "Utilizador criado",
-      "success_body": "Foi criado {email}.",
-      "temp_title": "Palavra-passe temporária"
+      "success_email_sent": "Foi criado {email} e enviado um link de boas-vindas para definir a palavra-passe.",
+      "success_email_failed": "Foi criado {email}, mas não foi possível enviar o link de boas-vindas:"
     },
     "fields": {
       "email": "Correio eletrónico",
       "nombre": "Nome",
       "apellido": "Apelido",
       "telefono": "Telefone",
-      "password": "Palavra-passe temporária",
-      "password_hint": "Mínimo de 9 caracteres, com maiúscula, minúscula, número e pelo menos um caractere especial.",
       "role": "Função inicial"
     },
-    "gen_password": "Gerar palavra-passe",
     "edit": {
       "title": "Editar utilizador",
       "submit": "Guardar alterações",
@@ -1878,11 +1875,10 @@
     "reset": {
       "title": "Repor palavra-passe",
       "submit": "Repor",
-      "body": "Será gerada uma palavra-passe temporária para {email}.",
-      "warning": "Entrega a palavra-passe temporária ao utilizador; ser-lhe-á pedido alterá-la no primeiro acesso.",
+      "body": "Será enviado por correio para {email} um link para repor a palavra-passe.",
+      "warning": "A palavra-passe atual deixa de funcionar de imediato. O link expira em 60 minutos e só pode ser usado uma vez.",
       "success_title": "Palavra-passe reposta",
-      "success_body": "Palavra-passe temporária gerada com sucesso.",
-      "temp_title": "Palavra-passe temporária"
+      "success_body": "Link enviado para {email}; a palavra-passe anterior já não é válida."
     },
     "mfa": {
       "badge_on": "MFA ativo",
@@ -1896,15 +1892,6 @@
       "success_title": "MFA reposto",
       "success_body": "O MFA de {email} está desativado; terá de o ativar de novo no perfil.",
       "already_body": "O utilizador {email} já tinha o MFA desativado."
-    },
-    "temp_password": {
-      "title": "Palavra-passe temporária",
-      "warning": "Guarda esta palavra-passe agora: não volta a ser mostrada.",
-      "label": "Palavra-passe temporária",
-      "copy": "Copiar",
-      "copied": "Copiada para a área de transferência",
-      "copy_failed": "Não foi possível copiar; seleciona-a e copia-a manualmente.",
-      "close": "Compreendido"
     },
     "roles": {
       "title": "Funções do utilizador",
@@ -1946,6 +1933,9 @@
       "mfa_reset": "Não foi possível repor o MFA",
       "delete": "Não foi possível eliminar o utilizador"
     },
+    "reset_email_missing": "O utilizador não tem um correio eletrónico válido: define-o antes de enviar o link.",
+    "password_not_allowed": "A criação não aceita palavras-passe explícitas: o utilizador recebe um link por correio.",
+    "welcome_email_failed": "Não foi possível enviar o link de boas-vindas.",
     "temp": {
       "subtitle": "Permissões concedidas com data de caducidade",
       "grant": "Conceder permissão",
@@ -2318,7 +2308,10 @@
       "preference_invalid_value": "Valor de preferência inválido em '{field}': {value}. Permitidos: {allowed}.",
       "no_fields_to_update": "Não há campos para atualizar",
       "password_required_for_email": "Palavra-passe atual obrigatória para alterar o email",
-      "password_incorrect": "A palavra-passe atual não coincide"
+      "password_incorrect": "A palavra-passe atual não coincide",
+      "reset_email_missing": "O utilizador não tem um correio eletrónico válido: define-o antes de enviar o link.",
+      "password_not_allowed": "A criação de utilizador não aceita palavras-passe explícitas: o utilizador recebe um link de boas-vindas por correio.",
+      "welcome_email_failed": "Não foi possível enviar o link de boas-vindas por correio."
     },
     "roles": {
       "role_not_found": "A função com ID '{id}' não existe.",

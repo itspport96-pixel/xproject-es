@@ -1856,19 +1856,16 @@
       "no_role": "Aucun rôle initial",
       "role_hint": "Le rôle initial peut être attribué ensuite depuis la ligne de l'utilisateur.",
       "success_title": "Utilisateur créé",
-      "success_body": "{email} a été créé.",
-      "temp_title": "Mot de passe temporaire"
+      "success_email_sent": "{email} a été créé et un lien de bienvenue a été envoyé pour définir le mot de passe.",
+      "success_email_failed": "{email} a été créé, mais le lien de bienvenue n'a pas pu être envoyé :"
     },
     "fields": {
       "email": "Adresse e-mail",
       "nombre": "Prénom",
       "apellido": "Nom",
       "telefono": "Téléphone",
-      "password": "Mot de passe temporaire",
-      "password_hint": "Au moins 9 caractères, avec une majuscule, une minuscule, un chiffre et au moins un caractère spécial.",
       "role": "Rôle initial"
     },
-    "gen_password": "Générer un mot de passe",
     "edit": {
       "title": "Modifier l'utilisateur",
       "submit": "Enregistrer les modifications",
@@ -1878,11 +1875,10 @@
     "reset": {
       "title": "Réinitialiser le mot de passe",
       "submit": "Réinitialiser",
-      "body": "Un mot de passe temporaire sera généré pour {email}.",
-      "warning": "Transmettez le mot de passe temporaire à l'utilisateur ; il devra le changer à la première connexion.",
+      "body": "Un lien de réinitialisation sera envoyé par e-mail à {email}.",
+      "warning": "Le mot de passe actuel cesse de fonctionner immédiatement. Le lien expire en 60 minutes et ne peut être utilisé qu'une seule fois.",
       "success_title": "Mot de passe réinitialisé",
-      "success_body": "Mot de passe temporaire généré avec succès.",
-      "temp_title": "Mot de passe temporaire"
+      "success_body": "Lien envoyé à {email} ; le mot de passe précédent n'est plus valide."
     },
     "mfa": {
       "badge_on": "MFA activé",
@@ -1896,15 +1892,6 @@
       "success_title": "MFA réinitialisé",
       "success_body": "Le MFA de {email} est désactivé ; il devra le réactiver depuis son profil.",
       "already_body": "L'utilisateur {email} avait déjà le MFA désactivé."
-    },
-    "temp_password": {
-      "title": "Mot de passe temporaire",
-      "warning": "Enregistrez ce mot de passe maintenant : il ne sera plus affiché.",
-      "label": "Mot de passe temporaire",
-      "copy": "Copier",
-      "copied": "Copié dans le presse-papiers",
-      "copy_failed": "Impossible de la copier ; sélectionnez-la et copiez-la manuellement.",
-      "close": "Compris"
     },
     "roles": {
       "title": "Rôles de l'utilisateur",
@@ -1946,6 +1933,9 @@
       "mfa_reset": "Le MFA n'a pas pu être réinitialisé",
       "delete": "L'utilisateur n'a pas pu être supprimé"
     },
+    "reset_email_missing": "L'utilisateur n'a pas d'adresse e-mail valide : configurez-la avant d'envoyer le lien.",
+    "password_not_allowed": "La création n'accepte pas de mot de passe explicite : l'utilisateur reçoit un lien par e-mail.",
+    "welcome_email_failed": "Le lien de bienvenue n'a pas pu être envoyé.",
     "temp": {
       "subtitle": "Autorisations accordées avec une date d'expiration",
       "grant": "Accorder une autorisation",
@@ -2318,7 +2308,10 @@
       "preference_invalid_value": "Valeur de préférence invalide dans '{field}' : {value}. Autorisés : {allowed}.",
       "no_fields_to_update": "Aucun champ à mettre à jour",
       "password_required_for_email": "Mot de passe actuel requis pour changer l'e-mail",
-      "password_incorrect": "Le mot de passe actuel ne correspond pas"
+      "password_incorrect": "Le mot de passe actuel ne correspond pas",
+      "reset_email_missing": "L'utilisateur n'a pas d'adresse e-mail valide : configurez-la avant d'envoyer le lien.",
+      "password_not_allowed": "La création d'utilisateur n'accepte pas de mot de passe explicite : l'utilisateur reçoit un lien de bienvenue par e-mail.",
+      "welcome_email_failed": "Le lien de bienvenue n'a pas pu être envoyé par e-mail."
     },
     "roles": {
       "role_not_found": "Le rôle avec l'ID '{id}' n'existe pas.",

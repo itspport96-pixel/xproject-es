@@ -632,24 +632,6 @@
         });
     }
 
-    function generatePassword() {
-        const mayus = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-        const minus = 'abcdefghijkmnpqrstuvwxyz';
-        const digitos = '23456789';
-        const todos = mayus + minus + digitos;
-        const rand = (max) => {
-            if (global.crypto && typeof global.crypto.getRandomValues === 'function') {
-                const buf = new Uint32Array(1);
-                global.crypto.getRandomValues(buf);
-                return buf[0] % max;
-            }
-            return Math.floor(Math.random() * max);
-        };
-        let out = mayus[rand(mayus.length)] + minus[rand(minus.length)] + digitos[rand(digitos.length)];
-        for (let i = 0; i < 9; i++) out += todos[rand(todos.length)];
-        return out.split('').sort(() => Math.random() - 0.5).join('');
-    }
-
     // ---------------------------------------------------------------- Alta
 
     // ---------------------------------------------------------- Escalada
@@ -722,18 +704,6 @@
             `, 2)}
             ${UI.grid(`
                 ${UI.field({
-                    label: t('users.fields.password'),
-                    name: 'password',
-                    type: 'text',
-                    hint: t('users.fields.password_hint')
-                })}
-                <div class="form-group">
-                    <label class="form-label">&nbsp;</label>
-                    <button type="button" class="btn btn-secondary" data-action="gen-password">${t('users.gen_password')}</button>
-                </div>
-            `, 2)}
-            ${UI.grid(`
-                ${UI.field({
                     label: t('users.fields.role'),
                     name: 'role_id',
                     type: 'select',
@@ -753,7 +723,6 @@
         const nombre = fieldValue(root, 'nombre');
         const apellido = fieldValue(root, 'apellido');
         const telefono = fieldValue(root, 'telefono');
-        const password = fieldValue(root, 'password');
         const roleId = fieldValue(root, 'role_id');
 
         const errors = {};
@@ -767,9 +736,10 @@
             return;
         }
 
+        // v1.18.0: el alta nunca lleva password en claro. El backend deja un
+        // hash aleatorio y envia el enlace de bienvenida al correo.
         const payload = { email, nombre, apellido };
         if (telefono) payload.telefono = telefono;
-        if (password) payload.password = password;
 
         setSending(true);
 
@@ -779,6 +749,8 @@
             });
             const data = response && response.data ? response.data : response;
             const user = (data && data.user) || null;
+            const emailEnviado = !!(data && data.email_enviado);
+            const emailErrorKey = (data && data.email_error_key) || '';
 
             if (roleId && user && user.id) {
                 try {
@@ -793,16 +765,15 @@
                 }
             }
 
-            const temporal = user && user.password_temporal ? user.password_temporal : null;
-
             closeModal();
             const recargado = await loadUsers(1);
             if (recargado) {
-                UI.toast('success', t('users.create.success_title'), t('users.create.success_body', { email: email }));
-            }
-
-            if (temporal) {
-                openTempPassword(temporal, t('users.create.temp_title'));
+                if (emailEnviado) {
+                    UI.toast('success', t('users.create.success_title'), t('users.create.success_email_sent', { email }));
+                } else {
+                    const detalle = emailErrorKey ? ' ' + t(emailErrorKey) : '';
+                    UI.toast('warning', t('users.create.success_title'), t('users.create.success_email_failed', { email }) + detalle);
+                }
             }
         } catch (err) {
             UI.handleActionError(err, {
@@ -1003,16 +974,14 @@
                 '/users/' + encodeURIComponent(modal.id) + '/password/reset'
             );
             const data = response && response.data ? response.data : response;
-            const temporal = data && data.password_temporal;
+            // v1.18.0: la respuesta no trae contraseña (ni en claro ni
+            // temporal); trae el correo de destino y la liga ya enviada.
+            const emailDestino = (data && data.email_destino) || modal.user.email || '';
 
             closeModal();
             const recargado = await loadUsers(state.pagination.page || 1);
             if (recargado) {
-                UI.toast('success', t('users.reset.success_title'), t('users.reset.success_body'));
-            }
-
-            if (temporal) {
-                openTempPassword(temporal, t('users.reset.temp_title'));
+                UI.toast('success', t('users.reset.success_title'), t('users.reset.success_body', { email: UI.escapeHtml(emailDestino) }));
             }
         } catch (err) {
             UI.handleActionError(err, {
@@ -1074,47 +1043,6 @@
             });
         } finally {
             setSending(false);
-        }
-    }
-
-    // ------------------------------------------- Password temporal (aviso)
-
-    function openTempPassword(password, titleKey) {
-        state.modal = { mode: 'temp-password', password, titleKey: titleKey || 'users.temp_password.title' };
-        renderModal();
-    }
-
-    function tempPasswordBody(modal) {
-        return `
-            <div class="alert alert-warning mb-3">${t('users.temp_password.warning')}</div>
-            <div class="form-group">
-                <label class="form-label">${t('users.temp_password.label')}</label>
-                <input type="text" class="input font-mono" data-modal-field="password_display"
-                       value="${UI.escapeHtml(modal.password)}" readonly>
-            </div>
-            <button type="button" class="btn btn-secondary btn-sm" data-action="copy-password">${t('users.temp_password.copy')}</button>
-        `;
-    }
-
-    async function copyPassword() {
-        const modal = state.modal;
-        if (!modal || !modal.password) return;
-        const valor = modal.password;
-
-        try {
-            if (global.navigator && global.navigator.clipboard && global.navigator.clipboard.writeText) {
-                await global.navigator.clipboard.writeText(valor);
-            } else {
-                const input = getModalRoot().querySelector('[data-modal-field="password_display"]');
-                if (input) {
-                    input.focus();
-                    input.select();
-                    document.execCommand('copy');
-                }
-            }
-            UI.toast('success', t('users.temp_password.title'), t('users.temp_password.copied'));
-        } catch (err) {
-            UI.toast('warning', t('users.temp_password.title'), t('users.temp_password.copy_failed'));
         }
     }
 
@@ -1741,13 +1669,6 @@
                     <button class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>
                     <button class="btn btn-danger" data-action="submit-reset-mfa" data-modal-send${state.sending ? ' disabled' : ''}>${t('users.mfa_reset.submit')}</button>`;
                 break;
-            case 'temp-password':
-                title = t(modal.titleKey);
-                size = 'sm';
-                body = tempPasswordBody(modal);
-                footer = `
-                    <button class="btn btn-primary" data-action="close-modal">${t('users.temp_password.close')}</button>`;
-                break;
             case 'roles':
                 title = t('users.roles.title');
                 body = rolesBody(modal);
@@ -1907,18 +1828,6 @@
                 break;
             case 'submit-revoke':
                 submitRevoke();
-                break;
-            case 'gen-password': {
-                const root = getModalRoot();
-                const input = root ? root.querySelector('[data-modal-field="password"]') : null;
-                if (input) {
-                    input.value = generatePassword();
-                    input.type = 'text';
-                }
-                break;
-            }
-            case 'copy-password':
-                copyPassword();
                 break;
             case 'assign-role':
                 assignRole();

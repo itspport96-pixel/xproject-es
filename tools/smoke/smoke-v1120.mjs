@@ -199,8 +199,11 @@ function createEnv({ perms = [], roles = ['ADMIN'], realEventBus = false, getHan
           data: {
             user: {
               id: 'u9', email: body.email, nombre: body.nombre, apellido: body.apellido,
-              estado: 'PENDIENTE_CONFIRMACION', password_temporal: 'Temp1234abcd'
-            }
+              estado: 'PENDIENTE_CONFIRMACION', password_change_required: true
+            },
+            email_enviado: true,
+            email_destino: body.email,
+            email_error_key: null
           }
         };
       }
@@ -340,6 +343,12 @@ async function s2_users_screen() {
   await tick();
   let root = env.modalRoot();
   check('modal de alta abierto', !!root && !!root.querySelector('[data-modal-field="email"]'));
+  // v1.18.0: el alta no ofrece password: el backend deja un hash aleatorio y
+  // se envia el enlace de bienvenida por correo.
+  check('modal de alta sin campo password',
+    !!root && !root.querySelector('[data-modal-field="password"]'));
+  check('modal de alta sin boton generar password',
+    !!root && !root.querySelector('[data-action="gen-password"]'));
 
   env.click(root.querySelector('[data-action="submit-create"]'));
   await tick();
@@ -362,12 +371,13 @@ async function s2_users_screen() {
   check('listado recargado tras el alta',
     env.calls.gets.filter(g => g.path === '/users').length >= 2,
     JSON.stringify(env.calls.gets.map(g => g.path)));
-  const tempInput = env.modalRoot() && env.modalRoot().querySelector('[data-modal-field="password_display"]');
-  check('modal de password temporal abierto',
-    !!tempInput && tempInput.value === 'Temp1234abcd',
-    tempInput ? tempInput.value : 'sin modal');
-  env.click(env.modalRoot().querySelector('[data-action="close-modal"]'));
-  await tick();
+  // v1.18.0: el alta cierra el modal y avisa por toast; no hay password que
+  // mostrar (responde email_enviado=true con el enlace de bienvenida).
+  check('POST /users sin password en el payload',
+    env.calls.posts.some(p => p.path === '/users' && p.body && !('password' in p.body)),
+    JSON.stringify(env.calls.posts));
+  check('sin modal de password temporal tras el alta',
+    !(env.modalRoot() && env.modalRoot().querySelector('[data-modal-field="password_display"]')));
   check('modal cerrado tras el alta', !env.modalRoot().querySelector('.modal'));
 
   // --- Cambio de estado ---
@@ -1029,7 +1039,7 @@ async function s7_temp_minutes_autorefresh() {
             // margen). Recargas posteriores: lista ya sin la fila (vencida).
             const items = servidos === 1 ? [{
             id: 'tp-soon',
-            user_email: 'mpinilla@acme.local',
+            user_email: 'itspport96@gmail.com',
             user_id: 'u1',
             permission_id: 'p1',
             permission_identificador: 'inventory.stock.view',

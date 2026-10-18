@@ -1856,19 +1856,16 @@
       "no_role": "Sin rol inicial",
       "role_hint": "El rol inicial se asigna después desde la fila del usuario.",
       "success_title": "Usuario creado",
-      "success_body": "Se ha creado {email}.",
-      "temp_title": "Contraseña temporal"
+      "success_email_sent": "Se ha creado {email} y se le ha enviado un enlace de bienvenida para que fije su contraseña.",
+      "success_email_failed": "Se ha creado {email}, pero no se pudo enviar el enlace de bienvenida:"
     },
     "fields": {
       "email": "Correo electrónico",
       "nombre": "Nombre",
       "apellido": "Apellido",
       "telefono": "Teléfono",
-      "password": "Contraseña temporal",
-      "password_hint": "Mínimo 9 caracteres, con mayúscula, minúscula, número y al menos un carácter especial.",
       "role": "Rol inicial"
     },
-    "gen_password": "Generar contraseña",
     "edit": {
       "title": "Editar usuario",
       "submit": "Guardar cambios",
@@ -1878,11 +1875,10 @@
     "reset": {
       "title": "Restablecer contraseña",
       "submit": "Restablecer",
-      "body": "Se generará una contraseña temporal para {email}.",
-      "warning": "Entrega la contraseña temporal al usuario; se le pedirá cambiarla en el primer acceso.",
+      "body": "Se enviará por correo a {email} un enlace para restablecer su contraseña.",
+      "warning": "Su contraseña actual dejará de funcionar al instante. El enlace caduca en 60 minutos y sólo puede usarse una vez.",
       "success_title": "Contraseña restablecida",
-      "success_body": "Contraseña temporal generada correctamente.",
-      "temp_title": "Contraseña temporal"
+      "success_body": "Enlace enviado a {email}; la contraseña anterior ya no es válida."
     },
     "mfa": {
       "badge_on": "MFA activo",
@@ -1896,15 +1892,6 @@
       "success_title": "MFA restablecido",
       "success_body": "El MFA de {email} está desactivado; deberá activarlo de nuevo desde su perfil.",
       "already_body": "El usuario {email} ya tenía el MFA desactivado."
-    },
-    "temp_password": {
-      "title": "Contraseña temporal",
-      "warning": "Guarda esta contraseña ahora: no se volverá a mostrar.",
-      "label": "Contraseña temporal",
-      "copy": "Copiar",
-      "copied": "Copiada al portapapeles",
-      "copy_failed": "No se pudo copiar; selecciónala y cópiala a mano.",
-      "close": "Entendido"
     },
     "roles": {
       "title": "Roles del usuario",
@@ -1946,6 +1933,9 @@
       "mfa_reset": "No se pudo restablecer el MFA",
       "delete": "No se pudo eliminar el usuario"
     },
+    "reset_email_missing": "El usuario no tiene un correo electrónico válido: configúralo antes de enviar el enlace.",
+    "password_not_allowed": "El alta no acepta contraseñas explícitas: el usuario recibe un enlace por correo.",
+    "welcome_email_failed": "No se pudo enviar el enlace de bienvenida.",
     "temp": {
       "subtitle": "Permisos otorgados con fecha de caducidad",
       "grant": "Otorgar permiso",
@@ -2318,7 +2308,10 @@
       "preference_invalid_value": "Valor de preferencia inválido en '{field}': {value}. Permitidos: {allowed}.",
       "no_fields_to_update": "No hay campos para actualizar",
       "password_required_for_email": "Password actual requerido para cambiar email",
-      "password_incorrect": "La contraseña actual no coincide"
+      "password_incorrect": "La contraseña actual no coincide",
+      "reset_email_missing": "El usuario no tiene un correo electrónico válido: configúralo antes de enviar el enlace.",
+      "password_not_allowed": "El alta de usuario no acepta contraseñas explícitas: el usuario recibe un enlace de bienvenida por correo.",
+      "welcome_email_failed": "No se pudo enviar el enlace de bienvenida por correo."
     },
     "roles": {
       "role_not_found": "El rol con ID '{id}' no existe.",
