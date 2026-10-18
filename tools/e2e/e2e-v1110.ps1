@@ -1,3 +1,14 @@
+# tools\e2e\e2e-v1110.ps1 - smoke F2-F5 v1.11.0: alta sin password con
+# bienvenida por enlace, reset admin por enlace, ciclo de estado, catalogo,
+# guards de roles, grupos con herencia y permisos temporales, todo contra el
+# servidor embebido y la BD de E2E (outbox de correo incluido).
+#
+# v1.18.x (eficiencia B3): contratos sin HTTP ya cubiertos por PHPUnit y
+# quitados de aqui: alta con password explicita (PasswordPolicyLiveTest),
+# guards BUILT_IN de roles (RoleControllerGuardTest) y validaciones de
+# permisos temporales 400/404/409 con field (TemporaryPermissionControllerTest).
+# Se conserva el lifecycle real, la escalada por HTTP, la herencia de grupos,
+# la auditoria, el outbox y los 403 de la deuda password_change_required.
 $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot '_env.ps1')   # BD E2E + servidor PHP embebido
 $script:failures = 0
@@ -111,13 +122,6 @@ if ($tokenBienvenida -and $tokenBienvenida.Length -eq 64) {
 } else {
     Bad 'ALTA token bienvenida en outbox' 'sin token=hex64 en mail_outbox'
 }
-
-# El alta ya no acepta password explicita (v1.18.0 breaking): 400.
-$rPw = Invoke-Post '/users' (@{ email = "f2-pw-$($script:runId)@acme.local"; nombre = 'No'; apellido = 'Password'; password = 'Explicita1!' } | ConvertTo-Json) $null $ta
-$cPw = $null; try { $cPw = $rPw.Content | ConvertFrom-Json } catch {}
-if ($rPw.Status -eq 400 -and ($cPw.messageKey -eq 'users.password_not_allowed' -or $rPw.Content -like '*password_not_allowed*' -or $rPw.Content -like '*no acepta contrase*')) {
-    Ok 'ALTA rechaza password explicito' '400 users.password_not_allowed'
-} else { Bad 'ALTA rechaza password explicito' "status=$($rPw.Status) $($rPw.Content)" }
 
 $r2 = Invoke-Post '/users' $body1 $key $ta
 $c2 = $null; try { $c2 = $r2.Content | ConvertFrom-Json } catch {}
@@ -357,20 +361,13 @@ $r = Invoke-Get '/permissions' $tTemp2
 if ($r.Status -eq 403) { Ok 'CATALOGO sin permiso 403' '403 para usuario sin roles' }
 else { Bad 'CATALOGO sin permiso 403' "status=$($r.Status) $($r.Content)" }
 
-# guards BUILT_IN
-$r = Invoke-Patch "/roles/$($adminRole.id)" (@{ nombre = 'HACKED' } | ConvertTo-Json) $ta
-if ($r.Status -eq 403) { Ok 'GUARD renombrar ADMIN' '403' }
-else { Bad 'GUARD renombrar ADMIN' "status=$($r.Status) $($r.Content)" }
-
-$r = Invoke-Patch "/roles/$($adminRole.id)" (@{ activo = $false } | ConvertTo-Json) $ta
-if ($r.Status -eq 403) { Ok 'GUARD desactivar ADMIN' '403' }
-else { Bad 'GUARD desactivar ADMIN' "status=$($r.Status) $($r.Content)" }
-
+# guards BUILT_IN (400/403 en PHPUnit: RoleControllerGuardTest); aqui se
+# ejecutan los intentos y se comprueba sobre el servidor que ADMIN conserva
+# sus permisos tras ellos.
+$null = Invoke-Patch "/roles/$($adminRole.id)" (@{ nombre = 'HACKED' } | ConvertTo-Json) $ta
+$null = Invoke-Patch "/roles/$($adminRole.id)" (@{ activo = $false } | ConvertTo-Json) $ta
 $r = Invoke-Patch "/roles/$($adminRole.id)/permissions" (@{ permisos = @() } | ConvertTo-Json) $ta
 $c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
-if ($r.Status -eq 403 -and $c.message -like '*ADMIN no puede perder*') {
-    Ok 'GUARD ADMIN no pierde permisos' '403'
-} else { Bad 'GUARD ADMIN no pierde permisos' "status=$($r.Status) $($r.Content)" }
 
 $r = Invoke-Get "/roles/$($adminRole.id)/permissions" $ta
 $c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
@@ -378,13 +375,8 @@ if ($r.Status -eq 200 -and [int]@($c.data.permisos).Count -ge 12) {
     Ok 'GUARD ADMIN permisos intactos' "$(@($c.data.permisos).Count) permisos tras intento"
 } else { Bad 'GUARD ADMIN permisos intactos' "status=$($r.Status) count=$(@($c.data.permisos).Count)" }
 
-$r = Invoke-Delete "/roles/$($adminRole.id)" $ta
-if ($r.Status -eq 403) { Ok 'GUARD borrar ADMIN' '403' }
-else { Bad 'GUARD borrar ADMIN' "status=$($r.Status) $($r.Content)" }
-
-$r = Invoke-Patch "/roles/$($managerRole.id)" (@{ nombre = 'HACKED2' } | ConvertTo-Json) $ta
-if ($r.Status -eq 403) { Ok 'GUARD renombrar MANAGER' '403' }
-else { Bad 'GUARD renombrar MANAGER' "status=$($r.Status) $($r.Content)" }
+$null = Invoke-Delete "/roles/$($adminRole.id)" $ta
+$null = Invoke-Patch "/roles/$($managerRole.id)" (@{ nombre = 'HACKED2' } | ConvertTo-Json) $ta
 
 $r = Invoke-Post '/roles' (@{ nombre = 'rol@invalido' } | ConvertTo-Json) $null $ta
 if ($r.Status -eq 400) { Ok 'ROL nombre invalido' '400' }
@@ -543,20 +535,16 @@ if ($lt3.data.password_change_required -eq $false) {
     Bad 'GRUPO mgr-lite flag' "valor=$($lt3.data.password_change_required)"
 }
 
-# escalada: rol demasiado potente para el actor
+# escalada: rol demasiado potente para el actor (politica en PHPUnit:
+# AuthorizationEscalationTest; aqui el status real del endpoint de grupos)
 $r = Invoke-Post "/groups/$gid/roles" (@{ role_id = $adminRole.id } | ConvertTo-Json) $null $tMgr
-$c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
-if ($r.Status -eq 403 -and $c.message -like '*contiene permisos*') { Ok 'ESCALADA rol > actor' '403' }
+if ($r.Status -eq 403) { Ok 'ESCALADA rol > actor' '403' }
 else { Bad 'ESCALADA rol > actor' "status=$($r.Status) $($r.Content)" }
 
 # escalada: miembro ADMIN del grupo con actor no-ADMIN
-# (puede disparar el guard de permisos efectivos —MANAGER 42 < ADMIN 57— o
-# el de "sólo ADMIN sobre ADMIN"; ambos deniegan con 403)
 $r = Invoke-Post "/groups/$gid/roles" (@{ role_id = $viewerRole.id } | ConvertTo-Json) $null $tMgr
-$c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
-if ($r.Status -eq 403 -and ($c.message -like '*permisos efectivos*' -or $c.message -like '*rol ADMIN*')) {
-    Ok 'ESCALADA miembro ADMIN' '403'
-} else { Bad 'ESCALADA miembro ADMIN' "status=$($r.Status) $($r.Content)" }
+if ($r.Status -eq 403) { Ok 'ESCALADA miembro ADMIN' '403' }
+else { Bad 'ESCALADA miembro ADMIN' "status=$($r.Status) $($r.Content)" }
 
 $r = Invoke-Delete "/groups/$gid/members/$adminId" $ta
 if ($r.Status -eq 200) { Ok 'GRUPO remove admin' '200' }
@@ -647,40 +635,8 @@ if ($r.Status -eq 201 -and $tpA -and $c.data.temporary_permission.user_id -eq $u
     Ok 'TEMP alta' "201 id=$tpA expira=$($c.data.temporary_permission.fecha_expiracion)"
 } else { Bad 'TEMP alta' "status=$($r.Status) $($r.Content)" }
 
-$r = Invoke-Post '/temporary-permissions' $tpBody $null $ta
-$c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
-if ($r.Status -eq 409 -and $c.data.field -eq 'permission_id') { Ok 'TEMP duplicado' '409 field=permission_id' }
-else { Bad 'TEMP duplicado' "status=$($r.Status) $($r.Content)" }
-
-$r = Invoke-Post '/temporary-permissions' (@{ user_id = $uid; permission_id = $pViewId; motivo = 'x' } | ConvertTo-Json) $null $ta
-$c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
-if ($r.Status -eq 400 -and $c.data.field -eq 'fecha_expiracion') { Ok 'TEMP sin expiracion' '400 field=fecha_expiracion' }
-else { Bad 'TEMP sin expiracion' "status=$($r.Status) $($r.Content)" }
-
-$r = Invoke-Post '/temporary-permissions' (@{ user_id = $uid; permission_id = $pViewId; motivo = 'x'; fecha_expiracion = '2030-01-01 00:00:00'; duracion_horas = 2 } | ConvertTo-Json) $null $ta
-$c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
-if ($r.Status -eq 400 -and $c.data.field -eq 'fecha_expiracion') { Ok 'TEMP fecha y duracion exclusivos' '400' }
-else { Bad 'TEMP fecha y duracion exclusivos' "status=$($r.Status) $($r.Content)" }
-
-$r = Invoke-Post '/temporary-permissions' (@{ user_id = $uid; permission_id = $pViewId; motivo = 'x'; duracion_horas = 0 } | ConvertTo-Json) $null $ta
-$c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
-if ($r.Status -eq 400 -and $c.data.field -eq 'duracion_horas') { Ok 'TEMP duracion invalida' '400 field=duracion_horas' }
-else { Bad 'TEMP duracion invalida' "status=$($r.Status) $($r.Content)" }
-
-$r = Invoke-Post '/temporary-permissions' (@{ user_id = $uid; permission_id = $pViewId; motivo = 'x'; duracion_horas = 745 } | ConvertTo-Json) $null $ta
-$c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
-if ($r.Status -eq 400 -and $c.data.field -eq 'fecha_expiracion') { Ok 'TEMP max dias 30' '400 (745h > 30d)' }
-else { Bad 'TEMP max dias 30' "status=$($r.Status) $($r.Content)" }
-
-$r = Invoke-Post '/temporary-permissions' (@{ user_id = '00000000-0000-0000-0000-000000000000'; permission_id = $pViewId; motivo = 'x'; duracion_horas = 1 } | ConvertTo-Json) $null $ta
-$c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
-if ($r.Status -eq 404 -and $c.data.field -eq 'user_id') { Ok 'TEMP usuario inexistente' '404 field=user_id' }
-else { Bad 'TEMP usuario inexistente' "status=$($r.Status) $($r.Content)" }
-
-$r = Invoke-Post '/temporary-permissions' (@{ user_id = $uid; permission_id = '00000000-0000-0000-0000-000000000000'; motivo = 'x'; duracion_horas = 1 } | ConvertTo-Json) $null $ta
-$c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
-if ($r.Status -eq 404 -and $c.data.field -eq 'permission_id') { Ok 'TEMP permiso inexistente' '404 field=permission_id' }
-else { Bad 'TEMP permiso inexistente' "status=$($r.Status) $($r.Content)" }
+# Validaciones 400/404/409 con field (contrato en PHPUnit:
+# TemporaryPermissionControllerTest); el alta de arriba ya cubre el ciclo real.
 
 # herencia efectiva: el temporal da groups.group.view al usuario sin roles
 $r = Invoke-Get '/groups' $tTemp2

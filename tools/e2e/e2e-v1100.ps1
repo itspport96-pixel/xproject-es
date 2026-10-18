@@ -1,4 +1,18 @@
-﻿$ErrorActionPreference = 'Continue'
+﻿# tools\e2e\e2e-v1100.ps1 - E2E baseline v1.10.0: bloqueo de stock, incidencias,
+# recepcion, movimientos y correcciones contra el servidor real y la BD de E2E.
+#
+# v1.18.x (eficiencia B3): los contratos sin HTTP viven en PHPUnit:
+#   - 400 de resolve con field=resultado/ubicacion_destino_id ->
+#     tests/Unit/IncidentReportUseCaseTest (y el envelope data.field lo fija el
+#     catalogo de errores compartido).
+#   - 400 rechazo_total con cantidad_recibida > 0 -> ReceiveInventoryUseCaseTest.
+#   - 400 /inventory/movements sin Idempotency-Key -> MovementControllerTest.
+#   - 400 filtros es_correccion/fecha_desde -> MovementQueryServiceTest.
+#   - 404 history de unidad inexistente -> StockHistoryQueryServiceTest.
+# Aqui se conserva el status que protege el flujo (marcado "contrato en
+# PHPUnit") y todo lo que es estado real: unidades, cupos, eventos, hash,
+# auditoria y permisos sobre el servidor embebido.
+$ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot '_env.ps1')   # BD E2E + servidor PHP embebido (v1.10.0)
 $script:failures = 0
 $script:runId = [guid]::NewGuid().ToString('N').Substring(0, 8)
@@ -215,17 +229,15 @@ if ($histA) {
 $keySA = "v1100-rs-A-" + [guid]::NewGuid().ToString('N')
 $rsBodySin = (@{ estado = 'RESUELTA'; descripcion_resolucion = 'Sin resultado todavia'; acciones_tomadas = 'Pendiente' } | ConvertTo-Json)
 $r = Invoke-Post "/inventory/incidents/$incA/resolve" $rsBodySin $keySA $tokenA
-if ((-not $r.Ok) -and $r.Status -eq 400) { Ok 'A resolve sin resultado -> 400' '400' }
+if ((-not $r.Ok) -and $r.Status -eq 400) { Ok 'A resolve sin resultado -> 400 (contrato en PHPUnit)' '400' }
 else { Bad 'A resolve sin resultado -> 400' "$($r.Status) $($r.Content)" }
-Assert-Eq 'A error field=resultado' (JsonField $r.Content 'data.field') 'resultado'
 Assert-Eq 'A unidad sigue BLOQUEADA tras el 400' (UnitEstado $uA) 'BLOQUEADO'
 
 # resolve con NO_ENCONTRADA + destino -> 400 (destino solo con ENCONTRADA)
 $rsBodyNo = (@{ estado = 'RESUELTA'; descripcion_resolucion = 'No encontrada con destino'; acciones_tomadas = 'Busqueda fallida'; resultado = 'NO_ENCONTRADA'; ubicacion_destino_id = $pick } | ConvertTo-Json)
 $r = Invoke-Post "/inventory/incidents/$incA/resolve" $rsBodyNo '' $tokenA
-if ((-not $r.Ok) -and $r.Status -eq 400) { Ok 'A resolve NO_ENCONTRADA con destino -> 400' '400' }
+if ((-not $r.Ok) -and $r.Status -eq 400) { Ok 'A resolve NO_ENCONTRADA con destino -> 400 (contrato en PHPUnit)' '400' }
 else { Bad 'A resolve NO_ENCONTRADA con destino -> 400' "$($r.Status) $($r.Content)" }
-Assert-Eq 'A error field=ubicacion_destino_id' (JsonField $r.Content 'data.field') 'ubicacion_destino_id'
 
 # resolve valido: ENCONTRADA con destino
 $keySA = "v1100-rs-A-" + [guid]::NewGuid().ToString('N')
@@ -306,9 +318,8 @@ Assert-Eq 'C unidad DAÑADO' (UnitEstado $uC) 'DAÑADO'
 
 $rsBodyC = (@{ estado = 'RESUELTA'; descripcion_resolucion = 'Resuelta con resultado'; acciones_tomadas = 'No deberia pasar'; resultado = 'ENCONTRADA' } | ConvertTo-Json)
 $r = Invoke-Post "/inventory/incidents/$incC/resolve" $rsBodyC '' $tokenA
-if ((-not $r.Ok) -and $r.Status -eq 400) { Ok 'C resolve con resultado en DAÑO -> 400' '400' }
+if ((-not $r.Ok) -and $r.Status -eq 400) { Ok 'C resolve con resultado en DAÑO -> 400 (contrato en PHPUnit)' '400' }
 else { Bad 'C resolve con resultado en DAÑO -> 400' "$($r.Status) $($r.Content)" }
-Assert-Eq 'C error field=resultado' (JsonField $r.Content 'data.field') 'resultado'
 Assert-Eq 'C unidad sigue DAÑADO tras el 400' (UnitEstado $uC) 'DAÑADO'
 
 $rsBodyC2 = (@{ estado = 'RESUELTA'; descripcion_resolucion = 'Reparada y retirada'; acciones_tomadas = 'Aislada en zona de daños'; compensacion = 'Ninguna' } | ConvertTo-Json)
@@ -403,9 +414,8 @@ Assert-Eq 'E una incidencia mas en total' ([int](Scalar 'SELECT COUNT(*) FROM in
 $rcvR2 = (@{ sku = 'PROD-001'; cantidad_esperada = 5; ubicacion_codigo = 'E2E-ALMACEN'; rechazo_total = 1; cantidad_recibida = 3 } | ConvertTo-Json)
 $keyRE2 = "v1100-rcv-E2-" + [guid]::NewGuid().ToString('N')
 $r = Invoke-Post '/inventory/receive' $rcvR2 $keyRE2 $tokenA
-if ((-not $r.Ok) -and $r.Status -eq 400) { Ok 'E rechazo_total con recibida 3 -> 400' '400' }
+if ((-not $r.Ok) -and $r.Status -eq 400) { Ok 'E rechazo_total con recibida 3 -> 400 (contrato en PHPUnit)' '400' }
 else { Bad 'E rechazo_total con recibida 3 -> 400' "$($r.Status) $($r.Content)" }
-Assert-Eq 'E error field=cantidad_recibida' (JsonField $r.Content 'data.field') 'cantidad_recibida'
 Assert-Eq 'E stock_units sigue igual' ([int](Scalar 'SELECT COUNT(*) FROM stock_units')) $unitsAntesE
 
 # ==================================================== 8) FLUJO F: E1
@@ -454,11 +464,6 @@ if ($warnMensaje -match 'E2E-ORD-G') { Ok 'G warning con la referencia de la ord
 else { Bad 'G warning con la referencia de la orden' "mensaje='$warnMensaje'" }
 Assert-Eq 'G movimiento no es correccion' (JsonField $r.Content 'data.movimiento.es_correccion') 'False'
 
-# sin Idempotency-Key -> 400
-$r = Invoke-Post '/inventory/movements' $mvBody '' $tokenA
-if ((-not $r.Ok) -and $r.Status -eq 400) { Ok 'G movements sin Idempotency-Key -> 400' '400' }
-else { Bad 'G movements sin Idempotency-Key -> 400' "$($r.Status) $($r.Content)" }
-
 # ==================================================== 10) FLUJO H: E8
 # Movimiento inverso -> es_correccion con referencia; filtros del listado.
 Write-Output ''
@@ -501,14 +506,6 @@ if ($r.Ok -and $r.Status -eq 200) {
     else { Bad 'H filtro es_correccion=1 incluye la correccion' "sin $mvId2" }
 } else { Bad 'H GET /movements?es_correccion=1' "$($r.Status) $($r.Content)" }
 
-$r = Invoke-Get '/inventory/movements?es_correccion=xyz' $tokenA
-if ((-not $r.Ok) -and $r.Status -eq 400) { Ok 'H es_correccion invalido -> 400' '400' }
-else { Bad 'H es_correccion invalido -> 400' "$($r.Status) $($r.Content)" }
-
-$r = Invoke-Get '/inventory/movements?fecha_desde=notadate' $tokenA
-if ((-not $r.Ok) -and $r.Status -eq 400) { Ok 'H fecha_desde invalida -> 400' '400' }
-else { Bad 'H fecha_desde invalida -> 400' "$($r.Status) $($r.Content)" }
-
 # USER con stock.view puede leer el listado y el historial
 $r = Invoke-Get '/inventory/movements?page=1' $tokenU
 if ($r.Ok -and $r.Status -eq 200) { Ok 'H GET /movements con USER (stock.view)' '200' }
@@ -516,9 +513,6 @@ else { Bad 'H GET /movements con USER' "$($r.Status) $($r.Content)" }
 $r = Invoke-Get "/inventory/stock/$uH/history" $tokenU
 if ($r.Ok -and $r.Status -eq 200) { Ok 'H GET /stock/{id}/history con USER' '200' }
 else { Bad 'H GET /stock/{id}/history con USER' "$($r.Status) $($r.Content)" }
-$r = Invoke-Get '/inventory/stock/00000000-0000-4000-8000-000000000000/history' $tokenU
-if ((-not $r.Ok) -and $r.Status -eq 404) { Ok 'H history de unidad inexistente -> 404' '404' }
-else { Bad 'H history de unidad inexistente -> 404' "$($r.Status) $($r.Content)" }
 
 # ==================================================== 11) globales
 Write-Output ''
