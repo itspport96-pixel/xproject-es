@@ -6,6 +6,7 @@ namespace App\Core\Users\Http;
 
 use App\Core\Audit\AuditLogger;
 use App\Core\Authentication\Service\JwtService;
+use App\Core\Authentication\Service\PasswordResetService;
 use App\Core\Authentication\Service\SessionRevokerService;
 use App\Core\Authorization\Service\AuthorizationService;
 use App\Core\Users\Exception\UserException;
@@ -25,6 +26,7 @@ final class UserController
     private ?DatabaseService $db;
     private ?\App\Core\Authentication\Service\PasswordHasher $hasher;
     private ?IdempotencyService $idem;
+    private ?PasswordResetService $passwordResets = null;
 
     public function __construct(
         ?UserService $userService = null,
@@ -257,7 +259,7 @@ final class UserController
             $actorId = (string) $claims['user_id'];
 
             $result = $this->databaseService()->transaction(
-                function () use ($idem, $key, $operacion, $hash, $tenantKey, $actorId, $data): array {
+                function () use ($idem, $key, $operacion, $hash, $tenantKey, $actorId, $data, $claims, $request): array {
                     $replay = $idem->tryBegin($tenantKey, $key, $operacion, $hash, $actorId);
 
                     if ($replay !== null) {
@@ -265,7 +267,19 @@ final class UserController
                     }
 
                     $user = $this->userService->create($data);
-                    $response = ['status' => 201, 'data' => ['user' => $user]];
+
+                    // Enlace de bienvenida (kind 'welcome') dentro de la misma
+                    // transaccion: el token y la fila de mail_outbox se confirman
+                    // con el usuario; un fallo de envio queda email_enviado=false
+                    // en la respuesta guardada y, por tanto, tambien en el replay.
+                    [$emailEnviado, $emailDestino, $emailErrorKey] = $this->issueWelcomeEmail($user, $claims, $request);
+
+                    $response = ['status' => 201, 'data' => [
+                        'user' => $user,
+                        'email_enviado' => $emailEnviado,
+                        'email_destino' => $emailDestino,
+                        'email_error_key' => $emailErrorKey,
+                    ]];
                     $idem->complete($tenantKey, $key, $operacion, $response, 201);
 
                     return $response;
@@ -273,33 +287,85 @@ final class UserController
             );
 
             if (empty($result['_replay'])) {
-                $this->auditUserCreate($request, $claims, $result['data']['user'] ?? null);
+                $this->auditUserCreate(
+                    $request,
+                    $claims,
+                    $result['data']['user'] ?? null,
+                    (bool) ($result['data']['email_enviado'] ?? false),
+                    $result['data']['email_error_key'] ?? null
+                );
             }
 
             return $result;
         }
 
         $user = $this->userService->create($data);
+        [$emailEnviado, $emailDestino, $emailErrorKey] = $this->issueWelcomeEmail($user, $claims, $request);
 
-        $this->auditUserCreate($request, $claims, $user);
+        $this->auditUserCreate($request, $claims, $user, $emailEnviado, $emailErrorKey);
 
-        return ['status' => 201, 'data' => ['user' => $user]];
+        return ['status' => 201, 'data' => [
+            'user' => $user,
+            'email_enviado' => $emailEnviado,
+            'email_destino' => $emailDestino,
+            'email_error_key' => $emailErrorKey,
+        ]];
     }
 
     /**
-     * Auditoría del alta: nunca persiste password_temporal (texto plano,
-     * se entrega una sola vez al cliente).
+     * Enlace de bienvenida del alta (v1.18.0): reusa la tecnologia de reset
+     * con kind 'welcome'. Nunca lanza: un fallo de SMTP/BD de correo deja el
+     * usuario creado y la respuesta con email_enviado=false para que el
+     * administrador pueda reenviarlo ("Restablecer contraseña") luego.
+     *
+     * @return array{0: bool, 1: ?string, 2: ?string} [enviado, destino, message key del error]
      */
-    private function auditUserCreate(array $request, array $claims, ?array $user): void
+    private function issueWelcomeEmail(array $user, array $claims, array $request): array
     {
+        if (empty($user['id'])) {
+            return [false, null, 'users.welcome_email_failed'];
+        }
+
+        try {
+            $destino = $this->resolvePasswordResets()->issueWelcome(
+                (string) $user['id'],
+                (string) ($user['tenant_id'] ?? $claims['tenant_id']),
+                (string) $claims['user_id'],
+                $request
+            );
+
+            return [true, $destino, null];
+        } catch (\Throwable $e) {
+            $key = method_exists($e, 'getMessageKey') ? $e->getMessageKey() : null;
+
+            return [false, (string) ($user['email'] ?? ''), $key ?? 'users.welcome_email_failed'];
+        }
+    }
+
+    /**
+     * Auditoría del alta: nunca persiste passwords en claro; el enlace de
+     * bienvenida se registra como trazabilidad (email enviado o su fallo).
+     */
+    private function auditUserCreate(
+        array $request,
+        array $claims,
+        ?array $user,
+        bool $emailEnviado = false,
+        ?string $emailErrorKey = null
+    ): void {
         $auditable = $user;
         if (is_array($auditable)) {
-            unset($auditable['password_temporal']);
+            unset($auditable['password_temporal'], $auditable['password']);
         }
 
         $this->auditEvent('user.create', 'CREATE', $request, $claims, [
             'entidad_id' => is_array($auditable) ? ($auditable['id'] ?? null) : null,
             'valores_nuevos' => $auditable,
+            'detalles_adicionales' => [
+                'via_enlace_bienvenida' => true,
+                'email_enviado' => $emailEnviado,
+                'email_error_key' => $emailErrorKey,
+            ],
         ]);
     }
 
@@ -520,20 +586,28 @@ final class UserController
 
         $this->authz->assertCanActOnUser($actorId, $tenantId, $userId);
 
-        $passwordTemporal = $this->userService->resetPassword($userId, $tenantId);
-
-        // Todas las sesiones del objetivo quedan invalidadas (refresh + denylist)
-        $this->resolveSessions()->revokeAllForUser($userId, null, 'admin_reset');
+        // v1.18.0 (cumplimiento): sin contraseña en claro ni en la respuesta
+        // ni en la auditoría. El servicio valida email/SMTP, invalida la
+        // contraseña anterior y revoca las sesiones al instante, y envía la
+        // liga de restablecimiento (kind 'admin'). Si el envío falla se
+        // propaga el error (502) con la cuenta YA bloqueada.
+        $emailDestino = $this->resolvePasswordResets()->issueAdminReset(
+            $userId, $tenantId, $actorId, $request
+        );
 
         $this->auditEvent('user.password.reset', 'UPDATE', $request, $claims, [
             'entidad_id' => $userId,
             'valores_nuevos' => ['hash_changed' => true],
-            'detalles_adicionales' => ['password_temporal_entregado' => true],
+            'detalles_adicionales' => [
+                'via_enlace' => true,
+                'email_destino' => $emailDestino,
+                'kind' => 'admin',
+            ],
         ]);
 
         return ['status' => 200, 'data' => [
-            'message' => 'Contraseña reseteada; el usuario deberá cambiarla en el siguiente inicio de sesión',
-            'password_temporal' => $passwordTemporal,
+            'message' => 'Enlace de restablecimiento enviado al correo del usuario; su contraseña anterior ya no es válida',
+            'email_destino' => $emailDestino,
             'password_change_required' => true,
         ]];
     }
@@ -777,6 +851,11 @@ final class UserController
     private function resolveSessions(): SessionRevokerService
     {
         return $this->sessions ??= Container::getInstance()->get(SessionRevokerService::class);
+    }
+
+    private function resolvePasswordResets(): PasswordResetService
+    {
+        return $this->passwordResets ??= Container::getInstance()->get(PasswordResetService::class);
     }
 
     private function resolveHasher(): \App\Core\Authentication\Service\PasswordHasher

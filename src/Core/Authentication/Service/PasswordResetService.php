@@ -179,6 +179,9 @@ class PasswordResetService
         $this->mailer()->assertSendable($tenantId, $email);
 
         $this->users()->invalidatePassword($userId, $tenantId);
+        // Acceso matado al instante tambien en sesiones vivas: si luego falla
+        // el envio (502) la cuenta sigue bloqueada, que es la intencion.
+        $this->revokeSessions($userId, 'admin_reset');
         $this->invalidateActiveTokens($userId);
 
         $issued = $this->createToken(
@@ -524,13 +527,13 @@ class PasswordResetService
         return $stmt->fetchColumn() === 'ACTIVO';
     }
 
-    private function revokeSessions(string $userId): void
+    private function revokeSessions(string $userId, string $reason = 'password_reset'): void
     {
         if (!Container::getInstance()->has(\App\Core\Authentication\Service\SessionRevokerService::class)) {
             return;
         }
         Container::getInstance()->get(SessionRevokerService::class)
-            ->revokeAllForUser($userId, null, 'password_reset');
+            ->revokeAllForUser($userId, null, $reason);
     }
 
     // ========================================================================
