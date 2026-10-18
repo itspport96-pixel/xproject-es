@@ -17,6 +17,16 @@
 #        $e2eDb       nombre de la BD de E2E (para mysql.exe y comparaciones)
 #        $e2eRepoRoot raiz del repositorio
 #        $phpExe      ejecutable de PHP usado por el preludio
+#   5. v1.18.0: fija MAIL_TRANSPORT=outbox para el servidor embebido: los
+#      correos de reset/bienvenida no salen por SMTP (nada de gmail real en
+#      pruebas) y quedan en la tabla mail_outbox, de donde los E2E extraen los
+#      tokens de enlace. Un servidor heredado sin ese entorno se reinicia
+#      (marker .e2e-server.transport) para que el modo nunca dependa de la
+#      sucesion de arranques.
+#   6. v1.18.0: limpia al arrancar las claves de rate limit de
+#      forgot/reset-password (5/900s por IP) con clear-rate-limit.php, para
+#      que los consumes de un script no arranquen con el contador de la
+#      ejecucion anterior.
 #
 # Variables opcionales de entorno: E2E_DB_NAME, E2E_PORT (8099), PHP_BIN.
 #
@@ -59,6 +69,12 @@ try {
     # con getenv() y la usa en lugar de DB_DATABASE.
     $env:E2E_DB_NAME = $e2eDb
 
+    # v1.18.0: transporte de correo de los E2E (hereda el proceso embebido).
+    # getenv() gana sobre .env, asi que la app real (Apache) sigue en smtp.
+    $e2eTransport = 'outbox'
+    $env:MAIL_TRANSPORT = $e2eTransport
+    $e2eTransportFile = Join-Path $e2eRoot '.e2e-server.transport'
+
     $prepOut = & $phpExe (Join-Path $e2eRepoRoot 'bin\prepare-e2e-db.php') --db=$e2eDb 2>&1
     $prepExit = $LASTEXITCODE
     foreach ($linea in @($prepOut)) {
@@ -90,13 +106,38 @@ try {
         Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
     }
 
+    # v1.18.0: ultimo token de enlace de un correo en el outbox. Los E2E no
+    # reciben SMTP: la bienvenida/reset queda en mail_outbox y de ahi sale el
+    # token=hex64 que se consume con /auth/reset-password. $kind: welcome,
+    # admin, reset (sspr), changed.
+    function LastMailToken($kind, $email) {
+        $sql = "SELECT REGEXP_SUBSTR(html, 'token=[0-9a-f]{64}') FROM mail_outbox WHERE kind = '$kind' AND destino = '$email' ORDER BY created_at DESC LIMIT 1"
+        $v = & mysql.exe -u root $e2eDb -N -e $sql | Select-Object -First 1
+        $t = ("$v".Trim())
+        if ($t -like 'token=*') { return $t.Substring(6) }
+        return $null
+    }
+
     $script:e2eRoot = $e2eRoot
 
-    if (Test-E2EServer) {
+    # Reutilizacion con garantia de transporte: un servidor heredado de una
+    # sesion anterior (sin MAIL_TRANSPORT=outbox) se reinicia; los E2E nunca
+    # deben depender del modo en que arrancara el proceso.
+    $transportActual = ''
+    if (Test-Path -LiteralPath $e2eTransportFile) {
+        try { $transportActual = (Get-Content -LiteralPath $e2eTransportFile -Raw).Trim() } catch { $transportActual = '' }
+    }
+    $reutilizar = (Test-E2EServer) -and ($transportActual -eq $e2eTransport)
+    if (-not $reutilizar -and (Test-E2EServer)) {
+        Stop-E2EServer
+        Start-Sleep -Milliseconds 300
+    }
+
+    if ($reutilizar) {
         if (Test-Path -LiteralPath $e2ePidFile) {
             try { $script:e2eServerPid = [int](Get-Content -LiteralPath $e2ePidFile -Raw).Trim() } catch { $script:e2eServerPid = $null }
         }
-        Write-Output "  [e2e] servidor reutilizado en $base"
+        Write-Output "  [e2e] servidor reutilizado en $base (MAIL_TRANSPORT=$e2eTransport)"
     } else {
         if (Test-Path -LiteralPath $e2ePidFile) {
             $oldPid = 0
@@ -126,7 +167,18 @@ try {
         if (-not $listo) {
             throw "el servidor PHP embebido no responde en $base (log: $e2eLog)"
         }
-        Write-Output "  [e2e] servidor arrancado en $base (pid $($script:e2eServerPid))"
+        Set-Content -LiteralPath $e2eTransportFile -Value $e2eTransport -Encoding ASCII
+        Write-Output "  [e2e] servidor arrancado en $base (pid $($script:e2eServerPid), MAIL_TRANSPORT=$e2eTransport)"
+    }
+
+    # Rate limits de liga (5/900s por IP en forgot/reset-password): se limpian
+    # en cada arranque para que los consumes de un script no arranquen con el
+    # contador de ejecuciones anteriores (la suite encadena scripts dentro de
+    # la misma ventana de 900s y al quinto consume llega el 429). Ningun E2E
+    # ejerce ese limite, asi que borrarlos no tapa ninguna asercion.
+    foreach ($rlPat in @('rl:*auth/reset-password*', 'rl:*auth/forgot-password*')) {
+        $null = & $phpExe (Join-Path $e2eRoot 'clear-rate-limit.php') $rlPat 2>&1
+        if ($LASTEXITCODE -ne 0) { Write-Output "  [e2e] aviso: no se pudo limpiar rate limit $rlPat" }
     }
 
     Write-Output "  [e2e] BD=$e2eDb (E2E_DB_NAME) base=$base"

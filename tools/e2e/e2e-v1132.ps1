@@ -61,19 +61,24 @@ function Rows($sql) {
     return @(& mysql.exe -u root $e2eDb -N -e $sql)
 }
 
-# Crea usuario, completa el primer login (cambio forzado) y devuelve token final.
+# Crea usuario sin password (v1.18.0): la alta envia el enlace de bienvenida y
+# el usuario se activa consumiendolo con la password definitiva (ya no hay
+# password temporal ni cambio forzado). El preclear del rate limit de
+# reset-password (5/900s por IP) evita que scripts con muchos usuarios
+# tropiecen con el 429 al encadenar consumes.
 function New-ActivatedUser($token, $tag) {
     $email = "v1132-$tag-$($script:runId)@acme.local"
     $r = Invoke-Post '/users' (@{ email = $email; nombre = 'V1132'; apellido = $tag } | ConvertTo-Json) "v1132-$tag-$($script:runId)" $token
     if ($r.Status -ne 201) { return $null }
     $c = $r.Content | ConvertFrom-Json
     $uid = $c.data.user.id
-    $temp = $c.data.user.password_temporal
 
-    $lt = LoginFull $email $temp
-    if (-not $lt) { return $null }
-    $tTemp = $lt.data.tokens.access_token
-    $null = Invoke-Post '/auth/change-password' (@{ password_actual = $temp; password_nuevo = 'V1132Pass123!' } | ConvertTo-Json) $null $tTemp
+    $tok = LastMailToken 'welcome' $email
+    if (-not $tok) { return $null }
+    $null = & $phpExe (Join-Path $e2eRepoRoot 'tools\e2e\clear-rate-limit.php') 'rl:*auth/reset-password*' 2>&1
+    $rc = Invoke-Post '/auth/reset-password' (@{ token = $tok; password_nuevo = 'V1132Pass123!' } | ConvertTo-Json) $null $null
+    if ($rc.Status -ne 200) { return $null }
+
     $ln = LoginFull $email 'V1132Pass123!'
     if (-not $ln) { return $null }
     return @{ Id = $uid; Email = $email; Login = $ln; Token = $ln.data.tokens.access_token }
@@ -150,16 +155,17 @@ if ($extras.Count -gt 0 -and $script:failures -eq 0) { Ok 'ADMIN extras restaura
 # ========================= 2) RATE LIMIT de change-password por USUARIO (10/5min)
 $cp = New-ActivatedUser $ta 'cp'
 if (-not $cp) { Bad 'ALTA cp' 'no se pudo crear/activar'; exit 1 }
-# El alta ya hizo 1 change-password (intento 1 de 10).
+# v1.18.0: la alta ya NO hace change-password (activacion por enlace), asi que
+# el contador del usuario arranca en 0.
 
 $at429 = 0
 for ($i = 1; $i -le 12; $i++) {
     $r = Invoke-Post '/auth/change-password' (@{ password_actual = 'Erronea123'; password_nuevo = 'NuevaCp1234!' } | ConvertTo-Json) $null $cp.Token
     if ($r.Status -eq 429) { $at429 = $i; break }
 }
-# Intento 1 (alta) + 10 incorrectos = 11 > 10 => 429 en el incorrecto 10.
-if ($at429 -eq 10) { Ok 'change-password 429 por usuario' 'en el intento 10 (11a peticion)' }
-else { Bad 'change-password 429 por usuario' "429 en el intento incorrecto $at429 (esperaba 10)" }
+# 10 incorrectos llenan el limite (10/5min) y el 11o dispara el 429.
+if ($at429 -eq 11) { Ok 'change-password 429 por usuario' 'en el intento 11 (11a peticion)' }
+else { Bad 'change-password 429 por usuario' "429 en el intento incorrecto $at429 (esperaba 11)" }
 
 # ================================ 3) RATE LIMIT de login por CUENTA (3 fallos/5min)
 # Debe ir al final: con exactamente 4 fallos deja el contador IP del middleware

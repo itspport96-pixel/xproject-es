@@ -74,6 +74,12 @@ function Scalar($sql) {
     return ("$v".Trim())
 }
 
+# v1.18.0: token del ultimo enlace emitido para $email y $kind ('welcome'|
+# 'admin'|'sspr'). El correo queda en mail_outbox (MAIL_TRANSPORT=outbox, sin
+# SMTP real) y el token sale del HTML con REGEXP_SUBSTR (una sola linea, sin
+# partirse por los saltos de linea del cuerpo).
+# LastMailToken lo define _env.ps1 (v1.18.0).
+
 # ================================================================== 1) admin
 $admin = LoginFull 'aleon@acme.local' 'Admin123!'
 $ta = if ($admin) { $admin.data.tokens.access_token } else { $null }
@@ -93,17 +99,30 @@ if ($r1.Status -eq 201 -and $c1.data.user.id) { Ok 'ALTA' "201 id=$($c1.data.use
 else { Bad 'ALTA' "status=$($r1.Status) $($r1.Content)" }
 
 $uid = $c1.data.user.id
-$temp1 = $c1.data.user.password_temporal
-if ($c1.data.user.password_change_required -eq $true -and $temp1 -and $temp1.Length -ge 8) {
-    Ok 'ALTA password temporal' "flag=true len=$($temp1.Length)"
+# v1.18.0: el alta no devuelve password en claro; envia enlace de bienvenida.
+if ($c1.data.user.password_change_required -eq $true -and -not $c1.data.user.password_temporal -and $c1.data.email_enviado -eq $true -and $c1.data.email_destino -eq $script:email) {
+    Ok 'ALTA sin password + bienvenida' "flag=true email_enviado=true destino=$($c1.data.email_destino)"
 } else {
-    Bad 'ALTA password temporal' $r1.Content
+    Bad 'ALTA sin password + bienvenida' $r1.Content
 }
+$tokenBienvenida = LastMailToken 'welcome' $script:email
+if ($tokenBienvenida -and $tokenBienvenida.Length -eq 64) {
+    Ok 'ALTA token bienvenida en outbox' "len=$($tokenBienvenida.Length)"
+} else {
+    Bad 'ALTA token bienvenida en outbox' 'sin token=hex64 en mail_outbox'
+}
+
+# El alta ya no acepta password explicita (v1.18.0 breaking): 400.
+$rPw = Invoke-Post '/users' (@{ email = "f2-pw-$($script:runId)@acme.local"; nombre = 'No'; apellido = 'Password'; password = 'Explicita1!' } | ConvertTo-Json) $null $ta
+$cPw = $null; try { $cPw = $rPw.Content | ConvertFrom-Json } catch {}
+if ($rPw.Status -eq 400 -and ($cPw.messageKey -eq 'users.password_not_allowed' -or $rPw.Content -like '*password_not_allowed*' -or $rPw.Content -like '*no acepta contrase*')) {
+    Ok 'ALTA rechaza password explicito' '400 users.password_not_allowed'
+} else { Bad 'ALTA rechaza password explicito' "status=$($rPw.Status) $($rPw.Content)" }
 
 $r2 = Invoke-Post '/users' $body1 $key $ta
 $c2 = $null; try { $c2 = $r2.Content | ConvertFrom-Json } catch {}
-if ($r2.Status -eq 201 -and $c2.data.user.id -eq $uid -and $c2.data.user.password_temporal -eq $temp1) {
-    Ok 'REPLAY idempotente' 'mismo id y mismo password_temporal'
+if ($r2.Status -eq 201 -and $c2.data.user.id -eq $uid -and -not $c2.data.user.password_temporal -and $c2.data.email_enviado -eq $true) {
+    Ok 'REPLAY idempotente' 'mismo id, sin password_temporal y email_enviado=true'
 } else {
     Bad 'REPLAY idempotente' "status=$($r2.Status) id=$($c2.data.user.id)"
 }
@@ -122,18 +141,40 @@ if ($r4.Status -eq 400 -and $c4.data.field -eq 'idempotency-key') {
     Ok 'CLAVE invalida' '400 field=idempotency-key'
 } else { Bad 'CLAVE invalida' "status=$($r4.Status) $($r4.Content)" }
 
-# ==================================================== 3) login con password temporal
-$lt = LoginFull $script:email $temp1
+# ==================================== 3) consume bienvenida + login (v1.18.0)
+# Sin la liga no hay password conocida: el alta dejo un hash aleatorio.
+$ltNoPw = LoginFull $script:email 'NoConocida1!'
+if (-not $ltNoPw) { Ok 'LOGIN sin password conocida' 'rechazado (hash aleatorio del alta)' }
+else { Bad 'LOGIN sin password conocida' 'login acepto una password inventada'; exit 1 }
+
+$r = Invoke-Post '/auth/reset-password' (@{ token = $tokenBienvenida; password_nuevo = 'AltaF2Pass123!' } | ConvertTo-Json) $null $null
+if ($r.Status -eq 200) { Ok 'BIENVENIDA consume' '200' }
+else { Bad 'BIENVENIDA consume' "status=$($r.Status) $($r.Content)" }
+
+# un solo uso: repetir la misma liga muere en 400 con error_code RESET_TOKEN_USED
+$r = Invoke-Post '/auth/reset-password' (@{ token = $tokenBienvenida; password_nuevo = 'OtraF2Pass123!' } | ConvertTo-Json) $null $null
+$c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
+if ($r.Status -eq 400 -and ($c.data.error_code -eq 'RESET_TOKEN_USED' -or $c.messageKey -eq 'auth.reset_token_used' -or $r.Content -like '*ya fue utilizado*')) {
+    Ok 'BIENVENIDA un solo uso' '400 RESET_TOKEN_USED'
+} else { Bad 'BIENVENIDA un solo uso' "status=$($r.Status) $($r.Content)" }
+
+$lt = LoginFull $script:email 'AltaF2Pass123!'
 $tTemp = if ($lt) { $lt.data.tokens.access_token } else { $null }
-if (-not $tTemp) { Bad 'LOGIN temporal' 'sin token'; exit 1 }
-if ($lt.data.password_change_required -eq $true) { Ok 'LOGIN temporal flag' 'password_change_required=true' }
-else { Bad 'LOGIN temporal flag' "valor=$($lt.data.password_change_required)" }
+if (-not $tTemp) { Bad 'LOGIN tras bienvenida' 'sin token'; exit 1 }
+Ok 'LOGIN tras bienvenida' 'token ok'
+# v1.18.0: el consumo del enlace limpia el marcador (password_change_forced)
+# y fija la password que el usuario acaba de elegir.
+if ($lt.data.password_change_required -eq $false) {
+    Ok 'LOGIN flag' 'password_change_required=false tras consumir el enlace'
+} else {
+    Bad 'LOGIN flag' "valor=$($lt.data.password_change_required)"
+}
 
 $r = Invoke-Get '/users' $tTemp
 $c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
-if ($r.Status -eq 403 -and $c.data.category -eq 'password_change_required') {
-    Ok 'BLOQUEO cambio forzado' '403 category=password_change_required'
-} else { Bad 'BLOQUEO cambio forzado' "status=$($r.Status) $($r.Content)" }
+if ($r.Status -eq 403 -and $c.data.category -ne 'password_change_required') {
+    Ok 'SIN bloqueo cambio forzado' '403 por permisos: sin marcador activo'
+} else { Bad 'SIN bloqueo cambio forzado' "status=$($r.Status) $($r.Content)" }
 
 $r = Invoke-Get '/users/me/preferences' $tTemp
 if ($r.Status -eq 200) { Ok 'ALLOWLIST me/preferences' '200' }
@@ -150,7 +191,7 @@ if ($r.Status -eq 400 -and $c.data.field -eq 'password_actual') {
     Ok 'CAMBIO password actual incorrecta' '400 field=password_actual'
 } else { Bad 'CAMBIO password actual incorrecta' "status=$($r.Status) $($r.Content)" }
 
-$r = Invoke-Post '/auth/change-password' (@{ password_actual = $temp1; password_nuevo = 'NuevaF2Pass123!' } | ConvertTo-Json) $null $tTemp
+$r = Invoke-Post '/auth/change-password' (@{ password_actual = 'AltaF2Pass123!'; password_nuevo = 'NuevaF2Pass123!' } | ConvertTo-Json) $null $tTemp
 if ($r.Status -eq 200) { Ok 'CAMBIO password' '200' }
 else { Bad 'CAMBIO password' "status=$($r.Status) $($r.Content)" }
 
@@ -190,27 +231,46 @@ $c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
 if ($r.Status -eq 200 -and $c.data.user.estado -eq 'ACTIVO') { Ok 'ESTADO reactivar' '200 ACTIVO' }
 else { Bad 'ESTADO reactivar' "status=$($r.Status) $($r.Content)" }
 
-# ==================================================== 6) reset de contraseña admin
+# ======================= 6) reset admin por enlace (v1.18.0, sin temporal)
 $r = Invoke-Post "/users/$uid/password/reset" '{}' $null $ta
 $c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
-$temp2 = $c.data.password_temporal
-if ($r.Status -eq 200 -and $temp2 -and $c.data.password_change_required -eq $true) {
-    Ok 'RESET admin' "201/temporal len=$($temp2.Length)"
+if ($r.Status -eq 200 -and -not $c.data.password_temporal -and $c.data.email_destino -eq $script:email -and $c.data.password_change_required -eq $true) {
+    Ok 'RESET admin' "200 sin password_temporal destino=$($c.data.email_destino)"
 } else { Bad 'RESET admin' "status=$($r.Status) $($r.Content)" }
 
 $r = Invoke-Get '/users/me/preferences' $tTemp
 if ($r.Status -eq 401) { Ok 'RESET revoca sesiones' '401 en sesion anterior' }
 else { Bad 'RESET revoca sesiones' "status=$($r.Status) $($r.Content)" }
 
-$lt2 = LoginFull $script:email $temp2
-$tTemp2 = if ($lt2) { $lt2.data.tokens.access_token } else { $null }
-if ($tTemp2 -and $lt2.data.password_change_required -eq $true) {
-    Ok 'LOGIN tras reset' 'flag=true'
-} else { Bad 'LOGIN tras reset' "resp=$($lt2 | ConvertTo-Json -Depth 6)" }
+# semantica fuerte: la password anterior deja de valer al instante
+$ltOld = LoginFull $script:email 'NuevaF2Pass123!'
+if (-not $ltOld) { Ok 'RESET invalida password anterior' 'login rechazado' }
+else { Bad 'RESET invalida password anterior' 'la password vieja sigue funcionando'; exit 1 }
 
-$r = Invoke-Post '/auth/change-password' (@{ password_actual = $temp2; password_nuevo = 'FinalF2Pass123!' } | ConvertTo-Json) $null $tTemp2
-if ($r.Status -eq 200) { Ok 'CAMBIO final' '200' }
-else { Bad 'CAMBIO final' "status=$($r.Status) $($r.Content)" }
+$tokenAdmin = LastMailToken 'admin' $script:email
+if ($tokenAdmin -and $tokenAdmin.Length -eq 64) {
+    Ok 'RESET token admin en outbox' "len=$($tokenAdmin.Length)"
+} else {
+    Bad 'RESET token admin en outbox' 'sin token=hex64 en mail_outbox'
+}
+
+$moAdmin = Scalar "SELECT COUNT(*) FROM mail_outbox WHERE destino = '$($script:email)' AND kind = 'admin' AND estado = 'enviado' AND transport = 'outbox'"
+if ([int]$moAdmin -ge 1) { Ok 'RESET mail_outbox' "$moAdmin fila(s) kind=admin enviado/outbox" }
+else { Bad 'RESET mail_outbox' "filas=$moAdmin" }
+
+$r = Invoke-Post '/auth/reset-password' (@{ token = $tokenAdmin; password_nuevo = 'FinalF2Pass123!' } | ConvertTo-Json) $null $null
+if ($r.Status -eq 200) { Ok 'RESET consume enlace' '200' }
+else { Bad 'RESET consume enlace' "status=$($r.Status) $($r.Content)" }
+
+$lt2 = LoginFull $script:email 'FinalF2Pass123!'
+$tTemp2 = if ($lt2) { $lt2.data.tokens.access_token } else { $null }
+if (-not $tTemp2) { Bad 'LOGIN tras reset' 'sin token'; exit 1 }
+Ok 'LOGIN tras reset' 'token ok'
+if ($lt2.data.password_change_required -eq $false) {
+    Ok 'LOGIN tras reset flag' 'password_change_required=false'
+} else {
+    Bad 'LOGIN tras reset flag' "valor=$($lt2.data.password_change_required)"
+}
 
 $r = Invoke-Get '/users' $tTemp2
 $c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
@@ -223,13 +283,15 @@ $audCreate = Scalar "SELECT COUNT(*) FROM audit_logs WHERE operacion = 'user.cre
 $audStatus = Scalar "SELECT COUNT(*) FROM audit_logs WHERE operacion = 'user.status.change'"
 $audReset = Scalar "SELECT COUNT(*) FROM audit_logs WHERE operacion = 'user.password.reset'"
 $audChange = Scalar "SELECT COUNT(*) FROM audit_logs WHERE operacion = 'auth.password.change'"
-$leak = Scalar "SELECT COUNT(*) FROM audit_logs WHERE CONCAT_WS(' ', detalles_adicionales, valores_nuevos) LIKE '%$temp1%' OR CONCAT_WS(' ', detalles_adicionales, valores_nuevos) LIKE '%$temp2%'"
+# v1.18.0: ninguna password usada por el script (ni la clave password_temporal,
+# ya eliminada) debe aparecer en la auditoria.
+$leak = Scalar "SELECT COUNT(*) FROM audit_logs WHERE CONCAT_WS(' ', detalles_adicionales, valores_nuevos) LIKE '%AltaF2Pass123%' OR CONCAT_WS(' ', detalles_adicionales, valores_nuevos) LIKE '%NuevaF2Pass123%' OR CONCAT_WS(' ', detalles_adicionales, valores_nuevos) LIKE '%FinalF2Pass123%' OR CONCAT_WS(' ', detalles_adicionales, valores_nuevos) LIKE '%MgrLitePass123%' OR CONCAT_WS(' ', detalles_adicionales, valores_nuevos) LIKE '%password_temporal%'"
 if ([int]$audCreate -gt 0) { Ok 'AUDIT user.create' "$audCreate filas" } else { Bad 'AUDIT user.create' "$audCreate" }
 if ([int]$audStatus -gt 0) { Ok 'AUDIT user.status.change' "$audStatus filas" } else { Bad 'AUDIT user.status.change' "$audStatus" }
 if ([int]$audReset -gt 0) { Ok 'AUDIT user.password.reset' "$audReset filas" } else { Bad 'AUDIT user.password.reset' "$audReset" }
 if ([int]$audChange -gt 0) { Ok 'AUDIT auth.password.change' "$audChange filas" } else { Bad 'AUDIT auth.password.change' "$audChange" }
-if ("$leak" -eq '0') { Ok 'AUDIT sin password temporal en claro' '0 coincidencias' }
-else { Bad 'AUDIT sin password temporal en claro' "filas=$leak" }
+if ("$leak" -eq '0') { Ok 'AUDIT sin passwords en claro' '0 coincidencias' }
+else { Bad 'AUDIT sin passwords en claro' "filas=$leak" }
 
 # ================================================== 8) replay no duplica auditoria
 $beforeCreate = [int](Scalar "SELECT COUNT(*) FROM audit_logs WHERE operacion = 'user.create'")
@@ -451,23 +513,35 @@ $mgrEmail = "f2-mgr-$($script:runId)@acme.local"
 $r = Invoke-Post '/users' (@{ email = $mgrEmail; nombre = 'Mgr'; apellido = 'Lite' } | ConvertTo-Json) "mgr-$($script:runId)" $ta
 $c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}
 $uid2 = if ($c.data.user.id) { $c.data.user.id } else { $null }
-$tempMgr = $c.data.user.password_temporal
-if ($r.Status -eq 201 -and $uid2) { Ok 'GRUPO mgr-lite alta' "id=$uid2" }
+if ($r.Status -eq 201 -and $uid2 -and -not $c.data.user.password_temporal -and $c.data.email_enviado -eq $true) {
+    Ok 'GRUPO mgr-lite alta' "id=$uid2 email_enviado=true"
+}
 else { Bad 'GRUPO mgr-lite alta' "status=$($r.Status) $($r.Content)" }
 
 $r = Invoke-Post "/users/$uid2/roles" (@{ role_id = $managerRole.id } | ConvertTo-Json) $null $ta
 if ($r.Status -eq 200) { Ok 'GRUPO mgr-lite recibe MANAGER' '200' }
 else { Bad 'GRUPO mgr-lite recibe MANAGER' "status=$($r.Status) $($r.Content)" }
 
-$lt3 = LoginFull $mgrEmail $tempMgr
+$tokenMgr = LastMailToken 'welcome' $mgrEmail
+if ($tokenMgr -and $tokenMgr.Length -eq 64) {
+    Ok 'GRUPO mgr-lite bienvenida' "token len=$($tokenMgr.Length)"
+} else {
+    Bad 'GRUPO mgr-lite bienvenida' 'sin token=hex64 en mail_outbox'
+}
+
+$r = Invoke-Post '/auth/reset-password' (@{ token = $tokenMgr; password_nuevo = 'MgrLitePass123!' } | ConvertTo-Json) $null $null
+if ($r.Status -eq 200) { Ok 'GRUPO mgr-lite consume bienvenida' '200' }
+else { Bad 'GRUPO mgr-lite consume bienvenida' "status=$($r.Status) $($r.Content)" }
+
+$lt3 = LoginFull $mgrEmail 'MgrLitePass123!'
 $tMgr = if ($lt3) { $lt3.data.tokens.access_token } else { $null }
 if (-not $tMgr) { Bad 'GRUPO mgr-lite login' 'sin token'; exit 1 }
 Ok 'GRUPO mgr-lite login' 'token ok'
-
-# salir del cambio forzado (password temporal) antes de usar el token
-$r = Invoke-Post '/auth/change-password' (@{ password_actual = $tempMgr; password_nuevo = 'MgrLitePass123!' } | ConvertTo-Json) $null $tMgr
-if ($r.Status -eq 200) { Ok 'GRUPO mgr-lite cambio pass' '200' }
-else { Bad 'GRUPO mgr-lite cambio pass' "status=$($r.Status) $($r.Content)" }
+if ($lt3.data.password_change_required -eq $false) {
+    Ok 'GRUPO mgr-lite flag' 'password_change_required=false'
+} else {
+    Bad 'GRUPO mgr-lite flag' "valor=$($lt3.data.password_change_required)"
+}
 
 # escalada: rol demasiado potente para el actor
 $r = Invoke-Post "/groups/$gid/roles" (@{ role_id = $adminRole.id } | ConvertTo-Json) $null $tMgr

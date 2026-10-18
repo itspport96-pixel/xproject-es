@@ -73,19 +73,24 @@ function Scalar($sql) {
     return ("$v".Trim())
 }
 
-# Crea usuario, completa el primer login (cambio forzado) y devuelve token final.
+# Crea usuario sin password (v1.18.0): la alta envia el enlace de bienvenida y
+# el usuario se activa consumiendolo con la password definitiva (ya no hay
+# password temporal ni cambio forzado). El preclear del rate limit de
+# reset-password (5/900s por IP) evita que scripts con muchos usuarios
+# tropiecen con el 429 al encadenar consumes.
 function New-ActivatedUser($token, $tag) {
     $email = "v1131-$tag-$($script:runId)@acme.local"
     $r = Invoke-Post '/users' (@{ email = $email; nombre = 'V1131'; apellido = $tag } | ConvertTo-Json) "v1131-$tag-$($script:runId)" $token
     if ($r.Status -ne 201) { return $null }
     $c = $r.Content | ConvertFrom-Json
     $uid = $c.data.user.id
-    $temp = $c.data.user.password_temporal
 
-    $lt = LoginFull $email $temp
-    if (-not $lt) { return $null }
-    $tTemp = $lt.data.tokens.access_token
-    $null = Invoke-Post '/auth/change-password' (@{ password_actual = $temp; password_nuevo = 'V1131Pass123!' } | ConvertTo-Json) $null $tTemp
+    $tok = LastMailToken 'welcome' $email
+    if (-not $tok) { return $null }
+    $null = & $phpExe (Join-Path $e2eRepoRoot 'tools\e2e\clear-rate-limit.php') 'rl:*auth/reset-password*' 2>&1
+    $rc = Invoke-Post '/auth/reset-password' (@{ token = $tok; password_nuevo = 'V1131Pass123!' } | ConvertTo-Json) $null $null
+    if ($rc.Status -ne 200) { return $null }
+
     $ln = LoginFull $email 'V1131Pass123!'
     if (-not $ln) { return $null }
     return @{ Id = $uid; Email = $email; Login = $ln; Token = $ln.data.tokens.access_token }

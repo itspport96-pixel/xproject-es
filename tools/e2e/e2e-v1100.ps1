@@ -114,9 +114,24 @@ if (-not $tokenA) { Bad 'LOGIN aleon' 'sin token'; exit 1 }
 Ok 'LOGIN aleon@acme.local' "ADMIN token len=$($tokenA.Length)"
 
 # USER: tiene inventory.stock.view pero NO inventory.stock.block.
-$tokenU = Login 'mpinilla@acme.local' 'Admin123!'
-if (-not $tokenU) { Bad 'LOGIN mpinilla@acme.local' 'sin token'; exit 1 }
-Ok 'LOGIN mpinilla@acme.local (sin stock.block)' "USER token len=$($tokenU.Length)"
+# v1.18.0: su password no es secreto del script, asi que se fija antes con un
+# reset de admin (enlace consumido desde mail_outbox) y luego se usa. La
+# password es unica por ejecucion: el consume rechaza repetir passwords del
+# historial (en otras corridas ya dejo Admin123! en la BD de E2E).
+$usrId = Scalar "SELECT id FROM users WHERE email = 'itspport96@gmail.com' AND deleted_at IS NULL"
+$pswU = "U96-$($script:runId)Aa1!"
+$rstU = Invoke-Post "/users/$usrId/password/reset" '{}' $null $tokenA
+$tokU = LastMailToken 'admin' 'itspport96@gmail.com'
+$rcU = $null
+if ($tokU) { $rcU = Invoke-Post '/auth/reset-password' (@{ token = $tokU; password_nuevo = $pswU } | ConvertTo-Json) $null $null }
+$rcSt = if ($rcU) { $rcU.Status } else { 'sin-consume' }
+if ($rstU.Status -eq 200 -and "$rcSt" -eq '200') {
+    Ok 'SETUP password itspport96' 'reset admin + consume desde outbox'
+} else { Bad 'SETUP password itspport96' "reset=$($rstU.Status) consume=$rcSt" }
+
+$tokenU = Login 'itspport96@gmail.com' $pswU
+if (-not $tokenU) { Bad 'LOGIN itspport96@gmail.com' 'sin token'; exit 1 }
+Ok 'LOGIN itspport96@gmail.com (sin stock.block)' "USER token len=$($tokenU.Length)"
 
 # ==================================================== 2) recursos base
 $almacen = (Scalar "SELECT id FROM locations WHERE codigo='E2E-ALMACEN' AND activa=1")
