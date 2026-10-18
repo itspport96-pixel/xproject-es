@@ -1,3 +1,13 @@
+# tools\e2e\e2e-v1139.ps1 - politica de borrado (v1.13.9) contra el servidor
+# real: SKU/codigo reutilizables tras soft delete (columnas generadas en
+# MySQL), unicidad por tenant, audit con valores_despues, ultimo admin y
+# grupos.
+#
+# v1.18.x (eficiencia B3): la matriz de bloqueos 409/403 ya vive en PHPUnit
+# (ProductServiceTest/ProductControllerTest, LocationServiceTest/
+# LocationControllerTest, RoleControllerGuardTest) y se quita de aqui; se
+# conserva el ultimo admin (sin cobertura de DELETE en PHPUnit) y todo el
+# estado real sobre MySQL.
 $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot '_env.ps1')   # BD E2E + servidor PHP embebido
 $script:failures = 0
@@ -89,9 +99,7 @@ $nuevo = Scalar "SELECT COUNT(*) FROM products WHERE id = '$pid2' AND deleted_at
 if ("$viejo" -eq '1' -and "$nuevo" -eq '1') { Ok 'PROD borrado persiste + nuevo activo' 'filas=1/1' }
 else { Bad 'PROD borrado persiste + nuevo activo' "viejo=$viejo nuevo=$nuevo" }
 
-$r = Invoke-Post '/inventory/products' (@{ sku = $sku; nombre = 'Duplicado activo'; unidad_medida = 'UNIDAD'; categoria = 'Fijaciones' } | ConvertTo-Json) $null $ta
-if ($r.Status -eq 409) { Ok 'PROD duplicado activo' '409' }
-else { Bad 'PROD duplicado activo' "status=$($r.Status) $($r.Content)" }
+# SKU activo duplicado -> 409 (contrato en PHPUnit: ProductServiceTest).
 
 # SKU activo de otro tenant no choca (unicidad por tenant).
 $otroTenant = Scalar "SELECT id FROM tenants WHERE id <> (SELECT tenant_id FROM products WHERE id = '$pid2') LIMIT 1"
@@ -110,17 +118,9 @@ $aud = Scalar "SELECT COUNT(*) FROM audit_logs WHERE operacion = 'product.delete
 if ([int]$aud -ge 1) { Ok 'AUDIT product.delete valores_despues' "$aud fila(s)" }
 else { Bad 'AUDIT product.delete valores_despues' "count=$aud" }
 
-# ============================================ 2) PRODUCTO con stock: baja bloqueada
-# Se recibe en E2E-ALMACEN para que la ubicacion quede con movimientos
-# (tambien alimenta el bloqueo de la seccion 4).
-$r = Invoke-Post '/inventory/receive' (@{ sku = 'PROD-001'; cantidad_esperada = 1; ubicacion_codigo = 'E2E-ALMACEN' } | ConvertTo-Json) "v1139-recv-$($script:runId)" $ta
-if ($r.Status -eq 201) { Ok 'RECV fixture PROD-001' 'en E2E-ALMACEN' }
-else { Bad 'RECV fixture PROD-001' "status=$($r.Status) $($r.Content)" }
-
-$prodConStock = Scalar "SELECT id FROM products WHERE sku = 'PROD-001' AND deleted_at IS NULL LIMIT 1"
-$r = Invoke-Delete "/inventory/products/$prodConStock" $ta
-if ($r.Status -eq 409) { Ok 'PROD con stock no se puede borrar' '409' }
-else { Bad 'PROD con stock no se puede borrar' "status=$($r.Status) $($r.Content)" }
+# ============================================ 2) PRODUCTO con stock / LOC con
+# movimientos: bloqueo de baja (contrato en PHPUnit: ProductServiceTest y
+# LocationServiceTest); aqui no se repite la matriz.
 
 # ============================================ 3) UBICACION: borrar + recrear codigo
 $cod = "V1139-$($script:runId)"
@@ -140,31 +140,16 @@ $lid2 = if ($c.data.location.id) { $c.data.location.id } else { $null }
 if ($r.Status -eq 201 -and $lid2 -and $lid2 -ne $lid1) { Ok 'LOC recrear mismo codigo' "201 id-nuevo=$lid2" }
 else { Bad 'LOC recrear mismo codigo' "status=$($r.Status) $($r.Content)" }
 
-$r = Invoke-Post '/inventory/locations' (@{ codigo = $cod; nombre = 'Duplicada activa'; tipo = 'ALMACENAMIENTO' } | ConvertTo-Json) $null $ta
-if ($r.Status -eq 409) { Ok 'LOC duplicado activo' '409' }
-else { Bad 'LOC duplicado activo' "status=$($r.Status) $($r.Content)" }
+# Codigo duplicado activo -> 409 y LOC con movimientos -> 409 (contrato en
+# PHPUnit: LocationServiceTest).
 
-# ============================================ 4) UBICACION con movimientos: bloqueada
-$e2eAlmacenId = Scalar "SELECT id FROM locations WHERE codigo = 'E2E-ALMACEN' AND deleted_at IS NULL LIMIT 1"
-$r = Invoke-Delete "/inventory/locations/$e2eAlmacenId" $ta
-if ($r.Status -eq 409) { Ok 'LOC con movimientos no se puede borrar' '409' }
-else { Bad 'LOC con movimientos no se puede borrar' "status=$($r.Status) $($r.Content)" }
-
-# ============================================ 5) ROL BUILT_IN: baja bloqueada
-$r = Invoke-Get '/roles' $ta
-$rs = ($r.Content | ConvertFrom-Json).data.roles
-$adminRole = @($rs | Where-Object { $_.nombre -eq 'ADMIN' } | Select-Object -First 1)
-$r = Invoke-Delete "/roles/$($adminRole.id)" $ta
-if ($r.Status -eq 403) { Ok 'ROL BUILT_IN no se puede borrar' '403' }
-else { Bad 'ROL BUILT_IN no se puede borrar' "status=$($r.Status) $($r.Content)" }
-
-# ============================================ 6) ULTIMO ADMIN: baja bloqueada
+# ============================================ 4) ULTIMO ADMIN: baja bloqueada
 $adminId = $adm.data.user.id
 $r = Invoke-Delete "/users/$adminId" $ta
 if ($r.Status -eq 403) { Ok 'USER ultimo admin no se puede borrar' '403' }
 else { Bad 'USER ultimo admin no se puede borrar' "status=$($r.Status) $($r.Content)" }
 
-# ============================================ 7) GRUPO: borrar + recrear nombre
+# ============================================ 5) GRUPO: borrar + recrear nombre
 $gName = "V1139 G $($script:runId)"
 $r = Invoke-Post '/groups' (@{ nombre = $gName; descripcion = 'politica borrado' } | ConvertTo-Json) "v1139-g-$($script:runId)" $ta
 $c = $null; try { $c = $r.Content | ConvertFrom-Json } catch {}

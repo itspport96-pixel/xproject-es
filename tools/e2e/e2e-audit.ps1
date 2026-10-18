@@ -1,3 +1,8 @@
+# tools\e2e\e2e-audit.ps1 - flujo de auditoria real: escrituras con
+# X-Request-Id, cadena prev_hash, filtros de la bitacora y permisos de lectura.
+# v1.18.x (eficiencia B3): el 400 de resultado=TODO ya vive en PHPUnit
+# (AuditLogQueryTest) y se quita de aqui; se conservan los 401/403 de ruta
+# (sin cobertura de controller) y todos los checks de cadena/filtros reales.
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '_env.ps1')   # BD E2E + servidor PHP embebido (v1.8.3)
 $results = New-Object System.Collections.ArrayList
@@ -178,8 +183,7 @@ if ($reqIdProd) {
 $pag = Call 'GET' "$base/audit/logs?page=2&per_page=2" $null $H
 Add-R 'GET /audit/logs paginado (page=2)' $pag.code ("filas=$($pag.json.data.data.Count) last_page=$($pag.json.data.pagination.last_page)")
 
-$invalido = Call 'GET' "$base/audit/logs?resultado=TODO" $null $H
-Add-R 'GET /audit/logs?resultado=TODO (400)' $invalido.code $invalido.json.message
+# resultado=TODO -> 400 (contrato en PHPUnit: AuditLogQueryTest).
 
 $rango = Call 'GET' "$base/audit/logs?fecha_desde=2026-10-01&fecha_hasta=2026-12-31" $null $H
 Add-R 'GET /audit/logs rango fechas' $rango.code ("total=$($rango.json.data.summary.total)")

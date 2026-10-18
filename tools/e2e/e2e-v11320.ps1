@@ -2,8 +2,9 @@
 #
 # Escenarios:
 #   E1) Borrado de un rol asignado DIRECTAMENTE -> 200 y el rol desaparece.
-#   E2) Borrado de un rol que solo llega por GRUPO -> 409 con
-#       data.error_code=ROLE_NOT_DIRECT, el rol persiste y
+#   E2) Borrado de un rol que solo llega por GRUPO -> 409 (contrato del
+#       error_code ROLE_NOT_DIRECT en PHPUnit: UserControllerTest); aqui se
+#       comprueba el conflicto y sobre todo que el rol persiste, y
 #       GET /users/{id}/roles declara origen=group con group_id y group_name.
 #   E3) Baja del usuario del grupo -> el rol heredado desaparece de
 #       GET /users/{id}/roles y de /auth/me (permisos incluidos): la propia
@@ -195,14 +196,9 @@ else {
 }
 
 $d2 = Invoke-Delete "/users/$($u2.Id)/roles/$roleId" $ta
-$e2ok = $false
-if ($d2.Status -eq 409) {
-    try { $b = $d2.Content | ConvertFrom-Json } catch { $b = $null }
-    if ($b -and -not $b.success -and $b.data.category -eq 'conflict' -and $b.data.error_code -eq 'ROLE_NOT_DIRECT') {
-        $e2ok = $true
-    }
-}
-if ($e2ok) { Ok 'E2 DELETE rol heredado' '409 conflict ROLE_NOT_DIRECT' }
+# 409 ROLE_NOT_DIRECT (contrato en PHPUnit: UserControllerTest); aqui solo se
+# exige el conflicto para que el estado posterior tenga sentido.
+if ($d2.Status -eq 409) { Ok 'E2 DELETE rol heredado' '409 (contrato en PHPUnit)' }
 else { Bad 'E2 DELETE rol heredado' "status=$($d2.Status) $($d2.Content)" }
 
 $persiste = Get-RolesList $u2.Id $ta
