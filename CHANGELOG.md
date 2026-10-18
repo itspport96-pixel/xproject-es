@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.18.4] - 2026-10-18
+
+**Decision sobre el 403 `password_change_required`: se acepta como conocido y no se anade cobertura E2E.** El gate existe y esta cubierto en PHPUnit (`AuthenticationMiddlewareTest`: marcador `password_change_forced` y caducidad de `fecha_expiracion_password` -> 403 con `category=password_change_required`; `AdminResetLiveTest`: el reset por admin deja el marcador activo y el login lo arrastra). En los E2E es inalcanzable de forma natural porque consumir la liga de bienvenida o la de reset limpia `password_change_forced` dentro del mismo flujo, de modo que ninguna cadena real del script llega al403. Fuerzarlo exigiria un UPDATE manual del marcador en la BD de E2E contra un token sin consumir, que solo probaria el propio UPDATE y el mismo middleware ya testeado; se decide no anadirlo y queda documentado aqui (deuda (4) de v1.18.0 cerrada por decision, sin cambios de codigo).
+
+### Notes
+- Sin cambios de codigo ni de tests en esta entrada; solo decision documentada.
+
 ## [1.18.3] - 2026-10-18
 
 **Purga de `mail_outbox` por antiguedad: el outbox de correos deja de crecer sin limite.** Nuevo comando `php bin/purge-mail-outbox.php [--days=<n>] [--tenant=<id>] [--apply]`: borra las filas con `created_at` mas antigua que la retencion (por defecto 30 dias); sin `--apply` hace dry-run y solo cuenta las candidatas. Los transports de la tabla son terminales (`enviado` o `fallo`, sin estado pendiente), de modo que cualquier fila por encima de la retencion ya no tiene uso operativo (el HTML del correo solo sirve para auditoria reciente). Cierra la deuda (3) de v1.18.0 (`mail_outbox` sin purga). Verificado en la BD de E2E con filas sembradas a 40/60/5 dias: dry-run 2, `--apply` borra 2 y la de 5 dias queda intacta; filtro `--tenant` y `--help` OK. En la BD viva el dry-run con la retencion por defecto da 0 candidatas (todas las filas son de hoy).
