@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.18.5] - 2026-10-18
+
+**Correos transaccionales en cuatro idiomas: la deuda (1) de v1.18.0 queda cerrada; no quedan pendientes declarados de esa version.** Nuevo `src/Shared/Services/MailCatalog.php` con los textos de los cinco correos (reset SSPR, reset administrativo, bienvenida, cambio de contrasena y prueba SMTP) en es/en/pt/fr, con el idioma resuelto desde `users.preferencias` (JSON, clave `idioma`, misma whitelist es|en|pt|fr que `UserService::PREFERENCIAS_IDIOMA`); si el destinatario no existe, no ha elegido idioma o el valor esta fuera de la whitelist, se usa espanol. `PasswordResetService` compone sus cuatro correos a traves del catalogo (asunto, saludo, intro con {ttl}, enlace y cierre) y `MailerService::sendTest` usa el mismo catalogo. Sin cambios de esquema ni de API.
+
+### Added
+- `src/Shared/Services/MailCatalog.php`: catalogo de textos por kind e idioma con `compose`, `composeEn` e `idiomaDelDestino`; binding nuevo en `bootstrap.php`.
+
+### Changed
+- `src/Core/Authentication/PasswordResetService`: los cuatro `send*Email` (reset, admin, welcome, changed) delegan la composicion en `MailCatalog`.
+- `src/Core/Tenants/Service/MailerService.php`: `sendTest` compone asunto y cuerpo via `MailCatalog`.
+
+### Tests
+- `tests/Unit/MailCatalogTest.php`: 29 tests (20 asuntos kind+idioma, render de placeholders, escape HTML, fallback a espanol, changed sin enlace, kind test con {tenant}).
+- `tests/Unit/MailCatalogPreferenciasLiveTest.php`: 6 tests contra `xproject_e2e` (preferencia en activa, idioma fuera de whitelist, preferencias sin clave `idioma`, destinatario inexistente, pt en welcome/admin).
+- `composer test`: 1057 tests, 7155 assertions. `check-schema-drift` SIN DRIFT. `check-data-integrity` DATOS CONSISTENTES. Suite `e2e-auth` 3/3 OK.
+- Verificacion end-to-end: con `preferencias={"idioma":"en"}` en manager, `POST /users/{id}/password/reset` deja en `mail_outbox` asunto `Reset your password` y cuerpo en ingles; despues del experimento la BD de E2E se recreo con `prepare-e2e-db --fresh` (integridad DATOS CONSISTENTES). GETs de solo lectura con admin: `/auth/me`, `/users` y `/roles` 200; `GET /tenants` global no existe por diseno (TenantController lo reserva a GLOBAL_ADMIN, reportado).
+
+### Notes
+- `users.preferencias` tiene CHECK `json_valid`, de modo que el catalogo solo ve JSON bien formado; la rama defensiva de `json_decode` queda por si la restriccion cambia.
+- El idioma es del destinatario como usuario; los correos cuyo destino no coincide con ningun usuario (por ejemplo la prueba SMTP del tenant) se envian en espanol.
 ## [1.18.4] - 2026-10-18
 
 **Decision sobre el 403 `password_change_required`: se acepta como conocido y no se anade cobertura E2E.** El gate existe y esta cubierto en PHPUnit (`AuthenticationMiddlewareTest`: marcador `password_change_forced` y caducidad de `fecha_expiracion_password` -> 403 con `category=password_change_required`; `AdminResetLiveTest`: el reset por admin deja el marcador activo y el login lo arrastra). En los E2E es inalcanzable de forma natural porque consumir la liga de bienvenida o la de reset limpia `password_change_forced` dentro del mismo flujo, de modo que ninguna cadena real del script llega al403. Fuerzarlo exigiria un UPDATE manual del marcador en la BD de E2E contra un token sin consumir, que solo probaria el propio UPDATE y el mismo middleware ya testeado; se decide no anadirlo y queda documentado aqui (deuda (4) de v1.18.0 cerrada por decision, sin cambios de codigo).

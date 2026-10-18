@@ -11,6 +11,7 @@ use App\Core\Users\Exception\UserException;
 use App\Core\Users\Service\UserService;
 use App\Shared\Container\Container;
 use App\Shared\Services\DatabaseService;
+use App\Shared\Services\MailCatalog;
 use PDO;
 
 /**
@@ -68,6 +69,7 @@ class PasswordResetService
     private ?DatabaseService $db;
     private ?AuthorizationService $authz;
     private ?UserService $users;
+    private ?MailCatalog $catalog;
     private ?MailerService $mailer;
     private ?AuditLogger $audit;
 
@@ -543,14 +545,12 @@ class PasswordResetService
     /** @throws \Throwable Si el SMTP del tenant falla */
     protected function sendResetEmail(string $tenantId, string $destino, string $nombre, string $token): void
     {
-        $url = $this->buildResetUrl($token);
-        $html = '<p>Hola ' . htmlspecialchars($nombre !== '' ? $nombre : $destino, ENT_QUOTES, 'UTF-8') . ':</p>'
-            . '<p>Recibimos una solicitud para restablecer tu contrasena. Haz clic en el siguiente enlace '
-            . '(válido durante ' . self::TOKEN_TTL_MINUTES . ' minutos y de un solo uso):</p>'
-            . '<p><a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">Restablecer mi contrasena</a></p>'
-            . '<p>Si no fuiste tu, ignora este correo; tu contrasena no cambia.</p>';
+        $mail = $this->catalog()->compose('reset', $destino, $nombre !== '' ? $nombre : $destino, [
+            'ttl' => (string) self::TOKEN_TTL_MINUTES,
+            'url' => $this->buildResetUrl($token),
+        ]);
 
-        $this->sendMail($tenantId, $destino, 'Restablecer tu contrasena', $html, 'reset');
+        $this->sendMail($tenantId, $destino, $mail['asunto'], $mail['html'], 'reset');
     }
 
     /**
@@ -561,16 +561,12 @@ class PasswordResetService
      */
     protected function sendAdminResetEmail(string $tenantId, string $destino, string $nombre, string $token, int $ttlMinutes): void
     {
-        $url = $this->buildResetUrl($token);
-        $html = '<p>Hola ' . htmlspecialchars($nombre !== '' ? $nombre : $destino, ENT_QUOTES, 'UTF-8') . ':</p>'
-            . '<p>Un administrador de la plataforma solicito restablecer tu contrasena. '
-            . 'Para elegir una nueva, haz clic en el siguiente enlace (valido durante '
-            . $ttlMinutes . ' minutos y de un solo uso):</p>'
-            . '<p><a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">Restablecer mi contrasena</a></p>'
-            . '<p>Tu contrasena anterior dejo de ser valida. Si no fuiste tu, '
-            . 'contacta de inmediato con un administrador.</p>';
+        $mail = $this->catalog()->compose('admin', $destino, $nombre !== '' ? $nombre : $destino, [
+            'ttl' => (string) $ttlMinutes,
+            'url' => $this->buildResetUrl($token),
+        ]);
 
-        $this->sendMail($tenantId, $destino, 'Restablecer tu contrasena', $html, 'admin');
+        $this->sendMail($tenantId, $destino, $mail['asunto'], $mail['html'], 'admin');
     }
 
     /**
@@ -581,25 +577,20 @@ class PasswordResetService
      */
     protected function sendWelcomeEmail(string $tenantId, string $destino, string $nombre, string $token, int $ttlHours): void
     {
-        $url = $this->buildResetUrl($token);
-        $saludo = htmlspecialchars($nombre !== '' ? $nombre : $destino, ENT_QUOTES, 'UTF-8');
-        $html = '<p>Hola ' . $saludo . ':</p>'
-            . '<p>Tu cuenta fue creada en la plataforma. Para elegir tu contrasena, haz clic '
-            . 'en el siguiente enlace (válido durante ' . $ttlHours . ' horas y de un solo uso):</p>'
-            . '<p><a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">Establecer mi contrasena</a></p>'
-            . '<p>Si no esperabas este correo, contacta con un administrador.</p>';
+        $mail = $this->catalog()->compose('welcome', $destino, $nombre !== '' ? $nombre : $destino, [
+            'ttl' => (string) $ttlHours,
+            'url' => $this->buildResetUrl($token),
+        ]);
 
-        $this->sendMail($tenantId, $destino, 'Bienvenido a la plataforma', $html, 'welcome');
+        $this->sendMail($tenantId, $destino, $mail['asunto'], $mail['html'], 'welcome');
     }
 
     /** @throws \Throwable Si el SMTP del tenant falla */
     protected function sendChangedEmail(string $tenantId, string $destino, string $nombre): void
     {
-        $html = '<p>Hola ' . htmlspecialchars($nombre !== '' ? $nombre : $destino, ENT_QUOTES, 'UTF-8') . ':</p>'
-            . '<p>Tu contrasena fue restablecida correctamente. Si no fuiste tu, '
-            . 'contacta de inmediato con un administrador.</p>';
+        $mail = $this->catalog()->compose('changed', $destino, $nombre !== '' ? $nombre : $destino);
 
-        $this->sendMail($tenantId, $destino, 'Tu contrasena fue restablecida', $html, 'changed');
+        $this->sendMail($tenantId, $destino, $mail['asunto'], $mail['html'], 'changed');
     }
 
     /**
@@ -689,6 +680,18 @@ class PasswordResetService
     private function mailer(): MailerService
     {
         return $this->mailer ??= Container::getInstance()->get(MailerService::class);
+    }
+
+    private function catalog(): MailCatalog
+    {
+        if (! isset($this->catalog)) {
+            $container = Container::getInstance();
+            $this->catalog = $container->has(MailCatalog::class)
+                ? $container->get(MailCatalog::class)
+                : new MailCatalog();
+        }
+
+        return $this->catalog;
     }
 
     private function auditOrNull(): ?AuditLogger

@@ -191,6 +191,11 @@ $container->singleton(
     )
 );
 
+$container->singleton(
+    App\Shared\Services\MailCatalog::class,
+    fn() => new App\Shared\Services\MailCatalog()
+);
+
 // ============================================
 // SECURITY DOMAIN (Sprint 0)
 // ============================================

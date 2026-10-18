@@ -72,10 +72,9 @@ final class MailerService
 
         $nombrePublico = (string) $tenant->nombrePublico();
 
-        $this->deliver($tenant, $smtp, $destino, 'Prueba SMTP - ' . $nombrePublico,
-            '<p>Correo de prueba enviado desde la configuración de <strong>'
-            . htmlspecialchars($nombrePublico, ENT_QUOTES, 'UTF-8')
-            . '</strong>.</p>', 'test');
+        $mail = (new \App\Shared\Services\MailCatalog())->compose('test', $destino, $nombrePublico);
+
+        $this->deliver($tenant, $smtp, $destino, $mail['asunto'], $mail['html'], 'test');
 
         return $destino;
     }
