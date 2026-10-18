@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.18.3] - 2026-10-18
+
+**Purga de `mail_outbox` por antiguedad: el outbox de correos deja de crecer sin limite.** Nuevo comando `php bin/purge-mail-outbox.php [--days=<n>] [--tenant=<id>] [--apply]`: borra las filas con `created_at` mas antigua que la retencion (por defecto 30 dias); sin `--apply` hace dry-run y solo cuenta las candidatas. Los transports de la tabla son terminales (`enviado` o `fallo`, sin estado pendiente), de modo que cualquier fila por encima de la retencion ya no tiene uso operativo (el HTML del correo solo sirve para auditoria reciente). Cierra la deuda (3) de v1.18.0 (`mail_outbox` sin purga). Verificado en la BD de E2E con filas sembradas a 40/60/5 dias: dry-run 2, `--apply` borra 2 y la de 5 dias queda intacta; filtro `--tenant` y `--help` OK. En la BD viva el dry-run con la retencion por defecto da 0 candidatas (todas las filas son de hoy).
+
+### Added
+- `bin/purge-mail-outbox.php`: purga con retencion por defecto 30 dias, dry-run implicito sin `--apply`, `--days` y `--tenant`.
+
+### Tests
+- `composer test`: 1022 tests, 7080 assertions. `check-schema-drift` SIN DRIFT (sin cambios de esquema). Prueba destructiva de la purga en `xproject_e2e` (regla 16); la BD viva no se toca (solo dry-run).
+
+### Notes
+- La purga es un comando CLI manual (estilo `bin/expire-reservations.php`); no hay cron en el repo y no se anade ninguno (fuera de alcance, reportado).
+
 ## [1.18.2] - 2026-10-18
 
 **Scrub de contrasenas en la auditoria: el body de las escrituras ya no guarda passwords en claro.** `AuditMiddleware::scrubSensitive` sustituye por `[REDACTADO]` las claves `password`, `password_actual` y `password_nuevo` (recursivo por si viajan anidadas) justo antes de montar `valores_nuevos`, de modo que un cambio de contrasena o un alta/reset con password explicita quedan auditados sin el secreto en la fila. Cierra la deuda (2) de v1.18.0 (el `AuditMiddleware` no hacia scrub). Verificado: PHPUnit 12/12 en `AuditMiddlewareTest` (+4: login fallido, change-password actual/nuevo, anidado y conservacion del resto del body) y end-to-end contra la BD viva con el servidor embebido: `POST /api/users` con password y sin permiso (403) guarda `valores_nuevos.password = "[REDACTADO]"` con el resto de campos intactos.
