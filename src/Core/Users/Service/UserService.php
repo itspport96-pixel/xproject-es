@@ -61,14 +61,19 @@ final class UserService
      *   - email (string, requerido)
      *   - nombre (string, requerido)
      *   - apellido (string, requerido)
-     *   - password (string, opcional; si falta se genera uno temporal con
-     *     vigencia TEMP_PASSWORD_TTL_DAYS días y se devuelve una sola vez
-     *     en `password_temporal`)
      *   - telefono (string, opcional)
      *
-     * @return array Usuario creado (sin password). Si el password fue
-     *         generado, incluye password_temporal y password_change_required
-     * @throws UserException Si el email ya existe o datos inválidos
+     * v1.18.0 (cumplimiento): la contraseña NUNCA se entrega ni se acepta en
+     * claro. El hash se genera internamente con forma aleatoria (nadie lo
+     * conoce) y las credenciales las establece el propio usuario mediante el
+     * enlace de bienvenida (PasswordResetService::issueWelcome, kind
+     * 'welcome'). Un `password` en la petición se rechaza con 400
+     * (`users.password_not_allowed`): tampoco se audita en claro.
+     *
+     * @return array Usuario creado (sin password) con password_change_required
+     *         => true (el enlace de bienvenida lo resuelve al fijar la clave)
+     * @throws UserException Si el email ya existe, datos inválidos o se
+     *         envía un password explícito
      */
     public function create(array $data): array
     {
@@ -82,15 +87,10 @@ final class UserService
             throw UserException::emailAlreadyExists($email);
         }
 
-        // Password: si no viene, se genera uno temporal que obligará a
-        // cambiarlo en el primer inicio de sesión (v1.11.0).
-        $autogenerado = !isset($data['password']) || (string) $data['password'] === '';
-        $password = $autogenerado ? $this->generateTemporaryPassword() : (string) $data['password'];
-
-        // Validar fortaleza del password
+        // v1.18.0: hash interno de una contraseña aleatoria que NADIE conoce
+        // (ni admin ni usuario); sólo el enlace de bienvenida permite fijarla.
+        $password = $this->generateTemporaryPassword();
         $this->validatePasswordStrength($password);
-
-        // Hash del password
         $passwordHash = $this->hasher->hash($password);
 
         // Generar ID
@@ -112,12 +112,12 @@ final class UserService
             'apellido'   => trim((string) $data['apellido']),
             'password'   => $passwordHash,
             'telefono'   => isset($data['telefono']) ? trim((string) $data['telefono']) : null,
-            'password_change_forced' => $autogenerado ? $this->tempPasswordExpiry() : null,
+            'password_change_forced' => $this->tempPasswordExpiry(),
             'created_at' => $now,
             'updated_at' => $now,
         ]);
 
-        // Retornar sin password (el temporal se expone una sola vez)
+        // Retornar sin password: jamás se expone ni el hash ni un temporal.
         return array_merge($this->sanitizeUser([
             'id'         => $id,
             'tenant_id'  => $tenantId,
@@ -129,8 +129,7 @@ final class UserService
             'created_at' => $now,
             'updated_at' => $now,
         ]), [
-            'password_change_required' => $autogenerado,
-            'password_temporal'        => $autogenerado ? $password : null,
+            'password_change_required' => true,
         ]);
     }
 
@@ -593,24 +592,26 @@ final class UserService
     }
 
     /**
-     * Resetea el password de un usuario a uno temporal nuevo (v1.11.0).
+     * Invalida al instante la contraseña de un usuario (v1.18.0, cumplimiento).
      *
-     * Marca password_change_forced con la vigencia TEMP_PASSWORD_TTL_DAYS
-     * para que el usuario deba cambiarlo en el siguiente inicio de sesión.
-     * Las sesiones activas las revoca la capa HTTP (SessionRevokerService).
+     * Sustituye el hash por el de una contraseña aleatoria que NADIE conoce
+     * (ya no existe la "temporal que ve el admin") y marca
+     * password_change_forced con la vigencia TEMP_PASSWORD_TTL_DAYS. La única
+     * vía de recuperación es el enlace emitido por
+     * PasswordResetService::issueAdminReset. El hash saliente queda en el
+     * historial: la contraseña anterior no podrá reutilizarse. Las sesiones
+     * activas las revoca la capa HTTP (SessionRevokerService).
      *
-     * @return string Password temporal en texto plano (devuelto UNA sola vez)
      * @throws UserException 404 si el usuario no existe
      */
-    public function resetPassword(string $id, string $tenantId): string
+    public function invalidatePassword(string $id, string $tenantId): void
     {
         $user = $this->users->findById($id, $tenantId);
         if ($user === null) {
             throw UserException::userNotFound($id);
         }
 
-        $password = $this->generateTemporaryPassword();
-        $hash = $this->hasher->hash($password);
+        $hash = $this->hasher->hash($this->generateTemporaryPassword());
 
         // v1.16.0: el hash saliente queda en el historial (transaccional), de
         // modo que tras un reset el usuario no pueda recuperar la contraseña
@@ -639,8 +640,6 @@ final class UserService
             }
             throw $e;
         }
-
-        return $password;
     }
 
     /**
@@ -802,12 +801,24 @@ final class UserService
 
     private function validateCreateData(array $data): void
     {
-        // password es opcional (v1.11.0): si falta se genera uno temporal
         $required = ['tenant_id', 'email', 'nombre', 'apellido'];
         foreach ($required as $field) {
             if (empty($data[$field])) {
                 throw UserException::requiredField($field);
             }
+        }
+
+        // v1.18.0 (cumplimiento): el alta NUNCA acepta una contraseña en
+        // claro; las credenciales sólo se entregan por el enlace de
+        // bienvenida. Rechazar el campo evita además que se audite en claro.
+        if (isset($data['password']) && (string) $data['password'] !== '') {
+            throw (new UserException(
+                'El alta no admite una contraseña en claro; se envía un enlace de bienvenida.',
+                400,
+                null,
+                'password',
+                UserException::CATEGORY_VALIDATION
+            ))->withMessageKey('users.password_not_allowed');
         }
 
         $this->validateEmail((string) $data['email']);

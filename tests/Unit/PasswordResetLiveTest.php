@@ -73,6 +73,8 @@ final class PasswordResetLiveTest extends TestCase
                 tenant_id CHAR(36) NOT NULL,
                 user_id CHAR(36) NOT NULL,
                 token_hash VARCHAR(64) NOT NULL,
+                kind ENUM(\'sspr\',\'admin\',\'welcome\') NOT NULL DEFAULT \'sspr\',
+                requested_by CHAR(36) DEFAULT NULL,
                 created_at TIMESTAMP NOT NULL DEFAULT current_timestamp(),
                 expires_at DATETIME NOT NULL,
                 used_at DATETIME DEFAULT NULL,
@@ -133,9 +135,12 @@ final class PasswordResetLiveTest extends TestCase
                 $this->test->captureMail('changed');
             }
 
-            protected function sendMail(string $tenantId, string $destino, string $asunto, string $html): void
+            protected function sendMail(string $tenantId, string $destino, string $asunto, string $html, string $kind = 'general'): void
             {
-                // Nunca se invoca: los dos metodos de arriba lo evitan.
+                // Nunca se invoca: los dos metodos de arriba lo evitan
+                // (sendResetEmail y sendChangedEmail capturan antes de llegar
+                // aqui). Firma alineada con el parent v1.18.0 (kind de
+                // mail_outbox).
             }
         };
 

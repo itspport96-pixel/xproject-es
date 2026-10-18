@@ -92,6 +92,24 @@ final class MailerService
      */
     public function sendCustom(string $tenantId, string $destino, string $asunto, string $htmlBody, string $kind = 'general'): void
     {
+        $destino = trim($destino);
+        $tenant = $this->assertSendable($tenantId, $destino);
+
+        $this->deliver($tenant, $tenant->configuracion()['smtp'] ?? [], $destino, $asunto, $htmlBody, $kind);
+    }
+
+    /**
+     * Prevalida que el tenant puede enviar a ese destino (v1.18.0).
+     *
+     * Para las fases previas a mutar nada (reset administrativo y alta):
+     * devuelve 400 si el tenant no tiene SMTP configurado o si el destino no
+     * es un email válido, sin intentar envío alguno.
+     *
+     * @return Tenant entidad cruda (password SMTP sin enmascarar)
+     * @throws TenantException 404 tenant inexistente / 400 SMTP o destino
+     */
+    public function assertSendable(string $tenantId, string $destino): Tenant
+    {
         /** @var Tenant|null $tenant Entidad cruda (password SMTP sin enmascarar). */
         $tenant = $this->tenants->findEntity($tenantId);
         if ($tenant === null) {
@@ -111,7 +129,7 @@ final class MailerService
                 ->withMessageKey('tenants.smtp_no_destino');
         }
 
-        $this->deliver($tenant, $smtp, $destino, $asunto, $htmlBody, $kind);
+        return $tenant;
     }
 
     /**

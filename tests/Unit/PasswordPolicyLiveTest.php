@@ -9,7 +9,6 @@ use App\Core\Authentication\Service\PasswordHasher;
 use App\Core\Users\Exception\UserException;
 use App\Core\Users\Service\UserService;
 use App\Shared\Container\Container;
-use App\Shared\Security\PasswordPolicy;
 use App\Shared\Services\DatabaseService;
 use Dotenv\Dotenv;
 use PDO;
@@ -188,8 +187,10 @@ final class PasswordPolicyLiveTest extends TestCase
     // CREACIÓN Y RESET DE ADMIN
     // ------------------------------------------------------------------
 
-    public function testCreaUsuarioConPasswordDebilRechazado(): void
+    public function testAltaNoAceptaPasswordExplicito(): void
     {
+        // v1.18.0 (cumplimiento): el alta ya no admite claves en claro; la
+        // politica en creacion es vacua (el hash lo genera el servicio).
         try {
             $this->service->create([
                 'tenant_id' => $this->tenantId,
@@ -198,18 +199,21 @@ final class PasswordPolicyLiveTest extends TestCase
                 'apellido'  => 'Policy',
                 'password'  => 'corta1!',
             ]);
-            $this->fail('Debio rechazar password debil en creacion');
+            $this->fail('Debio rechazar el password explicito en creacion');
         } catch (UserException $e) {
-            $this->assertSame('auth.password_min_length', $e->getMessageKey());
+            $this->assertSame('users.password_not_allowed', $e->getMessageKey());
         }
     }
 
-    public function testPasswordTemporalDeAdminCumplePolitica(): void
+    public function testInvalidacionDePasswordRegistraHistorial(): void
     {
-        $temporal = $this->service->resetPassword($this->userId, $this->tenantId);
+        $this->service->invalidatePassword($this->userId, $this->tenantId);
 
-        $this->assertNull(PasswordPolicy::validate($temporal), 'El temporal debe cumplir la politica completa');
-        $this->assertGreaterThanOrEqual(1, $this->historyCount(), 'El reset debe registrar el hash saliente');
+        $this->assertGreaterThanOrEqual(1, $this->historyCount(), 'La invalidacion registra el hash saliente');
+        $this->assertFalse(
+            $this->hasher->verify(self::PASSWORD_INICIAL, $this->currentHash()),
+            'La password anterior deja de validarse'
+        );
     }
 
     // ------------------------------------------------------------------

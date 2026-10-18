@@ -31,14 +31,39 @@ use PDO;
  *    NULL; si dos peticiones concurrentes compiten, sólo una gana.
  *  - Auditoría: se registran los eventos de seguridad SIN almacenar tokens ni
  *    contraseñas (sólo email, usuario, tenant y resultado).
+ *
+ * v1.18.0 (cumplimiento): se amplía con la emisión ADMINISTRATIVA (kind
+ * 'admin', desde POST /users/{id}/password/reset) y de BIENVENIDA (kind
+ * 'welcome', desde el alta de usuario). Ambas comparten token/liga con el
+ * SSPR pero NO exigen el permiso opt-in `password_reset_self_service` al
+ * consumirse: la autorización se verificó al emitir (`users.password.reset`
+ * / alta de usuario). El TTL también difiere por kind (ver constantes).
+ * El admin ya no ve ninguna contraseña: en el reset administrativo la
+ * contraseña anterior se invalida al instante (UserService::invalidatePassword)
+ * y la única vía de recuperación es la liga enviada por correo.
  */
 class PasswordResetService
 {
-    /** Caducidad del token de reset (minutos). */
+    /** Caducidad del token de reset SSPR (minutos). */
     public const TOKEN_TTL_MINUTES = 15;
+
+    /** Caducidad del token emitido por un administrador (minutos). */
+    public const ADMIN_TTL_MINUTES = 60;
+
+    /** Caducidad del token de bienvenida (horas). */
+    public const WELCOME_TTL_HOURS = 24;
 
     /** Permiso que debe tener el usuario para usar el SSPR. */
     public const PERMISSION = 'password_reset_self_service';
+
+    /** Kind por defecto: solicitud propia del usuario (exige el permiso). */
+    public const KIND_SSPR = 'sspr';
+
+    /** Kind del reset ordenado por un administrador (sin permiso SSPR). */
+    public const KIND_ADMIN = 'admin';
+
+    /** Kind del enlace de bienvenida del alta (sin permiso SSPR). */
+    public const KIND_WELCOME = 'welcome';
 
     private ?DatabaseService $db;
     private ?AuthorizationService $authz;
@@ -102,7 +127,8 @@ class PasswordResetService
         // Un único token activo por usuario: los anteriores sin usar caducan.
         $this->invalidateActiveTokens($userId);
 
-        $token = $this->createToken($userId, $tenantId, $context);
+        $issued = $this->createToken($userId, $tenantId, $context, self::KIND_SSPR);
+        $token = $issued['token'];
 
         try {
             $this->sendResetEmail($tenantId, (string) $user['email'], (string) ($user['nombre'] ?? ''), $token);
@@ -114,6 +140,119 @@ class PasswordResetService
         }
 
         $this->auditRequest($context, $tenantId, $userId, $email, 'SUCCESS', 'Token de reset generado y enviado');
+    }
+
+    // ========================================================================
+    // EMISION ADMINISTRATIVA Y DE BIENVENIDA (v1.18.0, cumplimiento)
+    // ========================================================================
+
+    /**
+     * Emite el reset ordenado por un administrador (kind 'admin').
+     *
+     * Validaciones ANTES de mutar nada: usuario existe, email destino
+     * valido (400) y SMTP del tenant configurado (400). Después:
+     *  1. La contraseña se invalida AL INSTANTE (UserService::
+     *     invalidatePassword: hash aleatorio desconocido para todos +
+     *     historial + marcador de cambio forzado). El admin ya no ve ninguna
+     *     clave: la recuperación es exclusivamente la liga del correo.
+     *  2. Tokens anteriores muertos; token nuevo kind 'admin' con TTL
+     *     ADMIN_TTL_MINUTES y trazabilidad requested_by.
+     *  3. Envío; si falla se borra el token (reintento limpio tras arreglar
+     *     el SMTP) pero la contraseña YA está invalidada: es la intención
+     *     del administrador. El error se propaga (400/502).
+     *
+     * La auditoría de este flujo la emite el controller (user.password.reset);
+     * aquí no se registra para no duplicar el evento.
+     *
+     * @return string email destino (para la respuesta al administrador)
+     * @throws UserException 404 si el usuario no existe / 400 sin email válido
+     * @throws \Throwable Fallo de envío (ya con el token borrado)
+     */
+    public function issueAdminReset(string $userId, string $tenantId, string $requestedBy, array $context = []): string
+    {
+        $user = $this->findUserById($userId, $tenantId);
+        if ($user === null) {
+            throw UserException::userNotFound($userId);
+        }
+
+        $email = $this->assertUsableEmail($user);
+        $this->mailer()->assertSendable($tenantId, $email);
+
+        $this->users()->invalidatePassword($userId, $tenantId);
+        $this->invalidateActiveTokens($userId);
+
+        $issued = $this->createToken(
+            $userId, $tenantId, $context, self::KIND_ADMIN, $requestedBy, self::ADMIN_TTL_MINUTES
+        );
+
+        try {
+            $this->sendAdminResetEmail(
+                $tenantId, $email, (string) ($user['nombre'] ?? ''), $issued['token'], self::ADMIN_TTL_MINUTES
+            );
+        } catch (\Throwable $e) {
+            $this->deleteToken($issued['id']);
+            throw $e;
+        }
+
+        return $email;
+    }
+
+    /**
+     * Emite el enlace de bienvenida del alta de usuario (kind 'welcome').
+     *
+     * El alta ya dejó un hash aleatorio desconocido (UserService::create), de
+     * modo que el enlace es la única vía para que el nuevo usuario fije su
+     * contraseña. Si el envío falla se borra el token y se propaga el error:
+     * el usuario queda creado y recuperable con "Restablecer contraseña"
+     * cuando el SMTP esté resuelto (el controller responde email_enviado=false).
+     *
+     * @return string email destino
+     * @throws UserException 404 si el usuario no existe / 400 sin email válido
+     * @throws \Throwable Fallo de envío (ya con el token borrado)
+     */
+    public function issueWelcome(string $userId, string $tenantId, string $requestedBy, array $context = []): string
+    {
+        $user = $this->findUserById($userId, $tenantId);
+        if ($user === null) {
+            throw UserException::userNotFound($userId);
+        }
+
+        $email = $this->assertUsableEmail($user);
+        $this->mailer()->assertSendable($tenantId, $email);
+
+        $this->invalidateActiveTokens($userId);
+
+        $issued = $this->createToken(
+            $userId, $tenantId, $context, self::KIND_WELCOME, $requestedBy, self::WELCOME_TTL_HOURS * 60
+        );
+
+        try {
+            $this->sendWelcomeEmail(
+                $tenantId, $email, (string) ($user['nombre'] ?? ''), $issued['token'], self::WELCOME_TTL_HOURS
+            );
+        } catch (\Throwable $e) {
+            $this->deleteToken($issued['id']);
+            throw $e;
+        }
+
+        return $email;
+    }
+
+    /** Email de destino utilizable o 400 (users.reset_email_missing). */
+    private function assertUsableEmail(array $user): string
+    {
+        $email = trim((string) ($user['email'] ?? ''));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw (new UserException(
+                'El usuario no tiene un correo electronico valido; configuralo antes de enviar el enlace.',
+                400,
+                null,
+                'email',
+                UserException::CATEGORY_VALIDATION
+            ))->withMessageKey('users.reset_email_missing');
+        }
+
+        return $email;
     }
 
     /**
@@ -164,10 +303,14 @@ class PasswordResetService
             ))->withMessageKey('auth.reset_token_invalid');
         }
 
-        // Re-verificacion del permiso en el momento de fijar la contrasena: si
-        // un administrador lo revoco despues de emitir el token, el enlace
-        // deja de servir aunque el token siga vigente.
-        if (!$this->authz()->hasPermission($userId, $tenantId, self::PERMISSION)) {
+        // Re-verificacion del permiso SOLO para tokens SSPR (v1.18.0): los
+        // kinds 'admin' y 'welcome' se autorizaron al emitirlos (permiso
+        // users.password.reset / alta de usuario) y el target puede no tener
+        // el opt-in password_reset_self_service. Para SSPR mantiene la
+        // garantia: si un administrador revoca el permiso despues de emitir
+        // el token, el enlace deja de servir aunque el token siga vigente.
+        $kind = (string) ($row['kind'] ?? self::KIND_SSPR);
+        if ($kind === self::KIND_SSPR && !$this->authz()->hasPermission($userId, $tenantId, self::PERMISSION)) {
             $this->auditReset($context, $tenantId, $userId, 'FAILURE', 'Permiso revocado tras emitir el token');
             throw (new UserException(
                 'El restablecimiento ya no esta autorizado.',
@@ -257,25 +400,48 @@ class PasswordResetService
         return hash('sha256', $token);
     }
 
-    /** Genera, guarda (como hash) y devuelve el token en claro para el enlace. */
-    private function createToken(string $userId, string $tenantId, array $context): string
-    {
+    /**
+     * Genera y guarda (como hash) un token; devuelve id de fila y token en
+     * claro para el enlace (v1.18.0: parametrizado por kind/TTL/autor).
+     *
+     * @return array{id: string, token: string}
+     */
+    private function createToken(
+        string $userId,
+        string $tenantId,
+        array $context,
+        string $kind = self::KIND_SSPR,
+        ?string $requestedBy = null,
+        ?int $ttlMinutes = null
+    ): array {
         $token = bin2hex(random_bytes(32));
+        $id = $this->generateUuid();
+        $ttl = $ttlMinutes ?? self::TOKEN_TTL_MINUTES;
 
         $sql = "INSERT INTO password_reset_tokens
-                    (id, tenant_id, user_id, token_hash, expires_at, ip_address)
-                VALUES (:id, :tenant_id, :user_id, :token_hash, :expires_at, :ip)";
+                    (id, tenant_id, user_id, token_hash, kind, requested_by, expires_at, ip_address)
+                VALUES (:id, :tenant_id, :user_id, :token_hash, :kind, :requested_by, :expires_at, :ip)";
         $stmt = $this->db()->getConnection()->prepare($sql);
         $stmt->execute([
-            'id'         => $this->generateUuid(),
-            'tenant_id'  => $tenantId,
-            'user_id'    => $userId,
-            'token_hash' => $this->hashToken($token),
-            'expires_at' => date('Y-m-d H:i:s', time() + self::TOKEN_TTL_MINUTES * 60),
-            'ip'         => (string) ($context['ip'] ?? null),
+            'id'           => $id,
+            'tenant_id'    => $tenantId,
+            'user_id'      => $userId,
+            'token_hash'   => $this->hashToken($token),
+            'kind'         => $kind,
+            'requested_by' => $requestedBy !== null && $requestedBy !== '' ? $requestedBy : null,
+            'expires_at'   => date('Y-m-d H:i:s', time() + $ttl * 60),
+            'ip'           => (string) ($context['ip'] ?? null),
         ]);
 
-        return $token;
+        return ['id' => $id, 'token' => $token];
+    }
+
+    /** Borra un token recién emitido si el envío falló (v1.18.0). */
+    private function deleteToken(string $tokenId): void
+    {
+        $this->db()->getConnection()->prepare(
+            'DELETE FROM password_reset_tokens WHERE id = :id AND used_at IS NULL'
+        )->execute(['id' => $tokenId]);
     }
 
     private function findTokenByHash(string $tokenHash): ?array
@@ -381,7 +547,46 @@ class PasswordResetService
             . '<p><a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">Restablecer mi contrasena</a></p>'
             . '<p>Si no fuiste tu, ignora este correo; tu contrasena no cambia.</p>';
 
-        $this->sendMail($tenantId, $destino, 'Restablecer tu contrasena', $html);
+        $this->sendMail($tenantId, $destino, 'Restablecer tu contrasena', $html, 'reset');
+    }
+
+    /**
+     * Enlace del reset administrativo (v1.18.0): NUNCA incluye ninguna
+     * contraseña; avisa de que la anterior dejó de ser válida.
+     *
+     * @throws \Throwable Si el SMTP del tenant falla
+     */
+    protected function sendAdminResetEmail(string $tenantId, string $destino, string $nombre, string $token, int $ttlMinutes): void
+    {
+        $url = $this->buildResetUrl($token);
+        $html = '<p>Hola ' . htmlspecialchars($nombre !== '' ? $nombre : $destino, ENT_QUOTES, 'UTF-8') . ':</p>'
+            . '<p>Un administrador de la plataforma solicito restablecer tu contrasena. '
+            . 'Para elegir una nueva, haz clic en el siguiente enlace (valido durante '
+            . $ttlMinutes . ' minutos y de un solo uso):</p>'
+            . '<p><a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">Restablecer mi contrasena</a></p>'
+            . '<p>Tu contrasena anterior dejo de ser valida. Si no fuiste tu, '
+            . 'contacta de inmediato con un administrador.</p>';
+
+        $this->sendMail($tenantId, $destino, 'Restablecer tu contrasena', $html, 'admin');
+    }
+
+    /**
+     * Enlace de bienvenida del alta (v1.18.0): el usuario nuevo establece su
+     * propia contraseña; ningún dato de credencial viaja en el correo.
+     *
+     * @throws \Throwable Si el SMTP del tenant falla
+     */
+    protected function sendWelcomeEmail(string $tenantId, string $destino, string $nombre, string $token, int $ttlHours): void
+    {
+        $url = $this->buildResetUrl($token);
+        $saludo = htmlspecialchars($nombre !== '' ? $nombre : $destino, ENT_QUOTES, 'UTF-8');
+        $html = '<p>Hola ' . $saludo . ':</p>'
+            . '<p>Tu cuenta fue creada en la plataforma. Para elegir tu contrasena, haz clic '
+            . 'en el siguiente enlace (válido durante ' . $ttlHours . ' horas y de un solo uso):</p>'
+            . '<p><a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">Establecer mi contrasena</a></p>'
+            . '<p>Si no esperabas este correo, contacta con un administrador.</p>';
+
+        $this->sendMail($tenantId, $destino, 'Bienvenido a la plataforma', $html, 'welcome');
     }
 
     /** @throws \Throwable Si el SMTP del tenant falla */
@@ -391,13 +596,17 @@ class PasswordResetService
             . '<p>Tu contrasena fue restablecida correctamente. Si no fuiste tu, '
             . 'contacta de inmediato con un administrador.</p>';
 
-        $this->sendMail($tenantId, $destino, 'Tu contrasena fue restablecida', $html);
+        $this->sendMail($tenantId, $destino, 'Tu contrasena fue restablecida', $html, 'changed');
     }
 
-    /** Punto único de envío: en tests se sustituye por un no-op. */
-    protected function sendMail(string $tenantId, string $destino, string $asunto, string $html): void
+    /**
+     * Punto único de envío: en tests se sustituye por un no-op.
+     *
+     * @param string $kind Etiqueta de contexto para mail_outbox
+     */
+    protected function sendMail(string $tenantId, string $destino, string $asunto, string $html, string $kind = 'general'): void
     {
-        $this->mailer()->sendCustom($tenantId, $destino, $asunto, $html);
+        $this->mailer()->sendCustom($tenantId, $destino, $asunto, $html, $kind);
     }
 
     private function buildResetUrl(string $token): string
