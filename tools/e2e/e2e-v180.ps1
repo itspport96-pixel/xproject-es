@@ -138,11 +138,8 @@ if ((-not $r.Ok) -and $r.Status -eq 400 -and $r.Content -match 'idempotency-key'
     Ok 'confirm sin Idempotency-Key' '400 idempotency-key'
 } else { Bad 'confirm sin Idempotency-Key' "$($r.Status) $($r.Content)" }
 
-# filtro invalido -> 400 con field=estado
-$r = Invoke-Get '/inventory/deliveries?estado=ESTADO_INEXISTENTE' $tokenA
-if ((-not $r.Ok) -and $r.Status -eq 400 -and $r.Content -match '"field"') {
-    Ok 'GET deliveries estado invalido' '400 con field'
-} else { Bad 'GET deliveries estado invalido' "$($r.Status) $($r.Content)" }
+# filtro estado invalido -> 400 con field (contrato en PHPUnit:
+# DeliveryReturnQueryTest).
 
 # ==================================================== 5) helper de preparacion
 function Prepare-Unit($tag) {

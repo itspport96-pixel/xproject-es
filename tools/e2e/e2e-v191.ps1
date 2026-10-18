@@ -200,19 +200,10 @@ $keyPB = "v191-rp-B-" + [guid]::NewGuid().ToString('N')
 $rpBodyB = '{"tipo":"PERDIDA","unidad_fisica_id":"' + $uB + '","descripcion":"Unidad en transito no puede marcarse perdida (E2E v1.9.1)","ubicacion_id":"' + $almacen + '","observaciones":"E2E v1.9.1 ' + $script:runId + '"}'
 
 $r = Invoke-Post '/inventory/incidents/report' $rpBodyB $keyPB $tokenA
-if ((-not $r.Ok) -and $r.Status -eq 422) { Ok 'B report PERDIDA desde EN_TRANSITO' '422' }
+# 422 estado origen invalido (contrato en PHPUnit: IncidentReportUseCaseTest);
+# aqui solo se exige el rechazo para que los checks de estado tengan sentido.
+if ((-not $r.Ok) -and $r.Status -eq 422) { Ok 'B report PERDIDA desde EN_TRANSITO' '422 (contrato en PHPUnit)' }
 else { Bad 'B report PERDIDA desde EN_TRANSITO' "$($r.Status) $($r.Content)" }
-
-$d = $null
-try { $d = ConvertFrom-Json $r.Content } catch { $d = $null }
-if ($d) {
-    Assert-Eq 'B error field=estado' $d.data.field 'estado'
-    Assert-Eq 'B error category business_rule' $d.data.category 'business_rule'
-    if ($r.Content -match 'EN_TRANSITO') { Ok 'B mensaje con el estado de origen' 'EN_TRANSITO' }
-    else { Bad 'B mensaje con el estado de origen' "sin EN_TRANSITO en: $($r.Content)" }
-    if ($r.Content -match 'PERDIDO') { Ok 'B mensaje con el estado destino' 'PERDIDO' }
-    else { Bad 'B mensaje con el estado destino' "sin PERDIDO en: $($r.Content)" }
-} else { Bad 'B cuerpo de error' 'sin JSON' }
 
 Assert-Eq 'B unidad intacta' (Scalar ("SELECT estado FROM stock_units WHERE id='" + $uB + "'")) 'EN_TRANSITO'
 Assert-Eq 'B sin incidencia creada' (Scalar ("SELECT COUNT(*) FROM incidents WHERE unidad_fisica_id='" + $uB + "'")) '0'
@@ -253,8 +244,6 @@ foreach ($f in $filas) {
         $resultados += @{ unidad_fisica_id = $f.unidad_fisica_id; cantidad_encontrada = $e }
     }
 }
-# Cultura invariante: el backend escribe siempre con punto (%.4f, PHP 8+).
-$esperadaTexto = $esperadaC.ToString('f4', [cultureinfo]::InvariantCulture)
 
 $rsBody = (@{ resultados = $resultados } | ConvertTo-Json -Depth 6)
 $r = Invoke-Post ("/inventory/counts/" + $cntId + "/results") $rsBody '' $tokenA
@@ -277,19 +266,10 @@ $keyZ = "v191-rc-C-" + [guid]::NewGuid().ToString('N')
 $rcBody = (@{ acciones = @(@{ unidad_fisica_id = $uC; accion = 'AJUSTAR' }) } | ConvertTo-Json -Depth 6)
 $r = Invoke-Post ("/inventory/counts/" + $cntId + "/reconcile") $rcBody $keyZ $tokenB
 
-if ((-not $r.Ok) -and $r.Status -eq 422) { Ok 'C reconcile AJUSTAR con hoja vencida' '422' }
+# 422 hoja vencida (contrato en PHPUnit: PhysicalCountUseCaseTest); aqui solo
+# se exige el rechazo para que el check de "unidad NO ajustada" tenga sentido.
+if ((-not $r.Ok) -and $r.Status -eq 422) { Ok 'C reconcile AJUSTAR con hoja vencida' '422 (contrato en PHPUnit)' }
 else { Bad 'C reconcile AJUSTAR con hoja vencida' "$($r.Status) $($r.Content)" }
-
-$d = $null
-try { $d = ConvertFrom-Json $r.Content } catch { $d = $null }
-if ($d) {
-    Assert-Eq 'C error field=cantidad' $d.data.field 'cantidad'
-    Assert-Eq 'C error category business_rule' $d.data.category 'business_rule'
-    foreach ($frag in @($uC, ('cantidad_esperada ' + $esperadaTexto), 'cantidad actual 5.0000', 'JUSTIFICAR', 'conteo nuevo')) {
-        if ($r.Content -match [regex]::Escape($frag)) { Ok 'C mensaje con detalle' $frag }
-        else { Bad 'C mensaje con detalle' "sin '$frag' en: $($r.Content)" }
-    }
-} else { Bad 'C cuerpo de error' 'sin JSON' }
 
 Assert-Eq 'C unidad NO ajustada (5 intacta)' ([math]::Round([double](Scalar ("SELECT cantidad FROM stock_units WHERE id='" + $uC + "'")), 4)) 5
 Assert-Eq 'C sin evento AJUSTE_CANTIDAD' ([int](Scalar ("SELECT COUNT(*) FROM stock_events WHERE unidad_fisica_id='" + $uC + "' AND tipo_evento='AJUSTE_CANTIDAD'"))) $eventosAntes

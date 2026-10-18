@@ -366,14 +366,8 @@ if ($r.Ok -and $r.Status -eq 200) {
     Assert-Eq 'B results pendientes' $d.data.unidades_pendientes 0
 } else { Bad 'B POST /counts/{id}/results' "$($r.Status) $($r.Content)" }
 
-# unidad fuera de la hoja -> 422
-$outBody = (@{ resultados = @(@{ unidad_fisica_id = $uBP; cantidad_encontrada = 1 }) } | ConvertTo-Json -Depth 6)
-$r = Invoke-Post ("/inventory/counts/" + $cntId + "/results") $outBody '' $tokenA
-if ((-not $r.Ok) -and $r.Status -eq 422 -and $r.Content -match 'unidad_fisica_id') {
-    Ok 'B results unidad fuera de la hoja' '422'
-} else { Bad 'B results unidad fuera de la hoja' "$($r.Status) $($r.Content)" }
-
-# completar con todas las unidades contadas
+# Unidad fuera de la hoja -> 422 y complete repetido -> 422 (contrato en
+# PHPUnit: PhysicalCountUseCaseTest).
 $r = Invoke-Post ("/inventory/counts/" + $cntId + "/complete") '{}' '' $tokenA
 if ($r.Ok -and $r.Status -eq 200) {
     $d = ConvertFrom-Json $r.Content
@@ -382,11 +376,6 @@ if ($r.Ok -and $r.Status -eq 200) {
     Assert-Eq 'B discrepancia de nuestra unidad' $d.data.discrepancias[0].unidad_fisica_id $uB1
     Assert-Eq 'B diferencia +1' ([double]$d.data.discrepancias[0].diferencia) 1
 } else { Bad 'B POST /counts/{id}/complete' "$($r.Status) $($r.Content)" }
-
-# completar dos veces -> 422
-$r = Invoke-Post ("/inventory/counts/" + $cntId + "/complete") '{}' '' $tokenA
-if ((-not $r.Ok) -and $r.Status -eq 422) { Ok 'B complete repetido' '422' }
-else { Bad 'B complete repetido' "$($r.Status) $($r.Content)" }
 
 # reconciliar AJUSTAR
 $cantidadAntes = [double](Scalar ("SELECT cantidad FROM stock_units WHERE id='" + $uB1 + "'"))
