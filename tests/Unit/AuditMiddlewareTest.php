@@ -183,4 +183,78 @@ final class AuditMiddlewareTest extends TestCase
 
         $this->assertArrayNotHasKey('audit_finish', $request);
     }
+
+    /**
+     * v1.18.2: el body de login no puede quedar en claro en audit_logs
+     * (valores_nuevos) ni siquiera cuando la peticion falla (401).
+     */
+    public function testLoginFallidoNoAuditaLaContrasenaEnClaro(): void
+    {
+        $request = $this->middleware->handle($this->postRequest([
+            'path' => '/api/auth/login',
+            'body' => ['email' => 'admin@acme.local', 'password' => 'Admin1234!'],
+        ]));
+        $request += ['user' => null];
+
+        $finish = $request['audit_finish'];
+        $finish(null, new HttpException('Credenciales invalidas', 401), [], $request);
+
+        $entry = $this->logger->entries[0];
+        $this->assertSame('FAILURE', $entry['resultado']);
+        $this->assertSame('[REDACTADO]', $entry['valores_nuevos']['password']);
+        $this->assertSame('admin@acme.local', $entry['valores_nuevos']['email']);
+        $this->assertStringNotContainsString('Admin1234!', (string) json_encode($entry['valores_nuevos']));
+    }
+
+    public function testValoresNuevosRedactaPasswordActualYNuevo(): void
+    {
+        $request = $this->middleware->handle($this->postRequest([
+            'method' => 'POST',
+            'path' => '/api/auth/change-password',
+            'body' => [
+                'password_actual' => 'Vieja123!',
+                'password_nuevo' => 'Nueva123!',
+            ],
+        ]));
+
+        $finish = $request['audit_finish'];
+        $finish(200, null, [], $request);
+
+        $body = $this->logger->entries[0]['valores_nuevos'];
+        $this->assertSame('[REDACTADO]', $body['password_actual']);
+        $this->assertSame('[REDACTADO]', $body['password_nuevo']);
+        $this->assertStringNotContainsString('Vieja123!', (string) json_encode($body));
+        $this->assertStringNotContainsString('Nueva123!', (string) json_encode($body));
+    }
+
+    public function testScrubEsRecursivoEnObjetosAnidados(): void
+    {
+        $request = $this->middleware->handle($this->postRequest([
+            'body' => [
+                'nombre' => 'Alta',
+                'credenciales' => ['password' => 'Anidada123!'],
+            ],
+        ]));
+
+        $finish = $request['audit_finish'];
+        $finish(201, null, [], $request);
+
+        $body = $this->logger->entries[0]['valores_nuevos'];
+        $this->assertSame('Alta', $body['nombre']);
+        $this->assertSame('[REDACTADO]', $body['credenciales']['password']);
+        $this->assertStringNotContainsString('Anidada123!', (string) json_encode($body));
+    }
+
+    public function testScrubConservaLosDemasCamposDelBody(): void
+    {
+        $request = $this->middleware->handle($this->postRequest([
+            'body' => ['sku' => 'SKU-1', 'nombre' => 'Tornillo', 'password' => 'Secreta123!'],
+        ]));
+
+        $finish = $request['audit_finish'];
+        $finish(201, null, [], $request);
+
+        $body = $this->logger->entries[0]['valores_nuevos'];
+        $this->assertSame(['sku' => 'SKU-1', 'nombre' => 'Tornillo', 'password' => '[REDACTADO]'], $body);
+    }
 }

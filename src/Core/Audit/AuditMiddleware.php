@@ -25,6 +25,11 @@ final class AuditMiddleware
 {
     private const NO_AUDIT_METHODS = ['GET', 'HEAD', 'OPTIONS'];
 
+    /** Claves de body que nunca se guardan en claro en audit_logs. */
+    private const SENSITIVE_BODY_KEYS = ['password', 'password_actual', 'password_nuevo'];
+
+    private const REDACTED = '[REDACTADO]';
+
     private ?AuditLogger $audit;
 
     public function __construct(?AuditLogger $audit = null)
@@ -84,6 +89,7 @@ final class AuditMiddleware
             $claims = is_array($finalRequest['user'] ?? null) ? $finalRequest['user'] : null;
             $tenantId = $claims['tenant_id'] ?? ($finalRequest['tenant']['id'] ?? null);
             $userId = $claims['user_id'] ?? null;
+            $body = self::scrubSensitive($finalRequest['body'] ?? []);
 
             $logger->record([
                 'tenant_id' => is_string($tenantId) ? $tenantId : null,
@@ -95,7 +101,7 @@ final class AuditMiddleware
                 'tipo_cambio' => self::tipoCambio($method),
                 'valores_anteriores' => null,
                 'valores_nuevos' => in_array($method, ['POST', 'PUT', 'PATCH'], true)
-                    ? (($finalRequest['body'] ?? []) !== [] ? $finalRequest['body'] : null)
+                    ? ($body !== [] ? $body : null)
                     : null,
                 'resultado' => $failed ? 'FAILURE' : 'SUCCESS',
                 'razon_fallo' => $failed
@@ -116,6 +122,28 @@ final class AuditMiddleware
         };
 
         return $request;
+    }
+
+    /**
+     * Sustituye por '[REDACTADO]' los campos de contrasena del body antes de
+     * guardarlo en audit_logs (password de login/alta/reset, password_actual y
+     * password_nuevo de cambio de contrasena). Recursivo por si viajan anidados.
+     */
+    private static function scrubSensitive(array $data): array
+    {
+        $clean = [];
+
+        foreach ($data as $key => $value) {
+            if (is_string($key) && in_array($key, self::SENSITIVE_BODY_KEYS, true)) {
+                $clean[$key] = self::REDACTED;
+            } elseif (is_array($value)) {
+                $clean[$key] = self::scrubSensitive($value);
+            } else {
+                $clean[$key] = $value;
+            }
+        }
+
+        return $clean;
     }
 
     private static function statusFor(?\Throwable $error): int
