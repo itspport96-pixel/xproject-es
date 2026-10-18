@@ -27,13 +27,28 @@
 #      forgot/reset-password (5/900s por IP) con clear-rate-limit.php, para
 #      que los consumes de un script no arranquen con el contador de la
 #      ejecucion anterior.
+#   7. -SkipPrepare (o E2E_SKIP_PREPARE=1 en el entorno): omite
+#      bin/prepare-e2e-db.php SOLO si la BD de E2E ya tiene las tablas
+#      nucleares y los fixtures (PROD-001, E2E-ALMACEN, E2E-PICK, TRANSITO);
+#      si no los tiene, prepara igual aunque este el flag (nunca deja un E2E
+#      sin datos). Por defecto sin flag: comportamiento actual (prepara
+#      siempre; la integridad ya no corre aqui, ver prepare-e2e-db --verify).
+#   8. E2E_KEEP_SERVER=1: Stop-E2EServer no para el servidor al final del
+#      script, para que las suites arranquen 8099 una vez por lote
+#      (tools\e2e\start-e2e-server.ps1 o los runners de suite) y lo paren
+#      al cierre. Sin la variable: comportamiento actual (para al salir).
 #
-# Variables opcionales de entorno: E2E_DB_NAME, E2E_PORT (8099), PHP_BIN.
+# Variables opcionales de entorno: E2E_DB_NAME, E2E_PORT (8099), PHP_BIN,
+# E2E_SKIP_PREPARE (1), E2E_KEEP_SERVER (1).
 #
-# El servidor se detiene al final de cada script (Stop-E2EServer). Si un
-# script muere antes, el PID queda en .e2e-server.pid y el siguiente arranque
-# lo detecta: lo reutiliza si responde y lo mata si esta colgado. Para pararlo
-# a mano: powershell tools\e2e\stop-e2e-server.ps1
+# El servidor se detiene al final de cada script (Stop-E2EServer) salvo con
+# E2E_KEEP_SERVER=1. Si un script muere antes, el PID queda en
+# .e2e-server.pid y el siguiente arranque lo detecta: lo reutiliza si
+# responde y lo mata si esta colgado (un aborto no deja un servidor
+# inutilizable; el siguiente arranque lo recupera). Para pararlo a mano:
+# powershell tools\e2e\stop-e2e-server.ps1
+
+param([switch]$SkipPrepare)
 
 $script:e2ePrevEAP = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
@@ -75,12 +90,33 @@ try {
     $env:MAIL_TRANSPORT = $e2eTransport
     $e2eTransportFile = Join-Path $e2eRoot '.e2e-server.transport'
 
-    $prepOut = & $phpExe (Join-Path $e2eRepoRoot 'bin\prepare-e2e-db.php') --db=$e2eDb 2>&1
-    $prepExit = $LASTEXITCODE
-    foreach ($linea in @($prepOut)) {
-        if ($null -ne $linea -and "$linea" -ne '') { Write-Output ("  [e2e] " + $linea) }
+    # ------------------------------------------------- prepare (opcional)
+    # -SkipPrepare / E2E_SKIP_PREPARE=1 salta el preparado SOLO si la BD ya
+    # tiene tablas nucleares + fixtures; cualquier otro caso prepara igual.
+    $e2eSkipPrepare = ($SkipPrepare.IsPresent -or ("$env:E2E_SKIP_PREPARE" -eq '1'))
+    $e2eLista = $false
+    if ($e2eSkipPrepare) {
+        $e2eLista = $false
+        try {
+            $nucleo = & mysql.exe -u root $e2eDb -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$e2eDb' AND TABLE_NAME IN ('users','products','locations','password_reset_tokens','mail_outbox')" 2>$null | Select-Object -First 1
+            if ([int]$nucleo -eq 5) {
+                $fx = & mysql.exe -u root $e2eDb -N -e "SELECT (SELECT COUNT(*) FROM products WHERE sku = 'PROD-001') + (SELECT COUNT(*) FROM locations WHERE codigo = 'E2E-ALMACEN') + (SELECT COUNT(*) FROM locations WHERE codigo = 'E2E-PICK') + (SELECT COUNT(*) FROM locations WHERE tipo = 'TRANSITO')" 2>$null | Select-Object -First 1
+                if ([int]$fx -ge 4) { $e2eLista = $true }
+            }
+        } catch { $e2eLista = $false }
     }
-    if ($prepExit -ne 0) { throw "prepare-e2e-db.php ha fallado (exit $prepExit)" }
+
+    if ($e2eSkipPrepare -and $e2eLista) {
+        Write-Output '  [e2e] prepare omitido (-SkipPrepare/E2E_SKIP_PREPARE=1, BD con tablas y fixtures)'
+    } else {
+        if ($e2eSkipPrepare) { Write-Output '  [e2e] E2E_SKIP_PREPARE pedido pero la BD no esta lista: se prepara igual' }
+        $prepOut = & $phpExe (Join-Path $e2eRepoRoot 'bin\prepare-e2e-db.php') --db=$e2eDb 2>&1
+        $prepExit = $LASTEXITCODE
+        foreach ($linea in @($prepOut)) {
+            if ($null -ne $linea -and "$linea" -ne '') { Write-Output ("  [e2e] " + $linea) }
+        }
+        if ($prepExit -ne 0) { throw "prepare-e2e-db.php ha fallado (exit $prepExit)" }
+    }
 
     # -------------------------------------------------------------- servidor
     function Test-E2EServer {
@@ -97,6 +133,12 @@ try {
     }
 
     function Stop-E2EServer {
+        # E2E_KEEP_SERVER=1 (suites/lotes): el servidor vive hasta que lo pare
+        # el runner o stop-e2e-server.ps1; el PID se conserva en el fichero.
+        if ("$env:E2E_KEEP_SERVER" -eq '1') {
+            Write-Output '  [e2e] servidor mantenido para el lote (E2E_KEEP_SERVER=1)'
+            return
+        }
         $pidFile = Join-Path $script:e2eRoot '.e2e-server.pid'
         $pidValue = 0
         if (Test-Path -LiteralPath $pidFile) {

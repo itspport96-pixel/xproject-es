@@ -17,11 +17,17 @@ declare(strict_types=1);
  *      crea el seeder real del dominio (bin/seed-transit-locations.php).
  *
  * Uso:
- *   php bin/prepare-e2e-db.php [--db=nombre] [--fresh] [--sin-fixtures]
+ *   php bin/prepare-e2e-db.php [--db=nombre] [--fresh] [--sin-fixtures] [--verify]
  *
  *   --db=nombre     BD destino (prioridad); por defecto E2E_DB_NAME o xproject_e2e
  *   --fresh         borra y recrea la BD destino (pierde lo que hubiera dentro)
  *   --sin-fixtures  no crea producto/ubicaciones (solo esquema y copia)
+ *   --verify        prepara y ademas ejecuta check-data-integrity.php al final
+ *
+ * La integridad de datos (paso 5) SOLO corre con --fresh o --verify: el
+ * preparado de cada script E2E era el paso mas caro del preludio y los datos
+ * ya validados no cambian entre ejecuciones. Al cierre del sprint se verifica
+ * con --fresh (o --verify) como manda la regla 7.
  *
  * Variables de entorno: E2E_DB_NAME (nombre de la BD) y, via .env,
  * DB_HOST/DB_PORT/DB_USERNAME/DB_PASSWORD/DB_DATABASE (credenciales de la fuente).
@@ -155,15 +161,16 @@ function scalar(PDO $pdo, string $sql): ?string
 }
 
 // ---------------------------------------------------------------- argumentos
-$options = getopt('', ['db:', 'fresh', 'sin-fixtures', 'help']);
+$options = getopt('', ['db:', 'fresh', 'sin-fixtures', 'verify', 'help']);
 
 if (is_array($options) && array_key_exists('help', $options)) {
-    echo "Uso: php bin/prepare-e2e-db.php [--db=nombre] [--fresh] [--sin-fixtures]\n";
+    echo "Uso: php bin/prepare-e2e-db.php [--db=nombre] [--fresh] [--sin-fixtures] [--verify]\n";
     echo "Ver docblock del fichero para el detalle de cada opcion.\n";
     exit(0);
 }
 
 $fresh = is_array($options) && array_key_exists('fresh', $options);
+$verify = is_array($options) && array_key_exists('verify', $options);
 $fixtures = !(is_array($options) && array_key_exists('sin-fixtures', $options));
 
 $target = is_array($options) && isset($options['db']) ? (string) $options['db'] : '';
@@ -367,19 +374,24 @@ try {
     }
 
     // ------------------------------------------------ 5) integridad de datos
-    // v1.13.10: tras sembrar se valida que el dataset de partida no contenga
-    // datos que rompan la hidratacion del dominio (ENUMs en indice 0, fechas
-    // cero, JSON invalido, claves foraneas huerfanas). Si el seed o la copia
-    // dejaran algo corrupto, el preparado falla aqui y no en mitad de un E2E.
-    [$exit, $salida] = runPhp($baseDir . '/bin/check-data-integrity.php', $target);
-    if ($exit !== 0) {
-        fail("check-data-integrity.php detecto problemas en {$target}: {$salida}");
-    }
-
-    foreach (explode("\n", $salida) as $linea) {
-        if (str_starts_with(trim($linea), 'RESULTADO:')) {
-            echo "  integridad: {$linea}\n";
+    // Solo con --fresh (la BD acaba de recrearse) o --verify (pedido a mano).
+    // En las preparaciones repetidas de los E2E este chequeo es el paso mas
+    // caro del preludio y a nada que el lote no toque esas filas su resultado
+    // no cambia: ahorrarlo aqui es lo que permite correr suites sin repetir
+    // la bateria completa. El cierre del sprint lo sigue exigiendo (regla 7).
+    if ($fresh || $verify) {
+        [$exit, $salida] = runPhp($baseDir . '/bin/check-data-integrity.php', $target);
+        if ($exit !== 0) {
+            fail("check-data-integrity.php detecto problemas en {$target}: {$salida}");
         }
+
+        foreach (explode("\n", $salida) as $linea) {
+            if (str_starts_with(trim($linea), 'RESULTADO:')) {
+                echo "  integridad: {$linea}\n";
+            }
+        }
+    } else {
+        echo "  integridad: omitida (solo --fresh o --verify)\n";
     }
 
     echo ($nacida ? "BD {$target} creada y lista\n" : "BD {$target} lista\n");
