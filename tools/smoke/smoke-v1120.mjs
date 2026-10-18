@@ -208,6 +208,19 @@ function createEnv({ perms = [], roles = ['ADMIN'], realEventBus = false, getHan
         };
       }
       if (p === '/auth/change-password') return { status: 200, data: { ok: true } };
+      // v1.18.0: el reset de contrasena no devuelve ninguna contrasena
+      // (ni en claro ni temporal); solo el destino de la liga ya enviada.
+      const mReset = /^\/users\/([^/]+)\/password\/reset$/.exec(p);
+      if (mReset) {
+        return {
+          status: 200,
+          data: {
+            email_destino: 'ana@acme.local',
+            email_enviado: true,
+            email_error_key: null
+          }
+        };
+      }
       return { status: 201, data: { ok: true } };
     },
     async patch(p, body, options = {}) {
@@ -390,6 +403,54 @@ async function s2_users_screen() {
   check('POST /users/u1/status',
     env.calls.posts.some(p => p.path === '/users/u1/status' && p.body.motivo === 'Revision de acceso'),
     JSON.stringify(env.calls.posts.map(p => p.path)));
+
+  // --- Reset de contrasena por el admin (v1.18.0: enlace por correo, sin
+  //     password temporal y sin campo de contrasena en el modal) ---
+  check('accion Reset contrasena visible para ADMIN con users.password.reset',
+    !!env.container.querySelector('[data-action="open-reset"]'));
+
+  const exitosPreReset = env.calls.toasts.filter(t => t.type === 'success').length;
+  env.click(env.container.querySelector('[data-action="open-reset"]'));
+  await tick();
+  root = env.modalRoot();
+  check('modal de reset de contrasena abierto',
+    !!root && !!root.querySelector('[data-action="submit-reset"]'),
+    root ? root.textContent.slice(0, 120) : 'sin modal');
+  check('el modal indica que la liga va por correo al usuario',
+    !!root && root.textContent.indexOf(ES_DICT.users.reset.body.replace('{email}', 'ana@acme.local')) !== -1,
+    root ? root.textContent.slice(0, 200) : 'sin modal');
+  check('el modal avisa de caducidad de 60 minutos',
+    !!root && root.textContent.indexOf(ES_DICT.users.reset.warning) !== -1);
+  check('el modal no tiene ningun campo de contrasena',
+    !!root && !root.querySelector('input[type="password"], [data-modal-field="password"], [data-modal-field="password_temporal"]'),
+    root ? 'inputs=' + root.querySelectorAll('input').length : 'sin modal');
+  check('el modal no menciona contrasena temporal',
+    !!root && root.textContent.indexOf('temporal') === -1,
+    root ? root.textContent.slice(0, 200) : 'sin modal');
+
+  env.click(root.querySelector('[data-action="submit-reset"]'));
+  await tick();
+  check('POST /users/u1/password/reset',
+    env.calls.posts.some(p => p.path === '/users/u1/password/reset'),
+    JSON.stringify(env.calls.posts.map(p => p.path)));
+  check('el POST del reset se envia sin body de contrasena',
+    env.calls.posts.some(p => p.path === '/users/u1/password/reset'
+      && (p.body === undefined || p.body === null || (p.body && !p.body.password))),
+    JSON.stringify(env.calls.posts.find(p => p.path === '/users/u1/password/reset')));
+  const toastReset = env.calls.toasts.filter(t => t.type === 'success').slice(-1)[0];
+  check('toast de exito con el email_destino de la respuesta',
+    env.calls.toasts.filter(t => t.type === 'success').length > exitosPreReset
+      && !!toastReset
+      && (String(toastReset.message || toastReset.body || '').indexOf('ana@acme.local') !== -1
+        || String(toastReset.message || toastReset.body || '').indexOf(ES_DICT.users.reset.success_title) !== -1),
+    JSON.stringify(env.calls.toasts.slice(-1)));
+  check('toast de reset sin ninguna contrasena en el texto',
+    !!toastReset && !/password_temporal|contrasena temporal/i.test(String(toastReset.message || toastReset.body || '')),
+    JSON.stringify(toastReset));
+  check('modal cerrado tras el reset de contrasena', !env.modalRoot().querySelector('.modal'));
+  check('listado recargado tras el reset de contrasena',
+    env.calls.gets.filter(g => g.path === '/users').length >= 3,
+    JSON.stringify(env.calls.gets.map(g => g.path)));
 
   // --- Badge MFA y reset de MFA por el admin (v1.17.14) ---
   const mfaChips = env.container.querySelectorAll('[data-mfa-state]');
