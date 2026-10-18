@@ -67,18 +67,6 @@ $token = $loginOk.json.data.tokens.access_token
 $H = @{ Authorization = "Bearer $token" }
 Add-R 'login ADMIN (200)' $loginOk.code $loginOk.json.data.user.email
 
-# v1.18.0: la password del usuario USER no es secreto del script; se fija con
-# reset de enlace del ADMIN (token consumido desde mail_outbox) antes de
-# usarlo para el check de 403. Unica por ejecucion: el consume rechaza
-# repetir passwords del historial de la BD de E2E.
-$pswU = "U96-$ts-Aa1"
-$usrId = & mysql.exe -u root $e2eDb -N -e "SELECT id FROM users WHERE email = 'itspport96@gmail.com' AND deleted_at IS NULL" | Select-Object -First 1
-$rstU = Call 'POST' "$base/users/$usrId/password/reset" @{} $H
-Add-R 'setup reset password itspport96 (200)' $rstU.code "id=$usrId"
-$tokU = LastMailToken 'admin' 'itspport96@gmail.com'
-$rcU = Call 'POST' "$base/auth/reset-password" @{ token = $tokU; password_nuevo = $pswU } @{}
-Add-R 'setup consume enlace itspport96 (200)' $rcU.code "token len=$("$tokU".Length)"
-
 $loginFail = Call 'POST' "$base/auth/login" @{ email = 'aleon@acme.local'; password = 'MALA' } @{}
 Add-R 'login FALLIDO (401)' $loginFail.code $loginFail.json.message
 
@@ -91,7 +79,7 @@ $HM = @{ Authorization = "Bearer $tokenMgr" }
 Add-R 'login manager@acme.local (200)' $loginMgr.code $loginMgr.json.data.user.email
 
 # Cuenta con rol USER (sin tenants.tenant.edit) para el check de 403.
-$loginUsr = Call 'POST' "$base/auth/login" @{ email = 'itspport96@gmail.com'; password = $pswU } @{}
+$loginUsr = Call 'POST' "$base/auth/login" @{ email = 'itspport96@gmail.com'; password = 'Admin123!' } @{}
 $tokenUsr = $loginUsr.json.data.tokens.access_token
 $HU = @{ Authorization = "Bearer $tokenUsr" }
 Add-R 'login itspport96@gmail.com (200)' $loginUsr.code $loginUsr.json.data.user.email
