@@ -289,6 +289,25 @@ CREATE TABLE `inventory_counts` (
   CONSTRAINT `inventory_counts_ibfk_3` FOREIGN KEY (`usuario_responsable_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `mail_outbox`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `mail_outbox` (
+  `id` char(36) NOT NULL,
+  `tenant_id` char(36) NOT NULL,
+  `destino` varchar(255) NOT NULL,
+  `asunto` varchar(255) NOT NULL,
+  `html` mediumtext NOT NULL,
+  `kind` varchar(32) NOT NULL DEFAULT 'general',
+  `transport` enum('smtp','outbox') NOT NULL DEFAULT 'smtp',
+  `estado` enum('enviado','fallo') NOT NULL DEFAULT 'enviado',
+  `error` varchar(500) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_mo_tenant` (`tenant_id`,`created_at`),
+  CONSTRAINT `fk_mo_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `password_reset_tokens`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -297,6 +316,8 @@ CREATE TABLE `password_reset_tokens` (
   `tenant_id` char(36) NOT NULL,
   `user_id` char(36) NOT NULL,
   `token_hash` varchar(64) NOT NULL,
+  `kind` enum('sspr','admin','welcome') NOT NULL DEFAULT 'sspr',
+  `requested_by` char(36) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `expires_at` datetime NOT NULL,
   `used_at` datetime DEFAULT NULL,
@@ -305,6 +326,8 @@ CREATE TABLE `password_reset_tokens` (
   UNIQUE KEY `uq_prt_token_hash` (`token_hash`),
   KEY `idx_prt_user` (`user_id`,`created_at`),
   KEY `fk_prt_tenant` (`tenant_id`),
+  KEY `fk_prt_requested_by` (`requested_by`),
+  CONSTRAINT `fk_prt_requested_by` FOREIGN KEY (`requested_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_prt_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_prt_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
