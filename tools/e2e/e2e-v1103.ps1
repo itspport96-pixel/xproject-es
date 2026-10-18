@@ -1,18 +1,21 @@
 ﻿# tools\e2e\e2e-v1103.ps1 - E2E preferencias de idioma (sprint Correccion v1.10.3-A).
 #
-# Cubre contra la BD de E2E y el servidor PHP embebido:
-#   1. GET/PATCH /api/users/me/preferences con la propia sesion (sin permiso).
+# Cubre contra la BD de E2E y el servidor PHP embebido SOLO lo que necesita el
+# stack real (servidor, MySQL, middleware de auditoria, outbox de sesion):
+#   1. GET/PATCH /api/users/me/preferences con la propia sesion.
 #   2. PATCH {idioma} persiste y aparece en GET /auth/me y en un login nuevo.
 #   3. Merge: PATCH {tema} no borra el idioma ya guardado.
-#   4. Validacion 400 (idioma fuera de es|en|pt|fr, tema fuera de dark|light|system)
-#      con field/category en la respuesta; claves desconocidas ignoradas.
-#   5. PATCH vacio = no-op (200 sin cambios).
-#   6. 401 sin token en GET y PATCH.
-#   7. Preferencias independientes por usuario (aleon vs manager).
-#   8. users.preferencias en la BD de E2E == respuesta de la API; la BD de
+#   4. Preferencias independientes por usuario (aleon vs manager).
+#   5. users.preferencias en la BD de E2E == respuesta de la API; la BD de
 #      TRABAJO queda intacta (regla 10).
-#   9. Auditoria: fila de dominio user.preferences.update en el PATCH valido y
+#   6. Auditoria: fila de dominio user.preferences.update en el PATCH valido y
 #      fila FAILURE del middleware en el PATCH invalido (por X-Request-Id).
+#
+# v1.18.x (eficiencia B3): los contratos sin HTTP viven en PHPUnit
+# (tests/Unit/UserPreferencesServiceTest, UserPreferencesEndpointTest,
+# UserPreferencesRoutesTest): validacion 400 con field/category, 401 sin
+# token, claves desconocidas ignoradas y PATCH vacio no-op. Aqui solo queda
+# la llamada invalida que genera el X-Request-Id del FAILURE de auditoria.
 #
 # Uso: powershell -ExecutionPolicy Bypass -File tools\e2e\e2e-v1103.ps1
 $ErrorActionPreference = 'Continue'
@@ -153,86 +156,56 @@ if ($patch2.Ok -and $patch2.Status -eq 200) {
     Assert-Eq 'merge aplica tema=dark' $p2.tema 'dark'
 } else { Bad 'PATCH {tema:dark}' "$($patch2.Status) $($patch2.Content)" }
 
-# ================================================== 5) validacion 400 + 400 field
+# ================================================== 4) 400 solo para el FAILURE
+# El contrato del 400 (field/category/whitelist) vive en PHPUnit; aqui la
+# llamada invalida solo sirve para generar el X-Request-Id del FAILURE de
+# auditoria del middleware (integracion real).
 Write-Output ''
-Write-Output '--- 4) validacion (400 con field/category) ---'
+Write-Output '--- 4) llamada invalida para la auditoria FAILURE ---'
 $badIdioma = Invoke-Api 'PATCH' '/users/me/preferences' (@{ idioma = 'de' } | ConvertTo-Json) $tokenA
-if (-not $badIdioma.Ok -and $badIdioma.Status -eq 400) {
-    $b1 = Parse-Json $badIdioma.Content
-    Assert-Eq 'idioma invalido -> 400' $badIdioma.Status 400
-    Assert-Eq 'respuesta field=idioma' $b1.data.field 'idioma'
-    Assert-Eq 'respuesta category=validation' $b1.data.category 'validation'
-} else { Bad 'idioma invalido -> 400' "status=$($badIdioma.Status) body=$($badIdioma.Content)" }
+if (-not $badIdioma.Ok -and $badIdioma.Status -eq 400) { Ok 'idioma invalido -> 400 (contrato en PHPUnit)' $badIdioma.Status }
+else { Bad 'idioma invalido -> 400' "status=$($badIdioma.Status) body=$($badIdioma.Content)" }
 $reqIdFail = $badIdioma.ReqId
 
-$badTema = Invoke-Api 'PATCH' '/users/me/preferences' (@{ tema = 'claro' } | ConvertTo-Json) $tokenA
-if (-not $badTema.Ok -and $badTema.Status -eq 400) {
-    $b2 = Parse-Json $badTema.Content
-    Assert-Eq 'tema invalido -> 400' $badTema.Status 400
-    Assert-Eq 'respuesta field=tema' $b2.data.field 'tema'
-} else { Bad 'tema invalido -> 400' "status=$($badTema.Status) body=$($badTema.Content)" }
-
-# Tras los 400 la preferencia guardada no cambia
+# Tras el 400 la preferencia guardada no cambia (integracion con MySQL)
 $gAfterBad = Invoke-Api 'GET' '/users/me/preferences' $null $tokenA
 $pAfterBad = (Parse-Json $gAfterBad.Content).data.preferencias
-Assert-Eq 'los 400 no alteran la preferencia guardada' $pAfterBad.idioma 'en'
+Assert-Eq 'el 400 no altera la preferencia guardada' $pAfterBad.idioma 'en'
 
-# ============================================= 6) claves desconocidas ignoradas
+# ================================================================ 5) 401 sin token
 Write-Output ''
-Write-Output '--- 5) claves desconocidas ignoradas + no-op ---'
-$patch3 = Invoke-Api 'PATCH' '/users/me/preferences' (@{ idioma = 'es'; color = 'rojo' } | ConvertTo-Json) $tokenA
-if ($patch3.Ok -and $patch3.Status -eq 200) {
-    $p3 = (Parse-Json $patch3.Content).data.preferencias
-    Assert-Eq 'clave conocida idioma=es aplica' $p3.idioma 'es'
-    if ($p3.PSObject.Properties.Name -contains 'color') { Bad 'clave desconocida color ignorada' 'color persistida' }
-    else { Ok 'clave desconocida color ignorada' 'sin clave color' }
-} else { Bad 'PATCH {idioma,color}' "$($patch3.Status) $($patch3.Content)" }
-
-$patchEmpty = Invoke-Api 'PATCH' '/users/me/preferences' '{}' $tokenA
-if ($patchEmpty.Ok -and $patchEmpty.Status -eq 200) {
-    $pE = (Parse-Json $patchEmpty.Content).data.preferencias
-    Assert-Eq 'PATCH vacio -> 200 (no-op conserva idioma)' $pE.idioma 'es'
-    Assert-Eq 'PATCH vacio conserva tema=dark' $pE.tema 'dark'
-} else { Bad 'PATCH vacio -> 200' "$($patchEmpty.Status) $($patchEmpty.Content)" }
-
-# ================================================================ 7) 401 sin token
-Write-Output ''
-Write-Output '--- 6) 401 sin token ---'
+Write-Output '--- 5) 401 sin token (contrato en PHPUnit) ---'
 $getNoAuth = Invoke-Api 'GET' '/users/me/preferences' $null $null
 Assert-Eq 'GET sin token -> 401' $getNoAuth.Status 401
-$patchNoAuth = Invoke-Api 'PATCH' '/users/me/preferences' (@{ idioma = 'en' } | ConvertTo-Json) $null
-Assert-Eq 'PATCH sin token -> 401' $patchNoAuth.Status 401
 
-# =============================================== 8) preferencias por usuario
+# =============================================== 6) preferencias por usuario
 Write-Output ''
-Write-Output '--- 7) preferencias independientes por usuario ---'
+Write-Output '--- 6) preferencias independientes por usuario ---'
 $patchB = Invoke-Api 'PATCH' '/users/me/preferences' (@{ idioma = 'pt' } | ConvertTo-Json) $tokenB
 if ($patchB.Ok) {
     Assert-Eq 'manager PATCH idioma=pt (200)' (Parse-Json $patchB.Content).data.preferencias.idioma 'pt'
 } else { Bad 'manager PATCH' "$($patchB.Status) $($patchB.Content)" }
 
 $getA = Invoke-Api 'GET' '/users/me/preferences' $null $tokenA
-Assert-Eq 'aleon sigue en es (independencia)' (Parse-Json $getA.Content).data.preferencias.idioma 'es'
+Assert-Eq 'aleon sigue en en (independencia)' (Parse-Json $getA.Content).data.preferencias.idioma 'en'
 $getB = Invoke-Api 'GET' '/users/me/preferences' $null $tokenB
 Assert-Eq 'manager sigue en pt' (Parse-Json $getB.Content).data.preferencias.idioma 'pt'
 
-# ==================================================== 9) persistencia en la BD
+# ==================================================== 7) persistencia en la BD
 Write-Output ''
-Write-Output '--- 8) users.preferencias en la BD de E2E ---'
+Write-Output '--- 7) users.preferencias en la BD de E2E ---'
 $dbA = Scalar "SELECT preferencias FROM users WHERE email='aleon@acme.local'"
 $dbAJ = Parse-Json $dbA
-Assert-Eq 'BD aleon: idioma=es' $dbAJ.idioma 'es'
+Assert-Eq 'BD aleon: idioma=en' $dbAJ.idioma 'en'
 Assert-Eq 'BD aleon: tema=dark' $dbAJ.tema 'dark'
-if ($dbA -match 'color') { Bad 'BD aleon: sin claves desconocidas' "preferencias=$dbA" }
-else { Ok 'BD aleon: sin claves desconocidas' "preferencias=$dbA" }
 
 $dbB = Scalar "SELECT preferencias FROM users WHERE email='manager@acme.local'"
 $dbBJ = Parse-Json $dbB
 Assert-Eq 'BD manager: idioma=pt' $dbBJ.idioma 'pt'
 
-# ======================================================= 10) auditoria por request
+# ======================================================= 8) auditoria por request
 Write-Output ''
-Write-Output '--- 9) auditoria (X-Request-Id) ---'
+Write-Output '--- 8) auditoria (X-Request-Id) ---'
 if ($reqIdOk) {
     $audOk = Invoke-Api 'GET' "/audit/logs?request_id=$reqIdOk" $null $tokenA
     $rowsOk = @((Parse-Json $audOk.Content).data.data)
@@ -249,22 +222,22 @@ if ($reqIdFail) {
     else { Bad 'auditoria FAILURE del middleware en el 400' "filas=$(@($rowsFail).Count) filas_json=$(($rowsFail | ForEach-Object { $_.operacion + '/' + $_.resultado }) -join ',')" }
 } else { Bad 'auditoria FAILURE' 'sin X-Request-Id en el PATCH invalido' }
 
-# ======================================================= 11) login con preferencias
+# ======================================================== 9) login con preferencias
 Write-Output ''
-Write-Output '--- 10) el login nuevo devuelve las preferencias ---'
+Write-Output '--- 9) el login nuevo devuelve las preferencias ---'
 $loginA = $null
 try {
     $loginA = Invoke-RestMethod -Uri "$base/auth/login" -Method Post -ContentType 'application/json' `
         -Body (@{ email = 'aleon@acme.local'; password = 'Admin123!' } | ConvertTo-Json) -TimeoutSec 15
-    Assert-Eq 'login devuelve user.preferencias.idioma=es' $loginA.data.user.preferencias.idioma 'es'
+    Assert-Eq 'login devuelve user.preferencias.idioma=en' $loginA.data.user.preferencias.idioma 'en'
     Assert-Eq 'login devuelve user.preferencias.tema=dark' $loginA.data.user.preferencias.tema 'dark'
 } catch {
     Bad 'login con preferencias' "$(StatusCode $_) $($_.Exception.Message)"
 }
 
-# ================================================== 12) la BD de trabajo intacta
+# =================================================== 10) la BD de trabajo intacta
 Write-Output ''
-Write-Output '--- 11) la BD de trabajo no cambia (regla 10) ---'
+Write-Output '--- 10) la BD de trabajo no cambia (regla 10) ---'
 $prodDespues = ProdScalar ("SELECT IFNULL(MD5(GROUP_CONCAT(CONCAT(email, ':', IFNULL(preferencias, 'NULL')) ORDER BY email)), 'x') FROM users")
 if ($script:prodDb) {
     if ($prodAntes -eq $prodDespues -and $null -ne $prodAntes) {
