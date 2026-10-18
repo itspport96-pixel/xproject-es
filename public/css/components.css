@@ -982,10 +982,13 @@
     min-height: 0;
 }
 
-/* Zona maestro-detalle: scrollea por paneles, nunca la pagina. */
+/* Zona maestro-detalle: scrollea por paneles, nunca la pagina.
+   min-height:0 (y no 12rem): el piso lo pone el padre .pp-mount; con un
+   piso aqui, pp-bar + pp-body superaban el hueco del modal en viewports
+   bajos (768px) y el body del modal hacia scroll propio de 20px. */
 .pp-body {
     flex: 1;
-    min-height: 12rem;
+    min-height: 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 0.75rem;

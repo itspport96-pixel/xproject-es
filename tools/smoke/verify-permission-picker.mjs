@@ -33,9 +33,11 @@ async function login(page, email, pass) {
   await page.waitForSelector('input[type="email"], input[name="email"], #email', { timeout: 15000 });
   await page.locator('input[type="email"], input[name="email"], #email').first().fill(email);
   await page.locator('input[type="password"], input[name="password"], #password').first().fill(pass);
-  await page.locator('button[type="submit"], form button').first().click();
+  await page.getByRole('button', { name: 'Iniciar sesión' }).click();
   await page.waitForURL(/dashboard|\/#\/dashboard/, { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1000);
+  const sigueEnLogin = await page.evaluate(() => location.hash.includes('login'));
+  if (sigueEnLogin) { throw new Error('login no completo: la pagina sigue en #login'); }
 }
 
 async function openCreateModal(page) {
