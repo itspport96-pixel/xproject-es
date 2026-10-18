@@ -29,11 +29,15 @@ async function login(page) {
   await page.waitForSelector('input[type="email"], input[name="email"], #email', { timeout: 15000 });
   const email = page.locator('input[type="email"], input[name="email"], #email').first();
   const pass = page.locator('input[type="password"], input[name="password"], #password').first();
-  await email.fill('admin@acme.local');
+  await email.fill('aleon@acme.local');
   await pass.fill('Admin123!');
-  await page.locator('button[type="submit"], form button').first().click();
+  // Mismo fix que verify-rowactions-users (v1.17.14): 'form button' pincha
+  // el boton del ojo y revela el password sin enviar el formulario.
+  await page.getByRole('button', { name: 'Iniciar sesión' }).click();
   await page.waitForURL(/dashboard|\/#\/dashboard/, { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1200);
+  const sigueEnLogin = await page.evaluate(() => location.hash.includes('login'));
+  if (sigueEnLogin) { throw new Error('login no completo: la pagina sigue en #login'); }
 }
 
 async function measureTabs(page) {

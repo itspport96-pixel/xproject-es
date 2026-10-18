@@ -1,9 +1,35 @@
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '_env.ps1')   # BD E2E + servidor PHP embebido (v1.8.3)
 $results = New-Object System.Collections.ArrayList
+$script:failures = 0
 
+# El codigo esperado viaja en la etiqueta entre parentesis, exactamente tres
+# digitos: 'POST /receive (201)'. Sin codigo: SKIP es informativo, 'OK' es el
+# literal del check de fixture y cualquier otro estado debe ser 2xx. Un
+# codigo distinto del esperado cuenta como FALLO y el script sale con 1.
 function Add-R($name, $status, $note) {
-    [void]$script:results.Add([pscustomobject]@{ Check = $name; Status = $status; Nota = $note })
+    $esperado = $null
+    $ok = $false
+    $m = [regex]::Match($name, '\((\d{3})\)')
+    if ($m.Success) {
+        $esperado = [int]$m.Groups[1].Value
+        $ok = ("$status" -match '^\d+$') -and ([int]$status -eq $esperado)
+    } elseif ("$status" -eq 'SKIP') {
+        $ok = $true
+    } elseif ("$status" -eq 'OK') {
+        $ok = $true
+    } else {
+        $num = 0
+        $ok = [int]::TryParse("$status", [ref]$num) -and $num -ge 200 -and $num -lt 300
+    }
+    if (-not $ok) { $script:failures++ }
+    [void]$script:results.Add([pscustomobject]@{
+        Check     = $name
+        Esperado  = $(if ($null -ne $esperado) { $esperado } else { '-' })
+        Status    = $status
+        Resultado = $(if ($ok) { 'OK' } else { 'FALLO' })
+        Nota      = $note
+    })
 }
 
 function Call($method, $url, $body, $headers) {
@@ -42,7 +68,7 @@ $H = @{ Authorization = "Bearer $token" }
 Add-R 'login ADMIN (200)' $loginOk.code $loginOk.json.data.user.email
 
 $loginFail = Call 'POST' "$base/auth/login" @{ email = 'aleon@acme.local'; password = 'MALA' } @{}
-Add-R 'login FALLIDO' $loginFail.code $loginFail.json.message
+Add-R 'login FALLIDO (401)' $loginFail.code $loginFail.json.message
 
 # Segundo actor: credenciales únicas desde el cambio de entorno (todas
 # Admin123!, ver CHANGELOG 1.8.1). manager@acme.local sigue siendo una cuenta
@@ -166,3 +192,8 @@ Write-Output "SKU=$skuE2E PRODUCTO=$prodId UNIDAD=$unidad RESERVA=$resId REQUEST
 
 # v1.8.3: el servidor PHP embebido se detiene al terminar cada E2E.
 Stop-E2EServer
+
+$fallos = @($results | Where-Object { $_.Resultado -eq 'FALLO' }).Count
+Write-Output "E2E auditoria: $($results.Count) checks, $fallos FALLOs"
+if ($fallos -gt 0) { exit 1 }
+exit 0

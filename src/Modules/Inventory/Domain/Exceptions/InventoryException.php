@@ -1001,8 +1001,11 @@ final class InventoryException extends HttpException
             'cantidad'
         ))->withMessageKey('inventory.count_stale_quantity', [
             'unitId' => $unitId,
-            'expected' => $esperada,
-            'current' => $actual,
+            // v1.17.15: el catalogo interpola con (string) y un float crudo
+            // saldria '1'/'5'; la spec v1.9.1 fija %.4f igual que el mensaje
+            // de respaldo de arriba.
+            'expected' => sprintf('%.4f', $esperada),
+            'current' => sprintf('%.4f', $actual),
         ]);
     }
 }

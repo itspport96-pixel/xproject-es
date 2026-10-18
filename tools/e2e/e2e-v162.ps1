@@ -7,7 +7,10 @@ function Show($label, $value) { Write-Output ("{0}: {1}" -f $label, $value) }
 $token = $null
 foreach ($cred in @(
     @{ email = 'aleon@acme.local'; password = 'Admin123!' },
-    @{ email = 'admin@acme.local'; password = 'Admin123!' }
+    # admin@acme.local restauro su password en la BD viva a Admin1234!
+    # (v1.17.15): Admin123! quedo en password_history y el reuse check lo
+    # rechaza. La copia de la BD de E2E lo hereda al re-preparar con --fresh.
+    @{ email = 'admin@acme.local'; password = 'Admin1234!' }
 )) {
     try {
         $login = Invoke-RestMethod -Uri "$base/auth/login" -Method Post -ContentType 'application/json' `

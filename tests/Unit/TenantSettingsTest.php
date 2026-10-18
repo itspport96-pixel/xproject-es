@@ -150,7 +150,6 @@ final class TenantSettingsTest extends TestCase
         ];
     }
 
-    /** @dataProvider configuracionesInvalidas */
     #[\PHPUnit\Framework\Attributes\DataProvider('configuracionesInvalidas')]
     public function testConfiguracionInvalidaLanza(array $config): void
     {
