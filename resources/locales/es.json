@@ -1,7 +1,7 @@
 {
   "shell": {
     "guest": "Invitado",
-    "logout": "Cerrar sesion",
+    "logout": "Cerrar sesión",
     "change_password": "Cambiar contraseña",
     "language": "Idioma",
     "toggle_menu": "Alternar menú",
@@ -12,7 +12,7 @@
     "sidebar_close": "Cerrar menú",
     "sidebar_menu": "Menú principal",
     "session_expired": "Sesión expirada",
-    "session_idle": "Se cerro tu sesion por inactividad."
+    "session_idle": "Se cerró tu sesión por inactividad."
   },
   "ui": {
     "empty_title": "Sin datos",

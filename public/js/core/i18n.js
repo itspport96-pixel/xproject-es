@@ -41,7 +41,7 @@
   const BUILTIN_ES = {
     shell: {
       guest: 'Invitado',
-      logout: 'Cerrar sesion',
+      logout: 'Cerrar sesión',
       language: 'Idioma',
       toggle_menu: 'Alternar menú',
       toggle_theme: 'Alternar tema',
@@ -51,7 +51,7 @@
       sidebar_close: 'Cerrar menú',
       sidebar_menu: 'Menú principal',
       session_expired: 'Sesión expirada',
-      session_idle: 'Se cerro tu sesion por inactividad.'
+      session_idle: 'Se cerró tu sesión por inactividad.'
     },
     ui: {
       empty_title: 'Sin datos',

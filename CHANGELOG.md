@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.18.7] - 2026-10-18
+
+**Frontend: dos cadenas del shell sin tilde corregidas.** "Cerrar sesion" -> "Cerrar sesion" con tilde ("Cerrar sesión") y "Se cerro tu sesion por inactividad." -> "Se cerró tu sesión por inactividad."; en `resources/locales/es.json` (diccionario descargado) y en el fallback embebido pre-sesion de `public/js/core/i18n.js`. Barrido del frontend (es.json, i18n.js, modulos public/js, index.php): el resto de textos visibles en espanol ya usaban en y tildes (login, forgot, reset, formularios y errores); no se tocaron identificadores de campo ni comentarios de codigo.
+
+### Changed
+- `resources/locales/es.json`, `public/js/core/i18n.js`: claves `shell.logout` y `shell.session_idle`.
 ## [1.18.6] - 2026-10-18
 
 **Correos en espanol con la ortografia correcta (en y tildes).** Los cinco textos de correo del catalogo (`MailCatalog`, kind es) pasan de "contrasena"/"valido"/"solicito"/"dejo" al español normalizado: contraseña, válido, solicitó, dejó, válida y tú con tilde. Los mensajes de la API y el resto de textos de la plataforma ya usaban en y tildes; el unico sitio afectado eran los asuntos y cuerpos en espanol de los correos (reset, admin, bienvenida, cambio de contraseña y prueba SMTP). Los tests que fijan esos asuntos (`MailCatalogTest`, `MailCatalogPreferenciasLiveTest`) se actualizan al mismo texto.
