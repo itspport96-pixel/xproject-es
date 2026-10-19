@@ -41,11 +41,11 @@ final class MailCatalogTest extends TestCase
             'url' => 'https://xp/#/reset-password?token=abc',
         ]);
 
-        $this->assertSame('Restablecer tu contrasena', $mail['asunto']);
+        $this->assertSame('Restablecer tu contraseña', $mail['asunto']);
         $this->assertStringContainsString('Hola Ana:', $mail['html']);
         $this->assertStringContainsString('válido durante 15 minutos', $mail['html']);
         $this->assertStringContainsString('https://xp/#/reset-password?token=abc', $mail['html']);
-        $this->assertStringContainsString('Restablecer mi contrasena', $mail['html']);
+        $this->assertStringContainsString('Restablecer mi contraseña', $mail['html']);
     }
 
     public function testIdiomasSoportados(): void
@@ -59,11 +59,11 @@ final class MailCatalogTest extends TestCase
     public static function asuntosProvider(): array
     {
         return [
-            'reset es'  => ['reset', 'es', 'Restablecer tu contrasena'],
+            'reset es'  => ['reset', 'es', 'Restablecer tu contraseña'],
             'reset en'  => ['reset', 'en', 'Reset your password'],
             'reset pt'  => ['reset', 'pt', 'Redefinir sua senha'],
             'reset fr'  => ['reset', 'fr', 'Réinitialiser votre mot de passe'],
-            'admin es'  => ['admin', 'es', 'Restablecer tu contrasena'],
+            'admin es'  => ['admin', 'es', 'Restablecer tu contraseña'],
             'admin en'  => ['admin', 'en', 'Reset your password'],
             'admin pt'  => ['admin', 'pt', 'Redefinir sua senha'],
             'admin fr'  => ['admin', 'fr', 'Réinitialiser votre mot de passe'],
@@ -71,7 +71,7 @@ final class MailCatalogTest extends TestCase
             'welcome en' => ['welcome', 'en', 'Welcome to the platform'],
             'welcome pt' => ['welcome', 'pt', 'Bem-vindo à plataforma'],
             'welcome fr' => ['welcome', 'fr', 'Bienvenue sur la plateforme'],
-            'changed es' => ['changed', 'es', 'Tu contrasena fue restablecida'],
+            'changed es' => ['changed', 'es', 'Tu contraseña fue restablecida'],
             'changed en' => ['changed', 'en', 'Your password was reset'],
             'changed pt' => ['changed', 'pt', 'Sua senha foi redefinida'],
             'changed fr' => ['changed', 'fr', 'Votre mot de passe a été réinitialisé'],
@@ -107,8 +107,8 @@ final class MailCatalogTest extends TestCase
         $mail = $this->catalog->composeEn('es', 'reset', 'Ana', ['ttl' => '15', 'url' => 'https://u']);
 
         $this->assertStringContainsString('<p>Hola Ana:</p>', $mail['html']);
-        $this->assertStringContainsString('<a href="https://u">Restablecer mi contrasena</a>', $mail['html']);
-        $this->assertStringContainsString('Si no fuiste tu, ignora este correo', $mail['html']);
+        $this->assertStringContainsString('<a href="https://u">Restablecer mi contraseña</a>', $mail['html']);
+        $this->assertStringContainsString('Si no fuiste tú, ignora este correo', $mail['html']);
     }
 
     public function testChangedNoLlevaEnlace(): void

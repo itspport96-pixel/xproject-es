@@ -35,11 +35,11 @@ final class MailCatalog
     private const TEXTS = [
         'reset' => [
             'es' => [
-                'asunto' => 'Restablecer tu contrasena',
+                'asunto' => 'Restablecer tu contraseña',
                 'hola' => 'Hola {nombre}:',
-                'intro' => 'Recibimos una solicitud para restablecer tu contrasena. Haz clic en el siguiente enlace (válido durante {ttl} minutos y de un solo uso):',
-                'cta' => 'Restablecer mi contrasena',
-                'cierra' => 'Si no fuiste tu, ignora este correo; tu contrasena no cambia.',
+                'intro' => 'Recibimos una solicitud para restablecer tu contraseña. Haz clic en el siguiente enlace (válido durante {ttl} minutos y de un solo uso):',
+                'cta' => 'Restablecer mi contraseña',
+                'cierra' => 'Si no fuiste tú, ignora este correo; tu contraseña no cambia.',
             ],
             'en' => [
                 'asunto' => 'Reset your password',
@@ -65,11 +65,11 @@ final class MailCatalog
         ],
         'admin' => [
             'es' => [
-                'asunto' => 'Restablecer tu contrasena',
+                'asunto' => 'Restablecer tu contraseña',
                 'hola' => 'Hola {nombre}:',
-                'intro' => 'Un administrador de la plataforma solicito restablecer tu contrasena. Para elegir una nueva, haz clic en el siguiente enlace (valido durante {ttl} minutos y de un solo uso):',
-                'cta' => 'Restablecer mi contrasena',
-                'cierra' => 'Tu contrasena anterior dejo de ser valida. Si no fuiste tu, contacta de inmediato con un administrador.',
+                'intro' => 'Un administrador de la plataforma solicitó restablecer tu contraseña. Para elegir una nueva, haz clic en el siguiente enlace (válido durante {ttl} minutos y de un solo uso):',
+                'cta' => 'Restablecer mi contraseña',
+                'cierra' => 'Tu contraseña anterior dejó de ser válida. Si no fuiste tú, contacta de inmediato con un administrador.',
             ],
             'en' => [
                 'asunto' => 'Reset your password',
@@ -97,8 +97,8 @@ final class MailCatalog
             'es' => [
                 'asunto' => 'Bienvenido a la plataforma',
                 'hola' => 'Hola {nombre}:',
-                'intro' => 'Tu cuenta fue creada en la plataforma. Para elegir tu contrasena, haz clic en el siguiente enlace (válido durante {ttl} horas y de un solo uso):',
-                'cta' => 'Establecer mi contrasena',
+                'intro' => 'Tu cuenta fue creada en la plataforma. Para elegir tu contraseña, haz clic en el siguiente enlace (válido durante {ttl} horas y de un solo uso):',
+                'cta' => 'Establecer mi contraseña',
                 'cierra' => 'Si no esperabas este correo, contacta con un administrador.',
             ],
             'en' => [
@@ -125,9 +125,9 @@ final class MailCatalog
         ],
         'changed' => [
             'es' => [
-                'asunto' => 'Tu contrasena fue restablecida',
+                'asunto' => 'Tu contraseña fue restablecida',
                 'hola' => 'Hola {nombre}:',
-                'intro' => 'Tu contrasena fue restablecida correctamente. Si no fuiste tu, contacta de inmediato con un administrador.',
+                'intro' => 'Tu contraseña fue restablecida correctamente. Si no fuiste tú, contacta de inmediato con un administrador.',
                 'cta' => '',
                 'cierra' => '',
             ],

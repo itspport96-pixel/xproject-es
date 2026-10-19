@@ -54,7 +54,7 @@ final class MailCatalogPreferenciasLiveTest extends TestCase
         $this->assertSame('es', $this->catalog->idiomaDelDestino($this->email));
 
         $mail = $this->catalog->compose('reset', $this->email, 'SSPR', ['ttl' => '15', 'url' => 'u']);
-        $this->assertSame('Restablecer tu contrasena', $mail['asunto']);
+        $this->assertSame('Restablecer tu contraseña', $mail['asunto']);
         $this->assertStringContainsString('válido durante 15 minutos', $mail['html']);
     }
 

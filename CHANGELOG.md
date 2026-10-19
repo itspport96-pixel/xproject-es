@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.18.6] - 2026-10-18
+
+**Correos en espanol con la ortografia correcta (en y tildes).** Los cinco textos de correo del catalogo (`MailCatalog`, kind es) pasan de "contrasena"/"valido"/"solicito"/"dejo" al español normalizado: contraseña, válido, solicitó, dejó, válida y tú con tilde. Los mensajes de la API y el resto de textos de la plataforma ya usaban en y tildes; el unico sitio afectado eran los asuntos y cuerpos en espanol de los correos (reset, admin, bienvenida, cambio de contraseña y prueba SMTP). Los tests que fijan esos asuntos (`MailCatalogTest`, `MailCatalogPreferenciasLiveTest`) se actualizan al mismo texto.
+
+### Changed
+- `src/Shared/Services/MailCatalog.php`: textos kind es de los cinco correos con en y tildes.
+- `tests/Unit/MailCatalogTest.php`, `tests/Unit/MailCatalogPreferenciasLiveTest.php`: asuntos y cuerpos esperados en espanol actualizados.
+
+### Notes
+- Cambio de textos visibles al usuario; sin cambios de codigo, esquema ni API. Los tests se dejaron sin ejecutar a peticion del usuario (el los ejecuta).
 ## [1.18.5] - 2026-10-18
 
 **Correos transaccionales en cuatro idiomas: la deuda (1) de v1.18.0 queda cerrada; no quedan pendientes declarados de esa version.** Nuevo `src/Shared/Services/MailCatalog.php` con los textos de los cinco correos (reset SSPR, reset administrativo, bienvenida, cambio de contrasena y prueba SMTP) en es/en/pt/fr, con el idioma resuelto desde `users.preferencias` (JSON, clave `idioma`, misma whitelist es|en|pt|fr que `UserService::PREFERENCIAS_IDIOMA`); si el destinatario no existe, no ha elegido idioma o el valor esta fuera de la whitelist, se usa espanol. `PasswordResetService` compone sus cuatro correos a traves del catalogo (asunto, saludo, intro con {ttl}, enlace y cierre) y `MailerService::sendTest` usa el mismo catalogo. Sin cambios de esquema ni de API.
