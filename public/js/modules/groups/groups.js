@@ -65,8 +65,11 @@
                 })}
 
                 <div class="card mb-4 flex flex-wrap items-center gap-4">
-                    <label class="flex items-center gap-2 text-sm">
-                        <input type="checkbox" data-group-filter="inactive"${state.includeInactive ? ' checked' : ''}>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <span class="toggle">
+                            <input type="checkbox" data-group-filter="inactive"${state.includeInactive ? ' checked' : ''}>
+                            <span class="toggle-slider"></span>
+                        </span>
                         ${t('groups.filter.inactive')}
                     </label>
                 </div>
