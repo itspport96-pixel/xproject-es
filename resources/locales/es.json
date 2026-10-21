@@ -168,7 +168,9 @@
     "section_principal": "Principal",
     "section_inventory": "Inventario",
     "section_admin": "Administración",
-    "section_system": "Sistema"
+    "section_system": "Sistema",
+    "inventory": "Inventario",
+    "section_modules": "Módulos"
   },
   "routes": {
     "login": "Iniciar sesión",
@@ -1695,6 +1697,10 @@
     "title": "Panel de control",
     "subtitle": "Resumen de tu operación",
     "greeting": "Hola, {name}",
+    "inventory": {
+      "title": "Panel de Inventario",
+      "subtitle": "Resumen del módulo de inventario"
+    },
     "cards": {
       "active_users": "Usuarios activos",
       "stock_units": "Unidades en stock",

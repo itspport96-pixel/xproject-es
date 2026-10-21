@@ -11,9 +11,9 @@ use App\Shared\Exceptions\HttpException;
 /**
  * Controlador HTTP del dashboard de inventario (spec §9 "Lazy Loading").
  *
- * Endpoints:
- *  - GET /api/inventory/dashboard/critical  → CAPA 1 (primer render)
- *  - GET /api/inventory/dashboard/secondary → CAPA 2 (~5s después)
+ * Endpoints (el frontend los pide en paralelo a la entrada del panel):
+ *  - GET /api/inventory/dashboard/critical  → CAPA 1 (stock resumido)
+ *  - GET /api/inventory/dashboard/secondary → CAPA 2 (operación)
  *
  * Permisos requeridos (aplicados via PermissionMiddleware en routes):
  *  - inventory.stock.view → ambos (lo tienen ADMIN, MANAGER, USER y VIEWER)

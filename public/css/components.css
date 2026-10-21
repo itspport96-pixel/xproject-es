@@ -2028,3 +2028,154 @@ color: rgb(var(--color-primary));
 color: rgb(var(--color-text));
 font-weight: 500;
 }
+
+
+/* ============================================
+   Dashboard subnav (sección Dashboard)
+   Barra de pestañas bajo el header. Escritorio: tira de pestañas.
+   Móvil: desplegable (sin scroll horizontal).
+   A sangre con el header (márgenes negativos = padding de main): pegado
+   arriba, ancho completo sin laterales y con aire hacia abajo.
+   Sticky: se queda con el scroll justo bajo el header; el offset lo fija
+   subnav.js en --app-header-height (altura real medida del .app-header).
+   Por debajo del header (z-index menor): si el offset llegara tarde, la
+   barra pasa por detras en vez de tapar la cabecera.
+   ============================================ */
+
+#inventory-subnav {
+  position: sticky;
+  top: var(--app-header-height, 0px);
+  z-index: calc(var(--z-header) - 1);
+  margin: -1rem -1rem 1rem;
+}
+
+#inventory-subnav[hidden] {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  #inventory-subnav {
+    margin: -1.5rem -1.5rem 1.5rem;
+  }
+}
+
+.subnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+  background-color: rgb(var(--color-surface));
+  border-bottom: 1px solid rgb(var(--color-border) / 0.7);
+}
+
+.subnav-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.subnav-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(var(--color-text-muted));
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.subnav-tab:hover {
+color: rgb(var(--color-text));
+}
+
+.subnav-tab.is-active {
+color: rgb(var(--color-primary));
+border-bottom-color: rgb(var(--color-primary));
+}
+
+.subnav-tab:focus-visible {
+outline: 2px solid rgb(var(--color-primary));
+outline-offset: -2px;
+border-radius: 2px;
+}
+
+/* Desplegable (móvil): oculto en escritorio */
+.subnav-select {
+display: none;
+position: relative;
+}
+
+.subnav-select-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(var(--color-text));
+  background-color: transparent;
+  border: 1px solid rgb(var(--color-border));
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.subnav-select-chevron {
+width: 1rem;
+height: 1rem;
+color: rgb(var(--color-text-muted));
+}
+
+.subnav-select-menu {
+position: absolute;
+right: 0;
+top: calc(100% + 0.25rem);
+min-width: 12rem;
+max-height: 60vh;
+overflow-y: auto;
+margin: 0;
+padding: 0.25rem;
+list-style: none;
+background-color: rgb(var(--color-surface));
+border: 1px solid rgb(var(--color-border));
+border-radius: 0.5rem;
+box-shadow: var(--shadow-lg);
+z-index: 40;
+}
+
+.subnav-select-option {
+padding: 0.5rem 0.75rem;
+font-size: 0.875rem;
+color: rgb(var(--color-text));
+border-radius: 0.375rem;
+cursor: pointer;
+}
+
+.subnav-select-option:hover,
+.subnav-select-option:focus-visible {
+background-color: rgb(var(--color-surface-alt));
+outline: none;
+}
+
+.subnav-select-option.is-active {
+color: rgb(var(--color-primary));
+font-weight: 500;
+}
+
+/* Móvil: pestañas fuera, desplegable dentro. Sin scroll horizontal. */
+@media (max-width: 767px) {
+  .subnav {
+    padding: 0 0.5rem;
+  }
+
+  .subnav-tabs {
+    display: none;
+  }
+
+  .subnav-select {
+    display: block;
+  }
+}

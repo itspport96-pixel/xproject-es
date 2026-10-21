@@ -16,7 +16,8 @@ const FILES = {
   audit: read('modules/audit/logs.js'),
   loader: read('core/loader.js'),
   router: read('core/router.js'),
-  sidebar: read('modules/dashboard/sidebar.js')
+  sidebar: read('modules/dashboard/sidebar.js'),
+  subnav: read('modules/dashboard/subnav.js')
 };
 
 // Componentes compartidos v1.9.3: los módulos migrados (p. ej. reservas)
@@ -128,7 +129,7 @@ const AUDIT_PAYLOAD = {
 
 function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {}, postImpl = null } = {}) {
   const dom = new JSDOM(
-    '<!DOCTYPE html><html><body><div id="sidebar"></div><div id="module-container"></div></body></html>',
+    '<!DOCTYPE html><html><body><div id="sidebar"></div><div id="inventory-subnav"></div><div id="module-container"></div></body></html>',
     { url: 'http://localhost/xp/public/', runScripts: 'outside-only', pretendToBeVisual: true }
   );
   const w = dom.window;
@@ -201,6 +202,17 @@ function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {}, postImpl =
   env.loadReservations = () => { evalUi(); evalIn(FILES.reservations); w.InventoryReservationsModule.init({}, w.document.getElementById('module-container')); };
   env.loadAudit = () => { evalUi(); evalIn(FILES.audit); w.AuditLogsModule.init({}, w.document.getElementById('module-container')); };
   env.loadShell = () => { evalUi(); evalIn(FILES.loader); evalIn(FILES.router); evalIn(FILES.sidebar); };
+  // Subnav de inventario: se pinta solo en rutas de inventario, asi que se
+  // fuerza la ruta antes de init(). Devuelve las rutas pintadas.
+  env.loadSubnav = (route) => {
+    evalUi();
+    if (!w.InventorySubnav) evalIn(FILES.subnav);
+    if (w.AppRouter && typeof w.AppRouter.getCurrentRoute === 'function') {
+      w.AppRouter.getCurrentRoute = () => route;
+    }
+    w.InventorySubnav.init();
+    return [...w.document.querySelectorAll('#inventory-subnav .subnav-tab')].map(a => a.dataset.route);
+  };
 
   env.container = w.document.getElementById('module-container');
   env.click = (el) => el.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -639,8 +651,11 @@ async function s6_shell_registration() {
   envA.w.AppSidebar.init();
   const adminRoutes = [...envA.w.document.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
   check('ADMIN ve Auditoría', adminRoutes.includes('audit'), JSON.stringify(adminRoutes));
-  check('ADMIN ve Reservas', adminRoutes.includes('inventory/reservations'), JSON.stringify(adminRoutes));
-  check('ADMIN ve Stock', adminRoutes.includes('inventory/stock'));
+  check('ADMIN sidebar lleva panel inventario', adminRoutes.includes('dashboard/inventory'), JSON.stringify(adminRoutes));
+  check('ADMIN sidebar ya no lista opciones detalladas', !adminRoutes.includes('inventory/reservations') && !adminRoutes.includes('inventory/stock'));
+  const adminSub = envA.loadSubnav('inventory');
+  check('ADMIN subnav ve Reservas', adminSub.includes('inventory/reservations'), JSON.stringify(adminSub));
+  check('ADMIN subnav ve Stock', adminSub.includes('inventory/stock'), JSON.stringify(adminSub));
   envA.close();
 
   // sidebar VIEWER
@@ -651,8 +666,9 @@ async function s6_shell_registration() {
   envV.w.AppSidebar.init();
   const viewerRoutes = [...envV.w.document.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
   check('VIEWER no ve Auditoría', !viewerRoutes.includes('audit'), JSON.stringify(viewerRoutes));
-  check('VIEWER no ve Reservas', !viewerRoutes.includes('inventory/reservations'), JSON.stringify(viewerRoutes));
-  check('VIEWER ve Stock', viewerRoutes.includes('inventory/stock'), JSON.stringify(viewerRoutes));
+  const viewerSub = envV.loadSubnav('inventory');
+  check('VIEWER subnav no ve Reservas', !viewerSub.includes('inventory/reservations'), JSON.stringify(viewerSub));
+  check('VIEWER subnav ve Stock', viewerSub.includes('inventory/stock'), JSON.stringify(viewerSub));
   envV.close();
 
   // sidebar USER (movement/reservation sin cancel ni audit)
@@ -663,7 +679,8 @@ async function s6_shell_registration() {
   envU.evalIn(FILES.sidebar);
   envU.w.AppSidebar.init();
   const userRoutes = [...envU.w.document.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
-  check('USER ve Reservas', userRoutes.includes('inventory/reservations'), JSON.stringify(userRoutes));
+  const userSub = envU.loadSubnav('inventory');
+  check('USER subnav ve Reservas', userSub.includes('inventory/reservations'), JSON.stringify(userSub));
   check('USER no ve Auditoría', !userRoutes.includes('audit'), JSON.stringify(userRoutes));
   envU.close();
 }

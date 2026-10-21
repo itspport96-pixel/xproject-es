@@ -53,20 +53,12 @@
       ]
     },
     {
-      sectionKey: 'nav.section_inventory',
+      // "Módulos": puntos de entrada a cada módulo. Inventario abre su panel
+      // (#/dashboard/inventory), que es desde donde se navega el resto de
+      // opciones (subnav). Los items detallados de inventario ya no viven aquí.
+      sectionKey: 'nav.section_modules',
       items: [
-        { labelKey: 'nav.products', route: 'inventory', icon: 'box', permission: 'inventory.item.view', roles: ['ADMIN', 'MANAGER', 'USER', 'VIEWER'] },
-        { labelKey: 'nav.locations', route: 'inventory/locations', icon: 'mapPin', permission: 'inventory.location.view', roles: ['ADMIN', 'MANAGER', 'USER', 'VIEWER'] },
-        { labelKey: 'nav.receiving', route: 'inventory/receiving', icon: 'inbox', permission: 'inventory.receiving.create', roles: ['ADMIN', 'MANAGER', 'USER'] },
-        { labelKey: 'nav.stock', route: 'inventory/stock', icon: 'layers', permission: 'inventory.stock.view', roles: ['ADMIN', 'MANAGER', 'USER', 'VIEWER'] },
-        { labelKey: 'nav.movements', route: 'inventory/movements', icon: 'exchange', permission: 'inventory.stock.view', roles: ['ADMIN', 'MANAGER', 'USER', 'VIEWER'] },
-        { labelKey: 'nav.reservations', route: 'inventory/reservations', icon: 'clock', permission: 'inventory.reservation.view', roles: ['ADMIN', 'MANAGER', 'USER', 'VIEWER'] },
-        { labelKey: 'nav.picking', route: 'inventory/picking', icon: 'checkList', permission: 'inventory.picking.view', roles: ['ADMIN', 'MANAGER', 'USER', 'VIEWER'] },
-        { labelKey: 'nav.shipments', route: 'inventory/shipments', icon: 'truck', permission: 'inventory.shipping.view', roles: ['ADMIN', 'MANAGER', 'USER', 'VIEWER'] },
-        { labelKey: 'nav.deliveries', route: 'inventory/deliveries', icon: 'checkCircle', permission: 'inventory.delivery.view', roles: ['ADMIN', 'MANAGER', 'USER', 'VIEWER'] },
-        { labelKey: 'nav.returns', route: 'inventory/returns', icon: 'undo', permission: 'inventory.return.view', roles: ['ADMIN', 'MANAGER', 'USER', 'VIEWER'] },
-        { labelKey: 'nav.incidents', route: 'inventory/incidents', icon: 'alert', permission: 'inventory.incident.view', roles: ['ADMIN', 'MANAGER', 'USER', 'VIEWER'] },
-        { labelKey: 'nav.counts', route: 'inventory/counts', icon: 'clipboard', permission: 'inventory.count.view', roles: ['ADMIN', 'MANAGER', 'USER', 'VIEWER'] }
+        { labelKey: 'nav.inventory', route: 'dashboard/inventory', icon: 'box', permissionPrefix: 'inventory.', activePrefixes: ['inventory'], roles: ['ADMIN', 'MANAGER', 'USER', 'VIEWER'] }
       ]
     },
     {
@@ -156,11 +148,18 @@
   // Precedencia: la ruta activa dentro del grupo lo abre siempre; si no,
   // el estado guardado por el usuario; si no hay valor (o la lectura
   // falló), cerrado.
+  // Coincidencia de ruta: la ruta exacta del item o su prefijo, ampliada
+  // con activePrefixes (rutas extra que también activan el item, p.ej.
+  // la entrada al panel de inventario se activa en cualquier /inventory/*).
+  function routeMatchesItem(item, route) {
+    if (!route) return false;
+    if (item.route === route || route.indexOf(item.route + '/') === 0) return true;
+    const extras = item.activePrefixes || [];
+    return extras.some(p => route === p || route.indexOf(p + '/') === 0);
+  }
+
   function isSectionExpanded(sectionKey, items) {
-    const activeInside = (items || []).some(item =>
-      item.route === currentRoute ||
-      (currentRoute && currentRoute.startsWith(item.route + '/'))
-    );
+    const activeInside = (items || []).some(item => routeMatchesItem(item, currentRoute));
     if (activeInside) return true;
     return readSectionExpanded(sectionKey);
   }
@@ -245,9 +244,12 @@
     return items.map(item => {
       const iconSvg = ICONS[item.icon] || ICONS.dashboard;
       const label = item.labelKey ? t(item.labelKey) : item.label;
+      const extra = (item.activePrefixes && item.activePrefixes.length)
+        ? ` data-active-prefixes="${escapeHtml(item.activePrefixes.join(','))}"`
+        : '';
 
       return `
-        <button class="sidebar-item" data-route="${escapeHtml(item.route)}" aria-label="${escapeHtml(label)}">
+        <button class="sidebar-item" data-route="${escapeHtml(item.route)}"${extra} aria-label="${escapeHtml(label)}">
           <span class="sidebar-item-icon" aria-hidden="true">${iconSvg}</span>
           <span class="sidebar-item-label">${escapeHtml(label)}</span>
         </button>
@@ -282,6 +284,12 @@
         // 2) Permiso real del backend cuando está declarado y disponible.
         if (item.permission && permissions.length > 0) {
           return permissions.includes(item.permission);
+        }
+
+        // 2b) Prefijo de permiso: visible si el usuario tiene cualquier
+        // permiso que empiece por el prefijo (entrada a un módulo).
+        if (item.permissionPrefix && permissions.length > 0) {
+          return permissions.some(p => typeof p === 'string' && p.indexOf(item.permissionPrefix) === 0);
         }
 
         // 3) Fallback por rol (mismo contrato que la BD).
@@ -484,15 +492,21 @@
     if (!container) return;
     const items = Array.from(container.querySelectorAll('.sidebar-item'));
 
-    // 1) Coincidencia exacta con la ruta actual.
+    // Coincidencia exacta con la ruta actual.
     const exact = items.find(item => item.dataset.route === currentRoute);
-    // 2) Si no hay exacta, el item cuyo prefijo contenga la ruta actual
-    //    (subrutas: #/inventory/locations resalta "inventory" sólo si no
-    //    existe un item para esa ruta concreta).
-    const prefix = exact ? null
-      : items.find(item => item.dataset.route
-          && currentRoute
-          && currentRoute.startsWith(item.dataset.route + '/'));
+
+    // Si no hay exacta, el item cuyo prefijo contenga la ruta actual
+    // (subrutas: #/inventory/locations resalta la entrada al panel de
+    // inventario vía data-active-prefixes, sólo si no existe un item para
+    // esa ruta concreta).
+    const prefixOf = (item, route) => {
+      if (!route) return false;
+      const r = item.dataset.route;
+      if (r && route.indexOf(r + '/') === 0) return true;
+      const extras = (item.dataset.activePrefixes || '').split(',').filter(Boolean);
+      return extras.some(p => route === p || route.indexOf(p + '/') === 0);
+    };
+    const prefix = exact ? null : items.find(item => prefixOf(item, currentRoute));
 
     items.forEach(item => {
       const isActive = item === exact || item === prefix;

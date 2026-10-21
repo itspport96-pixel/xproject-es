@@ -134,6 +134,7 @@ const MODULE_FILES = {
   // Sólo para que AppRouter.isModuleAvailable() sea true (el sidebar y los
   // accesos rápidos filtran por módulos registrados); el smoke navega sólo
   // a dashboard/stock/audit.
+  'inventory/dashboard': { availableOnly: true },
   'inventory/products': { availableOnly: true },
   'inventory/locations': { availableOnly: true },
   'inventory/receiving': { availableOnly: true },
@@ -369,9 +370,18 @@ async function s1_s4_ciclo() {
   w.location.hash = '#/dashboard';
   env.evalIn(FILES.router);
   env.evalIn(FILES.sidebar);
+  // Sin stub de isModuleAvailable: el filtro real consulta el registry del
+  // harness (ModuleLoader.has) y MODULE_FILES registra inventory/dashboard.
   w.AppSidebar.init();
   w.AppRouter.init();
   await tick(14);
+
+  check('isModuleAvailable real: dashboard/inventory disponible',
+    w.AppRouter.isModuleAvailable('dashboard/inventory') === true,
+    String(w.AppRouter.isModuleAvailable('dashboard/inventory')));
+  check('isModuleAvailable real: ruta inexistente no disponible',
+    w.AppRouter.isModuleAvailable('no/existe') === false,
+    String(w.AppRouter.isModuleAvailable('no/existe')));
 
   const container = env.container;
   check('dashboard renderizado en es', /Accesos rápidos/.test(container.textContent),
@@ -416,7 +426,10 @@ async function s1_s4_ciclo() {
 
   env.setLang('es');
   await tick(14);
-  check('vuelta a es: sidebar Recepcion', /Recepción/.test(env.sidebarText()), env.sidebarText().slice(0, 160));
+  check('vuelta a es: sidebar en espanol', /Auditoría/.test(env.sidebarText()) && !/\bAudit\b/.test(env.sidebarText()),
+    env.sidebarText().slice(0, 160));
+  check('vuelta a es: seccion Modulos e accion Inventory', /Módulos/.test(env.sidebarText()) && /Inventario/.test(env.sidebarText()),
+    env.sidebarText().slice(0, 160));
   check('vuelta a es: titulo del documento', w.document.title === 'Auditoría - XP Platform', w.document.title);
   check('vuelta a es: label Idioma', env.label() === 'Idioma', env.label());
   check('localStorage[lang] vuelve a es', w.localStorage.getItem('lang') === 'es');

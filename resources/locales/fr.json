@@ -168,7 +168,9 @@
     "section_principal": "Principal",
     "section_inventory": "Inventaire",
     "section_admin": "Administration",
-    "section_system": "Système"
+    "section_system": "Système",
+    "inventory": "Inventaire",
+    "section_modules": "Modules"
   },
   "routes": {
     "login": "Se connecter",
@@ -1695,6 +1697,10 @@
     "title": "Tableau de bord",
     "subtitle": "Résumé de votre opération",
     "greeting": "Bonjour, {name}",
+    "inventory": {
+      "title": "Tableau de bord des stocks",
+      "subtitle": "Résumé du module de stocks"
+    },
     "cards": {
       "active_users": "Utilisateurs actifs",
       "stock_units": "Unités en stock",

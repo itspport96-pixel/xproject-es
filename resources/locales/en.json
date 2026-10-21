@@ -168,7 +168,9 @@
     "section_principal": "Main",
     "section_inventory": "Inventory",
     "section_admin": "Administration",
-    "section_system": "System"
+    "section_system": "System",
+    "inventory": "Inventory",
+    "section_modules": "Modules"
   },
   "routes": {
     "login": "Sign in",
@@ -1695,6 +1697,10 @@
     "title": "Dashboard",
     "subtitle": "Summary of your operation",
     "greeting": "Hello, {name}",
+    "inventory": {
+      "title": "Inventory Dashboard",
+      "subtitle": "Summary of the inventory module"
+    },
     "cards": {
       "active_users": "Active users",
       "stock_units": "Units in stock",

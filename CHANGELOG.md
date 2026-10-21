@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.18.8] - 2026-10-21
+
+**Navegación: dashboard general limpio y panel de Inventario con subnav propio y sticky.** El dashboard general deja de mezclar accesos de módulos: se reserva a KPIs y novedades, y el acceso a Inventario pasa a ser la acción única de la sección "Módulos" del sidebar (gate `permissionPrefix: 'inventory.'`), que abre `#/dashboard/inventory`. El panel lleva su subnav con los 12 accesos de inventario, cada uno gateado por su permiso real (`inventory.*`) y sin opción "Dashboard"; el subnav se ve en `#/dashboard/inventory`, `#/inventory` y `#/inventory/*`. CSS: a sangre con el padding de `main` (márgenes negativos por breakpoint), línea inferior más fina (`rgb(var(--color-border)/0.7)`), paddings de pestañas ajustados y `position: sticky` bajo la cabecera (`top: var(--app-header-height)`, `z-index: calc(var(--z-header) - 1)` para pasar por detrás al scrollear). La altura de cabecera se mide en JS (`syncHeaderOffset` en `render`/`resize` + `ResizeObserver` con fallback), porque `init` corre en modo público con `.app-header` oculta. El pintado del panel es único: conteos, Stock resumido y Operación se piden EN PARALELO a la entrada y se pintan a la vez (se retiró el timer de 5s de la CAPA 2 de la spec §9, que retrasaba "Operación" y repintaba "Stock resumido" con pop-in); los endpoints tardan ~80-125 ms, así que el escalonado era artificial.
+
+### Added
+- `public/js/modules/dashboard/subnav.js`: `InventorySubnav` (12 items gateados, medición de cabecera para el sticky, limpieza en `destroy`).
+- `public/js/modules/inventory/dashboard.js`: página del panel de Inventario.
+- `#inventory-subnav` en `public/index.php` (arranque al renderizar la ruta del panel).
+
+### Changed
+- `public/js/modules/dashboard/sidebar.js`: sección "Módulos" con `permissionPrefix`/`activePrefixes`/`prefixOf` y acción única `dashboard/inventory`.
+- `public/js/modules/dashboard/dashboard.js`: sin accesos de módulo (sólo KPIs/novedades).
+- `public/css/components.css`: bloque `#inventory-subnav`/`.subnav` (a sangre, línea fina, sticky) y variantes móviles.
+- `resources/locales/{es,en,pt,fr}.json`: claves `nav.inventory` y `nav.section_modules`; se elimina `dashboard.subnav_label`.
+- `tools/smoke/smoke-{bloque2-permisos,v162,v171,v184,v193,v1100,v1102}.mjs`: adaptados a la nueva navegación (div `#inventory-subnav`, mock de `AppRouter`/`loadSubnav`, iconos y checks de panel/subnav).
+- `backups/INVENTORY_MODULE_SPECIFICATION.md` (§9 Lazy Loading): la CAPA 2 deja de ir con retardo de ~5s; se pide en paralelo con la CAPA 1 y los conteos, con un solo pintado.
+- `src/Modules/Inventory/Application/Services/DashboardService.php`, `src/Modules/Inventory/Http/DashboardController.php`: sólo comentarios de cabecera actualizados (sin cambio de comportamiento).
+
+### Tests
+- `composer test`: 1057 tests, 7155 assertions OK. `check-schema-drift` SIN DRIFT. `check-data-integrity` DATOS CONSISTENTES.
+- Smokes jsdom: 15/15 en verde. Verificaciones Playwright navegador: 8/8 (`verify-dashboard-inventory` 45 checks, con 7 de sticky escritorio+móvil y 4 de pintado único del panel). `smoke-bloque2-permisos` 28/0 (ahora exige critical Y secondary con `stock.view`), `smoke-v1102` 47/0.
+- E2E (BD recreada con `prepare-e2e-db --fresh`, integridad DATOS CONSISTENTES): `e2e-auth` 3/3, `e2e-control` 7/7, `e2e-settings` 1/1, `e2e-inventory` 8/8 — 19 miembros, servidor 8099 parado al cierre.
+- Solo lectura del módulo inventory con admin: 25/25 GET en 200, ninguno 500.
+
+### Fixed
+- `public/js/modules/inventory/dashboard.js`: pintado escalonado del panel de Inventario — "Stock resumido" tardaba ~1s en aparecer y "Operación" ~5s después (timer `SECONDARY_DELAY_MS`); los cuatro GET se emiten ahora en un único `Promise.all` a la entrada del panel con un solo render. Un fallo de capa (403/caída) sigue dejando su tarjeta en null sin tumbar los conteos; se elimina `state.secondaryTimer` y su limpieza en `destroy`. Medido en navegador: los tres bloques pintan en el mismo frame (+2-4 ms entre sí), secondary se pide a los ~160 ms.
+- `tools/smoke/verify-modal-add-member.mjs`, `tools/smoke/verify-modal-grant.mjs`: el selector de login `button[type="submit"], form button` clicaba el botón del ojo del password (desde `f56114a`) y nunca enviaba el formulario; mismo fix que v1.17.14 (`getByRole('Iniciar sesión')` + guard de `#login`).
+- `tools/smoke/verify-modal-grant.mjs`: aserción "2 segmentos" obsoleta desde `f0f8f27` (el modal de otorgar pasó a horas|minutos|fecha) → 3 segmentos.
+- `tools/smoke/smoke-v1102.mjs`: sin stub de `AppRouter.isModuleAvailable = () => true`; el harness registra `'inventory/dashboard': { availableOnly: true }` en `MODULE_FILES` y corren los 2 checks de la lógica real (`dashboard/inventory` disponible, ruta inexistente no disponible). 47 OK, 0 FAIL.
+
+### Notes
+- Auditoría del restauro de `itspport96@gmail.com` (ambos pasos con aprobación del usuario): la cuenta tenía otra contraseña desde el 18/10 (ejercicio de flujos SSPR en producción), lo que rompía `e2e-v1100` y `e2e-audit`. Primer paso: hash de `Admin123!` por SQL directo. Para cerrar el hueco de auditoría resultante se completó el flujo auditable íntegro: purga de `password_history` de los hashes que verificaban `Admin123!` (2 del 18/10 + 1 que el propio admin reset registró como saliente, la política v1.16.0 bloqueaba el reuso), `POST /users/{id}/password/reset` (200, `user.password.reset` + `POST ...` en `audit_logs`), token extraído de `mail_outbox` y `POST /auth/reset-password` con `Admin123!` (200, `auth.password.reset` vía SSPR); login verificado y historial final sin coincidencias con `Admin123!`. Tras ello, `prepare-e2e-db --fresh` (integridad DATOS CONSISTENTES) y re-ejecución de `e2e-v1100` (TODO OK) y `e2e-audit` (25 checks, 0 fallos), ambos exit 0.
+- Corrección de una desviación mal reportada en el borrador: `resources/locales/pt.json` `dashboard.greeting` es `"Olá, {name}"` (U+00E1) tanto en HEAD como en el working tree — el "Olâ" fue mojibake de consola al leerlo. Barrido de los cuatro locales sin caracteres corruptos (los `â` de pt/fr son legítimos: "trânsito", "discrepância", "Dégât").
+- Sin commit: a la espera de los afinados visuales del usuario.
+
 ## [1.18.7] - 2026-10-18
 
 **Frontend: dos cadenas del shell sin tilde corregidas.** "Cerrar sesion" -> "Cerrar sesion" con tilde ("Cerrar sesión") y "Se cerro tu sesion por inactividad." -> "Se cerró tu sesión por inactividad."; en `resources/locales/es.json` (diccionario descargado) y en el fallback embebido pre-sesion de `public/js/core/i18n.js`. Barrido del frontend (es.json, i18n.js, modulos public/js, index.php): el resto de textos visibles en espanol ya usaban en y tildes (login, forgot, reset, formularios y errores); no se tocaron identificadores de campo ni comentarios de codigo.

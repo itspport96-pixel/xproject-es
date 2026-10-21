@@ -12,8 +12,11 @@ use PDO;
  * Datos del dashboard de inventario por capas
  * (INVENTORY_MODULE_SPECIFICATION §9 "Lazy Loading").
  *
- *  CAPA 1 (crítica, primer render)  → critical()
- *  CAPA 2 (secundaria, ~5s)         → secondary()
+ *  CAPA 1 (crítica)             → critical()
+ *  CAPA 2 (secundaria)          → secondary()
+ *
+ * El frontend pide ambas capas en paralelo con los conteos y las pinta en
+ * una sola actualización (sin retardo de 5s; ver spec §9).
  *
  * Aislamiento de tenant (spec R4): todos los métodos reciben el tenant_id
  * tomado de los claims JWT y lo aplican en TODAS las consultas; el servicio

@@ -15,7 +15,8 @@ const FILES = {
   shipments: read('modules/inventory/shipments.js'),
   loader: read('core/loader.js'),
   router: read('core/router.js'),
-  sidebar: read('modules/dashboard/sidebar.js')
+  sidebar: read('modules/dashboard/sidebar.js'),
+  subnav: read('modules/dashboard/subnav.js')
 };
 
 // Las cabeceras de pagina viajan en ui/render.js y los modulos hacen
@@ -173,7 +174,7 @@ const SHIPMENT_DETAIL = {
 
 function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {}, postImpl = null } = {}) {
   const dom = new JSDOM(
-    '<!DOCTYPE html><html><body><div id="sidebar"></div><div id="module-container"></div></body></html>',
+    '<!DOCTYPE html><html><body><div id="sidebar"></div><div id="inventory-subnav"></div><div id="module-container"></div></body></html>',
     { url: 'http://localhost/xp/public/', runScripts: 'outside-only', pretendToBeVisual: true }
   );
   const w = dom.window;
@@ -267,6 +268,17 @@ function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {}, postImpl =
     env.evalIn(FILES.loader);
     env.evalIn(FILES.router);
     env.evalIn(FILES.sidebar);
+  };
+  // Subnav de inventario: se pinta solo en rutas de inventario, asi que se
+  // fuerza la ruta antes de init(). Devuelve las rutas pintadas.
+  env.loadSubnav = (route) => {
+    evalUi();
+    if (!w.InventorySubnav) env.evalIn(FILES.subnav);
+    if (w.AppRouter && typeof w.AppRouter.getCurrentRoute === 'function') {
+      w.AppRouter.getCurrentRoute = () => route;
+    }
+    w.InventorySubnav.init();
+    return [...w.document.querySelectorAll('#inventory-subnav .subnav-tab')].map(a => a.dataset.route);
   };
 
   env.container = w.document.getElementById('module-container');
@@ -799,13 +811,15 @@ async function s3_shell() {
   check('isModuleAvailable shipments', w.AppRouter.isModuleAvailable('inventory/shipments') === true);
   env.close();
 
-  // ADMIN: ve ambos enlaces
+  // ADMIN: ve ambos enlaces en el subnav (la sidebar solo lleva el panel)
   const envA = createEnv({ perms: FULL_PERMS, roles: ['ADMIN'] });
   envA.loadShell();
   envA.w.AppSidebar.init();
   const adminRoutes = [...envA.w.document.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
-  check('ADMIN ve Picking', adminRoutes.includes('inventory/picking'), JSON.stringify(adminRoutes));
-  check('ADMIN ve Envíos', adminRoutes.includes('inventory/shipments'), JSON.stringify(adminRoutes));
+  check('ADMIN sidebar lleva panel inventario', adminRoutes.includes('dashboard/inventory'), JSON.stringify(adminRoutes));
+  const adminSub = envA.loadSubnav('inventory');
+  check('ADMIN subnav ve Picking', adminSub.includes('inventory/picking'), JSON.stringify(adminSub));
+  check('ADMIN subnav ve Envíos', adminSub.includes('inventory/shipments'), JSON.stringify(adminSub));
   envA.close();
 
   // USER con los permisos de picking/shipping
@@ -813,17 +827,19 @@ async function s3_shell() {
   envU.loadShell();
   envU.w.AppSidebar.init();
   const userRoutes = [...envU.w.document.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
-  check('USER con picking.view ve Picking', userRoutes.includes('inventory/picking'), JSON.stringify(userRoutes));
-  check('USER con shipping.view ve Envíos', userRoutes.includes('inventory/shipments'), JSON.stringify(userRoutes));
+  const userSub = envU.loadSubnav('inventory');
+  check('USER con picking.view ve Picking', userSub.includes('inventory/picking'), JSON.stringify(userSub));
+  check('USER con shipping.view ve Envíos', userSub.includes('inventory/shipments'), JSON.stringify(userSub));
+  check('USER sidebar lleva panel inventario', userRoutes.includes('dashboard/inventory'), JSON.stringify(userRoutes));
   envU.close();
 
-  // Sin los permisos nuevos: no aparecen
+  // Sin los permisos nuevos: no aparecen en el subnav
   const envX = createEnv({ perms: ['inventory.stock.view', 'inventory.location.view'], roles: ['VIEWER'] });
   envX.loadShell();
   envX.w.AppSidebar.init();
-  const xRoutes = [...envX.w.document.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
-  check('sin picking.view no se muestra Picking', !xRoutes.includes('inventory/picking'), JSON.stringify(xRoutes));
-  check('sin shipping.view no se muestra Envíos', !xRoutes.includes('inventory/shipments'), JSON.stringify(xRoutes));
+  const xSub = envX.loadSubnav('inventory');
+  check('sin picking.view no se muestra Picking', !xSub.includes('inventory/picking'), JSON.stringify(xSub));
+  check('sin shipping.view no se muestra Envíos', !xSub.includes('inventory/shipments'), JSON.stringify(xSub));
   envX.close();
 }
 

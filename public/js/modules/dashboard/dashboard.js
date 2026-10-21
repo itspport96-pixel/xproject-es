@@ -1,16 +1,17 @@
 /**
- * Dashboard Module - Vista principal post-login
+ * Dashboard Module - Vista principal post-login (dashboard GENERAL del tenant)
  *
  * Responsabilidades:
- * - Mostrar stats del tenant (productos, ubicaciones, usuarios)
+ * - Mostrar métricas generales del tenant (productos, ubicaciones, usuarios,
+ *   unidades físicas) vía GET /tenant/stats
  * - Accesos rápidos a módulos
  * - Lazy-loaded via ModuleLoader (key: DashboardDashboardModule)
  *
  * Endpoints usados:
  * - GET /api/tenant/stats                    (TenantController)
- * - GET /api/inventory/dashboard/critical    (CAPA 1, spec §9: primer render)
- * - GET /api/inventory/dashboard/secondary   (CAPA 2, spec §9: ~5s después)
  *
+ * Los widgets propios de Inventario (resumen de stock y contadores
+ * operativos) viven en el dashboard del módulo (inventory/dashboard).
  * No inventa endpoints. Si alguno falla, el resto del dashboard sigue
  * funcionando (estado degradado).
  */
@@ -33,18 +34,12 @@
   // ============================================
   // ESTADO
   // ============================================
-  // CAPA 2 (spec §9): se pide después del primer render para no frenarlo.
-  const SECONDARY_DELAY_MS = 5000;
-
   let container = null;
   let state = {
     stats: null,
     scope: 'inventory',
     loading: true,
-    error: null,
-    critical: null,
-    secondary: null,
-    secondaryTimer: null
+    error: null
   };
 
   // ============================================
@@ -147,9 +142,6 @@
           </div>
         </div>
       </div>` : ''}
-
-      ${renderStockSummary(state.critical)}
-      ${renderOperationSummary(state.secondary)}
     `;
   }
 
@@ -186,92 +178,6 @@
     `;
   }
 
-  /**
-   * CAPA 1 (GET /inventory/dashboard/critical): tabla de stock resumida
-   * (máx. 20 filas, sin stock primero) + alertas del catálogo.
-   */
-  function renderStockSummary(critical) {
-    if (!critical) return '';
-
-    const counts = critical.counts || {};
-    const rows = Array.isArray(critical.stock) ? critical.stock : [];
-    const tenant = critical.tenant && critical.tenant.nombre ? critical.tenant.nombre : '';
-
-    const table = rows.length ? `
-      <div class="table-wrapper">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th>${t('dashboard.stock.columns.product')}</th>
-              <th class="text-right">${t('dashboard.stock.columns.units')}</th>
-              <th class="text-right">${t('dashboard.stock.columns.quantity')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map(row => `
-            <tr>
-              <td>${escapeHtml(row.sku)}</td>
-              <td>${escapeHtml(row.nombre)}</td>
-              <td class="text-right">${formatNumber(row.unidades)}</td>
-              <td class="text-right">${formatNumber(row.cantidad)}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`
-      : `<p class="table-empty">${t('dashboard.stock.empty')}</p>`;
-
-    return `
-      <div class="card mb-6">
-        <div class="card-header">
-          <h3 class="card-title">${t('dashboard.cards.stock_summary')}</h3>
-          ${tenant ? `<span class="text-muted text-sm">${escapeHtml(tenant)}</span>` : ''}
-        </div>
-        <div class="card-body">
-          <div class="flex flex-wrap gap-4 mb-4 text-sm">
-            <span class="text-muted">${t('dashboard.stock.counts.products_without_stock')}: <strong class="text-danger">${formatNumber(counts.productos_sin_stock)}</strong></span>
-            <span class="text-muted">${t('dashboard.stock.counts.critical_locations')}: <strong>${formatNumber(counts.ubicaciones_criticas)}</strong></span>
-            <span class="text-muted">${t('dashboard.stock.counts.units_in_stock')}: <strong>${formatNumber(counts.unidades_total)}</strong></span>
-          </div>
-          ${table}
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * CAPA 2 (GET /inventory/dashboard/secondary): contadores operativos que
-   * se pintan cuando la respuesta llega (~5s después del primer render).
-   */
-  function renderOperationSummary(secondary) {
-    if (!secondary || !secondary.counts) return '';
-
-    const counts = secondary.counts;
-    const items = [
-      [t('dashboard.metrics.locations_available'), counts.ubicaciones_disponibles],
-      [t('dashboard.metrics.active_reservations'), counts.reservas_activas],
-      [t('dashboard.metrics.in_transit'), counts.transporte_transito],
-      [t('dashboard.metrics.open_incidents'), counts.incidencias_abiertas]
-    ];
-
-    return `
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">${t('dashboard.cards.operation')}</h3>
-        </div>
-        <div class="card-body">
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            ${items.map(([label, value]) => `
-            <div>
-              <div class="text-muted text-xs">${escapeHtml(label)}</div>
-              <div class="text-xl font-bold">${formatNumber(value)}</div>
-            </div>`).join('')}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
   function formatNumber(value) {
         return typeof value === 'number' ? value.toLocaleString(i18n.getLocale()) : '0';
   }
@@ -288,19 +194,12 @@
   }
 
   const canTenantStats = () => canView('tenants.tenant.view', ['ADMIN']);
-  const canStockLayers = () => canView('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
   const canItemView = () => canView('inventory.item.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
   const canLocationView = () => canView('inventory.location.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
 
   async function loadStats() {
     state.error = null;
     const gate = UI.skeletonGate(state, 'loading', render);
-
-    // Capas del dashboard (spec §9): fuera del camino crítico de las stats.
-    // Sólo se piden si el usuario tiene inventory.stock.view (evita 403).
-    if (canStockLayers()) {
-      loadDashboardLayers();
-    }
 
     if (!global.HttpClient) {
       gate.done();
@@ -370,47 +269,6 @@
     if (pagination && typeof pagination.total === 'number') return pagination.total;
     if (response && Array.isArray(response.data)) return response.data.length;
     return 0;
-  }
-
-  /**
-   * CAPA 1 (crítica) inmediata + programa la CAPA 2 (secundaria) ~5s después,
-   * tal como define la spec §9 de Lazy Loading.
-   */
-  async function loadDashboardLayers() {
-    if (!global.HttpClient) return;
-
-    try {
-      const response = await global.HttpClient.get('/inventory/dashboard/critical');
-      state.critical = (response && response.data) || null;
-      render();
-    } catch (err) {
-      // Sin permiso (inventory.stock.view) o backend caído: el resto del
-      // dashboard sigue funcionando sin esta tarjeta.
-      console.error('[Dashboard] critical error:', err);
-      state.critical = null;
-    }
-
-    if (state.secondaryTimer) {
-      clearTimeout(state.secondaryTimer);
-    }
-
-    state.secondaryTimer = setTimeout(() => {
-      state.secondaryTimer = null;
-      loadSecondary();
-    }, SECONDARY_DELAY_MS);
-  }
-
-  async function loadSecondary() {
-    if (!global.HttpClient) return;
-
-    try {
-      const response = await global.HttpClient.get('/inventory/dashboard/secondary');
-      state.secondary = (response && response.data) || null;
-      render();
-    } catch (err) {
-      console.error('[Dashboard] secondary error:', err);
-      state.secondary = null;
-    }
   }
 
   // ============================================
@@ -489,9 +347,6 @@
 
     destroy() {
       unbindEvents();
-      if (state.secondaryTimer) {
-        clearTimeout(state.secondaryTimer);
-      }
       if (container) {
         container.innerHTML = '';
       }
@@ -500,10 +355,7 @@
         stats: null,
         scope: 'inventory',
         loading: true,
-        error: null,
-        critical: null,
-        secondary: null,
-        secondaryTimer: null
+        error: null
       };
     }
   };

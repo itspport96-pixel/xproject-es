@@ -1,12 +1,12 @@
 /**
  * BLOQUE M2: capturas y comprobaciones Playwright del layout del modal
  * "Otorgar permiso temporal" (UI_STANDARD §6.4: sin columnas fantasma,
- * ritmo uniforme y segmentado Duración|Fecha, v1.13.53).
+ * ritmo uniforme y segmentado Horas|Minutos|Fecha, v1.13.53 + f0f8f27).
  * Uso: node tools/smoke/verify-modal-grant.mjs
  *
  * Comprueba a 1366x768: ancho md (~640px), rejilla de beneficiario con las
  * dos celdas iguales y etiquetas alineadas, permiso y motivo a ancho
- * completo (sin media pantalla vacía), .segmented con 2 segmentos y cambio
+ * completo (sin media pantalla vacía), .segmented con 3 segmentos y cambio
  * de panel por el handler change nativo, sin solapes y hint visible.
  * Capturas en tools/smoke/capturas-modales/.
  */
@@ -34,9 +34,13 @@ async function login(page, email, pass) {
   await page.waitForSelector('input[type="email"], input[name="email"], #email', { timeout: 15000 });
   await page.locator('input[type="email"], input[name="email"], #email').first().fill(email);
   await page.locator('input[type="password"], input[name="password"], #password').first().fill(pass);
-  await page.locator('button[type="submit"], form button').first().click();
+  // Mismo fix que verify-rowactions-users (v1.17.14): 'form button' pincha
+  // el boton del ojo y revela el password sin enviar el formulario.
+  await page.getByRole('button', { name: 'Iniciar sesión' }).click();
   await page.waitForURL(/dashboard|\/#\/dashboard/, { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1000);
+  const sigueEnLogin = await page.evaluate(() => location.hash.includes('login'));
+  if (sigueEnLogin) { throw new Error('login no completo: la pagina sigue en #login'); }
 }
 
 async function openGrant(page) {
@@ -124,8 +128,9 @@ async function main() {
     check('motivo al mismo ancho que el permiso',
       m1.permission && m1.motivo && Math.abs(m1.permission.w - m1.motivo.w) <= 4,
       JSON.stringify([m1.permission && m1.permission.w, m1.motivo && m1.motivo.w]));
-    check('segmentado visible con 2 segmentos',
-      m1.segmentedVisible === true && m1.segments === 2,
+    // Desde f0f8f27 (v1.17.x) el segmentado es horas|minutos|fecha (3).
+    check('segmentado visible con 3 segmentos',
+      m1.segmentedVisible === true && m1.segments === 3,
       `${m1.segmentedVisible}/${m1.segments}`);
     check('por defecto Duración (horas) activo',
       m1.radioHoras === true && m1.panelHorasVisible === true && m1.panelFechaVisible === false,
@@ -162,8 +167,8 @@ async function main() {
     check('dark: html.dark activo',
       await page2.evaluate(() => document.documentElement.classList.contains('dark')));
     check('dark: modal presente', !!md.modal, JSON.stringify(md.modal));
-    check('dark: segmentado visible con 2 segmentos',
-      md.segmentedVisible === true && md.segments === 2,
+    check('dark: segmentado visible con 3 segmentos',
+      md.segmentedVisible === true && md.segments === 3,
       `${md.segmentedVisible}/${md.segments}`);
     await page2.screenshot({ path: path.join(OUT, 'modal-otorgar-permiso-1366-dark.png'), fullPage: false });
     await ctxDark.close();

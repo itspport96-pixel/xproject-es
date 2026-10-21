@@ -15,7 +15,8 @@ const FILES = {
   returns: read('modules/inventory/returns.js'),
   loader: read('core/loader.js'),
   router: read('core/router.js'),
-  sidebar: read('modules/dashboard/sidebar.js')
+  sidebar: read('modules/dashboard/sidebar.js'),
+  subnav: read('modules/dashboard/subnav.js')
 };
 
 // Las cabeceras de pagina viajan en ui/render.js y los modulos hacen
@@ -185,7 +186,7 @@ const LOCATIONS_PAYLOAD = {
 
 function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {} } = {}) {
   const dom = new JSDOM(
-    '<!DOCTYPE html><html><body><div id="sidebar"></div><div id="module-container"></div></body></html>',
+    '<!DOCTYPE html><html><body><div id="sidebar"></div><div id="inventory-subnav"></div><div id="module-container"></div></body></html>',
     { url: 'http://localhost/xp/public/', runScripts: 'outside-only', pretendToBeVisual: true }
   );
   const w = dom.window;
@@ -273,6 +274,17 @@ function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {} } = {}) {
     env.evalIn(FILES.loader);
     env.evalIn(FILES.router);
     env.evalIn(FILES.sidebar);
+  };
+  // Subnav de inventario: se pinta solo en rutas de inventario, asi que se
+  // fuerza la ruta antes de init(). Devuelve las rutas pintadas.
+  env.loadSubnav = (route) => {
+    evalUi();
+    if (!w.InventorySubnav) env.evalIn(FILES.subnav);
+    if (w.AppRouter && typeof w.AppRouter.getCurrentRoute === 'function') {
+      w.AppRouter.getCurrentRoute = () => route;
+    }
+    w.InventorySubnav.init();
+    return [...w.document.querySelectorAll('#inventory-subnav .subnav-tab')].map(a => a.dataset.route);
   };
 
   env.container = w.document.getElementById('module-container');
@@ -694,9 +706,12 @@ async function d7_shell_registration() {
 
   w.AppSidebar.init();
   const adminRoutes = [...env.sidebar.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
-  check('ADMIN ve Entregas', adminRoutes.includes('inventory/deliveries'), JSON.stringify(adminRoutes));
-  check('ADMIN ve Devoluciones', adminRoutes.includes('inventory/returns'), JSON.stringify(adminRoutes));
-  check('ADMIN ve Reservas', adminRoutes.includes('inventory/reservations'));
+  check('ADMIN sidebar lleva panel inventario', adminRoutes.includes('dashboard/inventory'),
+    JSON.stringify(adminRoutes));
+  const adminSub = env.loadSubnav('inventory');
+  check('ADMIN subnav ve Entregas', adminSub.includes('inventory/deliveries'), JSON.stringify(adminSub));
+  check('ADMIN subnav ve Devoluciones', adminSub.includes('inventory/returns'), JSON.stringify(adminSub));
+  check('ADMIN subnav ve Reservas', adminSub.includes('inventory/reservations'), JSON.stringify(adminSub));
   env.close();
 
   const envU = createEnv({
@@ -705,22 +720,25 @@ async function d7_shell_registration() {
   });
   envU.loadShell();
   envU.w.AppSidebar.init();
-  const userRoutes = [...envU.sidebar.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
-  check('USER con delivery.view ve Entregas', userRoutes.includes('inventory/deliveries'),
-    JSON.stringify(userRoutes));
-  check('USER sin return.view no ve Devoluciones', !userRoutes.includes('inventory/returns'),
-    JSON.stringify(userRoutes));
-  check('USER con reservation.view ve Reservas', userRoutes.includes('inventory/reservations'));
+  const userSub = envU.loadSubnav('inventory');
+  check('USER con delivery.view ve Entregas', userSub.includes('inventory/deliveries'),
+    JSON.stringify(userSub));
+  check('USER sin return.view no ve Devoluciones', !userSub.includes('inventory/returns'),
+    JSON.stringify(userSub));
+  check('USER con reservation.view ve Reservas', userSub.includes('inventory/reservations'),
+    JSON.stringify(userSub));
   envU.close();
 
   const envV = createEnv({ perms: ['inventory.stock.view'], roles: ['VIEWER'] });
   envV.loadShell();
   envV.w.AppSidebar.init();
-  const viewerRoutes = [...envV.sidebar.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
-  check('VIEWER sin delivery.view no ve Entregas', !viewerRoutes.includes('inventory/deliveries'),
-    JSON.stringify(viewerRoutes));
-  check('VIEWER sin return.view no ve Devoluciones', !viewerRoutes.includes('inventory/returns'));
-  check('VIEWER sin reservation.view no ve Reservas', !viewerRoutes.includes('inventory/reservations'));
+  const viewerSub = envV.loadSubnav('inventory');
+  check('VIEWER sin delivery.view no ve Entregas', !viewerSub.includes('inventory/deliveries'),
+    JSON.stringify(viewerSub));
+  check('VIEWER sin return.view no ve Devoluciones', !viewerSub.includes('inventory/returns'),
+    JSON.stringify(viewerSub));
+  check('VIEWER sin reservation.view no ve Reservas', !viewerSub.includes('inventory/reservations'),
+    JSON.stringify(viewerSub));
   envV.close();
 }
 

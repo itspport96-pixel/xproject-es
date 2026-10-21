@@ -33,7 +33,8 @@ const FILES = {
   receiving: read('modules/inventory/receiving.js'),
   loader: read('core/loader.js'),
   router: read('core/router.js'),
-  sidebar: read('modules/dashboard/sidebar.js')
+  sidebar: read('modules/dashboard/sidebar.js'),
+  subnav: read('modules/dashboard/subnav.js')
 };
 
 const UI_FILES = ['ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js'].map(read);
@@ -214,7 +215,7 @@ const RECEIVE_RECHAZO = {
 
 function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {}, postImpl = null } = {}) {
   const dom = new JSDOM(
-    '<!DOCTYPE html><html><body><div id="sidebar"></div><div id="module-container"></div></body></html>',
+    '<!DOCTYPE html><html><body><div id="sidebar"></div><div id="inventory-subnav"></div><div id="module-container"></div></body></html>',
     { url: 'http://localhost/xp/public/', runScripts: 'outside-only', pretendToBeVisual: true }
   );
   const w = dom.window;
@@ -292,6 +293,17 @@ function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {}, postImpl =
   env.loadIncidents = () => { evalUi(); evalIn(FILES.incidents); w.InventoryIncidentsModule.init({}, w.document.getElementById('module-container')); };
   env.loadReceiving = () => { evalUi(); evalIn(FILES.receiving); w.InventoryReceivingModule.init({}, w.document.getElementById('module-container')); };
   env.loadShell = () => { evalUi(); evalIn(FILES.loader); evalIn(FILES.router); evalIn(FILES.sidebar); };
+  // Subnav de inventario: se pinta solo en rutas de inventario, asi que se
+  // fuerza la ruta antes de init(). Devuelve las rutas pintadas.
+  env.loadSubnav = (route) => {
+    evalUi();
+    if (!w.InventorySubnav) evalIn(FILES.subnav);
+    if (w.AppRouter && typeof w.AppRouter.getCurrentRoute === 'function') {
+      w.AppRouter.getCurrentRoute = () => route;
+    }
+    w.InventorySubnav.init();
+    return [...w.document.querySelectorAll('#inventory-subnav .subnav-tab')].map(a => a.dataset.route);
+  };
 
   env.container = w.document.getElementById('module-container');
   env.click = (el) => el.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -686,14 +698,16 @@ async function s6_shell() {
 
   w.AppSidebar.init();
   const adminRoutes = [...w.document.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
-  check('ADMIN con stock.view ve Movimientos', adminRoutes.includes('inventory/movements'), JSON.stringify(adminRoutes));
+  check('ADMIN sidebar lleva panel inventario', adminRoutes.includes('dashboard/inventory'), JSON.stringify(adminRoutes));
+  const adminSub = env.loadSubnav('inventory');
+  check('ADMIN con stock.view ve Movimientos', adminSub.includes('inventory/movements'), JSON.stringify(adminSub));
   env.close();
 
   const env2 = createEnv({ perms: ['inventory.item.view'], roles: ['VIEWER'] });
   env2.loadShell();
   env2.w.AppSidebar.init();
-  const viewerRoutes = [...env2.w.document.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
-  check('sin stock.view no ve Movimientos', !viewerRoutes.includes('inventory/movements'), JSON.stringify(viewerRoutes));
+  const viewerSub = env2.loadSubnav('inventory');
+  check('sin stock.view no ve Movimientos', !viewerSub.includes('inventory/movements'), JSON.stringify(viewerSub));
   env2.close();
 }
 

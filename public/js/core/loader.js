@@ -303,6 +303,7 @@
     'dashboard/dashboard': { path: 'dashboard/dashboard.js' },
 
     // Sprint 4: Inventory
+    'inventory/dashboard': { path: 'inventory/dashboard.js' },
     'inventory/products': { path: 'inventory/products.js', deps: ['inventory/state'] },
     'inventory/locations': { path: 'inventory/locations.js', deps: ['inventory/state'] },
     'inventory/state': { path: 'inventory/state.js' },

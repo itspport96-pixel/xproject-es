@@ -425,6 +425,7 @@ function renderSpaLayout(): void
                 </div>
             </header>
             <main id="main-content">
+                <div id="inventory-subnav" class="inventory-subnav" hidden></div>
                 <div id="module-container"></div>
             </main>
         </div>
@@ -457,6 +458,7 @@ function renderSpaLayout(): void
 
     <!-- Dashboard / App Shell Scripts -->
     <script src="{$baseUrlHtml}/js/modules/dashboard/sidebar.js?v={$assetsVersion}"></script>
+    <script src="{$baseUrlHtml}/js/modules/dashboard/subnav.js?v={$assetsVersion}"></script>
 
     <script>
         window.AppConfig = {
@@ -475,6 +477,7 @@ function renderSpaLayout(): void
                 if (window.TenantBranding) TenantBranding.init();
                 if (window.AppSidebar) AppSidebar.init();
                 if (window.AppRouter) AppRouter.init();
+                if (window.InventorySubnav) InventorySubnav.init();
                 if (window.AccountMenu) AccountMenu.init();
 
                 // Mobile sidebar toggle logic

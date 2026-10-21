@@ -27,7 +27,8 @@ const FILES = {
   reservations: read('modules/inventory/reservations.js'),
   loader: read('core/loader.js'),
   router: read('core/router.js'),
-  sidebar: read('modules/dashboard/sidebar.js')
+  sidebar: read('modules/dashboard/sidebar.js'),
+  subnav: read('modules/dashboard/subnav.js')
 };
 
 const UI_FILES = ['ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js'].map(read);
@@ -165,7 +166,7 @@ const COUNT_DETAIL_COMPLETADO = {
 
 function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {}, postImpl = null } = {}) {
   const dom = new JSDOM(
-    '<!DOCTYPE html><html><body><div id="sidebar"></div><div id="module-container"></div></body></html>',
+    '<!DOCTYPE html><html><body><div id="sidebar"></div><div id="inventory-subnav"></div><div id="module-container"></div></body></html>',
     { url: 'http://localhost/xp/public/', runScripts: 'outside-only', pretendToBeVisual: true }
   );
   const w = dom.window;
@@ -247,6 +248,17 @@ function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {}, postImpl =
   env.loadIncidents = () => { evalUi(); evalIn(FILES.incidents); w.InventoryIncidentsModule.init({}, w.document.getElementById('module-container')); };
   env.loadCounts = () => { evalUi(); evalIn(FILES.counts); w.InventoryCountsModule.init({}, w.document.getElementById('module-container')); };
   env.loadShell = () => { evalUi(); evalIn(FILES.loader); evalIn(FILES.router); evalIn(FILES.sidebar); };
+  // Subnav de inventario: se pinta solo en rutas de inventario, asi que se
+  // fuerza la ruta antes de init(). Devuelve las rutas pintadas.
+  env.loadSubnav = (route) => {
+    evalUi();
+    if (!w.InventorySubnav) evalIn(FILES.subnav);
+    if (w.AppRouter && typeof w.AppRouter.getCurrentRoute === 'function') {
+      w.AppRouter.getCurrentRoute = () => route;
+    }
+    w.InventorySubnav.init();
+    return [...w.document.querySelectorAll('#inventory-subnav .subnav-tab')].map(a => a.dataset.route);
+  };
 
   env.container = w.document.getElementById('module-container');
   env.click = (el) => el.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -872,12 +884,12 @@ async function s7_shell() {
   envA.w.AppSidebar.init();
   const items = [...envA.w.document.querySelectorAll('.sidebar-item')];
   const routes = items.map(i => i.dataset.route);
-  check('ve Incidencias', routes.includes('inventory/incidents'), JSON.stringify(routes));
-  check('ve Conteos', routes.includes('inventory/counts'), JSON.stringify(routes));
-  const incItem = items.find(i => i.dataset.route === 'inventory/incidents');
-  check('icono SVG de Incidencias', !!incItem && incItem.innerHTML.includes('<svg'));
-  const cntItem = items.find(i => i.dataset.route === 'inventory/counts');
-  check('icono SVG de Conteos', !!cntItem && cntItem.innerHTML.includes('<svg'));
+  check('sidebar lleva panel inventario', routes.includes('dashboard/inventory'), JSON.stringify(routes));
+  const panelItem = items.find(i => i.dataset.route === 'dashboard/inventory');
+  check('icono SVG del panel de inventario', !!panelItem && panelItem.innerHTML.includes('<svg'));
+  const subA = envA.loadSubnav('inventory');
+  check('subnav ve Incidencias', subA.includes('inventory/incidents'), JSON.stringify(subA));
+  check('subnav ve Conteos', subA.includes('inventory/counts'), JSON.stringify(subA));
   envA.close();
 
   // sin permisos de vista no aparecen en el menú
@@ -886,9 +898,9 @@ async function s7_shell() {
   envB.evalIn(FILES.router);
   envB.evalIn(FILES.sidebar);
   envB.w.AppSidebar.init();
-  const routesB = [...envB.w.document.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
-  check('sin permiso no ve Incidencias', !routesB.includes('inventory/incidents'), JSON.stringify(routesB));
-  check('sin permiso no ve Conteos', !routesB.includes('inventory/counts'), JSON.stringify(routesB));
+  const subB = envB.loadSubnav('inventory');
+  check('sin permiso no ve Incidencias', !subB.includes('inventory/incidents'), JSON.stringify(subB));
+  check('sin permiso no ve Conteos', !subB.includes('inventory/counts'), JSON.stringify(subB));
   envB.close();
 
   // ADMIN lo ve todo
@@ -897,9 +909,9 @@ async function s7_shell() {
   envC.evalIn(FILES.router);
   envC.evalIn(FILES.sidebar);
   envC.w.AppSidebar.init();
-  const routesC = [...envC.w.document.querySelectorAll('.sidebar-item')].map(i => i.dataset.route);
-  check('ADMIN ve Incidencias y Conteos',
-    routesC.includes('inventory/incidents') && routesC.includes('inventory/counts'), JSON.stringify(routesC));
+  const subC = envC.loadSubnav('inventory');
+  check('ADMIN subnav ve Incidencias y Conteos',
+    subC.includes('inventory/incidents') && subC.includes('inventory/counts'), JSON.stringify(subC));
   envC.close();
 
   // index.php carga ui/* antes de los scripts del shell (sidebar)

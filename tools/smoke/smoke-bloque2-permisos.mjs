@@ -5,8 +5,11 @@
  *
  * Cobertura:
  *  B2-1 Dashboard: sin tenants.tenant.view no llama /tenant/stats
- *  B2-2 Dashboard: sin inventory.stock.view no llama /inventory/dashboard/*
+ *  B2-2 Dashboard: NO llama /inventory/dashboard/* (capas viven en el dashboard
+ *      de inventario; el general es solo de tenant/conteos)
  *  B2-3 Dashboard: sin item/location view no llama /inventory/products|locations
+ *  B2-3c Dashboard inventario: con inventory.stock.view SI llama capas;
+ *      sin el permiso NO las llama
  *  B2-4 Products: sin inventory.item.view no llama /inventory/products y pinta denied
  *  B2-5 Locations: sin inventory.location.view no llama /inventory/locations y pinta denied
  *  B2-6 Stock: sin inventory.stock.view no llama /inventory/stock y pinta denied
@@ -25,6 +28,8 @@ const ES_DICT = JSON.parse(readFileSync('C:/xampp/htdocs/xp/resources/locales/es
 
 const FILES = {
   dashboard: read('modules/dashboard/dashboard.js'),
+  invDashboard: read('modules/inventory/dashboard.js'),
+  subnav: read('modules/dashboard/subnav.js'),
   products: read('modules/inventory/products.js'),
   locations: read('modules/inventory/locations.js'),
   stock: read('modules/inventory/stock.js'),
@@ -64,6 +69,7 @@ function createEnv({ perms, roles }) {
   const dom = new JSDOM(
     '<!DOCTYPE html><html><body>' +
     '<div id="sidebar"></div>' +
+    '<div id="inventory-subnav"></div>' +
     '<div id="module-container"></div>' +
     '</body></html>',
     { url: 'http://localhost/xp/public/', runScripts: 'outside-only', pretendToBeVisual: true }
@@ -75,6 +81,12 @@ function createEnv({ perms, roles }) {
   w.console = { log() {}, info() {}, debug() {}, warn() {}, error() {} };
   w.AppConfig = { apiBase: '/api', baseUrl: '/xp/public', appName: 'XP Platform' };
   w.EventBus = { on() {}, off() {}, emit() {} };
+  w.AppRouter = {
+    _route: '',
+    getCurrentRoute() { return this._route; },
+    navigate() {},
+    isModuleAvailable() { return true; }
+  };
   w.Storage = { get: () => false, set() {}, remove() {}, getUser: () => null, getToken: () => 'x' };
   w.AuthState = {
     getUser: () => ({ nombre: 'Test', apellido: 'User', email: 'test@acme.local', roles: roles.map(nombre => ({ nombre, permisos: perms })) }),
@@ -140,7 +152,7 @@ function createEnv({ perms, roles }) {
   UI_FILES.forEach(evalIn);
   evalIn(FILES.eventBus);
 
-  return { w, calls, container: w.document.getElementById('module-container'), sidebarEl: w.document.getElementById('sidebar'), evalIn, dom };
+  return { w, calls, container: w.document.getElementById('module-container'), sidebarEl: w.document.getElementById('sidebar'), subnavEl: w.document.getElementById('inventory-subnav'), evalIn, dom };
 }
 
 // =====================================================================
@@ -157,8 +169,9 @@ async function s_dashboard() {
     check('B2-1 no llama /tenant/stats sin tenants.tenant.view',
       !env.calls.gets.includes('/tenant/stats'),
       'gets=' + JSON.stringify(env.calls.gets));
-    check('B2-2 llama capas con inventory.stock.view',
-      env.calls.gets.includes('/inventory/dashboard/critical'));
+    check('B2-2 general NO llama capas (viven en dashboard inventario)',
+      !env.calls.gets.includes('/inventory/dashboard/critical'),
+      'gets=' + JSON.stringify(env.calls.gets));
     check('B2-3 llama inventory fallback con item+location view',
       env.calls.gets.includes('/inventory/products') && env.calls.gets.includes('/inventory/locations'));
     env.dom.window.close();
@@ -196,6 +209,31 @@ async function s_dashboard() {
     await tick();
     check('B2-1b admin sí llama /tenant/stats',
       env.calls.gets.includes('/tenant/stats'));
+    env.dom.window.close();
+  }
+  {
+    // Dashboard de inventario con inventory.stock.view: SÍ llama capas (critical).
+    const env = createEnv({ perms: MANAGER_PERMS, roles: ['MANAGER'] });
+    env.evalIn(FILES.invDashboard);
+    env.w.InventoryDashboardModule.init({}, env.container);
+    await tick();
+    check('B2-3c dashboard inventario llama critical y secondary con inventory.stock.view',
+      env.calls.gets.includes('/inventory/dashboard/critical') &&
+      env.calls.gets.includes('/inventory/dashboard/secondary'),
+      'gets=' + JSON.stringify(env.calls.gets));
+    env.dom.window.close();
+  }
+  {
+    // Dashboard de inventario SIN inventory.stock.view: NO llama capas.
+    const perms = MANAGER_PERMS.filter(p => p !== 'inventory.stock.view');
+    const env = createEnv({ perms, roles: ['MANAGER'] });
+    env.evalIn(FILES.invDashboard);
+    env.w.InventoryDashboardModule.init({}, env.container);
+    await tick();
+    check('B2-3d dashboard inventario sin stock.view NO llama capas',
+      !env.calls.gets.includes('/inventory/dashboard/critical') &&
+      !env.calls.gets.includes('/inventory/dashboard/secondary'),
+      'gets=' + JSON.stringify(env.calls.gets));
     env.dom.window.close();
   }
 }
@@ -257,20 +295,70 @@ async function s_modules_denied() {
 // =====================================================================
 async function s_sidebar() {
   console.log('B2 sidebar: items ocultos sin permiso');
-  const env = createEnv({ perms: MANAGER_PERMS, roles: ['MANAGER'] });
-  env.evalIn(FILES.sidebar);
-  env.w.AppSidebar.init();
-  await tick();
-  const html = env.sidebarEl.innerHTML;
-  check('B2-8a oculta users sin users.user.view',
-    !html.includes('data-route="users"'));
-  check('B2-8b oculta roles sin roles.role.view',
-    !html.includes('data-route="roles"'));
-  check('B2-8c muestra products con inventory.item.view',
-    html.includes('data-route="inventory"'));
-  check('B2-8d muestra stock con inventory.stock.view',
-    html.includes('data-route="inventory/stock"'));
-  env.dom.window.close();
+  {
+    const env = createEnv({ perms: MANAGER_PERMS, roles: ['MANAGER'] });
+    env.evalIn(FILES.sidebar);
+    env.w.AppSidebar.init();
+    await tick();
+    const html = env.sidebarEl.innerHTML;
+    check('B2-8a oculta users sin users.user.view',
+      !html.includes('data-route="users"'));
+    check('B2-8b oculta roles sin roles.role.view',
+      !html.includes('data-route="roles"'));
+    check('B2-8c sidebar lleva panel inventario con inventory.*',
+      html.includes('data-route="dashboard/inventory"'));
+    check('B2-8d sidebar ya no lista items detallados (pasan al subnav)',
+      !html.includes('data-route="inventory/stock"') && !html.includes('data-route="inventory/locations"'));
+    env.dom.window.close();
+  }
+  {
+    // Permisos cargados sin ninguno inventory.*: la entrada al panel se oculta.
+    const env = createEnv({ perms: ['users.user.view'], roles: ['MANAGER'] });
+    env.evalIn(FILES.sidebar);
+    env.w.AppSidebar.init();
+    await tick();
+    const html = env.sidebarEl.innerHTML;
+    check('B2-8e sidebar oculta panel inventario sin permiso inventory.*',
+      !html.includes('data-route="dashboard/inventory"'));
+    env.dom.window.close();
+  }
+}
+
+// =====================================================================
+// B2-8f SUBNAV DE INVENTARIO (gate por permiso de cada opcion)
+// =====================================================================
+async function s_subnav() {
+  console.log('B2 subnav: opciones de inventario gateadas por permiso');
+  {
+    const env = createEnv({ perms: MANAGER_PERMS, roles: ['MANAGER'] });
+    env.w.AppRouter._route = 'inventory';
+    env.evalIn(FILES.subnav);
+    env.w.InventorySubnav.init();
+    await tick();
+    const html = env.subnavEl.innerHTML;
+    check('B2-SNa subnav muestra products con item.view',
+      html.includes('data-route="inventory"'));
+    check('B2-SNb subnav muestra stock con stock.view',
+      html.includes('data-route="inventory/stock"'));
+    check('B2-SNc subnav SIN opcion Dashboard',
+      !html.includes('data-route="dashboard"'));
+    env.dom.window.close();
+  }
+  {
+    // Sin stock.view: desaparecen stock y movements (comparten permiso).
+    const perms = MANAGER_PERMS.filter(p => p !== 'inventory.stock.view');
+    const env = createEnv({ perms, roles: ['MANAGER'] });
+    env.w.AppRouter._route = 'inventory';
+    env.evalIn(FILES.subnav);
+    env.w.InventorySubnav.init();
+    await tick();
+    const html = env.subnavEl.innerHTML;
+    check('B2-SNd subnav oculta stock sin stock.view',
+      !html.includes('data-route="inventory/stock"') && !html.includes('data-route="inventory/movements"'));
+    check('B2-SNe subnav mantiene products con item.view',
+      html.includes('data-route="inventory"'));
+    env.dom.window.close();
+  }
 }
 
 // =====================================================================
@@ -313,6 +401,7 @@ async function main() {
   await s_dashboard();
   await s_modules_denied();
   await s_sidebar();
+  await s_subnav();
   await s_partial();
   console.log(`\nResultado: ${pass} ok, ${fail} fail`);
   if (fail > 0) process.exit(1);

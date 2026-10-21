@@ -40,6 +40,13 @@
       titleKey: 'routes.dashboard',
       title: 'Dashboard'
     },
+    'dashboard/inventory': {
+      module: 'inventory/dashboard',
+      container: 'module-container',
+      public: false,
+      titleKey: 'dashboard.inventory.title',
+      title: 'Inventory Dashboard'
+    },
     'profile': {
       module: 'profile/profile',
       container: 'module-container',
