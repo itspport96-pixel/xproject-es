@@ -899,6 +899,24 @@ async function s5_sidebar() {
   check('MANAGER sin users.user.view no ve Usuarios', !manager.includes('users'), JSON.stringify(manager));
   check('MANAGER ve Grupos', manager.includes('groups'), JSON.stringify(manager));
   check('MANAGER sin roles.role.view no ve Roles', !manager.includes('roles'), JSON.stringify(manager));
+
+  // Marca del tenant: clic en logo/nombre navega al dashboard principal.
+  const envBrand = createEnv({ perms: ADMIN_PERMS, roles: ['ADMIN'] });
+  envBrand.loadShell();
+  envBrand.w.AppSidebar.init();
+  const brand = envBrand.w.document.querySelector('[data-testid="sidebar-brand"]');
+  check('brand del tenant montado', !!brand);
+  check('brand es boton con data-route=dashboard',
+    !!brand && brand.tagName === 'BUTTON' && brand.dataset.route === 'dashboard',
+    brand ? `tag=${brand.tagName} route=${brand.dataset.route}` : 'sin brand');
+  const navs = [];
+  const realNav = envBrand.w.AppRouter.navigate;
+  envBrand.w.AppRouter.navigate = (route) => { navs.push(route); };
+  envBrand.click(brand);
+  envBrand.w.AppRouter.navigate = realNav;
+  check('clic en logo/nombre del tenant navega al dashboard',
+    navs.length === 1 && navs[0] === 'dashboard', JSON.stringify(navs));
+  envBrand.close();
 }
 
 // =====================================================================

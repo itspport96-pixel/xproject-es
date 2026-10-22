@@ -211,10 +211,10 @@
       : `<span class="sidebar-brand-mark" aria-hidden="true">${escapeHtml(title.trim().charAt(0).toUpperCase() || 'X')}</span>`;
     const sub = tenantName ? `<span class="sidebar-brand-sub">${escapeHtml(appName)}</span>` : '';
     return `
-        <div class="sidebar-brand" data-testid="sidebar-brand" title="${escapeHtml(title)}">
+        <button type="button" class="sidebar-brand" data-testid="sidebar-brand" data-route="dashboard" title="${escapeHtml(title)}">
           ${mark}
           <span class="sidebar-brand-text"><span class="sidebar-brand-name">${escapeHtml(title)}</span>${sub}</span>
-        </div>`;
+        </button>`;
   }
 
   function renderSections(menu) {
@@ -362,7 +362,8 @@
       return;
     }
 
-    const item = e.target.closest('.sidebar-item');
+    // Marca del tenant (logo/nombre) y items navegan por data-route.
+    const item = e.target.closest('.sidebar-item, .sidebar-brand');
     if (!item) return;
     const route = item.dataset.route;
     if (route && global.AppRouter) {
