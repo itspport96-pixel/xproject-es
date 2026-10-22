@@ -334,7 +334,7 @@ async function s2_users_screen() {
   await tick();
 
   check('GET /users con paginacion',
-    env.calls.gets.some(g => g.path === '/users' && g.options.params.page === 1 && g.options.params.per_page === 20),
+    env.calls.gets.some(g => g.path === '/users' && g.options.params.page === 1 && g.options.params.per_page === 25),
     JSON.stringify(env.calls.gets));
 
   const table = env.container.querySelector('[data-users-table] table');

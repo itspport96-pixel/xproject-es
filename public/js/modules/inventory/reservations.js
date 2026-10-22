@@ -28,7 +28,7 @@
     let state = {
         items: [],
         summary: { total: 0, activas: 0, con_expiracion: 0 },
-        pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+        pagination: { total: 0, page: 1, per_page: 25, has_next: false },
         loading: false
     };
 
@@ -323,7 +323,7 @@
             state = {
                 items: [],
                 summary: { total: 0, activas: 0, con_expiracion: 0 },
-                pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+                pagination: { total: 0, page: 1, per_page: 25, has_next: false },
                 loading: false
             };
         }

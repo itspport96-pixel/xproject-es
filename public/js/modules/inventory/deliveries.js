@@ -45,7 +45,7 @@
         tab: 'en_ruta',
         items: [],
         summary: { total: 0, entregadas: 0, rechazadas: 0, pendientes: 0, parciales: 0 },
-        pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+        pagination: { total: 0, page: 1, per_page: 25, has_next: false },
         filters: { estado: '', fecha_desde: '', fecha_hasta: '', shipment_id: '' },
         listLoading: false,
         listError: false,

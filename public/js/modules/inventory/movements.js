@@ -26,7 +26,7 @@
     let state = {
         items: [],
         summary: { total: 0, correcciones: 0 },
-        pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+        pagination: { total: 0, page: 1, per_page: 25, has_next: false },
         filters: {
             unidad_fisica_id: '',
             ubicacion_origen_id: '',
@@ -387,7 +387,7 @@
             state = {
                 items: [],
                 summary: { total: 0, correcciones: 0 },
-                pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+                pagination: { total: 0, page: 1, per_page: 25, has_next: false },
                 filters: {
                     unidad_fisica_id: '',
                     ubicacion_origen_id: '',

@@ -35,7 +35,7 @@
     let state = {
         items: [],
         summary: { unidades: 0, cantidad_fisica: 0, cantidad_reservada: 0, cantidad_en_transito: 0, cantidad_disponible: 0 },
-        pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+        pagination: { total: 0, page: 1, per_page: 25, has_next: false },
         filters: { producto_id: '', ubicacion_id: '', estado: '' },
         products: [],
         locations: [],
@@ -1204,7 +1204,7 @@
             state = {
                 items: [],
                 summary: { unidades: 0, cantidad_fisica: 0, cantidad_reservada: 0, cantidad_en_transito: 0, cantidad_disponible: 0 },
-                pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+                pagination: { total: 0, page: 1, per_page: 25, has_next: false },
                 filters: { producto_id: '', ubicacion_id: '', estado: '' },
                 products: [],
                 locations: [],

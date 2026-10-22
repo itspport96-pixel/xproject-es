@@ -11,7 +11,7 @@
     let container = null;
     let state = {
         items: [],
-        pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+        pagination: { total: 0, page: 1, per_page: 25, has_next: false },
         filters: { search: '', unidad_medida: '', categoria: '', activo: '' },
         loading: false,
         editing: null,
@@ -757,7 +757,7 @@
             stockCache.clear();
             state = {
                 items: [],
-                pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+                pagination: { total: 0, page: 1, per_page: 25, has_next: false },
                 filters: { search: '', unidad_medida: '', categoria: '', activo: '' },
                 loading: false,
                 editing: null,

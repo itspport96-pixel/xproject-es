@@ -335,7 +335,7 @@ async function s1_movements() {
 
   const first = env.calls.gets.find(g => g.path === '/inventory/movements');
   check('GET /inventory/movements con page 1',
-    !!first && first.options.params.page === 1 && first.options.params.per_page === 20,
+    !!first && first.options.params.page === 1 && first.options.params.per_page === 25,
     JSON.stringify(first && first.options.params));
 
   const cards = env.container.querySelector('[data-mov-summary]').textContent;

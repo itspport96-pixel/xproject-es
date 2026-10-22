@@ -43,7 +43,7 @@
     const state = {
         items: [],
         summary: { total: 0, abiertas: 0, investigacion: 0, resueltas: 0, no_resueltas: 0 },
-        pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+        pagination: { total: 0, page: 1, per_page: 25, has_next: false },
         loading: false,
         filters: { estado: '', tipo: '', unidad_fisica_id: '', fecha_desde: '', fecha_hasta: '' },
         unitFilterMode: 'select',

@@ -40,7 +40,7 @@
     let state = {
         items: [],
         summary: { total: 0, ok: 0, danadas: 0, deterioradas: 0, perdidas: 0 },
-        pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+        pagination: { total: 0, page: 1, per_page: 25, has_next: false },
         filters: { estado: '', motivo: '', fecha_desde: '', fecha_hasta: '', shipment_id: '' },
         listLoading: false,
         modal: null,

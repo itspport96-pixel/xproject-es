@@ -51,7 +51,7 @@
     const state = {
         items: [],
         summary: { total: 0, pendientes: 0, en_curso: 0, completados: 0, reconciliados: 0 },
-        pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+        pagination: { total: 0, page: 1, per_page: 25, has_next: false },
         loading: false,
         filters: { estado: '', ubicacion_id: '', fecha_desde: '', fecha_hasta: '' },
         locations: [],

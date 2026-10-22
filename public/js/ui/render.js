@@ -290,7 +290,7 @@
         const p = o.pagination || {};
         const total = Number(p.total || 0);
         const page = Number(p.page || 1);
-        const perPage = Number(p.per_page || 20);
+        const perPage = Number(p.per_page || 25);
         const totalPages = p.last_page
             ? Number(p.last_page)
             : Math.max(1, Math.ceil(total / perPage));

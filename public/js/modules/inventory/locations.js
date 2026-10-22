@@ -11,7 +11,7 @@
     let container = null;
     let state = {
         items: [],
-        pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+        pagination: { total: 0, page: 1, per_page: 25, has_next: false },
         filters: { search: '', tipo: '', activa: '' },
         loading: false,
         editing: null
@@ -701,7 +701,7 @@
             container = null;
             state = {
                 items: [],
-                pagination: { total: 0, page: 1, per_page: 20, has_next: false },
+                pagination: { total: 0, page: 1, per_page: 25, has_next: false },
                 filters: { search: '', tipo: '', activa: '' },
                 loading: false,
                 editing: null

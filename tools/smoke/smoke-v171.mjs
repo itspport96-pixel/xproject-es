@@ -99,7 +99,7 @@ const PICKING_PAYLOAD = {
   data: {
     summary: { total: 4, en_curso: 2, completadas: 1, verificadas: 1 },
     data: PICKING_ROWS,
-    pagination: { total: 4, page: 1, per_page: 20, has_next: false }
+    pagination: { total: 4, page: 1, per_page: 25, has_next: false }
   }
 };
 
@@ -147,7 +147,7 @@ const SHIPMENTS_PAYLOAD = {
   data: {
     summary: { total: 2, en_preparacion: 1, en_ruta: 1, entregados: 0 },
     data: SHIPMENTS,
-    pagination: { total: 2, page: 1, per_page: 20, has_next: false }
+    pagination: { total: 2, page: 1, per_page: 25, has_next: false }
   }
 };
 
@@ -219,7 +219,7 @@ function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {}, postImpl =
 
       if (p === '/inventory/reservations') return RESERVATIONS_PAYLOAD;
       if (p === '/inventory/picking') return PICKING_PAYLOAD;
-      if (p === '/inventory/shipments' && options.params && options.params.per_page === 20) return SHIPMENTS_PAYLOAD;
+      if (p === '/inventory/shipments' && options.params && options.params.per_page === 25) return SHIPMENTS_PAYLOAD;
       if (p === '/inventory/shipments/sh1') return SHIPMENT_DETAIL;
       if (p === '/inventory/stock') return STOCK_PREPARED_PAYLOAD;
       if (p === '/inventory/locations') {

@@ -19,12 +19,12 @@
     let state = {
         tab: 'users',
         items: [],
-        pagination: { page: 1, per_page: 20, total: 0, has_next: false },
+        pagination: { page: 1, per_page: 25, total: 0, has_next: false },
         filters: { estado: '', search: '' },
         loading: false,
         roles: [],
         users: [],
-        temp: { items: [], total: 0, loading: false, user_id: '', user_label: '', page: 1, per_page: 20, pagination: null },
+        temp: { items: [], total: 0, loading: false, user_id: '', user_label: '', page: 1, per_page: 25, pagination: null },
         modal: null,
         sending: false
     };
@@ -1958,12 +1958,12 @@
             state = {
                 tab: 'users',
                 items: [],
-                pagination: { page: 1, per_page: 20, total: 0, has_next: false },
+                pagination: { page: 1, per_page: 25, total: 0, has_next: false },
         filters: { estado: '', search: '' },
                 loading: false,
                 roles: [],
                 users: [],
-                temp: { items: [], total: 0, loading: false, user_id: '', user_label: '', page: 1, per_page: 20, pagination: null },
+                temp: { items: [], total: 0, loading: false, user_id: '', user_label: '', page: 1, per_page: 25, pagination: null },
                 modal: null,
                 sending: false
             };
