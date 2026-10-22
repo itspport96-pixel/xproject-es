@@ -129,6 +129,56 @@ async function main() {
     const n = /(\d+)\s+permisos/.exec(summary || '');
     check('dark: resumen refleja la seleccion', !!n && Number(n[1]) >= 1, summary);
     await page.screenshot({ path: path.join(OUT, 'modal-crear-rol-1366-dark-seleccion.png'), fullPage: false });
+
+    // Filtro CRITICAL contra datos reales (BD viva): el contador del modulo
+    // y las cabeceras reflejan la vista filtrada; marcar la cabecera no
+    // selecciona permisos ocultos por el filtro.
+    await page.click('[data-pp-clear]');
+    await page.fill('[data-pp-search]', '');
+    await page.selectOption('[data-pp-risk]', 'CRITICAL');
+    await page.waitForTimeout(300);
+    const f1 = await page.evaluate(() => {
+      const modal = document.querySelector('.modal-pp');
+      const active = modal ? modal.querySelector('.pp-module.is-active') : null;
+      const countEl = active ? active.querySelector('[data-pp-mod-count]') : null;
+      const rows = modal ? [...modal.querySelectorAll('input[data-perm-check]')] : [];
+      const risks = rows.map(r => {
+        const wrap = r.closest('.pp-perm');
+        const badge = wrap ? wrap.querySelector('.pp-perm-risk') : null;
+        return badge ? badge.textContent.trim() : null;
+      });
+      return {
+        active: active ? active.dataset.ppModule : null,
+        count: countEl ? countEl.textContent : null,
+        rows: rows.length,
+        risks
+      };
+    });
+    check('dark: filtro CRITICAL deja permisos reales', f1.rows > 0, JSON.stringify(f1));
+    check('dark: contador del modulo = casillas visibles con el filtro',
+      !!f1.count && f1.count.split('/')[1] === String(f1.rows), JSON.stringify(f1));
+    check('dark: todas las filas visibles son CRITICAL',
+      f1.risks.length > 0 && f1.risks.every(r => r === 'CRITICAL'), JSON.stringify(f1.risks));
+
+    const headBox = page.locator('.pp-recurso-head input[type="checkbox"]').first();
+    const headVisible = await headBox.isVisible().catch(() => false);
+    check('dark: cabecera de recurso visible con el filtro', headVisible);
+    if (headVisible && !(await headBox.isDisabled().catch(() => true))) {
+      await headBox.click();
+      await page.waitForTimeout(250);
+    }
+    const f2 = await page.evaluate(() => {
+      const modal = document.querySelector('.modal-pp');
+      const active = modal ? modal.querySelector('.pp-module.is-active') : null;
+      const countEl = active ? active.querySelector('[data-pp-mod-count]') : null;
+      const parts = countEl ? countEl.textContent.split('/') : [];
+      const checkedRows = modal ? modal.querySelectorAll('input[data-perm-check]:checked').length : 0;
+      return { count: countEl ? countEl.textContent : null, checkedRows, parts };
+    });
+    check('dark: cabecera con filtro solo marca lo visible (sel = casillas pintadas)',
+      f2.parts.length === 2 && Number(f2.parts[0]) === f2.checkedRows && f2.checkedRows > 0,
+      JSON.stringify(f2));
+    await page.screenshot({ path: path.join(OUT, 'modal-crear-rol-1366-dark-critical.png'), fullPage: false });
     await ctxDark.close();
 
     // ================= TEMA CLARO @1366 =================

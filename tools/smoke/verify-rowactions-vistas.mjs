@@ -1027,6 +1027,64 @@ async function ra13_roles_picker() {
   check('RA-13.21 BUILT_IN casillas deshabilitadas',
     checks3.length > 0 && checks3.every(c => c.disabled));
   e3.close();
+
+  // --- Filtro de riesgo: contadores y seleccion masiva reflejan la vista ---
+  const PP_F = PERMS.concat([
+    { id: 'f1', identificador: 'users.user.create', nombre: 'Crear usuarios', descripcion: 'Crear usuarios', modulo: 'users', recurso: 'user', accion: 'create', criticidad: 'CRITICAL', activo: true },
+    { id: 'f2', identificador: 'users.user.edit', nombre: 'Editar usuarios', descripcion: 'Editar usuarios', modulo: 'users', recurso: 'user', accion: 'edit', criticidad: 'HIGH', activo: true },
+    { id: 'f3', identificador: 'users.user.delete', nombre: 'Borrar usuarios', descripcion: 'Borrar usuarios', modulo: 'users', recurso: 'user', accion: 'delete', criticidad: 'CRITICAL', activo: true },
+    { id: 'f4', identificador: 'groups.group.create', nombre: 'Crear grupos', descripcion: 'Crear grupos', modulo: 'groups', recurso: 'group', accion: 'create', criticidad: 'MEDIUM', activo: true }
+  ]);
+  const ef = createEnv({
+    perms: FULL.concat(['users.user.create', 'users.user.edit', 'users.user.delete', 'groups.group.create']),
+    getHandlers: { '/permissions': { status: 200, data: { permissions: PP_F } } }
+  });
+  ef.evalIn(FILES.roles);
+  ef.w.RolesRolesModule.init({}, ef.container);
+  await tick(12);
+  ef.click(ef.container.querySelector('[data-action="open-create"]'));
+  await tick(10);
+  const rf = ef.modalRoot();
+  const riskF = rf.querySelector('[data-pp-risk]');
+  riskF.value = 'CRITICAL';
+  riskF.dispatchEvent(new ef.w.Event('change', { bubbles: true }));
+  await tick();
+  const countUsers = rf.querySelector('[data-pp-mod-count="users"]');
+  const rowsF = rf.querySelectorAll('input[data-perm-check]');
+  check('RA-13.F1 contador del modulo refleja el filtro CRITICAL (0/2, no 0/4)',
+    !!countUsers && countUsers.textContent === '0/2',
+    countUsers ? countUsers.textContent : 'sin contador');
+  check('RA-13.F2 panel CRITICAL pinta solo los 2 permisos criticos de users',
+    rowsF.length === 2, String(rowsF.length));
+
+  const recAllF = rf.querySelector('[data-pp-recurso-all]');
+  check('RA-13.F3 cabecera del recurso user habilitada con el filtro',
+    !!recAllF && !recAllF.disabled, recAllF ? `disabled=${recAllF.disabled}` : 'sin cabecera');
+  ef.setCheck(recAllF, true);
+  await tick();
+  const selF = ef.pickerSelected(rf).slice().sort();
+  check('RA-13.F4 marcar la cabecera con filtro solo marca lo visible (sin fantasmas)',
+    JSON.stringify(selF) === JSON.stringify(['users.user.create', 'users.user.delete']),
+    JSON.stringify(selF));
+  const recAllF2 = rf.querySelector('[data-pp-recurso-all]');
+  const countUsers2 = rf.querySelector('[data-pp-mod-count="users"]');
+  check('RA-13.F5 cabecera y contador en 2/2 tras marcar lo visible',
+    !!(recAllF2 && recAllF2.checked && !recAllF2.indeterminate)
+    && !!countUsers2 && countUsers2.textContent === '2/2',
+    `rec=${recAllF2 && recAllF2.checked}/${recAllF2 && recAllF2.indeterminate} count=${countUsers2 && countUsers2.textContent}`);
+
+  riskF.value = 'ALL';
+  riskF.dispatchEvent(new ef.w.Event('change', { bubbles: true }));
+  await tick();
+  const selAllF = ef.pickerSelected(rf).slice().sort();
+  check('RA-13.F6 al quitar el filtro no aparecen permisos fantasma',
+    JSON.stringify(selAllF) === JSON.stringify(['users.user.create', 'users.user.delete']),
+    JSON.stringify(selAllF));
+  const viewF = rf.querySelector('input[data-perm-check][value="users.user.view"]');
+  check('RA-13.F7 users.user.view sigue desmarcado tras quitar el filtro',
+    !!viewF && !viewF.checked, viewF ? `checked=${viewF.checked}` : 'sin casilla');
+  noErrors(ef, 'RA-13.F');
+  ef.close();
 }
 
 // =====================================================================

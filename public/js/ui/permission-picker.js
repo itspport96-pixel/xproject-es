@@ -33,7 +33,9 @@
  *  - Al marcar crear/editar/eliminar de un recurso se marca tambien su
  *    .view (si existe y es otorgable) con un aviso breve (solo UI).
  *  - El buscador filtra por codigo y descripcion en todos los modulos; el
- *    toggle "solo seleccionados" y el filtro de riesgo afectan al panel.
+ *    toggle "solo seleccionados" y el filtro de riesgo afectan al panel,
+ *    a los contadores, al estado de las cabeceras y a la seleccion masiva
+ *    (solo se cuentan o se marcan permisos visibles; lo oculto no se toca).
  *  - Los headers de modulo y recurso tienen estado indeterminado si la
  *    seleccion es parcial.
  *  - Solo los paneles (modulos y detalle) hacen scroll; la pagina no.
@@ -75,10 +77,15 @@
     }
 
     function codesOf(state, modulo, recurso) {
+        // Solo los permisos visibles bajo el filtro activo (riesgo/busqueda/
+        // solo seleccionados): contadores, cabeceras y seleccion masiva
+        // reflejan la vista; marcar una cabecera no toca lo oculto.
         const out = [];
         const grupos = state.grouped[modulo] || {};
         const recursos = recurso ? [recurso] : Object.keys(grupos);
-        recursos.forEach(r => (grupos[r] || []).forEach(p => out.push(p.identificador)));
+        recursos.forEach(r => (grupos[r] || []).forEach(p => {
+            if (matches(state, p)) out.push(p.identificador);
+        }));
         return out;
     }
 
