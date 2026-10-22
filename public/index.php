@@ -223,6 +223,7 @@ function renderErrorPage(Throwable $e): void
     // trae los tokens de claro/oscuro, error.css sólo las clases de esta página).
     $baseUrlHtml = htmlspecialchars(rtrim(appUrl(), '/'), ENT_QUOTES, 'UTF-8');
     $assetsVersion = assetsVersion();
+    $cspNonce = $GLOBALS['cspNonce'] ?? '';
 
     echo <<<HTML
 <!DOCTYPE html>
@@ -231,7 +232,7 @@ function renderErrorPage(Throwable $e): void
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Error {$code}</title>
-    <script>
+    <script nonce="{$cspNonce}">
         (function() {
             var theme = null;
             try {
@@ -267,8 +268,10 @@ HTML;
 // ============================================
 // Security Headers (aplicar globalmente ANTES de cualquier response)
 // ============================================
+// Nonce por request para los scripts inline del shell (CSP sin unsafe-inline)
+$GLOBALS['cspNonce'] = bin2hex(random_bytes(16));
 try {
-    $securityHeaders = new SecurityHeadersMiddleware();
+    $securityHeaders = new SecurityHeadersMiddleware($GLOBALS['cspNonce']);
     $securityHeaders->handle([]);
 } catch (\Throwable $e) {
     error_log('SecurityHeadersMiddleware failed: ' . $e->getMessage());
@@ -313,6 +316,7 @@ function renderSpaLayout(): void
     $sessionTimeoutJs = (int) ($_ENV['SESSION_TIMEOUT'] ?? 1800);
     $assetsVersion = assetsVersion();
     $assetsVersionJs = json_encode($assetsVersion);
+    $cspNonce = $GLOBALS['cspNonce'] ?? '';
 
     echo <<<HTML
 <!DOCTYPE html>
@@ -323,7 +327,7 @@ function renderSpaLayout(): void
     <!-- Sin color fijo: persistence.js lo rellena leyendo --color-background -->
     <meta name="theme-color" content="">
     <title>{$appNameHtml}</title>
-    <script>
+    <script nonce="{$cspNonce}">
         (function() {
             var theme = null;
             try {
@@ -342,7 +346,7 @@ function renderSpaLayout(): void
         })();
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script nonce="{$cspNonce}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -460,7 +464,7 @@ function renderSpaLayout(): void
     <script src="{$baseUrlHtml}/js/modules/dashboard/sidebar.js?v={$assetsVersion}"></script>
     <script src="{$baseUrlHtml}/js/modules/dashboard/subnav.js?v={$assetsVersion}"></script>
 
-    <script>
+    <script nonce="{$cspNonce}">
         window.AppConfig = {
             baseUrl: {$baseUrlJs},
             apiBase: {$apiBaseJs},

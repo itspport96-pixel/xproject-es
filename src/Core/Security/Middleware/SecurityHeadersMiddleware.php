@@ -23,6 +23,12 @@ namespace App\Core\Security\Middleware;
  *   SECURITY_FRAME_OPTIONS=SAMEORIGIN
  *   SECURITY_REFERRER_POLICY=strict-origin-when-cross-origin
  *   SECURITY_CSP_DIRECTIVES="default-src 'self'; script-src 'self'"
+ *
+ * Nonce (endurecimiento v1.18.x): el entry point genera un nonce por request
+ * y lo pasa al constructor; el middleware lo apende a script-src y el HTML
+ * inline lo repite en <script nonce="...">. Así script-src no necesita
+ * 'unsafe-inline' (inyección de scripts bloqueada; los scripts del shell
+ * siguen funcionando).
  */
 final class SecurityHeadersMiddleware
 {
@@ -32,9 +38,11 @@ final class SecurityHeadersMiddleware
     private string $frameOptions;
     private string $referrerPolicy;
     private string $cspDirectives;
+    private ?string $cspNonce;
 
-    public function __construct()
+    public function __construct(?string $cspNonce = null)
     {
+        $this->cspNonce = ($cspNonce !== null && $cspNonce !== '') ? $cspNonce : null;
         $this->cspEnabled = filter_var(
             $_ENV['SECURITY_CSP_ENABLED'] ?? 'true',
             FILTER_VALIDATE_BOOLEAN
@@ -170,14 +178,38 @@ final class SecurityHeadersMiddleware
     /**
      * Content Security Policy (CSP).
      * Controla qué recursos puede cargar la página.
+     * Si hay nonce por request se apende a script-src.
      */
     private function applyCsp(): void
     {
-        if ($this->cspDirectives === '') {
+        $directives = $this->buildCspDirectives();
+        if ($directives === '') {
             return;
         }
 
-        header("Content-Security-Policy: {$this->cspDirectives}");
+        header("Content-Security-Policy: {$directives}");
+    }
+
+    /**
+     * Directives CSP con el nonce (si lo hay) ya inyectado en script-src.
+     */
+    private function buildCspDirectives(): string
+    {
+        $directives = $this->cspDirectives;
+        if ($directives === '' || $this->cspNonce === null) {
+            return $directives;
+        }
+
+        $nonceToken = "'nonce-{$this->cspNonce}'";
+        if (preg_match('/script-src\s[^;]+/', $directives, $m)) {
+            if (!str_contains($m[0], $nonceToken)) {
+                $directives = str_replace($m[0], $m[0] . ' ' . $nonceToken, $directives);
+            }
+
+            return $directives;
+        }
+
+        return $directives . "; script-src 'self' {$nonceToken}";
     }
 
     /**
@@ -202,8 +234,11 @@ final class SecurityHeadersMiddleware
             $headers['Strict-Transport-Security'] = "max-age={$maxAge}; includeSubDomains";
         }
 
-        if ($this->cspEnabled && $this->cspDirectives !== '') {
-            $headers['Content-Security-Policy'] = $this->cspDirectives;
+        if ($this->cspEnabled) {
+            $csp = $this->buildCspDirectives();
+            if ($csp !== '') {
+                $headers['Content-Security-Policy'] = $csp;
+            }
         }
 
         return $headers;

@@ -30,6 +30,13 @@ use PDOStatement;
  *   - delete(string $id): bool (soft delete si la tabla tiene deleted_at)
  *   - count(array $filters = []): int
  *
+ * Mass assignment: save() y update() sólo escriben las columnas que la
+ * subclase declare en getAllowedWriteColumns(); cualquier otra clave del
+ * array (deleted_at, tipo, email_verificado, campos ajenos al módulo...)
+ * se descarta antes de construir el SQL. Los campos estructurales
+ * (id, tenant_id, created_at, updated_at, deleted_at) nunca se aceptan
+ * del cliente aunque figuren en la allowlist: los fija el repositorio.
+ *
  * Métodos protegidos para queries personalizadas:
  *   - query(string $sql, array $params = []): PDOStatement
  *   - queryOne(string $sql, array $params = []): ?array
@@ -70,6 +77,17 @@ abstract class BaseRepository
      * @return array Lista de nombres de columna permitidos (ej: ['email', 'estado', 'nombre'])
      */
     abstract protected function getAllowedFilters(): array;
+
+    /**
+     * Retorna la lista de columnas escribibles vía save()/update() (allowlist).
+     * Sin esta lista el array del cliente podría escribir cualquier columna
+     * (mass assignment): save()/update() descartan toda clave ausente de aquí.
+     * No listar columnas estructurales (id, tenant_id, created_at, updated_at,
+     * deleted_at): las fija el repositorio.
+     *
+     * @return array Lista de nombres de columna escribibles (ej: ['nombre', 'estado'])
+     */
+    abstract protected function getAllowedWriteColumns(): array;
 
     // ========================================================================
     // MÉTODOS CRUD GENÉRICOS
@@ -166,6 +184,9 @@ abstract class BaseRepository
     /**
      * Inserta un nuevo registro en el tenant actual.
      *
+     * Sólo se escriben las columnas de getAllowedWriteColumns(); el resto de
+     * claves del array (mass assignment) se descartan silenciosamente.
+     *
      * @param array $data Datos del registro (NO incluir id ni tenant_id)
      * @return string ID del registro creado
      */
@@ -173,6 +194,9 @@ abstract class BaseRepository
     {
         $tenantId = $this->getCurrentTenantId();
         $table = $this->getTableName();
+
+        // Mass assignment: filtrar por allowlist de columnas escribibles
+        $data = $this->filterWritableColumns($data);
 
         // Generar ID si no se proporciona
         if (!isset($data['id'])) {
@@ -229,6 +253,9 @@ abstract class BaseRepository
 
         // Remover campos inmutables
         unset($data['id'], $data['tenant_id'], $data['created_at']);
+
+        // Mass assignment: filtrar por allowlist de columnas escribibles
+        $data = $this->filterWritableColumns($data);
 
         if (empty($data)) {
             return true;
@@ -407,6 +434,28 @@ abstract class BaseRepository
     // ========================================================================
     // MÉTODOS AUXILIARES
     // ========================================================================
+
+    /**
+     * Filtra un array de datos por la allowlist de getAllowedWriteColumns().
+     * Además descarta siempre los campos estructurales (el repo los fija).
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed> Sólo claves escribibles
+     */
+    protected function filterWritableColumns(array $data): array
+    {
+        $allowed = $this->getAllowedWriteColumns();
+        $structural = ['id', 'tenant_id', 'created_at', 'updated_at', 'deleted_at'];
+
+        $filtered = [];
+        foreach ($data as $key => $value) {
+            if (in_array($key, $allowed, true) && !in_array($key, $structural, true)) {
+                $filtered[$key] = $value;
+            }
+        }
+
+        return $filtered;
+    }
 
     /**
      * Obtiene el tenant_id actual (con cache para evitar múltiples llamadas).
