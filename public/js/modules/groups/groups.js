@@ -117,6 +117,7 @@
     }
 
     function renderTable() {
+        if (!container) return;
         const root = container.querySelector('[data-groups-table]');
         if (!root) return;
 
@@ -275,7 +276,7 @@
                 detail.members = (membersPayload && membersPayload.members) || [];
                 detail.roles = (rolesPayload && rolesPayload.roles) || [];
                 detail.loading = false;
-                state.memberCounts[detail.id] = detail.members.length;
+                refreshGroupRow(detail.id, detail.members.length);
                 renderModal();
             }
             return true;
@@ -288,6 +289,20 @@
             }
             return false;
         }
+    }
+
+    /**
+     * Tras mutar miembros (alta/baja), sincroniza la fila del grupo en la
+     * tabla de fondo con el conteo fresco del servidor y la repinta.
+     * `renderTable` da prioridad a `g.miembros` (el valor del listado
+     * inicial), así que sin actualizar también esa propiedad la columna
+     * Miembros conserva el número viejo hasta recargar la pagina.
+     */
+    function refreshGroupRow(groupId, memberCount) {
+        state.memberCounts[groupId] = memberCount;
+        const idx = state.items.findIndex(g => String(g.id) === String(groupId));
+        if (idx !== -1) state.items[idx].miembros = memberCount;
+        renderTable();
     }
 
     function detailBody(modal) {

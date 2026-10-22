@@ -62,7 +62,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // ENTORNO
 // =====================================================================
 
-function createEnv({ postImpl = null, getUsersImpl = null } = {}) {
+function createEnv({ postImpl = null, getUsersImpl = null, groups = null, members = null } = {}) {
   const dom = new JSDOM(
     '<!DOCTYPE html><html><body><div id="module-container"></div></body></html>',
     { url: 'http://localhost/xp/public/', runScripts: 'outside-only', pretendToBeVisual: true }
@@ -91,13 +91,13 @@ function createEnv({ postImpl = null, getUsersImpl = null } = {}) {
     logout() {}
   };
 
-  const env = { w, calls, postImpl, getUsersImpl, dom };
+  const env = { w, calls, postImpl, getUsersImpl, dom, groups: groups || GROUPS, members: members || MEMBERS };
 
   const resolveGet = (p, options) => {
-    if (p === '/groups') return { status: 200, data: { groups: GROUPS } };
+    if (p === '/groups') return { status: 200, data: { groups: env.groups } };
     const mMembers = /^\/groups\/([^/]+)\/members$/.exec(p);
     if (mMembers) {
-      const list = MEMBERS[mMembers[1]] || [];
+      const list = env.members[mMembers[1]] || [];
       return { status: 200, data: { members: list, total: list.length } };
     }
     const mRoles = /^\/groups\/([^/]+)\/roles$/.exec(p);
@@ -514,6 +514,58 @@ async function s7_search_edges() {
 }
 
 // =====================================================================
+// S8 - regresión: el conteo de la tabla de fondo se refresca sin F5
+// =====================================================================
+async function s8_table_count_refresh() {
+  console.log('S8 tabla de fondo: columna Miembros se refresca tras añadir sin recargar');
+  const groups = [
+    { id: 'g1', nombre: 'Almacen Central', descripcion: 'Operarios', activo: true, miembros: 1 }
+  ];
+  const members = {
+    g1: [
+      { membership_id: 'm1', user_id: 'u1', email: 'ana@acme.local', nombre: 'Ana', apellido: 'Torres', estado: 'ACTIVO', added_at: '2026-01-01' }
+    ]
+  };
+  const env = createEnv({
+    groups,
+    members,
+    postImpl: (p, body) => {
+      members.g1.push({
+        membership_id: 'mX', user_id: body.user_id, email: 'x@acme.local',
+        nombre: 'Nuevo', apellido: 'Miembro', estado: 'ACTIVO', added_at: '2026-03-01'
+      });
+      return { status: 201, data: { ok: true } };
+    }
+  });
+  const root = await openAdd(env);
+
+  env.type(root.querySelector('[data-combo-input]'), 'bruno');
+  await sleep(320);
+  await tick(6);
+  let r = env.modalRoot();
+  const opt = [...r.querySelectorAll('.combo-option')].find(o => o.dataset.value === 'u2');
+  check('candidato Bruno disponible (sólo Ana es miembro)', !!opt,
+    JSON.stringify([...r.querySelectorAll('.combo-option')].map(o => o.dataset.value)));
+  if (opt) env.click(opt);
+  await tick(6);
+
+  r = env.modalRoot();
+  env.click(r.querySelector('[data-action="submit-add-member"]'));
+  await tick(15);
+
+  r = env.modalRoot();
+  const filasDetalle = r.querySelectorAll('[data-action="remove-member"]').length;
+  check('el detalle del modal muestra los 2 miembros', filasDetalle === 2, String(filasDetalle));
+
+  const tr = env.container.querySelector('[data-groups-table] tbody tr');
+  const celdas = tr ? tr.querySelectorAll('td') : [];
+  const conteo = celdas.length >= 3 ? celdas[2].textContent.trim() : '';
+  check('la tabla de fondo refresca Miembros a 2 sin recargar', conteo === '2',
+    `celda="${conteo}"`);
+  env.close();
+}
+
+// =====================================================================
 async function main() {
   await s1_open();
   await s2_chips();
@@ -522,6 +574,7 @@ async function main() {
   await s5_multi_add();
   await s6_partial_failure();
   await s7_search_edges();
+  await s8_table_count_refresh();
 
   console.log(`\nRESULTADO: ${pass} OK, ${fail} FAIL`);
   if (fail > 0) process.exitCode = 1;
