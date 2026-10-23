@@ -76,7 +76,7 @@ final class RoleController
 
         $role = $this->roles->findById($id, (string) $claims['tenant_id']);
         if ($role === null) {
-            throw (new HttpException('Rol no encontrado', 404))->withMessageKey('roles.role_not_found');
+            throw AuthorizationException::roleNotFound((string) $id);
         }
 
         return $this->json(200, ['role' => $role->toArray()]);
@@ -97,7 +97,7 @@ final class RoleController
 
         $role = $this->roles->findById($id, (string) $claims['tenant_id']);
         if ($role === null) {
-            throw (new HttpException('Rol no encontrado', 404))->withMessageKey('roles.role_not_found');
+            throw AuthorizationException::roleNotFound((string) $id);
         }
 
         return $this->json(200, [
@@ -170,7 +170,7 @@ final class RoleController
 
         $role = $this->roles->findById($id, (string) $claims['tenant_id']);
         if ($role === null) {
-            throw (new HttpException('Rol no encontrado', 404))->withMessageKey('roles.role_not_found');
+            throw AuthorizationException::roleNotFound((string) $id);
         }
 
         $data = $request['body'] ?? [];
@@ -230,7 +230,7 @@ final class RoleController
 
         $role = $this->roles->findById($id, (string) $claims['tenant_id']);
         if ($role === null) {
-            throw (new HttpException('Rol no encontrado', 404))->withMessageKey('roles.role_not_found');
+            throw AuthorizationException::roleNotFound((string) $id);
         }
 
         $permisos = (array) ($request['body']['permisos'] ?? []);
@@ -276,7 +276,7 @@ final class RoleController
 
         $role = $this->roles->findById($id, (string) $claims['tenant_id']);
         if ($role === null) {
-            throw (new HttpException('Rol no encontrado', 404))->withMessageKey('roles.role_not_found');
+            throw AuthorizationException::roleNotFound((string) $id);
         }
 
         $this->roles->softDelete($id, (string) $claims['tenant_id']);

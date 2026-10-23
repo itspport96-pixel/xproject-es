@@ -78,13 +78,22 @@ traces en respuestas de error ni en la pagina de error). `JWT_SECRET` rotado
 tras la rotacion). `git ls-files .env` vacio: el fichero sigue fuera de git y
 nunca se commitea.
 
-**No rotados a proposit** (requieren plan de migracion, no un sed):
-`ENCRYPTION_KEY` y `BLIND_INDEX_KEY` — hay datos ya cifrados y emails/indexados
-en la BD viva; rotarlos sin re-encriptar los vuelve ilegibles. Protocolo de
-rotacion para Produccion: (1) generar clave nueva, (2) re-encriptar con
-`bin/encrypt-audit-backfill.php` (o el flujo equivalente del modulo) antes de
-cortar, (3) recalcular blind index de users; en Desa se documenta pero no se
-ejecuta.
+**No rotado a proposit** `ENCRYPTION_KEY`: hay datos ya cifrados en la BD viva
+(`mfa_secret` y el nombre publico/email/telefono de tenants se escriben
+cifrados con `EncryptionService`); rotarlo sin re-encriptarlos los vuelve
+ilegibles. El re-encriptado exige un script de rotacion que descifre con la
+clave vieja y recifre con la nueva (pendiente del rediseño de cifrado, ver
+seccion 6). `BLIND_INDEX_KEY` tampoco se rota: sostiene el indice ciego vivo
+`tenants.nombre_interno_hmac` (lo escribe y consulta `TenantRepository`).
+
+Secuelas del intento de cifrado punto-a-punto revertido, **eliminadas el
+22-oct-2026**: `bin/sprint2-backfill.php`, `bin/b2-backfill.php`,
+`bin/b3-backfill.php`, `bin/encrypt-audit-backfill.php`,
+`bin/revert-users-nombre-encryption.php`, `bin/verify-decrypt.php`,
+`docs/ENCRYPTION.md`, los dos backups locales pre-rollback y las columnas y
+tablas que ya nadie mantenia (`users.email_hmac` + indice unico, tablas
+`secrets_vault` y `secrets_access_log`, ambas vacias). `schema.sql`
+regenerado; drift SIN DRIFT.
 
 ### Pendiente para Produccion
 
@@ -164,3 +173,36 @@ Sin cambios: soft delete con `deleted_at`, auditoria con redaccion de secretos,
 contrasenas en bcrypt, integridad estricta (`sql_mode`), sin `have_symlink`.
 Mantener el cierre de sprint habitual (`check-schema-drift`,
 `check-data-integrity`, suites E2E) como gate de Produccion.
+
+## 6. Aislamiento entre tenants y cifrado de datos (22-oct-2026)
+
+### 6a. Probe cross-tenant real: SIN FUGAS
+
+Sonda contra la BD viva `xproject` (no contra E2E): tenant + usuario + rol
+CUSTOM temporal creados por SQL con los 58 permisos del ADMIN BUILT_IN,
+login real por `POST /api/auth/login`, y despues GET por id de filas reales
+del tenant Acme (product `fc37b8ba`, location `8ba74eee`, user
+`40496ba5`, role `52cfef53`, group `041dec9e`). Resultado: los 5 GET
+responden **404 de entidad** ("no encontrado"), nunca 200 ni 403 con datos;
+los 5 listados (`inventory/products`, `inventory/locations`, `users`,
+`roles`, `groups`) responden 200 sin ningun id de Acme. Todo lo creado se
+borro al terminar (audit_logs, refresh_tokens, rate_limit_log,
+role_assignments, role_permissions, user, role, tenant): la BD viva quedo
+identica (4 usuarios, 1 tenant, 0 restos de la sonda).
+
+### 6b. Residual abierto: cifrado de datos y auditoria en claro
+
+Decision: **no se re-implementa el cifrado punto-a-punto ahora**; volvera de
+forma organizada con su propio plan (script de rotacion, verificacion de la
+cadena de hash y migracion gradual). Hoy en claro en la BD viva: PII de
+`users` (nombre, apellido, email, telefono), PII de `tenants` y
+`shipments`, y las snapshots de auditoria (`audit_logs.valores_anteriores`,
+`valores_nuevos`, `detalles_adicionales`, `ip_address`, `user_agent`) mas la
+ip en `rate_limit_log` y `refresh_tokens`. Consecuencia directa: la rotacion
+de `ENCRYPTION_KEY` sigue bloqueada hasta ese rediseño (seccion 2). Nota: la
+cadena de integridad de `audit_logs` (`hash_integridad`) se calcula sobre el
+contenido en claro; cualquier cifrado futuro debe preservarla o migrarla.
+
+Deviation observada durante el probe (no corregida, fuera de alcance): los
+404 de `users` y `roles` devuelven el literal `{id}` sin interpolar en el
+mensaje ("El usuario con ID '{id}' no existe."); el de `groups` si interpola.

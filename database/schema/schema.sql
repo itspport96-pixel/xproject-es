@@ -74,7 +74,6 @@ CREATE TABLE `users` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
   `email` varchar(255) NOT NULL,
-  `email_hmac` char(64) DEFAULT NULL,
   `nombre` varchar(100) DEFAULT NULL,
   `apellido` varchar(100) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
@@ -94,7 +93,6 @@ CREATE TABLE `users` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_users_tenant_email_hmac` (`tenant_id`,`email_hmac`),
   KEY `idx_tenant_estado` (`tenant_id`,`estado`),
   KEY `idx_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -451,50 +449,6 @@ CREATE TABLE `role_assignments` (
   CONSTRAINT `role_assignments_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `role_assignments_ibfk_2` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`),
   CONSTRAINT `role_assignments_ibfk_3` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `secrets_vault`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `secrets_vault` (
-  `id` char(36) NOT NULL,
-  `tenant_id` char(36) NOT NULL,
-  `nombre` varchar(255) NOT NULL,
-  `tipo` enum('API_KEY','PASSWORD','ENCRYPTION_KEY','OAUTH_TOKEN','OTRO') DEFAULT 'OTRO',
-  `valor_encriptado` text NOT NULL,
-  `descripcion` text DEFAULT NULL,
-  `rotacion_requerida` tinyint(4) DEFAULT 0,
-  `ultima_rotacion` timestamp NULL DEFAULT NULL,
-  `proxima_rotacion` timestamp NULL DEFAULT NULL,
-  `activo` tinyint(4) DEFAULT 1,
-  `owner_user_id` char(36) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_secrets_vault_tenant_nombre` (`tenant_id`,`nombre`),
-  KEY `owner_user_id` (`owner_user_id`),
-  CONSTRAINT `secrets_vault_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`),
-  CONSTRAINT `secrets_vault_ibfk_2` FOREIGN KEY (`owner_user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `secrets_access_log`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `secrets_access_log` (
-  `id` char(36) NOT NULL,
-  `secret_id` char(36) NOT NULL,
-  `user_id` char(36) DEFAULT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
-  `accion` enum('READ','CREATE','UPDATE','DELETE','ROTATE','ACTIVATE','DEACTIVATE') NOT NULL DEFAULT 'READ',
-  `ip_address` varchar(255) DEFAULT NULL,
-  `user_agent` varchar(500) DEFAULT NULL,
-  `resultado` enum('SUCCESS','FAILURE') NOT NULL DEFAULT 'SUCCESS',
-  PRIMARY KEY (`id`),
-  KEY `idx_secret_timestamp` (`secret_id`,`timestamp`),
-  KEY `idx_user_timestamp` (`user_id`,`timestamp`),
-  KEY `idx_timestamp` (`timestamp`),
-  CONSTRAINT `secrets_access_log_ibfk_1` FOREIGN KEY (`secret_id`) REFERENCES `secrets_vault` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `secrets_access_log_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `shipments`;

@@ -351,7 +351,9 @@ final class RoleControllerGuardTest extends PlatformControlSqliteTestCase
             $this->fail('Se esperaba 404');
         } catch (HttpException $e) {
             $this->assertSame(404, $e->getCode());
-            $this->assertSame('Rol no encontrado', $e->getMessage());
+            $this->assertSame('roles.role_not_found', $e->getMessageParams() === [] ? null : 'roles.role_not_found');
+            $this->assertSame(['id' => 'role-fantasma'], $e->getMessageParams());
+            $this->assertStringContainsString("'role-fantasma'", $e->getMessage());
         }
     }
 

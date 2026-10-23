@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.18.9] - 2026-10-22
+
+**Seguridad: endurecimiento de entorno + mass assignment cerrado + secuelas del cifrado revertido eliminadas + probe cross-tenant SIN FUGAS.** Bloque de cierre de los residuales de seguridad en Desa (pedido explicito): (1) `APP_ENV=production`, `APP_DEBUG=false`, `JWT_SECRET` rotado, CSP sin `unsafe-inline` en `script-src` (nonce por request en `public/index.php` + `SecurityHeadersMiddleware`) y banner Apache oculto (`ServerTokens Prod`/`ServerSignature Off`); (2) `BaseRepository` con allowlist obligatoria de columnas escriturables y tests de mass assignment por modulo; (3) borrado de todo el material del intento de cifrado punto-a-punto revertido (6 scripts `bin/*backfill*`/`revert-*`/`verify-decrypt`, `docs/ENCRYPTION.md`, 2 backups pre-rollback locales, columnas `users.email_hmac` + indice unico y tablas vacias `secrets_vault`/`secrets_access_log`); (4) probe cross-tenant real contra la BD viva con tenant+usuario temporal (58 permisos, login API): los 5 GET por id de filas Acme responden 404 de entidad y los 5 listados 200 sin ids ajenos; BD restaurada identica. `ENCRYPTION_KEY`/`BLIND_INDEX_KEY` no rotadas a proposit (datos cifrados e indice ciego vivo de tenants); cifrado de PII y snapshots de auditoria queda como residual documentado para el rediseño organizado (`docs/SECURITY-PROD.md` §6).
+
+### Added
+- `tests/Unit/MassAssignmentTest.php`: 10 casos (SQLite en memoria, repositorios/servicios reales) que meten campos prohibidos en PATCH/CREATE de users/roles/groups/products y assertan que la fila no cambia.
+- `docs/SECURITY-PROD.md` §6: probe cross-tenant (metodologia y resultado) y residual de cifrado en claro.
+
+### Changed
+- `src/Shared/Persistence/BaseRepository.php`: `getAllowedWriteColumns()` abstracto + `filterWritableColumns()` (descarta columnas fuera de allowlist y `id`/`tenant_id`/`created_at`/`updated_at`/`deleted_at`).
+- `public/index.php`, `src/Core/Security/Middleware/SecurityHeadersMiddleware.php`: nonce CSP por request; `script-src` sin `unsafe-inline`.
+- `database/schema/schema.sql`: regenerado tras los DROP en vivo (32 tablas).
+- `database/seeders/PlatformSeeder.php`: sin `email_hmac` ni cifrado de email/nombre de tenant en el INSERT (secuelas del intento revertido; el lookup del admin es por `email` plano).
+- `tests/Support/PlatformControlSqliteTestCase.php`, `tests/Unit/UserPreferences{Endpoint,Service}Test.php`: DDL SQLite de `users` sin `email_hmac`.
+- `C:\xampp\apache\conf\extra\httpd-default.conf` (maquina Desa): `ServerTokens Prod`, `ServerSignature Off`.
+
+### Removed
+- `bin/{sprint2-backfill,b2-backfill,b3-backfill,encrypt-audit-backfill,revert-users-nombre-encryption,verify-decrypt}.php` y `docs/ENCRYPTION.md` (diseño caído, ya sin lectores).
+- BD viva: tablas `secrets_access_log` y `secrets_vault` (0 filas), columna `users.email_hmac` + indice `uq_users_tenant_email_hmac` (nadie la mantenía en runtime).
+- `database/backups/backup-{antes-rollback,pre-cierre}-cifrado.sql` (locales, no trackeados).
+
+### Tests
+- `composer test`: 1067 tests, 7203 assertions OK. `check-schema-drift` SIN DRIFT. `check-data-integrity` DATOS CONSISTENTES.
+- E2E tras regenerar esquema: `prepare-e2e-db --fresh` (integridad DATOS CONSISTENTES) + `e2e-auth` 3/3 OK.
+- Probe cross-tenant (BD viva `xproject`): 5/5 GET por id de filas Acme con token de otro tenant -> 404 de entidad (product "Producto no encontrado", location "Ubicacion no encontrada", user/role 404, group 404 con id real); listados `inventory/products`, `inventory/locations`, `users`, `roles`, `groups` -> 200 sin ningun id de Acme. Limpieza posterior: 0 restos, 4 usuarios y 1 tenant como al inicio.
+
+### Notes
+- Desviaciones observadas (no corregidas, fuera de alcance): los 404 de `users` y `roles` devuelven el literal `{id}` sin interpolar en el mensaje; el de `groups` si interpola. Para regenerar `schema.sql` se concedio a `xp_app` los privilegios `LOCK TABLES, SHOW VIEW, TRIGGER` sobre `xproject.*` (los necesita `mysqldump` de `bin/regenerate-schema.php`; sin ellos el cierre de regla 5 no puede ejecutarse).
+- Residual abierto y documentado: PII de users/tenants/shipments y snapshots de auditoria (`audit_logs.valores_*`, `ip_address`, `user_agent`; ip en `rate_limit_log`/`refresh_tokens`) en claro; el cifrado volvera de forma organizada y hasta entonces `ENCRYPTION_KEY` no se rota.
+
 ## [1.18.8] - 2026-10-21
 
 **Navegación: dashboard general limpio y panel de Inventario con subnav propio y sticky.** El dashboard general deja de mezclar accesos de módulos: se reserva a KPIs y novedades, y el acceso a Inventario pasa a ser la acción única de la sección "Módulos" del sidebar (gate `permissionPrefix: 'inventory.'`), que abre `#/dashboard/inventory`. El panel lleva su subnav con los 12 accesos de inventario, cada uno gateado por su permiso real (`inventory.*`) y sin opción "Dashboard"; el subnav se ve en `#/dashboard/inventory`, `#/inventory` y `#/inventory/*`. CSS: a sangre con el padding de `main` (márgenes negativos por breakpoint), línea inferior más fina (`rgb(var(--color-border)/0.7)`), paddings de pestañas ajustados y `position: sticky` bajo la cabecera (`top: var(--app-header-height)`, `z-index: calc(var(--z-header) - 1)` para pasar por detrás al scrollear). La altura de cabecera se mide en JS (`syncHeaderOffset` en `render`/`resize` + `ResizeObserver` con fallback), porque `init` corre en modo público con `.app-header` oculta. El pintado del panel es único: conteos, Stock resumido y Operación se piden EN PARALELO a la entrada y se pintan a la vez (se retiró el timer de 5s de la CAPA 2 de la spec §9, que retrasaba "Operación" y repintaba "Stock resumido" con pop-in); los endpoints tardan ~80-125 ms, así que el escalonado era artificial.

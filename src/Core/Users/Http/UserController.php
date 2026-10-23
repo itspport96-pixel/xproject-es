@@ -227,7 +227,7 @@ final class UserController
 
         $user = $this->userService->findById($userId, $tenantId);
         if (!$user) {
-            throw (new HttpException('Usuario no encontrado', 404))->withMessageKey('users.user_not_found');
+            throw UserException::userNotFound((string) $userId);
         }
 
         return ['status' => 200, 'data' => ['user' => $user]];

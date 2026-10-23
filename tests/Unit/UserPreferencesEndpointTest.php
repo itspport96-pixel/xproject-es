@@ -59,7 +59,6 @@ final class UserPreferencesEndpointTest extends TestCase
                 id TEXT PRIMARY KEY,
                 tenant_id TEXT NOT NULL,
                 email TEXT,
-                email_hmac TEXT,
                 nombre TEXT,
                 apellido TEXT,
                 password TEXT,
