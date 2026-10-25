@@ -151,21 +151,28 @@ Presentes y validados: CSP, `X-Frame-Options: SAMEORIGIN`,
   error lo repiten como `<script nonce="...">`. Los `<script src>` locales y
   CDN no lo necesitan. Verificado en navegador real (Playwright: picker,
   rowactions y shell con 211+136+24 checks, 0 violaciones CSP).
-- **`'unsafe-eval'` se mantiene, acotado y documentado**: lo exigen el
-  Tailwind Play CDN (JIT en cliente) y Alpine CDN (compiler de directrices
-  `x-*`). Eliminarlo requiere el pendiente siguiente.
+- **Sin CDNs en runtime (v1.19)**: Tailwind se compila a
+  `public/css/tailwind.css` y Alpine se retiro del shell; su unica directiva
+  (el drop de cuenta) es vanilla en `public/js/ui/account-menu.js`.
+- **`'unsafe-eval'` eliminado de `script-src`**: ya nada compila con
+  `new Function()` en runtime. El bootstrap de tema sigue inline pero con
+  `nonce` por request (tiene que serlo: corre antes del primer pintado para
+  evitar FOUC; moverlo a un fichero externalizado anadiria un round-trip en
+  el camino critico sin ganar seguridad, porque el nonce ya bloquea la
+  inyeccion).
+- **`'unsafe-inline'` permanece SOLO en `style-src`**: los modulos pintan
+  atributos `style=""` (barras de progreso, previews de marca, QR) y no hay
+  nonce para atributos. Quitarlo exige mover esos estilos a clases CSS.
 - **Banner `Server` oculto**: en el Apache de Desa, `ServerTokens Prod` y
   `ServerSignature Off` (`conf/extra/httpd-default.conf`); respuesta ahora
   `Server: Apache` sin version ni SO. Es configuracion de maquina, no del
   repo.
 
-Pendiente para Produccion (y para cerrar del todo `unsafe-eval`):
+Pendiente para Produccion:
 
 - Replicar `ServerTokens Prod` / `ServerSignature Off` en el vhost de Prod.
-- Sustituir el Tailwind Play CDN por un build estatico (o CSS propio) y
-  externalizar Alpine: con eso se puede quitar `'unsafe-eval'` de
-  `script-src`. Si el frontend lo permite, revisar tambien `style-src`
-  (`'unsafe-inline'` sigue por estilos inline generados por JS).
+- Revisar `style-src`: `'unsafe-inline'` solo por estilos inline generados
+  por JS; eliminarlo exige convertirlos a clases.
 
 ## 5. Politica de borrado y datos
 

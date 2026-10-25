@@ -141,6 +141,7 @@ no crear claves `tabs.*` nuevas si ya hay un título equivalente.
 | `UI.estadoBadge(valor, catalogo, colorDefecto)` | Badge de estado. |
 | `UI.tableShell(columnas, filas)` | Tabla con cabecera traducida. |
 | `UI.renderPagination(root, {pagination, shown, label})` | Info + botones `data-page`. |
+| `UI.animateList(root)` | Entrega una región a AutoAnimate (ver §4.3). Sólo hace falta en regiones nuevas sin tabla. |
 
 ## 5. Componentes de vista (`ui/view.js`)
 
@@ -248,6 +249,29 @@ permisos de un rol dentro de un modal, con patrón maestro-detalle:
   4 locales.
 - **Referencia de adopción**: `public/js/modules/roles/roles.js` (modales
   crear/editar/permisos).
+
+
+### 4.3 Repintado animado de listas (`UI.animateList`, v1.19)
+
+Filtrar o paginar repinta la región entera y antes no había transición entre la
+lista vieja y la nueva. `ui/render.js` observa `#module-container` una sola vez
+y entrega a AutoAnimate (`public/js/vendor/auto-animate.js`, IIFE con global
+`autoAnimate`) cada región que contiene una `<table>` cuando cambia de
+contenido: el primer repintado de cada región (el montaje) queda sin animar y
+los siguientes, sí. `UI.summaryCards` aplica `animateList` a su propio `root`.
+
+Reglas:
+
+- El objetivo es **siempre la región contenedora**, nunca un `<tr>`: mover
+  `<tr>` sueltos rompe `display: table-row`.
+- Las vistas que ya usan `UI.tableShell` / `UI.summaryCards` no tienen que
+  hacer nada. `UI.animateList(root)` se llama sólo en regiones nuevas que
+  repinten `innerHTML` y no contengan tabla.
+- Con `prefers-reduced-motion: reduce` no se anima nada (ni siquiera se
+  instala la observación). AutoAnimate lo respeta además por su cuenta.
+- El orden en `$shellScripts` fija `js/vendor/auto-animate.js` antes de
+  `js/ui/render.js`; sin ese orden `global.autoAnimate` no existe y todo el
+  mecanismo queda en silencio (no lanza errores).
 
 
 ## 6. Estándar de modales de formulario (M0, v1.13.51)

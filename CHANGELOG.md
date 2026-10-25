@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.19.0] - 2026-10-25
+
+**Frontend: shell sin CDNs, assets centralizados, fade de salida, AutoAnimate vendorizado y CSP estricta sin `unsafe-eval`.** Bloque de endurecimiento del shell SPA (6 tareas): (1) Tailwind compilado en local (`npm run build:css` -> `public/css/tailwind.css`, commiteado porque la VM de produccion no tiene Node) y AutoAnimate vendorizado (`public/js/vendor/auto-animate.js`, IIFE con global `autoAnimate`), ambos sin CDN; (2) user-menu escrito vanilla (`public/js/ui/account-menu.js`) y **Alpine retirado del shell**, que era lo unico que obligaba a `unsafe-eval`; (3) assets del shell declarados en los arrays `$shellStyles`/`$shellScripts` de `public/index.php` y emitidos por bucle, construidos ANTES del `echo <<<HTML` (dentro de un heredoc no se ejecuta `<?php`, solo se interpola); (4) fade de salida en el router (`iosFadeOut` + `.is-leaving` en `ios.css`, envuelto en `document.startViewTransition` cuando existe, con `prefers-reduced-motion` respetado); (5) animacion de repintados de listas centralizada en `UI.animateList` + observador de regiones de `render.js` (autoAnimate se entrega una vez por region contenedora de `<table>`, nunca por `<tr>`); (6) CSP con `script-src 'self' 'nonce-...'` y nonce por request, sin `unsafe-inline` ni `unsafe-eval`.
+
+### Added
+- `public/js/vendor/auto-animate.js`: AutoAnimate 0.10.0 vendorizado (esbuild IIFE, 8.4 KB).
+- `public/css/tailwind.css`: build local de Tailwind (ultimo de `$shellStyles`, gana en empate).
+- `AGENTS.md` reglas 13 (formato de vistas con `public/js/ui/`) y 18 (sin CDN y CSP estricta).
+
+### Changed
+- `public/index.php`: `$shellStyles`/`$shellScripts` pre-construidos antes del heredoc; markup del user-menu sin Alpine.
+- `public/js/ui/account-menu.js`: apertura/cierre vanilla de `#user-menu` (click, clic fuera, Escape, `aria-expanded`).
+- `public/js/core/router.js`: `prefersReducedMotion()`, `fadeOutCurrent()` y envoltorio con View Transitions.
+- `public/css/ios.css`: `iosFadeOut`, `#module-container > *.is-leaving`, `@view-transition`.
+- `public/js/ui/render.js`: `UI.animateList`, observador de regiones con `<table>`, gancho en `summaryCards`.
+- `.env` (`SECURITY_CSP_DIRECTIVES`), `src/Core/Security/Middleware/SecurityHeadersMiddleware.php`: sin `unsafe-eval`.
+- `docs/SECURITY-PROD.md` §4 y `docs/UI_STANDARD.md` §4/§4.3: CSP y animacion de listas documentadas.
+- `tools/smoke/smoke-*.mjs` (14): `vendor/auto-animate.js` en `UI_FILES`; `smoke-v162` anade checks del fade (`.is-leaving` aplicada y retirada), del montaje de rutas y del global `autoAnimate`/`UI.animateList`.
+
+### Tests
+- `php bin/check-i18n.php`: OK (0 errores, 227 claves sin uso preexistentes).
+- `composer test`: 1067 tests, 7205 assertions OK.
+- `php bin/check-schema-drift.php`: SIN DRIFT. `php bin/check-data-integrity.php`: DATOS CONSISTENTES (BD viva `xproject`).
+- Smokes jsdom: 15/15 en verde (v162 107 checks, v171 109, v193 136, v1120 211).
+- Navegador (login por formulario con `aleon@acme.local`): token emitido, dashboard, acentos del tagline correctos; user-menu abre / cierra con clic fuera / cierra con Escape / reabre; **0 violaciones CSP** y 0 errores de consola en toda la sesion; 49 peticiones todas locales (ningun CDN ni `alpine`); `autoAnimate` activo sobre la region de la tabla (`.table-wrapper` con `position: relative` y marcada `__aa_tgt`).
+- E2E `tools\e2e\e2e-auth.ps1`: 3/3 OK (servidor 8099 parado al cierre).
+
+### Notes
+- Desviaciones del entorno reparadas durante el cierre (fuera del alcance del bloque, reportadas): usuario MySQL `xp_app`/`xp_read` recreados tras la actualizacion de XAMPP (GRANT perdidos, datos intactos, `POST /api/auth/login` volvio a 200); Redis 5.0.14 portable instalado en `C:\redis` y arrancado a mano (sin autostart: si se apaga la app vuelve a fail-open y el rate limit de login queda desactivado); `php.ini` `date.timezone=UTC` y `my.ini` `sql_mode=STRICT_TRANS_TABLES,...` + `time_zone='+00:00'` (el codigo asume UTC en 4 sitios); `.env` restaurado (BOM y acentos doblados por una reescritura mia en ANSI, ya verificado `appTagline: "Plataforma de gestión"`); `tools\e2e\_env.ps1` fija `[Console]::OutputEncoding` a UTF-8 porque `mysql.exe` responde en UTF-8 y PowerShell 5.1 decodificaba con el OEM local (3 FALLOS falsos en `e2e-v1100` por el literal `DAÑADO`).
+- Decisiones tomadas: **Alpine fuera del shell** (era su unica directiva) y animacion de listas **a nivel de region, no de fila** (las vistas repintan el `<table>` entero; animar `<tbody>` exigia tocar modulos).
+- Pendiente sin tocar: `php_curl.dll` no carga en Apache (warning de arranque, la app no usa curl) y Redis sin tarea de arranque.
+
 ## [1.18.9] - 2026-10-22
 
 **Seguridad: endurecimiento de entorno + mass assignment cerrado + secuelas del cifrado revertido eliminadas + probe cross-tenant SIN FUGAS.** Bloque de cierre de los residuales de seguridad en Desa (pedido explicito): (1) `APP_ENV=production`, `APP_DEBUG=false`, `JWT_SECRET` rotado, CSP sin `unsafe-inline` en `script-src` (nonce por request en `public/index.php` + `SecurityHeadersMiddleware`) y banner Apache oculto (`ServerTokens Prod`/`ServerSignature Off`); (2) `BaseRepository` con allowlist obligatoria de columnas escriturables y tests de mass assignment por modulo; (3) borrado de todo el material del intento de cifrado punto-a-punto revertido (6 scripts `bin/*backfill*`/`revert-*`/`verify-decrypt`, `docs/ENCRYPTION.md`, 2 backups pre-rollback locales, columnas `users.email_hmac` + indice unico y tablas vacias `secrets_vault`/`secrets_access_log`); (4) probe cross-tenant real contra la BD viva con tenant+usuario temporal (58 permisos, login API): los 5 GET por id de filas Acme responden 404 de entidad y los 5 listados 200 sin ids ajenos; BD restaurada identica. `ENCRYPTION_KEY`/`BLIND_INDEX_KEY` no rotadas a proposit (datos cifrados e indice ciego vivo de tenants); cifrado de PII y snapshots de auditoria queda como residual documentado para el rediseño organizado (`docs/SECURITY-PROD.md` §6).

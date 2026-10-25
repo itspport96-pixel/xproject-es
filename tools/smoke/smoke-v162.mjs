@@ -22,7 +22,7 @@ const FILES = {
 
 // Componentes compartidos v1.9.3: los módulos migrados (p. ej. reservas)
 // hacen `const UI = global.UI` al evaluarse, así que van siempre primero.
-const UI_FILES = ['ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js'].map(read);
+const UI_FILES = ['vendor/auto-animate.js', 'ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js'].map(read);
 
 let pass = 0;
 let fail = 0;
@@ -683,6 +683,48 @@ async function s6_shell_registration() {
   check('USER subnav ve Reservas', userSub.includes('inventory/reservations'), JSON.stringify(userSub));
   check('USER no ve Auditoría', !userRoutes.includes('audit'), JSON.stringify(userRoutes));
   envU.close();
+
+  // Fade de salida (v1.19): al cambiar de ruta el módulo actual recibe
+  // .is-leaving (iosFadeOut) y se retira al terminar la transición. jsdom no
+  // implementa startViewTransition, así que se ejercita el fallback manual.
+  const envF = createEnv({ perms: ADMIN_PERMS, roles: ['ADMIN'] });
+  envF.evalIn(FILES.loader);
+  envF.evalIn(FILES.router);
+  const contF = envF.w.document.getElementById('module-container');
+  const pintar = () => { contF.innerHTML = '<div class="module-view">siguiente modulo</div>'; };
+  envF.w.ModuleLoader.load = async () => pintar();
+  const payload = Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url');
+  envF.w.Storage = { getToken: () => `h.${payload}.s`, getRefreshToken: () => `h.${payload}.r` };
+  envF.w.location.hash = '#/audit';
+  envF.w.AppRouter.init();
+  await tick();
+  check('router monta la primera ruta', /siguiente modulo/.test(contF.textContent), contF.textContent);
+
+  // Módulo "actual" en el contenedor: es el que debe recibir el fade.
+  contF.innerHTML = '<div class="module-view">modulo actual</div>';
+  const saliente = contF.firstElementChild;
+  const seen = { add: false, del: false };
+  new envF.w.MutationObserver(() => {
+    if (saliente.classList.contains('is-leaving')) seen.add = true;
+    else if (seen.add) seen.del = true;
+  }).observe(saliente, { attributes: true, attributeFilter: ['class'] });
+
+  envF.w.location.hash = '#/inventory/stock';
+  await tick();
+  check('router aplica .is-leaving al módulo saliente', seen.add, JSON.stringify(seen));
+  await new Promise(r => setTimeout(r, 260));
+  check('router retira .is-leaving tras la transición', seen.del, JSON.stringify(seen));
+  check('router pinta el módulo siguiente', /siguiente modulo/.test(contF.textContent), contF.textContent);
+  envF.close();
+
+  // AutoAnimate vendorizado: el global existe antes de evaluar render.js
+  const envAuto = createEnv({ perms: ADMIN_PERMS, roles: ['ADMIN'] });
+  envAuto.loadShell();
+  check('autoAnimate global desde vendor/auto-animate.js', typeof envAuto.w.autoAnimate === 'function',
+    String(typeof envAuto.w.autoAnimate));
+  check('UI.animateList centraliza la animación de listas', typeof envAuto.w.UI.animateList === 'function',
+    String(typeof envAuto.w.UI.animateList));
+  envAuto.close();
 }
 
 // =====================================================================

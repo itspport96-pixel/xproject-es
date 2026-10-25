@@ -56,6 +56,18 @@ $ErrorActionPreference = 'Continue'
 try {
     $e2eRoot = $PSScriptRoot
     $e2eRepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+
+    # Codificacion de los hijos nativos (mysql.exe, php.exe). PowerShell 5.1
+    # decodifica su stdout con [Console]::OutputEncoding (OEM local, p. ej.
+    # CP850) y mysql.exe responde en UTF-8: un literal acentuado de una
+    # asercion ('DAÑADO') llegaria doblado y no casaria con el valor leido,
+    # dando FALLOS falsos. Sin BOM para que el pipe siga siendo ASCII puro.
+    try {
+        $e2eUtf8 = New-Object System.Text.UTF8Encoding($false)
+        [Console]::OutputEncoding = $e2eUtf8
+        $OutputEncoding = $e2eUtf8
+    } catch { }
+
     $e2eDb = if ($env:E2E_DB_NAME) { $env:E2E_DB_NAME } else { 'xproject_e2e' }
     $e2ePort = if ($env:E2E_PORT) { [int]$env:E2E_PORT } else { 8099 }
     $e2ePidFile = Join-Path $e2eRoot '.e2e-server.pid'

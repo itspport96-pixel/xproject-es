@@ -135,8 +135,9 @@ final class SecurityHeadersMiddleware
         // CORP: restringe recursos a mismo origen
         header('Cross-Origin-Resource-Policy: same-origin');
 
-        // Nota: COEP (require-corp) se omite porque rompe recursos CDN externos
-        // (Tailwind CDN, Alpine CDN). Activar solo si todos los recursos son same-origin.
+        // Nota: COEP (require-corp) se omite por compatibilidad con navegadores
+        // antiguos; ya no hay recursos CDN externos (Tailwind y Alpine se
+        // vendorizaron), asi que activarlo solo depende de la politica de la app.
     }
 
     /**

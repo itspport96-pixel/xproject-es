@@ -363,6 +363,33 @@
     `;
   }
 
+  function prefersReducedMotion() {
+    return typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  // Fade de salida (v1.19): antes de montar el módulo siguiente se aplica
+  // .is-leaving al hijo actual de #module-container y se espera a que termine
+  // iosFadeOut (~120 ms). Con reduced-motion o contenedor vacío no se espera.
+  function fadeOutCurrent(container) {
+    const leaving = container && container.firstElementChild;
+    if (!leaving || prefersReducedMotion()) return Promise.resolve();
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        leaving.classList.remove('is-leaving');
+        resolve();
+      };
+      leaving.classList.add('is-leaving');
+      leaving.addEventListener('animationend', done, { once: true });
+      // Respaldo: si no llega animationend (elemento oculto, sin soporte).
+      setTimeout(done, 200);
+    });
+  }
+
   async function handleRoute() {
     const { path, params: hashParams } = parseHash();
     const resolved = resolveRoute(path);
@@ -443,13 +470,37 @@
 
     emit('route:loading', { path, module: config.module });
 
-    try {
+    const mount = async () => {
       if (global.ModuleLoader) {
         await global.ModuleLoader.load(config.module, containerId, allParams);
-      } else {
-        console.error('[Router] ModuleLoader not available');
-        container.innerHTML = '<p class="text-danger">' + escapeHtml(t('router.unavailable_title')) + '</p>';
+        return;
       }
+      console.error('[Router] ModuleLoader not available');
+      container.innerHTML = '<p class="text-danger">' + escapeHtml(t('router.unavailable_title')) + '</p>';
+    };
+
+    try {
+      const useViewTransition = typeof document.startViewTransition === 'function'
+        && !prefersReducedMotion();
+
+      if (useViewTransition) {
+        // View Transitions API: el DOM se sustituye dentro del callback y la
+        // transición lo captura. El fade manual es el fallback.
+        let mountError = null;
+        const transition = document.startViewTransition(async () => {
+          try {
+            await mount();
+          } catch (e) {
+            mountError = e;
+          }
+        });
+        await transition.ready.catch(() => {});
+        if (mountError) throw mountError;
+      } else {
+        await fadeOutCurrent(container);
+        await mount();
+      }
+
       emit('route:loaded', { path, module: config.module, params: allParams });
     } catch (error) {
       console.error(`[Router] Error loading module "${config.module}":`, error);

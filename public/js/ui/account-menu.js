@@ -5,8 +5,10 @@
  * Anadir un item futuro (p. ej. Ayuda) requiere SOLO agregar una entrada
  * a la lista: el componente la recorre y respeta el permiso de cada item.
  *
- * Disparador y apertura/cierre: mecanismo existente de #user-menu (Alpine,
- * index.php). Aqui solo se pinta #user-dropdown y se navega al hacer clic.
+ * Disparador y apertura/cierre: mecanismo vanilla de #user-menu (v1.19).
+ * Antes lo hacía Alpine (x-data/@click/@click.away) en index.php; Alpine
+ * compila directivas con new Function() y obligaba a mantener 'unsafe-eval'
+ * en la CSP. Aqui solo se pinta #user-dropdown y se navega al hacer clic.
  * El item activo se marca cuando la ruta coincide (route:loaded/activated).
  */
 (function(global) {
@@ -75,6 +77,22 @@
     }
   }
 
+  // ============================================
+  // APERTURA / CIERRE DEL DROP (vanilla, sin Alpine)
+  // ============================================
+  function isOpen() {
+    const dropdown = document.getElementById('user-dropdown');
+    return !!dropdown && !dropdown.classList.contains('hidden');
+  }
+
+  function setOpen(open) {
+    const dropdown = document.getElementById('user-dropdown');
+    const toggle = document.getElementById('user-menu-toggle');
+    if (!dropdown) return;
+    dropdown.classList.toggle('hidden', !open);
+    if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
   function bind() {
     if (!global.document || bound) return;
     const dropdown = document.getElementById('user-dropdown');
@@ -82,6 +100,32 @@
     bound = true;
 
     dropdown.addEventListener('click', handleClick);
+
+    const menu = document.getElementById('user-menu');
+    const toggle = document.getElementById('user-menu-toggle');
+
+    if (toggle) {
+      toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        setOpen(!isOpen());
+      });
+    }
+
+    // Clic fuera de #user-menu cierra; clic dentro del drop tambien (equivale
+    // al antiguo @click.away / @click de Alpine).
+    document.addEventListener('click', function(e) {
+      if (!menu) return;
+      if (menu.contains(e.target)) {
+        if (dropdown.contains(e.target)) setOpen(false);
+        return;
+      }
+      setOpen(false);
+    });
+
+    // Equivale al antiguo @keydown.escape.window.
+    window.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') setOpen(false);
+    });
 
     if (global.EventBus && typeof global.EventBus.on === 'function') {
       global.EventBus.on('route:loaded', render);
@@ -101,6 +145,10 @@
     },
 
     render: render,
+
+    // Apertura del drop expuesta para tests/smokes.
+    open: setOpen,
+    isOpen: isOpen,
 
     // Lista expuesta para tests/smokes (fuente de verdad unica).
     items: ACCOUNT_ITEMS

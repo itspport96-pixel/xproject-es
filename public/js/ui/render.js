@@ -327,6 +327,55 @@
                 <div class="text-xl font-bold">${UI.escapeHtml(UI.formatNumber(c.value))}</div>
             </div>
         `).join('');
+        animateList(root);
+    }
+
+    // ---- AutoAnimate (v1.19) -------------------------------------------------
+    // Al filtrar o paginar la región de una tabla se repinta entera y antes no
+    // había transición entre la lista vieja y la nueva. Se entrega la región a
+    // AutoAnimate (public/js/vendor/auto-animate.js, IIFE global) una sola vez;
+    // desde ahí él mismo anima los siguientes repintados.
+    // El objetivo es SIEMPRE la región contenedora: pasarle un <tr> rompe
+    // display: table-row. Sin autoAnimate cargado o con prefers-reduced-motion
+    // no se anima nada.
+    const animatedRoots = new WeakSet();
+
+    function motionAllowed() {
+        return !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    function animateList(root) {
+        if (!root || animatedRoots.has(root)) return;
+        if (typeof global.autoAnimate !== 'function' || !motionAllowed()) return;
+        animatedRoots.add(root);
+        global.autoAnimate(root);
+    }
+
+    // Observa #module-container: cuando una región que contiene una <table>
+    // cambia de contenido se le entrega a AutoAnimate. El primer repintado de
+    // cada región queda sin animar (es el montaje); los siguientes, sí.
+    function watchListRegions(container) {
+        if (!container || typeof MutationObserver !== 'function' || !motionAllowed()) return;
+        const observer = new MutationObserver((records) => {
+            for (const record of records) {
+                if (record.type !== 'childList') continue;
+                const target = record.target;
+                if (!target || typeof target.querySelector !== 'function') continue;
+                if (!target.querySelector('table')) continue;
+                animateList(target);
+            }
+        });
+        observer.observe(container, { childList: true, subtree: true });
+    }
+
+    function initListAnimations() {
+        watchListRegions(document.getElementById('module-container'));
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initListAnimations, { once: true });
+    } else {
+        initListAnimations();
     }
 
     global.UI = Object.assign(global.UI || {}, {
@@ -341,7 +390,8 @@
         setSkeletonSlowMs: setSkeletonSlowMs,
         tableShell: tableShell,
         renderPagination: renderPagination,
-        summaryCards: summaryCards
+        summaryCards: summaryCards,
+        animateList: animateList
     });
 
 })(window);

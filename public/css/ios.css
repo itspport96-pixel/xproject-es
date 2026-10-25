@@ -4,8 +4,8 @@
    alturas, rellenos, separadores, estados). No cambia estructura ni
    selectores de las vistas. Sin backdrop-filter ni fondos translúcidos:
    todas las superficies son opacas (requisito del rediseño).
-   Las reglas que deben ganar a utilidades de Tailwind (CDN, se inyecta al
-   final del <head>) llevan especificidad propia (#module-container ...).
+   Las reglas que deben ganar a utilidades de Tailwind (public/css/tailwind.css,
+   el último <link> del <head>) llevan especificidad propia (#module-container ...).
    ============================================ */
 
 body {
@@ -38,6 +38,39 @@ h1, h2, h3, h4 {
 @keyframes iosFadeUp {
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Fade de salida entre vistas (v1.19) ----------
+   El router añade .is-leaving al hijo actual antes de montar el siguiente;
+   gana a #module-container > * por especificidad. Sin movimiento si el
+   usuario pide reduced-motion (themes.css ya anula la duración). */
+#module-container > *.is-leaving {
+    animation: iosFadeOut 0.12s ease-in forwards;
+    pointer-events: none;
+}
+
+@keyframes iosFadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-4px); }
+}
+
+/* View Transitions (progresivo: Chrome/Edge 126+, Safari 18+).
+   En SPA sólo aplica a recargas de documento; el router usa la API JS. */
+@view-transition {
+    navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 0.15s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation: none;
+    }
 }
 
 /* ---------- Shell: header opaco con separador fino ---------- */

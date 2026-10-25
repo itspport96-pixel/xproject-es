@@ -318,6 +318,61 @@ function renderSpaLayout(): void
     $assetsVersionJs = json_encode($assetsVersion);
     $cspNonce = $GLOBALS['cspNonce'] ?? '';
 
+    // Assets del shell (v1.19): declarados en arrays y emitidos por bucle.
+    // Van ANTES del heredoc: dentro de <<<HTML no se ejecuta PHP, sólo se
+    // interpola, as� que estos bloques se pre-generan y se insertan como
+    // {$shellStylesHtml}/{$shellScriptsHtml}.
+    // Orden de CSS fijo: tema -> style -> components -> ios -> tailwind.
+    // Tailwind al final para que sus utilidades puedan pisar componentes,
+    // igual que antes el CDN se inyectaba tras ios.css y ganaba en empate.
+    $shellStyles = [
+        'css/themes.css',
+        'css/style.css',
+        'css/components.css',
+        'css/ios.css',
+        'css/tailwind.css',
+    ];
+    $shellStylesHtml = implode("\n", array_map(
+        static fn (string $f): string => '    <link rel="stylesheet" href="' . $baseUrlHtml . '/' . $f . '?v=' . $assetsVersion . '">',
+        $shellStyles
+    ));
+
+    // Orden de scripts: core -> themes/auth -> ui -> vendor -> dashboard.
+    // Los inline (AppConfig + bootstrap) van después, al final del body.
+    $shellScripts = [
+        'js/core/storage.js',
+        'js/core/http.js',
+        'js/core/event-bus.js',
+        'js/core/i18n.js',
+        'js/core/toast.js',
+        'js/core/loader.js',
+        'js/core/router.js',
+        'js/themes/persistence.js',
+        'js/themes/theme-manager.js',
+        'js/modules/auth/state.js',
+        'js/modules/auth/login.js',
+        'js/core/idle.js',
+        // AutoAnimate (Tarea 5): debe ir antes de ui/render.js, que lo usa.
+        'js/vendor/auto-animate.js',
+        // Shared UI components (v1.9.3): deben ir antes de los módulos.
+        'js/ui/dom.js',
+        'js/ui/render.js',
+        'js/ui/view.js',
+        'js/ui/modal.js',
+        'js/ui/actions.js',
+        'js/ui/permission-picker.js',
+        'js/ui/account-menu.js',
+        'js/core/branding.js',
+        'js/vendor/qrcode.js',
+        // Dashboard / App Shell.
+        'js/modules/dashboard/sidebar.js',
+        'js/modules/dashboard/subnav.js',
+    ];
+    $shellScriptsHtml = implode("\n", array_map(
+        static fn (string $f): string => '    <script src="' . $baseUrlHtml . '/' . $f . '?v=' . $assetsVersion . '"></script>',
+        $shellScripts
+    ));
+
     echo <<<HTML
 <!DOCTYPE html>
 <html lang="es" class="dark">
@@ -345,41 +400,7 @@ function renderSpaLayout(): void
             document.documentElement.classList.toggle('light', !isDark);
         })();
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script nonce="{$cspNonce}">
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        // Coherente con los tokens de themes.css: el acento
-                        // claro es azul-600 (AA como texto y como fondo con
-                        // texto blanco); .text-primary/.bg-primary rara vez
-                        // se usan, pero si se usan deben coincidir.
-                        primary: { DEFAULT: 'rgb(var(--color-primary) / <alpha-value>)', dark: 'rgb(var(--color-primary) / <alpha-value>)' }
-                    },
-                    // Reconciliacion con los tokens de themes.css (D8): si no,
-                    // .rounded / .shadow los definiria el CDN con la escala
-                    // estatica de Tailwind y el resultado dependeria del orden
-                    // de carga entre el CDN y los ficheros locales.
-                    borderRadius: {
-                        sm: '0.375rem',
-                        DEFAULT: '0.625rem'
-                    },
-                    boxShadow: {
-                        sm: 'var(--shadow-sm)',
-                        DEFAULT: 'var(--shadow-md)',
-                        lg: 'var(--shadow-lg)'
-                    }
-                }
-            }
-        };
-    </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link rel="stylesheet" href="{$baseUrlHtml}/css/themes.css?v={$assetsVersion}">
-    <link rel="stylesheet" href="{$baseUrlHtml}/css/style.css?v={$assetsVersion}">
-    <link rel="stylesheet" href="{$baseUrlHtml}/css/components.css?v={$assetsVersion}">
-    <link rel="stylesheet" href="{$baseUrlHtml}/css/ios.css?v={$assetsVersion}">
+{$shellStylesHtml}
 </head>
 <body class="min-h-screen">
     <div id="app" class="app-layout">
@@ -414,15 +435,14 @@ function renderSpaLayout(): void
                         </button>
                         <div id="lang-dropdown" class="hidden absolute right-0 mt-2 w-40 py-1 bg-surface border border-default rounded-lg shadow-lg z-50" role="menu" aria-label="Idioma" data-i18n-aria="shell.language"></div>
                     </div>
-                    <div id="user-menu" x-data="{ open: false }" @keydown.escape.window="open = false" class="relative">
-                        <button @click="open = !open" class="btn btn-ghost header-icon-btn" aria-haspopup="true"
-                                aria-expanded="false" :aria-expanded="open.toString()" aria-controls="user-dropdown"
+                    <div id="user-menu" class="relative">
+                        <button id="user-menu-toggle" class="btn btn-ghost header-icon-btn" aria-haspopup="true"
+                                aria-expanded="false" aria-controls="user-dropdown"
                                 aria-label="Cuenta" data-i18n-aria="shell.account" title="">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                             <span class="account-label hidden md:inline text-xs font-medium" data-i18n="shell.account">Cuenta</span>
                         </button>
-                        <div id="user-dropdown" x-show="open" x-cloak @click.away="open = false" @click="open = false"
-                             class="absolute right-0 mt-2 w-48 py-1 bg-surface border border-default rounded-lg shadow-lg z-50">
+                        <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 py-1 bg-surface border border-default rounded-lg shadow-lg z-50">
                             <!-- Items pintados por ui/account-menu.js desde ACCOUNT_ITEMS -->
                         </div>
                     </div>
@@ -435,34 +455,7 @@ function renderSpaLayout(): void
         </div>
     </div>
 
-    <!-- Core Scripts -->
-    <script src="{$baseUrlHtml}/js/core/storage.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/core/http.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/core/event-bus.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/core/i18n.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/core/toast.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/core/loader.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/core/router.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/themes/persistence.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/themes/theme-manager.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/modules/auth/state.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/modules/auth/login.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/core/idle.js?v={$assetsVersion}"></script>
-
-    <!-- Shared UI components (v1.9.3): deben ir antes de los modulos -->
-    <script src="{$baseUrlHtml}/js/ui/dom.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/ui/render.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/ui/view.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/ui/modal.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/ui/actions.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/ui/permission-picker.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/ui/account-menu.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/core/branding.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/vendor/qrcode.js?v={$assetsVersion}"></script>
-
-    <!-- Dashboard / App Shell Scripts -->
-    <script src="{$baseUrlHtml}/js/modules/dashboard/sidebar.js?v={$assetsVersion}"></script>
-    <script src="{$baseUrlHtml}/js/modules/dashboard/subnav.js?v={$assetsVersion}"></script>
+{$shellScriptsHtml}
 
     <script nonce="{$cspNonce}">
         window.AppConfig = {

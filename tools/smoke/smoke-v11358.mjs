@@ -29,7 +29,7 @@ const FILES = {
   storage: read('core/storage.js')
 };
 
-const UI_FILES = ['ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js'].map(read);
+const UI_FILES = ['vendor/auto-animate.js', 'ui/dom.js', 'ui/render.js', 'ui/view.js', 'ui/modal.js', 'ui/actions.js'].map(read);
 
 let pass = 0;
 let fail = 0;

@@ -5,12 +5,14 @@ node_modules/
 
 script2.ps1
 script.ps1
-CHANGELOG.md
 .env
 .env.*
 
 # Registros sueltos (los logs concretos del servidor E2E ya estan abajo).
 *.log
+
+# Dump de Redis (persistencia local del server portable; no es codigo).
+dump.rdb
 
 # Claves y certificados: nunca se versionan.
 *.pem
