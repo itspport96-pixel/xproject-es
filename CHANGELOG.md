@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.19.2] - 2026-10-25
+
+**Cierre del sprint v1.19: lote E2E completo 4/4, residuo de prueba fuera de la BD viva y `redis-cli` sin rutas hardcodeadas.** Regla 7: primera pasada del lote con 3/4 suites en verde; el unico fallo (`e2e-v11320`, `FALLO REDIS`) era una ruta de maquina hardcodeada, corregida y reejecutado el lote a 4/4.
+
+### Fixed
+- `tools/e2e/_env.ps1` + `e2e-v1132.ps1` / `e2e-v11320.ps1` / `e2e-v1133.ps1`: los tres miembros que usan redis-cli tenian `C:\Program Files\Redis\redis-cli.exe` escrita a mano (en esta maquina Redis vive en `C:\redis`, portable); `e2e-v11320` abortaba con `Test-Path` y en `e2e-v1133` el borrado de claves de rate limit fallaba en silencio. El preludio resuelve el binario una sola vez (`E2E_REDIS_CLI` -> `C:\Program Files\Redis` -> `C:\redis` -> `PATH`) y los scripts usan `$e2eRedisCli`; el mensaje de error de `e2e-v11320` ahora dice que se ha comprobado.
+
+### Changed
+- Lote completo de las 4 suites al cierre (regla 7): `e2e-auth` 3/3, `e2e-control` 7/7, `e2e-inventory` 8/8, `e2e-settings` 1/1, exit 0 en las cuatro. Con el fix se ve ademas el trabajo real de Redis (`TEMP rate limpiado: OK clave Redis borrada`).
+
+### Data
+- BD viva `xproject`: fuera el residuo de prueba de `stock_units` (26 filas no `DISPONIBLE`, todas del fixture `PROD-001`, mayoria del 04-oct) en orden de FK dentro de transaccion, con backup previo `%TEMP%\backup-stock-20261025-213942.sql` (245.9 KB). Hijos retirados con las unidades: `stock_events` 155, `reservations` 27, `picking_operations` 25, `stock_ledger` 26, `incidents` 6, `movements` 1. Quedan 21 unidades `DISPONIBLE` y 11 `movements` `REUBICACION` (pertenecen a unidades conservadas). **Correccion del reporte previo**: los 12 `movements` no eran residuo de envios, 11 de ellos documentaban unidades que se conservan.
+- Verificacion del cierre: `check-data-integrity` DATOS CONSISTENTES (0 claves huerfanas, comprobado aparte en las 4 tablas hijas), `check-schema-drift` SIN DRIFT y barrido GET del modulo (25 endpoints, prefijo `/api/inventory`) -> 17x200 + 8x404 logicos, 0x500.
+
+### Decisions
+- CSP `style-src` conserva `'unsafe-inline'`: **aplazado** a un sprint propio (convertir los `style=""` que pintan los modulos a clases CSS); queda documentado en `docs/SECURITY-PROD.md` seccion 4.
+- Redis sigue con arranque manual en cada reinicio (sin tarea programada); animaciones por region en modulos, aplazadas a peticion del usuario.
+
 ## [1.19.1] - 2026-10-25
 
 **Entregas: layout de la pestaña en ruta, datos de prueba fuera de la BD viva, usuarios MySQL consolidados y configuracion de entorno portable (.env + default en codigo).** Ronda de 6 peticiones del usuario: (1) la fila con destinatario de 52 caracteres no estaba hardcodeada (vivia en `shipments.destinatario_nombre`, 4 filas basura de pruebas del 04-oct) pero destrozaba la card porque `renderEnRuta()` metia la `<table>` sin `.table-wrapper`; (2) `xp_app` recuperó `LOCK TABLES, SHOW VIEW, TRIGGER` (sin ellos `mysqldump` aborta con 1044) y `regenerate-schema.php` vuelve a correr con el usuario de `.env`; (3) Alpine queda descartado fuera del shell (CSP sin `unsafe-eval`), se mantiene vanilla + componentes `ui/`; (4) animaciones por region: **aplazadas**, modulos intactos; (5) `sql_mode`/zona horaria de la app salen de `.env` con default en codigo (dejan de depender de `my.ini`/`php.ini` de la maquina); (6) `php_curl.dll` cargaba solo en CLI por un `extension_dir` relativo.

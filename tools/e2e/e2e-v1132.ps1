@@ -197,9 +197,9 @@ try {
     if ($_.ErrorDetails -and $_.ErrorDetails.Message) { $m = $_.ErrorDetails.Message }
     Bad 'login de otra cuenta tras el bloqueo' "status=$(StatusCode $_) body=$m"
     # Diagnostico: claves de rate limit vivas (prefijo rate_limit:)
-    $rk = @(& 'C:\Program Files\Redis\redis-cli.exe' KEYS 'rate_limit:*login*')
+    $rk = @(& $e2eRedisCli KEYS 'rate_limit:*login*')
     foreach ($k in $rk) {
-        $v = & 'C:\Program Files\Redis\redis-cli.exe' GET $k
+        $v = & $e2eRedisCli GET $k
         Show "  key $k" "$v"
     }
 }

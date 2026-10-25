@@ -91,6 +91,23 @@ try {
     # ------------------------------------------------------------- mysql.exe
     if ($env:PATH -notlike '*C:\xampp\mysql\bin*') { $env:PATH = 'C:\xampp\mysql\bin;' + $env:PATH }
 
+    # ----------------------------------------------------------- redis-cli
+    # v1.19.2: la ruta del redis-cli es de la MAQUINA, no del repo (aqui la
+    # instalacion portable vive en C:\redis, y otras maquinas pueden usar
+    # C:\Program Files\Redis). Se resuelve una sola vez en el preludio y los
+    # scripts usan $e2eRedisCli; E2E_REDIS_CLI manda si esta definida y existe.
+    $e2eRedisCli = $null
+    $candidatosRedis = @()
+    if ($env:E2E_REDIS_CLI) { $candidatosRedis += $env:E2E_REDIS_CLI }
+    $candidatosRedis += @('C:\Program Files\Redis\redis-cli.exe', 'C:\redis\redis-cli.exe')
+    foreach ($cand in $candidatosRedis) {
+        if ($cand -and (Test-Path -LiteralPath $cand)) { $e2eRedisCli = $cand; break }
+    }
+    if (-not $e2eRedisCli) {
+        $cmdRedis = Get-Command redis-cli.exe -ErrorAction SilentlyContinue
+        if ($cmdRedis) { $e2eRedisCli = $cmdRedis.Source }
+    }
+
     # ------------------------------------------------------------------- BD
     # La variable debe existir ANTES de lanzar cualquier PHP: bootstrap la lee
     # con getenv() y la usa en lugar de DB_DATABASE.

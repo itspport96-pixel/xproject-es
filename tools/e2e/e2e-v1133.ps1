@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot '_env.ps1')   # BD E2E + servidor PHP embebido
 $script:failures = 0
 $script:runId = [guid]::NewGuid().ToString('N').Substring(0, 8)
-$script:redis = 'C:\Program Files\Redis\redis-cli.exe'
+$script:redis = $e2eRedisCli   # resuelto en _env.ps1 (ruta de maquina, no del repo)
 
 function Show($label, $value) { [Console]::WriteLine(("{0}: {1}" -f $label, $value)) }
 function Ok($label, $value) { Show $label "OK  $value" }

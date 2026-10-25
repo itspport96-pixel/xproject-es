@@ -22,7 +22,7 @@ $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot '_env.ps1')   # BD E2E + servidor PHP embebido
 $script:failures = 0
 $script:runId = [guid]::NewGuid().ToString('N').Substring(0, 8)
-$script:redis = 'C:\Program Files\Redis\redis-cli.exe'
+$script:redis = $e2eRedisCli   # resuelto en _env.ps1 (ruta de maquina, no del repo)
 
 function Show($label, $value) { [Console]::WriteLine(("{0}: {1}" -f $label, $value)) }
 function Ok($label, $value) { Show $label "OK  $value" }
@@ -121,7 +121,10 @@ $ta = $adm.data.tokens.access_token
 $adminId = $adm.data.user.id
 Ok 'LOGIN admin' "token adminId=$adminId"
 
-if (-not (Test-Path -LiteralPath $script:redis)) { Bad 'REDIS' "no existe $($script:redis)"; exit 1 }
+if (-not $script:redis -or -not (Test-Path -LiteralPath $script:redis)) {
+    Bad 'REDIS' 'redis-cli no encontrado (probado E2E_REDIS_CLI, C:\Program Files\Redis, C:\redis y el PATH)'
+    exit 1
+}
 
 $tenantId = Scalar "SELECT tenant_id FROM users WHERE email = 'aleon@acme.local' AND deleted_at IS NULL LIMIT 1"
 if (-not $tenantId) { Bad 'TENANT' 'sin tenant de aleon'; exit 1 }
