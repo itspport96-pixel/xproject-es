@@ -12,6 +12,21 @@ $dotenv = Dotenv\Dotenv::createImmutable(BASE_PATH);
 $dotenv->load();
 $dotenv->required(['APP_ENV', 'DB_HOST', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD', 'JWT_SECRET']);
 
+// Zona horaria de la app (v1.19.1): no depende del date.timezone del php.ini
+// de la maquina. Manda la variable de entorno del proceso (getenv, mismo
+// patron que appUrl() en public/index.php) y luego el .env (TIMEZONE, la
+// misma clave que usa el helper now()); default UTC y si el valor no es una
+// zona conocida se cae a UTC en vez de dejar la app a medias. my.ini/php.ini
+// quedan como refuerzo para los procesos ajenos a la app.
+$appTimeZone = (string) (getenv('TIMEZONE') ?: ($_ENV['TIMEZONE'] ?? 'UTC'));
+if (!in_array($appTimeZone, \DateTimeZone::listIdentifiers(\DateTimeZone::ALL_WITH_BC), true)) {
+    $appTimeZone = 'UTC';
+}
+date_default_timezone_set($appTimeZone);
+// Una sola resolucion por proceso: el helper now() (env('TIMEZONE')) y date()
+// ven lo mismo aunque el valor haya venido del entorno del proceso.
+$_ENV['TIMEZONE'] = $appTimeZone;
+
 if (($_ENV['APP_ENV'] ?? 'production') === 'production') {
     error_reporting(0);
     ini_set('display_errors', '0');
@@ -42,7 +57,12 @@ $container->singleton('database', fn() => new App\Shared\Services\DatabaseServic
     'database' => $e2eDatabase,
     'username' => $_ENV['DB_USERNAME'],
     'password' => $_ENV['DB_PASSWORD'],
-    'charset'  => 'utf8mb4'
+    'charset'  => 'utf8mb4',
+    // v1.19.1: sesion MySQL portable (.env con default en codigo). Manda la
+    // variable del proceso (getenv, como appUrl()) y luego el .env; los valores
+    // se validan en DatabaseService::connect antes de montar el INIT_COMMAND.
+    'sql_mode' => getenv('DB_SQL_MODE') ?: ($_ENV['DB_SQL_MODE'] ?? null),
+    'time_zone' => getenv('DB_TIME_ZONE') ?: ($_ENV['DB_TIME_ZONE'] ?? null),
 ]));
 $container->singleton('redis', fn() => new App\Shared\Services\RedisService([
     'host'     => $_ENV['REDIS_HOST'] ?? '127.0.0.1',

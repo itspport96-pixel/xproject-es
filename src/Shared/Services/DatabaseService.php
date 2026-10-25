@@ -16,6 +16,18 @@ class DatabaseService
 
     private const SAFE_IDENTIFIER_PATTERN = '/^[a-zA-Z_][a-zA-Z0-9_]*$/';
 
+    /**
+     * Sesion MySQL por defecto (v1.19.1): la app no depende del my.ini de la
+     * maquina. bootstrap.php pasa DB_SQL_MODE / DB_TIME_ZONE del .env y aqui
+     * se aplican con validacion (si el .env trae basura, la conexion falla en
+     * vez de inyectar SQL). El sql_mode estricto es obligatorio: ver AGENTS.md
+     * regla 12 (sin el, MariaDB guarda silenciosamente ENUM invalidos, fechas
+     * cero y truncados). time_zone: UTC o desfase horario, porque las zonas
+     * con nombre exigen las tablas de zona horaria cargadas en el servidor.
+     */
+    private const DEFAULT_SQL_MODE = 'STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
+    private const DEFAULT_TIME_ZONE = '+00:00';
+
     public function __construct(array $config)
     {
         $this->config = $config;
@@ -149,6 +161,18 @@ class DatabaseService
         try {
             $dsn = "mysql:host={$this->config['host']};port={$this->config['port']};dbname={$this->config['database']};charset={$this->config['charset']}";
 
+            $sqlMode = (string) ($this->config['sql_mode'] ?? self::DEFAULT_SQL_MODE);
+            if (preg_match('/^[A-Za-z0-9_,]+$/D', $sqlMode) !== 1) {
+                throw new SecurityException("Invalid sql_mode configuration: '{$sqlMode}'.");
+            }
+
+            $timeZone = (string) ($this->config['time_zone'] ?? self::DEFAULT_TIME_ZONE);
+            if (preg_match('/^(?:UTC|[+-][0-9]{2}:[0-9]{2})$/D', $timeZone) !== 1) {
+                throw new SecurityException(
+                    "Invalid time_zone configuration: '{$timeZone}'. Use UTC or an offset such as +00:00."
+                );
+            }
+
             $this->connection = new PDO(
                 $dsn,
                 $this->config['username'],
@@ -165,8 +189,11 @@ class DatabaseService
                     // corrompia datos y la hidratacion del dominio fallaba (ver
                     // CHANGELOG 1.13.10). Se fija aqui ademas del GLOBAL para
                     // que la app siga estricta aunque se relaje el servidor.
+                    // v1.19.1: valores de .env (DB_SQL_MODE / DB_TIME_ZONE) con
+                    // default en codigo y validados arriba: la sesion queda
+                    // igual en cualquier maquina sin depender de my.ini.
                     PDO::MYSQL_ATTR_INIT_COMMAND =>
-                        "SET sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION'",
+                        "SET sql_mode='{$sqlMode}', time_zone='{$timeZone}'",
                 ]
             );
         } catch (PDOException $e) {

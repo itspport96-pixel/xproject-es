@@ -122,8 +122,8 @@
             <div class="flex items-center justify-end mb-3">
                 <button class="btn btn-ghost btn-sm" data-action="reload-en-ruta">${t('inventory.deliveries.actions.reload')}</button>
             </div>
-            <div class="card mb-6">
-                <div data-en-ruta-table></div>
+            <div class="card p-0 mb-6">
+                <div class="table-wrapper" data-en-ruta-table></div>
             </div>`
             },
             {
@@ -272,12 +272,12 @@
 
         const rows = state.enRuta.map(s => `
             <tr>
-                <td class="font-mono text-xs">${escapeHtml(s.shipment_id)}</td>
-                <td>
+                <td class="font-mono text-xs truncate-cell" title="${escapeHtml(s.shipment_id)}">${escapeHtml(s.shipment_id)}</td>
+                <td class="truncate-cell" title="${escapeHtml([s.referencia_externa, s.destino_direccion || s.ubicacion_origen].filter(Boolean).join(' — '))}">
                     <div class="font-medium">${escapeHtml(s.referencia_externa || '—')}</div>
                     <div class="text-xs text-muted">${escapeHtml(s.destino_direccion || s.ubicacion_origen || '—')}</div>
                 </td>
-                <td>
+                <td class="truncate-cell" title="${escapeHtml([s.destinatario_nombre, s.destinatario_contacto].filter(Boolean).join(' — '))}">
                     <div>${escapeHtml(s.destinatario_nombre || '—')}</div>
                     <div class="text-xs text-muted">${escapeHtml(s.destinatario_contacto || '')}</div>
                 </td>

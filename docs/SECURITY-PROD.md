@@ -26,8 +26,12 @@ al nuevo usuario de aplicacion:
   el usuario de la aplicacion (lectura y escritura con la misma unica
   conexion PDO; la app no distingue usuarios por tipo de operacion, eso
   exigiria dos pools de conexion y cambio de codigo). Privilegios:
-  - `xproject.*`: SELECT, INSERT, UPDATE, DELETE (nada de DDL, ni FILE, ni
-    GRANT).
+  - `xproject.*`: SELECT, INSERT, UPDATE, DELETE, LOCK TABLES, SHOW VIEW,
+    TRIGGER (nada de DDL, ni FILE, ni GRANT). Los tres ultimos los necesita
+    `mysqldump` (`bin/regenerate-schema.php`): sin ellos el dump aborta con
+    error 1044 "Access denied ... to database 'xproject'". Recipe exacto:
+    `GRANT SELECT, INSERT, UPDATE, DELETE, LOCK TABLES, SHOW VIEW, TRIGGER ON \`xproject\`.* TO 'xp_app'@'localhost';`
+    (repetir para `@127.0.0.1`).
   - `xproject_e2e.*`: ademas CREATE, DROP, ALTER, INDEX (lo necesita
     `bin/prepare-e2e-db.php` y las suites E2E).
   - `xproject_schema_check.*`: ademas CREATE, DROP, ALTER, INDEX (BD temporal

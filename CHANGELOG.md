@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.19.1] - 2026-10-25
+
+**Entregas: layout de la pestaña en ruta, datos de prueba fuera de la BD viva, usuarios MySQL consolidados y configuracion de entorno portable (.env + default en codigo).** Ronda de 6 peticiones del usuario: (1) la fila con destinatario de 52 caracteres no estaba hardcodeada (vivia en `shipments.destinatario_nombre`, 4 filas basura de pruebas del 04-oct) pero destrozaba la card porque `renderEnRuta()` metia la `<table>` sin `.table-wrapper`; (2) `xp_app` recuperó `LOCK TABLES, SHOW VIEW, TRIGGER` (sin ellos `mysqldump` aborta con 1044) y `regenerate-schema.php` vuelve a correr con el usuario de `.env`; (3) Alpine queda descartado fuera del shell (CSP sin `unsafe-eval`), se mantiene vanilla + componentes `ui/`; (4) animaciones por region: **aplazadas**, modulos intactos; (5) `sql_mode`/zona horaria de la app salen de `.env` con default en codigo (dejan de depender de `my.ini`/`php.ini` de la maquina); (6) `php_curl.dll` cargaba solo en CLI por un `extension_dir` relativo.
+
+### Fixed
+- `public/js/modules/inventory/deliveries.js`: la tabla de "Envios en ruta" va dentro de `.table-wrapper` (igual que la de Historial) y las columnas Envio/Referencia/Destinatario usan `truncate-cell` con `title`; antes la tabla de 1096px rompia una card de 482px (`overflow-x: visible`) y el token de 52 chars abria la columna Destinatario a 411px. Verificado en navegador: desbordamiento del documento 0px, celda recortada con tooltip, 0 errores de consola.
+- `C:\xampp\php\php.ini`: `extension_dir = "C:\xampp\php\ext"` (ruta absoluta; con `"\xampp\php\ext"` la resolucion dependia del cwd: CLI cargaba curl y Apache no). Apache reciclado: `curl=si` en ambos SAPI y **0 avisos de curl tras el arranque de las 19:03:48**.
+
+### Changed
+- `.env` (`DB_SQL_MODE`, `DB_TIME_ZONE`) y `bootstrap.php` (`date_default_timezone_set` desde `TIMEZONE`, con `getenv()` mandando sobre `.env` y reescritura en `$_ENV` para que `now()` y `date()` coincidan): la sesion MySQL y la zona de la app quedan configurables por entorno sin tocar `my.ini`/`php.ini`, con default en codigo. `src/Shared/Services/DatabaseService.php` valida ambos valores y falla con `SecurityException` si el `.env` trae basura (inyeccion) en vez de montar el `INIT_COMMAND`; zonas con nombre rechazadas (exigen las tablas de zona horaria del servidor). `TIMEZONE` invalido cae a UTC.
+- `docs/SECURITY-PROD.md` §1a: GRANT completo de `xp_app` (`SELECT, INSERT, UPDATE, DELETE, LOCK TABLES, SHOW VIEW, TRIGGER` sobre `xproject.*`, repetido para `@127.0.0.1`) documentado como recipe reproducible.
+- `bin/regenerate-schema.php` sin cambios; el `schema.sql` vigente se conserva byte a byte.
+
+### Data
+- BD viva `xproject`: borrado del dataset de envios/devoluciones de pruebas (28 `shipments`, 22 `deliveries`, 28 `shipment_items`, 13 `return_operations`, en orden de FK, con transaccion). Backup previo: `%TEMP%\backup-envios-20261025-194954.sql`. Residuo de stock **solo reportado, sin tocar**: 47 `stock_units` con estados de prueba (9 ENTREGADO, 6 EN_TRANSITO, 3 EN_PREPARACION, 6 DAÑADO, 2 BLOQUEADO) y 12 `movements` heredados de esas operaciones.
+
+### Tests
+- `vendor\bin\phpunit.bat`: 1067 tests, 7205 assertions OK.
+- `php bin/check-schema-drift.php`: SIN DRIFT. `php bin/check-data-integrity.php`: DATOS CONSISTENTES (BD viva `xproject`).
+- `node --check` en `deliveries.js`: 0 fallos. Smokes: `smoke-v184` 101 OK, `verify-rowactions-vistas` 136 OK.
+- Navegador (relogin y recarga): `GET /api/inventory/{shipments,deliveries,returns}` 200 y listas vacias, ambos paneles con empty state, `docOverflowPx = 0`, 0 errores de consola.
+
+### Notes
+- Desviaciones reportadas (sin corregir en silencio): `bin/regenerate-schema.php` ya no reproduce `schema.sql` byte a byte (DDL identico en las 32 tablas; solo cambia el boilerplate del volcado: `character_set_client = utf8mb4` y la linea de sandbox del mysqldump actual, mientras el fichero vigente se genero sin `--default-character-set`); decision del usuario: dejarlo como esta. El comentario de cabecera del script (linea 15) tampoco menciona ese flag.
+- Artefacto de verificacion, no bug: con el reloj de animaciones congelado del navegador de pruebas (59 animaciones en `currentTime = 0`), las salidas de AutoAnimate no terminan y dejan nodos fantasma (`position:absolute; pointer-events:none`) en el DOM; limpiados a mano. En un navegador normal la animacion termina y el nodo se elimina.
+- Aplazados / sin accion: animaciones por region en modulos (pedido del usuario), git init (hasta el final, comparando contra el remoto de GitHub), Redis (arranque manual, sin tarea).
+
 ## [1.19.0] - 2026-10-25
 
 **Frontend: shell sin CDNs, assets centralizados, fade de salida, AutoAnimate vendorizado y CSP estricta sin `unsafe-eval`.** Bloque de endurecimiento del shell SPA (6 tareas): (1) Tailwind compilado en local (`npm run build:css` -> `public/css/tailwind.css`, commiteado porque la VM de produccion no tiene Node) y AutoAnimate vendorizado (`public/js/vendor/auto-animate.js`, IIFE con global `autoAnimate`), ambos sin CDN; (2) user-menu escrito vanilla (`public/js/ui/account-menu.js`) y **Alpine retirado del shell**, que era lo unico que obligaba a `unsafe-eval`; (3) assets del shell declarados en los arrays `$shellStyles`/`$shellScripts` de `public/index.php` y emitidos por bucle, construidos ANTES del `echo <<<HTML` (dentro de un heredoc no se ejecuta `<?php`, solo se interpola); (4) fade de salida en el router (`iosFadeOut` + `.is-leaving` en `ios.css`, envuelto en `document.startViewTransition` cuando existe, con `prefers-reduced-motion` respetado); (5) animacion de repintados de listas centralizada en `UI.animateList` + observador de regiones de `render.js` (autoAnimate se entrega una vez por region contenedora de `<table>`, nunca por `<tr>`); (6) CSP con `script-src 'self' 'nonce-...'` y nonce por request, sin `unsafe-inline` ni `unsafe-eval`.
