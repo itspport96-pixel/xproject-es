@@ -29,6 +29,19 @@
     let mfaPending = false;
     let pendingCreds = null;
 
+    // Tagline bajo el nombre (v1.19.6): APP_TAGLINE de .env es texto de
+    // branding escrito en español, así que sólo se muestra en el locale es;
+    // en en/pt/fr manda la clave i18n login.tagline (decisión de la auditoría
+    // i18n). Si APP_TAGLINE no existe, la clave i18n para en los cuatro.
+    function loginTagline() {
+        const configured = global.AppConfig && global.AppConfig.appTagline;
+        const locale = global.i18n && typeof global.i18n.getLocale === 'function'
+            ? global.i18n.getLocale()
+            : 'es';
+        if (configured && locale === 'es') return configured;
+        return t('login.tagline');
+    }
+
     // Plantilla construida en render() (NO al cargar el script): así los
     // literales pasan por t() con el diccionario ya inicializado.
     function buildTemplate() {
@@ -37,7 +50,7 @@
             <div class="login-card">
                 <div class="login-logo">
                     <h1 data-app-name>XP Platform</h1>
-                    <p>${global.AppConfig?.appTagline || t('login.tagline')}</p>
+                    <p>${loginTagline()}</p>
                 </div>
 
                 <form id="login-form" novalidate>
