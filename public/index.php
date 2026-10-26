@@ -245,7 +245,11 @@ function renderErrorPage(Throwable $e): void
                 theme = null;
             }
             var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            var isDark = theme === 'dark' || (!theme && prefersDark);
+            // Mismo criterio que ThemePersistence.resolveEffectiveTheme: solo
+            // 'light' explicito es claro; 'system', null o cualquier valor
+            // no valido siguen la preferencia del SO (evita el destello
+            // blanco previo al tema oscuro al recargar).
+            var isDark = theme !== 'light' && (theme === 'dark' || prefersDark);
             document.documentElement.classList.toggle('dark', isDark);
             document.documentElement.classList.toggle('light', !isDark);
         })();
@@ -395,7 +399,11 @@ function renderSpaLayout(): void
                 theme = null;
             }
             var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            var isDark = theme === 'dark' || (!theme && prefersDark);
+            // Mismo criterio que ThemePersistence.resolveEffectiveTheme: solo
+            // 'light' explicito es claro; 'system', null o cualquier valor
+            // no valido siguen la preferencia del SO (evita el destello
+            // blanco previo al tema oscuro al recargar).
+            var isDark = theme !== 'light' && (theme === 'dark' || prefersDark);
             document.documentElement.classList.toggle('dark', isDark);
             document.documentElement.classList.toggle('light', !isDark);
         })();
