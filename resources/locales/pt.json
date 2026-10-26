@@ -86,7 +86,7 @@
     "error_required_email": "O correio eletrónico é obrigatório",
     "error_invalid_email": "Formato de correio inválido",
     "error_required_password": "A palavra-passe é obrigatória",
-    "error_short_password": "A palavra-passe deve ter pelo menos 8 caracteres",
+    "error_short_password": "A palavra-passe deve ter pelo menos 9 caracteres",
     "welcome": "Bem-vindo",
     "welcome_message": "Olá, {nombre}",
     "error_generic": "Erro ao iniciar sessão. Tenta novamente.",

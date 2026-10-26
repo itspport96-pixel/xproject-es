@@ -73,7 +73,7 @@
                                 placeholder="${t('login.password_placeholder')}"
                                 autocomplete="current-password"
                                 required
-                                minlength="8"
+                                minlength="9"
                             >
                             <button type="button" class="input-addon btn-eye" data-eye-for="login-password" aria-label="${t('ui.show_password')}" aria-pressed="false">${EYE_ICON}</button>
                         </div>
@@ -180,7 +180,7 @@
 
         if (!data.password || data.password === '') {
             errors.password = t('login.error_required_password');
-        } else if (data.password.length < 8) {
+        } else if (data.password.length < 9) {
             errors.password = t('login.error_short_password');
         }
 

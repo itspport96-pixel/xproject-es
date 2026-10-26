@@ -98,7 +98,7 @@
       error_required_email: 'El correo electrónico es obligatorio',
       error_invalid_email: 'Formato de correo inválido',
       error_required_password: 'La contraseña es obligatoria',
-      error_short_password: 'La contraseña debe tener al menos 6 caracteres',
+      error_short_password: 'La contraseña debe tener al menos 9 caracteres',
       welcome: 'Bienvenido',
       welcome_message: 'Hola, {nombre}',
       error_invalid_response: 'Respuesta inválida del servidor',

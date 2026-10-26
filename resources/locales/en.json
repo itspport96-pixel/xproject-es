@@ -86,7 +86,7 @@
     "error_required_email": "Email address is required",
     "error_invalid_email": "Invalid email format",
     "error_required_password": "Password is required",
-    "error_short_password": "Password must be at least 8 characters",
+    "error_short_password": "Password must be at least 9 characters",
     "welcome": "Welcome",
     "welcome_message": "Hello, {nombre}",
     "error_generic": "Failed to sign in. Please try again.",
