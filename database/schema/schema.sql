@@ -3,6 +3,7 @@
 -- Regenerar: php bin/regenerate-schema.php
 -- Verificar: php bin/check-schema-drift.php
 
+/*M!999999\- enable the sandbox mode */ 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -16,7 +17,7 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 DROP TABLE IF EXISTS `permissions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `permissions` (
   `id` char(36) NOT NULL,
   `identificador` varchar(255) NOT NULL,
@@ -38,7 +39,7 @@ CREATE TABLE `permissions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `roles`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `roles` (
   `id` char(36) NOT NULL,
   `nombre` varchar(100) NOT NULL,
@@ -57,7 +58,7 @@ CREATE TABLE `roles` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `role_permissions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `role_permissions` (
   `role_id` char(36) NOT NULL,
   `permission_id` char(36) NOT NULL,
@@ -69,7 +70,7 @@ CREATE TABLE `role_permissions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `users`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `users` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -99,7 +100,7 @@ CREATE TABLE `users` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `password_history`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `password_history` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -113,7 +114,7 @@ CREATE TABLE `password_history` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `temporary_permissions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `temporary_permissions` (
   `id` char(36) NOT NULL,
   `user_id` char(36) NOT NULL,
@@ -138,7 +139,7 @@ CREATE TABLE `temporary_permissions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `tenants`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tenants` (
   `id` char(36) NOT NULL,
   `nombre_publico` varchar(255) NOT NULL,
@@ -183,7 +184,7 @@ CREATE TABLE `tenants` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `audit_logs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `audit_logs` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -216,7 +217,7 @@ CREATE TABLE `audit_logs` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `idempotency_keys`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `idempotency_keys` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -237,7 +238,7 @@ CREATE TABLE `idempotency_keys` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `locations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `locations` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -262,7 +263,7 @@ CREATE TABLE `locations` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `inventory_counts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `inventory_counts` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -289,7 +290,7 @@ CREATE TABLE `inventory_counts` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `mail_outbox`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `mail_outbox` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -308,7 +309,7 @@ CREATE TABLE `mail_outbox` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `password_reset_tokens`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `password_reset_tokens` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -332,7 +333,7 @@ CREATE TABLE `password_reset_tokens` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `products`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `products` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -361,7 +362,7 @@ CREATE TABLE `products` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `rate_limit_config`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `rate_limit_config` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) DEFAULT NULL,
@@ -382,7 +383,7 @@ CREATE TABLE `rate_limit_config` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `rate_limit_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `rate_limit_log` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) DEFAULT NULL,
@@ -406,7 +407,7 @@ CREATE TABLE `rate_limit_log` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `refresh_tokens`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `refresh_tokens` (
   `id` char(36) NOT NULL,
   `user_id` char(36) NOT NULL,
@@ -431,7 +432,7 @@ CREATE TABLE `refresh_tokens` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `role_assignments`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `role_assignments` (
   `id` char(36) NOT NULL,
   `user_id` char(36) NOT NULL,
@@ -453,7 +454,7 @@ CREATE TABLE `role_assignments` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `shipments`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `shipments` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -487,7 +488,7 @@ CREATE TABLE `shipments` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `stock_units`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `stock_units` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -519,7 +520,7 @@ CREATE TABLE `stock_units` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `deliveries`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `deliveries` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -548,7 +549,7 @@ CREATE TABLE `deliveries` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `incidents`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `incidents` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -582,7 +583,7 @@ CREATE TABLE `incidents` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `movements`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `movements` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -615,7 +616,7 @@ CREATE TABLE `movements` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `picking_operations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `picking_operations` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -649,7 +650,7 @@ CREATE TABLE `picking_operations` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `reservations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `reservations` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -675,7 +676,7 @@ CREATE TABLE `reservations` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `return_operations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `return_operations` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -706,7 +707,7 @@ CREATE TABLE `return_operations` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `shipment_items`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `shipment_items` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -727,7 +728,7 @@ CREATE TABLE `shipment_items` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `stock_events`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `stock_events` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -751,7 +752,7 @@ CREATE TABLE `stock_events` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `stock_ledger`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `stock_ledger` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -772,7 +773,7 @@ CREATE TABLE `stock_ledger` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `user_groups`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `user_groups` (
   `id` char(36) NOT NULL,
   `tenant_id` char(36) NOT NULL,
@@ -792,7 +793,7 @@ CREATE TABLE `user_groups` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `group_members`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `group_members` (
   `id` char(36) NOT NULL,
   `group_id` char(36) NOT NULL,
@@ -810,7 +811,7 @@ CREATE TABLE `group_members` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `group_roles`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `group_roles` (
   `id` char(36) NOT NULL,
   `group_id` char(36) NOT NULL,
