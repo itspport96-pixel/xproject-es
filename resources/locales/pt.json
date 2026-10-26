@@ -60,12 +60,6 @@
     }
   },
   "theme": {
-    "action_dark": "Claro",
-    "action_light": "Escuro",
-    "action_system": "Auto",
-    "title_dark": "Modo claro",
-    "title_light": "Modo escuro",
-    "title_system": "Auto (sistema)",
     "current_dark": "Modo escuro",
     "current_light": "Modo claro",
     "current_system": "Modo sistema",
@@ -166,7 +160,6 @@
     "settings": "Definições",
     "profile": "Perfil",
     "section_principal": "Principal",
-    "section_inventory": "Inventário",
     "section_admin": "Administração",
     "section_system": "Sistema",
     "inventory": "Inventário",
@@ -252,12 +245,9 @@
     "btn_save": "Salvar alterações",
     "btn_saving": "Salvando...",
     "success_profile": "Perfil atualizado com sucesso",
-    "error_nothing_changed": "Nenhuma alteração para salvar",
     "field_required": "Este campo é obrigatório",
     "email_invalid": "Email inválido",
-    "password_required_for_email": "A senha é necessária para mudar o email",
-    "password_incorrect": "A senha atual não corresponde",
-    "email_in_use": "Este email já está em uso"
+    "password_required_for_email": "A senha é necessária para mudar o email"
   },
   "settings": {
     "title": "Configurações",
@@ -301,7 +291,6 @@
     "label_smtp_from_name": "Nome do remetente",
     "load_error_title": "Não foi possível carregar as configurações",
     "load_error_body": "Erro ao carregar as configurações da organização",
-    "btn_save": "Salvar alterações",
     "btn_save_all": "Salvar alterações",
     "btn_saving": "Salvando...",
     "btn_smtp_test": "Enviar e-mail de teste",
@@ -1939,9 +1928,6 @@
       "mfa_reset": "Não foi possível repor o MFA",
       "delete": "Não foi possível eliminar o utilizador"
     },
-    "reset_email_missing": "O utilizador não tem um correio eletrónico válido: define-o antes de enviar o link.",
-    "password_not_allowed": "A criação não aceita palavras-passe explícitas: o utilizador recebe um link por correio.",
-    "welcome_email_failed": "Não foi possível enviar o link de boas-vindas.",
     "temp": {
       "subtitle": "Permissões concedidas com data de caducidade",
       "grant": "Conceder permissão",

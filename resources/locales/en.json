@@ -60,12 +60,6 @@
     }
   },
   "theme": {
-    "action_dark": "Light",
-    "action_light": "Dark",
-    "action_system": "Auto",
-    "title_dark": "Light mode",
-    "title_light": "Dark mode",
-    "title_system": "Auto (system)",
     "current_dark": "Dark mode",
     "current_light": "Light mode",
     "current_system": "System mode",
@@ -166,7 +160,6 @@
     "settings": "Settings",
     "profile": "Profile",
     "section_principal": "Main",
-    "section_inventory": "Inventory",
     "section_admin": "Administration",
     "section_system": "System",
     "inventory": "Inventory",
@@ -252,12 +245,9 @@
     "btn_save": "Save changes",
     "btn_saving": "Saving...",
     "success_profile": "Profile updated successfully",
-    "error_nothing_changed": "No changes to save",
     "field_required": "This field is required",
     "email_invalid": "Invalid email",
-    "password_required_for_email": "Password is required to change email",
-    "password_incorrect": "Current password does not match",
-    "email_in_use": "This email is already in use"
+    "password_required_for_email": "Password is required to change email"
   },
   "settings": {
     "title": "Settings",
@@ -301,7 +291,6 @@
     "label_smtp_from_name": "Sender name",
     "load_error_title": "Could not load settings",
     "load_error_body": "Error loading organization settings",
-    "btn_save": "Save changes",
     "btn_save_all": "Save changes",
     "btn_saving": "Saving...",
     "btn_smtp_test": "Send test email",
@@ -1939,9 +1928,6 @@
       "mfa_reset": "MFA could not be reset",
       "delete": "The user could not be deleted"
     },
-    "reset_email_missing": "The user has no valid email address: set it before sending the link.",
-    "password_not_allowed": "User creation does not accept explicit passwords: the user receives a link by email.",
-    "welcome_email_failed": "The welcome link could not be sent.",
     "temp": {
       "subtitle": "Permissions granted with an expiry date",
       "grant": "Grant permission",

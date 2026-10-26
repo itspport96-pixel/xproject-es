@@ -72,12 +72,6 @@
       hide_password: 'Ocultar contraseña'
     },
     theme: {
-      action_dark: 'Claro',
-      action_light: 'Oscuro',
-      action_system: 'Auto',
-      title_dark: 'Modo claro',
-      title_light: 'Modo oscuro',
-      title_system: 'Auto (sistema)',
       current_dark: 'Modo oscuro',
       current_light: 'Modo claro',
       current_system: 'Modo sistema',
@@ -190,7 +184,6 @@
       settings: 'Configuración',
       profile: 'Perfil',
       section_principal: 'Principal',
-      section_inventory: 'Inventario',
       section_admin: 'Administración',
       section_system: 'Sistema'
     },

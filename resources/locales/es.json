@@ -60,12 +60,6 @@
     }
   },
   "theme": {
-    "action_dark": "Claro",
-    "action_light": "Oscuro",
-    "action_system": "Auto",
-    "title_dark": "Modo claro",
-    "title_light": "Modo oscuro",
-    "title_system": "Auto (sistema)",
     "current_dark": "Modo oscuro",
     "current_light": "Modo claro",
     "current_system": "Modo sistema",
@@ -166,7 +160,6 @@
     "settings": "Configuración",
     "profile": "Perfil",
     "section_principal": "Principal",
-    "section_inventory": "Inventario",
     "section_admin": "Administración",
     "section_system": "Sistema",
     "inventory": "Inventario",
@@ -252,12 +245,9 @@
     "btn_save": "Guardar cambios",
     "btn_saving": "Guardando...",
     "success_profile": "Perfil actualizado correctamente",
-    "error_nothing_changed": "No hay cambios para guardar",
     "field_required": "Este campo es requerido",
     "email_invalid": "Email inválido",
-    "password_required_for_email": "La contraseña es requerida para cambiar el email",
-    "password_incorrect": "La contraseña actual no coincide",
-    "email_in_use": "Este email ya está en uso"
+    "password_required_for_email": "La contraseña es requerida para cambiar el email"
   },
   "settings": {
     "title": "Configuración",
@@ -301,7 +291,6 @@
     "label_smtp_from_name": "Nombre del remitente",
     "load_error_title": "No se pudo cargar la configuración",
     "load_error_body": "Error al cargar la configuración de la organización",
-    "btn_save": "Guardar cambios",
     "btn_save_all": "Guardar cambios",
     "btn_saving": "Guardando...",
     "btn_smtp_test": "Enviar correo de prueba",
@@ -1939,9 +1928,6 @@
       "mfa_reset": "No se pudo restablecer el MFA",
       "delete": "No se pudo eliminar el usuario"
     },
-    "reset_email_missing": "El usuario no tiene un correo electrónico válido: configúralo antes de enviar el enlace.",
-    "password_not_allowed": "El alta no acepta contraseñas explícitas: el usuario recibe un enlace por correo.",
-    "welcome_email_failed": "No se pudo enviar el enlace de bienvenida.",
     "temp": {
       "subtitle": "Permisos otorgados con fecha de caducidad",
       "grant": "Otorgar permiso",

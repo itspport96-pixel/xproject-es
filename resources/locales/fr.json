@@ -60,12 +60,6 @@
     }
   },
   "theme": {
-    "action_dark": "Clair",
-    "action_light": "Sombre",
-    "action_system": "Auto",
-    "title_dark": "Mode clair",
-    "title_light": "Mode sombre",
-    "title_system": "Auto (système)",
     "current_dark": "Mode sombre",
     "current_light": "Mode clair",
     "current_system": "Mode système",
@@ -166,7 +160,6 @@
     "settings": "Paramètres",
     "profile": "Profil",
     "section_principal": "Principal",
-    "section_inventory": "Inventaire",
     "section_admin": "Administration",
     "section_system": "Système",
     "inventory": "Inventaire",
@@ -252,12 +245,9 @@
     "btn_save": "Enregistrer les modifications",
     "btn_saving": "Enregistrement...",
     "success_profile": "Profil mis à jour avec succès",
-    "error_nothing_changed": "Aucune modification à enregistrer",
     "field_required": "Ce champ est requis",
     "email_invalid": "Email invalide",
-    "password_required_for_email": "Le mot de passe est requis pour changer l'email",
-    "password_incorrect": "Le mot de passe actuel ne correspond pas",
-    "email_in_use": "Cet email est déjà utilisé"
+    "password_required_for_email": "Le mot de passe est requis pour changer l'email"
   },
   "settings": {
     "title": "Paramètres",
@@ -301,7 +291,6 @@
     "label_smtp_from_name": "Nom de l'expéditeur",
     "load_error_title": "Impossible de charger les paramètres",
     "load_error_body": "Erreur lors du chargement des paramètres de l'organisation",
-    "btn_save": "Enregistrer les modifications",
     "btn_save_all": "Enregistrer les modifications",
     "btn_saving": "Enregistrement...",
     "btn_smtp_test": "Envoyer un e-mail de test",
@@ -1939,9 +1928,6 @@
       "mfa_reset": "Le MFA n'a pas pu être réinitialisé",
       "delete": "L'utilisateur n'a pas pu être supprimé"
     },
-    "reset_email_missing": "L'utilisateur n'a pas d'adresse e-mail valide : configurez-la avant d'envoyer le lien.",
-    "password_not_allowed": "La création n'accepte pas de mot de passe explicite : l'utilisateur reçoit un lien par e-mail.",
-    "welcome_email_failed": "Le lien de bienvenue n'a pas pu être envoyé.",
     "temp": {
       "subtitle": "Autorisations accordées avec une date d'expiration",
       "grant": "Accorder une autorisation",
