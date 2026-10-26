@@ -228,17 +228,20 @@
       headerOffsetHandler = () => syncHeaderOffset();
       global.addEventListener('resize', headerOffsetHandler);
 
+      // data-i18n-aria: applyDom() de i18n.js reescribe el aria-label en cada
+      // aplicacion de diccionario (arranque, login y cambio de idioma). El
+      // valor inline es solo el estado inicial mientras carga la traduccion.
       const navLabel = escapeHtml(tOr('nav.inventory', 'Inventory'));
 
       el.innerHTML = `
-        <nav class="subnav" aria-label="${navLabel}">
+        <nav class="subnav" aria-label="${navLabel}" data-i18n-aria="nav.inventory">
           <div class="subnav-tabs" data-subnav-tabs></div>
           <div class="subnav-select">
             <button id="subnav-select-btn" class="subnav-select-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="subnav-select-menu">
               <span data-subnav-btn-label></span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="subnav-select-chevron" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <ul id="subnav-select-menu" class="subnav-select-menu" role="listbox" aria-label="${navLabel}" hidden data-subnav-menu></ul>
+            <ul id="subnav-select-menu" class="subnav-select-menu" role="listbox" aria-label="${navLabel}" data-i18n-aria="nav.inventory" hidden data-subnav-menu></ul>
           </div>
         </nav>`;
 
