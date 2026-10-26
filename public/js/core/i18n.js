@@ -10,8 +10,10 @@
  *   (users.preferencias.idioma via PATCH /api/users/me/preferences):
  *      * al cambiar de idioma con sesion se envia el PATCH; si falla se
  *        conserva la eleccion local y se avisa con toast
- *      * syncFromUser() (preferencia del servidor) solo se aplica en el
- *        login; las llamadas posteriores a /auth/me NO cambian el idioma
+ *      * syncFromUser() (preferencia del servidor) se aplica en el login y
+ *        al restaurar sesion (recarga, v1.19.6); en ambos casos se abstiene
+ *        si hubo eleccion explicita en la sesion (sessionChoice), asi que
+ *        /auth/me nunca pisa una eleccion reciente
  *      * la eleccion explicita de la sesion (sessionChoice) gana sobre
  *        cualquier preferencia entrante hasta que el PATCH confirme
  * - Idioma por defecto del tenant (tenants.idioma_default, v1.17.4): el
@@ -247,6 +249,39 @@
       if (global.localStorage) global.localStorage.setItem(STORAGE_KEY, locale);
     } catch (e) {
       /* localStorage no disponible: el locale sigue en memoria */
+    }
+  }
+
+  // Marca de eleccion EXPLICITA del usuario (selector/llamada a setLocale).
+  // A diferencia de 'lang' (que tambien escribe el idioma por defecto del
+  // tenant al aplicarse), esta clave solo la escribe setLocale, de modo que
+  // init() puede restaurar sessionChoice tras una recarga: sin ella la
+  // eleccion pre-sesion se perdia y al entrar manda la preferencia
+  // ANTERIOR del servidor (v1.19.6). Se limpia al cerrar sesion, igual que
+  // sessionChoice en memoria.
+  const EXPLICIT_KEY = 'lang_explicit';
+
+  function writeExplicitChoice() {
+    try {
+      if (global.localStorage) global.localStorage.setItem(EXPLICIT_KEY, '1');
+    } catch (e) {
+      /* localStorage no disponible */
+    }
+  }
+
+  function clearExplicitChoice() {
+    try {
+      if (global.localStorage) global.localStorage.removeItem(EXPLICIT_KEY);
+    } catch (e) {
+      /* localStorage no disponible */
+    }
+  }
+
+  function readExplicitChoice() {
+    try {
+      return !!(global.localStorage && global.localStorage.getItem(EXPLICIT_KEY));
+    } catch (e) {
+      return false;
     }
   }
 
@@ -588,6 +623,7 @@
     }
 
     sessionChoice = true;
+    writeExplicitChoice();
     persistIdioma(locale);
 
     return applyLocale(locale);
@@ -603,6 +639,12 @@
 
     const stored = readStoredLocale();
     current = stored || DEFAULT_LOCALE;
+
+    // Eleccion explicita anterior (otra pestana o la misma, antes de
+    // recargar): se restaura sessionChoice para que ni el idioma por
+    // defecto del tenant ni la preferencia antigua del servidor la pisen
+    // en esta sesion (v1.19.6).
+    sessionChoice = readExplicitChoice();
 
     // Tras cualquier establecimiento de sesion (login, /auth/me, sincronia
     // entre pestaanas) se descarga el diccionario completo si la carga
@@ -635,6 +677,7 @@
       global.EventBus.on('auth:logout', function() {
         sessionChoice = false;
         userPreference = false;
+        clearExplicitChoice();
       });
     }
 

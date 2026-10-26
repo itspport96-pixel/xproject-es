@@ -11,6 +11,14 @@
     let currentUser = null;
     let isAuthenticated = false;
     let initialized = false;
+    // La preferencia de idioma del servidor (users.preferencias.idioma) se
+    // aplica UNA sola vez por documento: en setSession() (login) o, si no
+    // hubo login en este documento (sesion restaurada desde localStorage
+    // tras una recarga), en el primer updateUser() de /auth/me (v1.19.6).
+    // Asi la recarga no pierde la eleccion guardada (el idioma por defecto
+    // del tenant no llega a pisarla) y los /auth/me posteriores siguen sin
+    // tocar el locale (regla v1.10.3).
+    let idiomaSincronizado = false;
 
     function emit(event, data) {
         if (global.EventBus) {
@@ -55,10 +63,12 @@
             loadFromStorage();
             updateHeaderUI();
 
-            // NOTA (v1.10.3): la preferencia de idioma del servidor
-            // (users.preferencias.idioma) NO se aplica aqui: una sesion
-            // restaurada desde localStorage no es un login. syncFromUser
-            // se invoca unicamente en setSession() (ver mas abajo).
+            // NOTA (v1.10.3, ampliado en v1.19.6): la sincronia de idioma
+            // se invoca en setSession() (login) y en updateUser()
+            // (/auth/me, tambien al restaurar sesion tras una recarga).
+            // syncFromUser() se abstiene siempre que sessionChoice este en
+            // true, de modo que una eleccion explicita de la sesion manda
+            // sobre lo que devuelva el servidor.
 
             // Cambio de idioma: re-pinta el nombre de invitado del header.
             if (global.EventBus) {
@@ -148,12 +158,13 @@
             isAuthenticated = true;
 
             updateHeaderUI();
-            // Sincronia de idioma SOLO en el login (v1.10.3): el resto de
-            // flujos (refreshUser -> /auth/me, storage, renovacion de token)
-            // pasan por updateUser y no deben tocar el locale activo.
+            // Sincronia de idioma en el login (v1.10.3): la preferencia del
+            // servidor se aplica aqui y queda marcada como aplicada, de modo
+            // que los /auth/me posteriores (updateUser) no tocan el locale.
             if (global.i18n && typeof global.i18n.syncFromUser === 'function') {
                 global.i18n.syncFromUser(user);
             }
+            idiomaSincronizado = true;
             emit('auth:login', { user, tokens });
 
             return true;
@@ -185,6 +196,9 @@
 
             currentUser = null;
             isAuthenticated = false;
+            // La proxima sesion (login o restauracion) vuelve a necesitar la
+            // sincronia de idioma con el servidor.
+            idiomaSincronizado = false;
 
             updateHeaderUI();
             emit('auth:logout', {});
@@ -213,8 +227,19 @@
             }
 
             updateHeaderUI();
-            // Sin syncFromUser: /auth/me (refreshUser) no cambia el idioma
-            // (v1.10.3). La eleccion explicita de la sesion manda.
+            // Sesion restaurada tras una recarga (v1.19.6): en este documento
+            // no hubo login, asi que todavia no se ha leido la preferencia de
+            // idioma del servidor. Sin esto, userPreference seguia en false y
+            // el idioma por defecto del tenant (branding:changed) pisaba la
+            // eleccion guardada del usuario: todo volvia a 'es'. Solo el
+            // PRIMER /auth/me del documento sincroniza; los siguientes (y los
+            // de una sesion con login) no tocan el locale (regla v1.10.3).
+            if (!idiomaSincronizado) {
+                idiomaSincronizado = true;
+                if (global.i18n && typeof global.i18n.syncFromUser === 'function') {
+                    global.i18n.syncFromUser(user);
+                }
+            }
             emit('auth:user-updated', { user });
         },
 

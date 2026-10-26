@@ -298,6 +298,43 @@ async function s3_syncSoloEnLogin() {
 }
 
 // =====================================================================
+// S3b - Sesion restaurada tras una recarga (sin login): el PRIMER
+//       /auth/me del documento si lee la preferencia del servidor
+//       (v1.19.6); los siguientes siguen sin tocarla (v1.10.3)
+// =====================================================================
+async function s3b_restauracionLeePreferencia() {
+  console.log('S3b la restauracion de sesion (recarga) lee la preferencia del servidor');
+  const env = createEnv({ token: 'tk' }); // token + usuario en Storage, sin login
+  const w = env.w;
+
+  env.meUser = { ...USER, preferencias: { idioma: 'fr' } };
+  // Como en una recarga real: Storage trae el usuario del localStorage de la
+  // sesion anterior (loadFromStorage solo exige usuario + token).
+  w.Storage.setUser({ ...USER });
+
+  await w.i18n.init();
+  await tick();
+
+  // Arranque autenticado sin setSession: AuthState.init() -> refreshUser()
+  w.AuthState.init();
+  await tick(30);
+
+  check('el primer /auth/me de la recarga aplica la preferencia (fr)',
+    env.locale() === 'fr', env.locale());
+  check('lang attribute en fr', env.langAttr() === 'fr', env.langAttr());
+
+  // Refresco posterior con otra preferencia: ya no debe cambiar nada
+  env.meUser = { ...USER, preferencias: { idioma: 'pt' } };
+  await w.AuthState.refreshUser();
+  await tick(30);
+  check('los /auth/me posteriores no cambian el idioma', env.locale() === 'fr', env.locale());
+  check('cero PATCH durante la restauracion', env.prefsPatches().length === 0,
+    JSON.stringify(env.prefsPatches()));
+
+  env.close();
+}
+
+// =====================================================================
 // S4 - eleccion pre-sesion, confirmacion en auth:logout/login y dedupe
 // =====================================================================
 async function s4_presesionYLogout() {
@@ -357,6 +394,7 @@ async function main() {
   await s1_secuencia();
   await s2_falloPatch();
   await s3_syncSoloEnLogin();
+  await s3b_restauracionLeePreferencia();
   await s4_presesionYLogout();
 
   console.log(`\nRESULTADO: ${pass} OK, ${fail} FAIL`);
