@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.19.5] - 2026-10-26
+
+**Los tests que hablan con MySQL real dejan de depender del `time_zone` global: un reinicio de mysqld ya no rompe la suite.**
+
+### Fixed
+- `tests/Support/MySqlSession.php` (nuevo) + los seis tests que abren MySQL a mano (`PasswordResetLiveTest`, `AdminResetLiveTest`, `MailerServiceOutboxLiveTest`, `PasswordPolicyLiveTest`, `MailCatalogPreferenciasLiveTest`, `AuthenticationMiddlewareTest`): la sesion se abre con `SET time_zone = <DB_TIME_ZONE>` (por defecto `+00:00`, igual que `DatabaseService` con la BD de la aplicacion) en vez de heredar el `time_zone` **global** del servidor. Con global `SYSTEM` (lo que deja un reinicio de mysqld) `NOW()` corria en la zona local del host y `PasswordResetLiveTest::testTokenCaducadoSeRechaza` fallaba: forzaba la caducidad con `DATE_SUB(NOW(), INTERVAL 1 MINUTE)` sobre una hora por delante de lo que escribe la aplicacion, asi que el token caducado seguia vigente. La misma sesion alinea ademas los `INSERT ... NOW()` de los otros cinco tests.
+
+### Notes
+- Verificacion: `SET GLOBAL time_zone='SYSTEM'` (estado de arranque real) -> phpunit **1067/1067 exit 0**, repetido con global `+00:00` -> **1067/1067**; `php -l` en los 7 ficheros; `check-schema-drift` SIN DRIFT y `check-data-integrity` DATOS CONSISTENTES. El servidor se deja en `SYSTEM` (el valor de arranque): **deroga la nota de arranque de 1.19.4**, ya no hay que ejecutar `SET GLOBAL time_zone` tras reiniciar mysqld.
+
 ## [1.19.4] - 2026-10-26
 
 **Origen limpio fijo de la BD viva y comando para volver al baseline operativo tras cada prueba de flujo.** La plataforma pasa a otra maquina XAMPP para las pruebas de flujo completas: la BD de trabajo queda en un punto de partida unico (solo `aleon@acme.local`, su tenant y los datos operativos), con un dump canonico que se regenera siempre desde ese origen y un reset que evita volver a instalar seeds.
@@ -17,7 +27,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Notes
 - Cierre: `php -l` OK, phpunit 1067 tests / 7205 assertions en verde, `check-data-integrity` DATOS CONSISTENTES, `check-schema-drift` SIN DRIFT y barrido GET 22x200 / 0x500. Prueba del reset sobre BD sucia (backup previo restaurado: 3363 filas, 23 roles, 7 usuarios) -> vuelve al baseline exacto; tambien probada la ruta de restauracion del operativo soft-deleteado.
-- `time_zone` global de MySQL (decision tomada: **nota de arranque**, sin tocar codigo): `Tests\Unit\PasswordResetLiveTest::testTokenCaducadoSeRechaza` depende del `time_zone` **global** del servidor, porque su PDO raw (`connectE2e()`, BD `xproject_e2e`) no fija zona de sesion y la caducidad se fuerza con `NOW()`; tras quitar la linea invalida `time_zone='+00:00'` de `my.ini` el global quedo en `SYSTEM` y el test falla. **Tras cada reinicio de mysqld** hay que ejecutar una vez (hasta que el test fije su propia sesion):
+- `time_zone` global de MySQL (decision tomada aqui: **nota de arranque**; **resuelta en 1.19.5**, los tests fijan su propia sesion y la nota quedo obsoleta): `Tests\Unit\PasswordResetLiveTest::testTokenCaducadoSeRechaza` depende del `time_zone` **global** del servidor, porque su PDO raw (`connectE2e()`, BD `xproject_e2e`) no fija zona de sesion y la caducidad se fuerza con `NOW()`; tras quitar la linea invalida `time_zone='+00:00'` de `my.ini` el global quedo en `SYSTEM` y el test falla. **Tras cada reinicio de mysqld** hay que ejecutar una vez (hasta que el test fije su propia sesion):
   `SET GLOBAL time_zone = '+00:00';` (client root; lo hace pasar: 1067/1067). Con `SYSTEM` unicamente falla ese test; la app no se ve afectada porque `DatabaseService` fija `time_zone` de sesion desde `DB_TIME_ZONE` del `.env`.
 - Fuera del alcance (entorno): `composer` no esta en PATH en esta sesion; la suite se lanzo como `php vendor\bin\phpunit --configuration phpunit.xml` (equivalente al script `composer test`).
 

@@ -15,6 +15,7 @@ use PDO;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionProperty;
+use Tests\Support\MySqlSession;
 
 /**
  * Transporte de correo MAIL_TRANSPORT (v1.18.0) contra MySQL REAL
@@ -261,6 +262,8 @@ final class MailerServiceOutboxLiveTest extends TestCase
         } catch (\Throwable $e) {
             $this->markTestSkipped('MySQL xproject_e2e no disponible: ' . $e->getMessage());
         }
+
+        MySqlSession::applyTimeZone($pdo);
 
         // La tabla existe desde el esquema v1.18.0; se crea por si acaso.
         $pdo->exec(

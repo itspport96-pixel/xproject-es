@@ -13,6 +13,7 @@ use App\Shared\Services\DatabaseService;
 use Dotenv\Dotenv;
 use PDO;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\MySqlSession;
 
 /**
  * Política de contraseña y no-reutilización (v1.16.0) contra MySQL REAL.
@@ -245,6 +246,8 @@ final class PasswordPolicyLiveTest extends TestCase
         } catch (\Throwable $e) {
             $this->markTestSkipped('MySQL xproject_e2e no disponible: ' . $e->getMessage());
         }
+
+        MySqlSession::applyTimeZone($pdo);
 
         return $pdo;
     }

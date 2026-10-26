@@ -9,6 +9,7 @@ use App\Shared\Services\DatabaseService;
 use App\Shared\Services\MailCatalog;
 use PHPUnit\Framework\TestCase;
 use PDO;
+use Tests\Support\MySqlSession;
 
 /**
  * MailCatalog contra la BD de E2E: el idioma del destinatario se resuelve
@@ -158,6 +159,8 @@ final class MailCatalogPreferenciasLiveTest extends TestCase
         } catch (\Throwable $e) {
             $this->markTestSkipped('MySQL xproject_e2e no disponible: ' . $e->getMessage());
         }
+
+        MySqlSession::applyTimeZone($pdo);
 
         return $pdo;
     }

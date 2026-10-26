@@ -24,6 +24,7 @@ use PDO;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionProperty;
+use Tests\Support\MySqlSession;
 
 /**
  * Reset administrativo y bienvenida (v1.18.0, cumplimiento) contra MySQL
@@ -518,6 +519,8 @@ final class AdminResetLiveTest extends TestCase
         } catch (\Throwable $e) {
             $this->markTestSkipped('MySQL xproject_e2e no disponible: ' . $e->getMessage());
         }
+
+        MySqlSession::applyTimeZone($pdo);
 
         return $pdo;
     }

@@ -16,6 +16,7 @@ use Dotenv\Dotenv;
 use Firebase\JWT\ExpiredException;
 use PDO;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\MySqlSession;
 
 /**
  * AuthenticationMiddleware contra MySQL REAL (xproject_e2e, regla 16).
@@ -173,6 +174,8 @@ final class AuthenticationMiddlewareTest extends TestCase
         } catch (\Throwable $e) {
             $this->markTestSkipped('MySQL xproject_e2e no disponible: ' . $e->getMessage());
         }
+
+        MySqlSession::applyTimeZone($pdo);
 
         return $pdo;
     }
