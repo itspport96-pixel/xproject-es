@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.19.4] - 2026-10-26
+
+**Origen limpio fijo de la BD viva y comando para volver al baseline operativo tras cada prueba de flujo.** La plataforma pasa a otra maquina XAMPP para las pruebas de flujo completas: la BD de trabajo queda en un punto de partida unico (solo `aleon@acme.local`, su tenant y los datos operativos), con un dump canonico que se regenera siempre desde ese origen y un reset que evita volver a instalar seeds.
+
+### Added
+- `bin/reset-db.php`: devuelve `xproject` al baseline operativo sin tocar seeds. Uso: sin argumentos hace dry-run (cuenta lo que borraria), `--apply` aplica, `--apply --dump[=<ruta>]` aplica y regenera el dump origen limpio (`database/dumps/origen-limpio.sql`, en `.gitignore`; `--dump` sin `--apply` se rechaza). Conserva exactamente lo operativo: `tenants` (owner reasignado al operativo), `permissions` (60 / 58 activos), `roles` (ADMIN, MANAGER, USER, VIEWER, AUDITOR), `role_permissions` (130), `users` (solo el operativo), `role_assignments` (su ADMIN), `password_history` (sus 10) y `rate_limit_config`. El resto de tablas **no esta hardcodeado**: se descubre en runtime desde `information_schema`, de modo que una tabla nueva ya queda incluida. Ademas normaliza el operativo (credencial `Admin123!`, sin MFA, sin sesiones, sin `deleted_at`, preferencias y vigencia de 30 dias) y lo restaura si un test lo borro o le quito el rol ADMIN. Guardas: aborta con `E2E_DB_NAME` definida (la BD de E2E se recrea con `prepare-e2e-db --fresh`, reglas 10 y 16), no inventa datos si falta tenant o rol ADMIN y tras aplicar invoca `bin/check-data-integrity.php` propagando su exit code.
+
+### Data
+- BD viva `xproject` en el origen limpio: backup previo completo `%TEMP%\backup-full-xproject-20261026-200947.sql` (3.9 MB, 32 tablas). Conservados: 1 tenant (Acme Corp, `owner_user_id` reasignado de `manager@acme.local` a `aleon` por la FK `RESTRICT`), 1 usuario (`aleon@acme.local`), 60 permisos (58 activos), 5 roles + `role_permissions` 130 (fuera el residuo de prueba: **18** roles CUSTOM, no 17, con sus 27 mapeos), 1 asignacion (aleon -> ADMIN), 10 filas de `password_history`. A cero: 2857 `audit_logs`, 8 `products`, 14 `locations`, 21 `stock_units`, 11 `movements`, 113 `stock_events`, 27 `reservations`, 8 `incidents`, grupos, sesiones (136 `refresh_tokens`), tokens de reset, rate limit, idempotencia y `mail_outbox`.
+- Dump canonico `database/dumps/origen-limpio.sql` (76 KB, 32 tablas, sin `CREATE DATABASE`): importado en una BD temporal `utf8mb4` -> 32/32 tablas con recuentos identicos y `check-data-integrity --db=` en `DATOS CONSISTENTES`; grant temporal a `xp_app` revocado y temporal borrada tras la prueba. `xproject-limpia-20261026-202536.sql` (nombre con fecha) eliminado: desde aqui solo se regenera `origen-limpio.sql`.
+
+### Notes
+- Cierre: `php -l` OK, phpunit 1067 tests / 7205 assertions en verde, `check-data-integrity` DATOS CONSISTENTES, `check-schema-drift` SIN DRIFT y barrido GET 22x200 / 0x500. Prueba del reset sobre BD sucia (backup previo restaurado: 3363 filas, 23 roles, 7 usuarios) -> vuelve al baseline exacto; tambien probada la ruta de restauracion del operativo soft-deleteado.
+- Fuera del alcance (reportado, no corregido): `Tests\Unit\PasswordResetLiveTest::testTokenCaducadoSeRechaza` depende del `time_zone` **global** del servidor, porque su PDO raw (`connectE2e()`, BD `xproject_e2e`) no fija zona de sesion y la caducidad se fuerza con `NOW()`; tras quitar la linea invalida `time_zone='+00:00'` de `my.ini` el global quedo en `SYSTEM` y el test falla (con `SET GLOBAL time_zone='+00:00'` pasa). Ese `SET GLOBAL` no sobrevive a un reinicio de mysqld y no hay nada en el repo que lo fije: decision pendiente (nota de arranque o fix del test).
+- Fuera del alcance (entorno): `composer` no esta en PATH en esta sesion; la suite se lanzo como `php vendor\bin\phpunit --configuration phpunit.xml` (equivalente al script `composer test`).
+
 ## [1.19.3] - 2026-10-26
 
 **Arreglos esteticos de arranque: sin destello blanco de tema y sin top bar a medias en el Ctrl+Shift+R.**
