@@ -178,6 +178,36 @@ main {
 }
 
 /* ============================================
+   ESTADO DE ARRANQUE DEL SHELL
+   El chrome del shell (top bar) ya viene pintado en
+   el HTML del servidor, pero la decision de layout
+   (is-public en rutas sin sesion) y el montaje de la
+   app ocurren en boot(), tras DOMContentLoaded + la
+   descarga del diccionario i18n. En un Ctrl+Shift+R
+   (sin cache) ese hueco se alarga y se ve la top bar
+   a medias, como si el layout autenticado ya existiera.
+   Mientras dure el arranque se oculta el chrome
+   (visibility: no reflowa) y se muestra el spinner.
+   Lo quita index.php al terminar boot(), con red de
+   seguridad a los 3s y fallback <noscript>.
+   ============================================ */
+body.shell-booting .app-header,
+body.shell-booting .sidebar {
+    visibility: hidden;
+}
+
+.shell-boot {
+    display: none;
+}
+
+body.shell-booting .shell-boot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+}
+
+/* ============================================
    UTILIDADES
    ============================================
    Prácticamente todas las utilidades que se declaraban aqui (flex, grid,

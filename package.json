@@ -1,6 +1,6 @@
 {
   "name": "xp-platform",
-  "version": "1.19.2",
+  "version": "1.19.3",
   "private": true,
   "description": "Build de assets frontend (solo para compilar Tailwind estatico). La app en runtime NO usa Node.",
   "devDependencies": {

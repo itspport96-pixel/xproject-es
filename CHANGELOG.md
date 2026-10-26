@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.19.3] - 2026-10-26
+
+**Arreglos esteticos de arranque: sin destello blanco de tema y sin top bar a medias en el Ctrl+Shift+R.**
+
+### Fixed
+- `public/index.php` (los dos scripts inline, shell y pagina de error): el criterio era `theme === 'dark' || (!theme && prefersDark)`, que no entendia `'system'` (el `DEFAULT_THEME` y tercera opcion del toggle); con `'system'` guardado se pintaba `html.light` (fondo `#f2f2f7`) y a `DOMContentLoaded` `ThemePersistence` lo resolvia a oscuro, asi que cada recarga blanqueaba y volvia a negro. Ahora es `theme !== 'light' && (theme === 'dark' || prefersDark)`, identico a `resolveEffectiveTheme`: solo `'light'` explicito es claro.
+- `public/index.php` + `public/css/style.css`: en un Ctrl+Shift+R (sin cache) se veia la top bar del shell ya montada y con sus placeholders (`...` en el toggle de tema, `Cuenta`, `ES`) antes de que `boot()` decidiera el layout (`is-public` en rutas sin sesion) y montara la app: el HTML del servidor trae el chrome pintado y la decision llega tras `DOMContentLoaded` + la descarga del diccionario i18n. `body` arranca con la clase `shell-booting` (oculta header y sidebar con `visibility`, sin reflow, y muestra el spinner existente dentro de `#shell-boot`); se revela al terminar `boot()` (medido: ~320 ms en recarga normal) con red de seguridad a los 3 s si i18n/boot no corren y fallback `<noscript>`.
+
+### Notes
+- Verificacion: `php -l` OK, smoke `v162` 107 / `v171` 109 / `v193` 136 con 0 FAIL, navegador (arranque con spinner y header oculto -> revelado con layout autenticado), `check-schema-drift` SIN DRIFT, `check-data-integrity` DATOS CONSISTENTES y barrido GET 17x200 / 0x500.
+- Fuera del repo: `C:\xampp\mysql\bin\my.ini` perdia la linea invalida `time_zone='+00:00'` en `[mysqld]` (MariaDB abortaba con exit 7 tras el reinicio); backup en `%TEMP%\backup-my.ini-20261026-192828`, `sql_mode` estricto intacto. MySQL, Apache y Redis siguen siendo procesos manuales (sin tarea programada).
+
 ## [1.19.2] - 2026-10-25
 
 **Cierre del sprint v1.19: lote E2E completo 4/4, residuo de prueba fuera de la BD viva y `redis-cli` sin rutas hardcodeadas.** Regla 7: primera pasada del lote con 3/4 suites en verde; el unico fallo (`e2e-v11320`, `FALLO REDIS`) era una ruta de maquina hardcodeada, corregida y reejecutado el lote a 4/4.

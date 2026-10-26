@@ -409,8 +409,9 @@ function renderSpaLayout(): void
         })();
     </script>
 {$shellStylesHtml}
+    <noscript><style>body.shell-booting .app-header,body.shell-booting .sidebar{visibility:visible}.shell-boot{display:none}</style></noscript>
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen shell-booting">
     <div id="app" class="app-layout">
         <!-- Sidebar Container -->
         <aside id="sidebar" class="sidebar hidden">
@@ -457,6 +458,9 @@ function renderSpaLayout(): void
                 </div>
             </header>
             <main id="main-content">
+                <div id="shell-boot" class="shell-boot" aria-hidden="true">
+                    <div class="spinner"></div>
+                </div>
                 <div id="inventory-subnav" class="inventory-subnav" hidden></div>
                 <div id="module-container"></div>
             </main>
@@ -474,25 +478,47 @@ function renderSpaLayout(): void
             sessionTimeout: {$sessionTimeoutJs},
             assetsVersion: {$assetsVersionJs}
         };
+        // Estado de arranque (estetica, v1.19.3): la top bar del shell ya viene
+        // pintada en el HTML del servidor, pero la decision de layout (is-public
+        // en rutas sin sesion) y el montaje de la app ocurren en boot(), tras
+        // DOMContentLoaded + la descarga del diccionario i18n. En un
+        // Ctrl+Shift+R (sin cache) ese hueco se alarga y se ve la top bar a
+        // medias, como si el layout autenticado ya existiera. Mientras dure el
+        // arranque body lleva la clase shell-booting (oculta el chrome y muestra
+        // el spinner de style.css); aqui se revela al terminar boot() y, como
+        // red de seguridad si i18n/boot no llegan a ejecutarse, a los 3s.
+        var shellRevealed = false;
+        var revealShell = function() {
+            if (shellRevealed) return;
+            shellRevealed = true;
+            document.body.classList.remove('shell-booting');
+            var bootEl = document.getElementById('shell-boot');
+            if (bootEl && bootEl.parentNode) bootEl.parentNode.removeChild(bootEl);
+        };
+        setTimeout(revealShell, 3000);
         document.addEventListener('DOMContentLoaded', function() {
             const boot = () => {
-                // Orden: estado de auth primero (sidebar/router dependen de él)
-                if (window.AuthState) AuthState.init();
-                if (window.ThemeManager) ThemeManager.init();
-                if (window.TenantBranding) TenantBranding.init();
-                if (window.AppSidebar) AppSidebar.init();
-                if (window.AppRouter) AppRouter.init();
-                if (window.InventorySubnav) InventorySubnav.init();
-                if (window.AccountMenu) AccountMenu.init();
+                try {
+                    // Orden: estado de auth primero (sidebar/router dependen de él)
+                    if (window.AuthState) AuthState.init();
+                    if (window.ThemeManager) ThemeManager.init();
+                    if (window.TenantBranding) TenantBranding.init();
+                    if (window.AppSidebar) AppSidebar.init();
+                    if (window.AppRouter) AppRouter.init();
+                    if (window.InventorySubnav) InventorySubnav.init();
+                    if (window.AccountMenu) AccountMenu.init();
 
-                // Mobile sidebar toggle logic
-                const toggleBtn = document.getElementById('sidebar-toggle');
-                const overlay = document.getElementById('sidebar-overlay');
-                if (toggleBtn && window.AppSidebar) {
-                    toggleBtn.addEventListener('click', () => window.AppSidebar.toggle());
-                }
-                if (overlay && window.AppSidebar) {
-                    overlay.addEventListener('click', () => window.AppSidebar.close());
+                    // Mobile sidebar toggle logic
+                    const toggleBtn = document.getElementById('sidebar-toggle');
+                    const overlay = document.getElementById('sidebar-overlay');
+                    if (toggleBtn && window.AppSidebar) {
+                        toggleBtn.addEventListener('click', () => window.AppSidebar.toggle());
+                    }
+                    if (overlay && window.AppSidebar) {
+                        overlay.addEventListener('click', () => window.AppSidebar.close());
+                    }
+                } finally {
+                    revealShell();
                 }
             };
 
