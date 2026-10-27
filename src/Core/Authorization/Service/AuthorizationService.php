@@ -91,42 +91,97 @@ final class AuthorizationService
         return true;
     }
 
-    public function getUserPermissions(string $userId, string $tenantId): array
+    /**
+     * Permisos efectivos: roles directos + de grupo + temporales vigentes.
+     *
+     * v1.19.7 (bloque 3): `$recurso` acota los temporales a un recurso.
+     *  - null (todos los llamadores actuales: PermissionMiddleware, login,
+     *    /auth/me, escalada): sólo temporales con `recurso_id IS NULL`; los
+     *    concedidos para un recurso concreto ya no autorizan en todo.
+     *  - 'unidad_fisica:12345': los globales (autorizan siempre) + los de
+     *    ese recurso.
+     *
+     * Caché: UNA entrada por usuario (`auth:perms:{tenant}:{user}`, como
+     * siempre) que guarda los temporales separados por recurso en
+     * `por_recurso`; el ámbito se aplica al leer. Así `invalidateCache()`
+     * sigue purgando todo de una sola vez (RedisService no admite borrado
+     * por patrón) y revocar un temporal surte efecto inmediato en todos los
+     * ámbitos, sin esperar al TTL de 60 s.
+     */
+    public function getUserPermissions(string $userId, string $tenantId, ?string $recurso = null): array
     {
         $cacheKey = self::CACHE_PREFIX . $tenantId . ':' . $userId;
 
         $cached = $this->redis->get($cacheKey);
         if ($cached !== null) {
             $decoded = json_decode((string) $cached, true);
-            if (is_array($decoded) && isset($decoded['permisos']) && is_array($decoded['permisos'])) {
-                // Formato v1.13.0: incluye la caducidad del temporal más
-                // próximo. Si ya venció, la entrada se ignora y se
+            if (is_array($decoded)
+                && isset($decoded['permisos']) && is_array($decoded['permisos'])
+                && array_key_exists('por_recurso', $decoded)
+            ) {
+                // Formato v1.13.0/v1.19.7: incluye la caducidad del temporal
+                // más próximo. Si ya venció, la entrada se ignora y se
                 // recalcula (la expiración surte efecto sin esperar al TTL).
+                // Sin `por_recurso` (entrada escrita por una versión previa)
+                // se recalcula también: su `permisos` mezclaba los temporales
+                // de recurso con los globales.
                 $expiraEn = $decoded['expira_en'] ?? null;
                 if ($expiraEn === null || (string) $expiraEn > date('Y-m-d H:i:s')) {
-                    return $decoded['permisos'];
+                    return $this->applyScope($decoded, $recurso);
                 }
-            } elseif (is_array($decoded)) {
-                // Formato legado (array plano): se respeta; el TTL de 60 s
-                // lo retira solo.
+            } elseif (is_array($decoded) && !isset($decoded['permisos']) && $recurso === null) {
+                // Formato legado (array plano, sin ámbitos): se respeta sólo
+                // sin ámbito; con ámbito se ignora y se recalcula. El TTL de
+                // 60 s lo retira solo.
                 return $decoded;
             }
         }
 
+        $temporales = $this->getTemporaryPermissions($userId);
+
         $permisos = [];
         $permisos = array_merge($permisos, $this->getPermissionsFromDirectRoles($userId, $tenantId));
         $permisos = array_merge($permisos, $this->getPermissionsFromGroupRoles($userId, $tenantId));
-        $permisos = array_merge($permisos, $this->getTemporaryPermissions($userId));
+        $permisos = array_merge($permisos, $temporales['globales']);
 
         $permisos = array_values(array_unique($permisos));
         $permisos = $this->filterActivePermissions($permisos);
 
+        // Temporales de recurso, precacheados por ámbito: una lectura
+        // acotada no tiene por qué volver a la base de datos.
+        $porRecurso = [];
+        foreach ($temporales['por_recurso'] as $recursoId => $lista) {
+            $porRecurso[$recursoId] = $this->filterActivePermissions(
+                array_values(array_unique($lista))
+            );
+        }
+
         $this->redis->set($cacheKey, json_encode([
             'permisos' => $permisos,
+            'por_recurso' => $porRecurso,
             'expira_en' => $this->nearestTemporaryExpiry($userId),
         ]), self::CACHE_TTL);
 
-        return $permisos;
+        return $this->applyScope(['permisos' => $permisos, 'por_recurso' => $porRecurso], $recurso);
+    }
+
+    /**
+     * v1.19.7: aplica el ámbito a una entrada cacheada (o recién calculada):
+     * permisos sin ámbito (roles + temporales globales) más, si hay ámbito,
+     * los temporales concedidos para ese recurso.
+     *
+     * @param array{permisos: array<int, string>, por_recurso?: array<string, array<int, string>>} $entrada
+     * @return array<int, string>
+     */
+    private function applyScope(array $entrada, ?string $recurso): array
+    {
+        if ($recurso === null) {
+            return $entrada['permisos'];
+        }
+
+        $especificos = $entrada['por_recurso'][$recurso] ?? [];
+
+        return array_values(array_unique(array_merge($entrada['permisos'], $especificos)));
     }
 
     public function invalidateCache(string $userId, string $tenantId): void
@@ -549,9 +604,19 @@ final class AuthorizationService
         return array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'identificador');
     }
 
+    /**
+     * Temporales vigentes agrupados por ámbito (v1.19.7, bloque 3).
+     *
+     *  - `globales`: `recurso_id IS NULL`; autorizan en cualquier recurso.
+     *  - `por_recurso`: `recurso_id => identificadores`; sólo autorizan
+     *    sobre ese recurso (antes se mezclaban con los globales y un
+     *    temporal de "unidad_fisica:12345" servía para todo).
+     *
+     * @return array{globales: array<int, string>, por_recurso: array<string, array<int, string>>}
+     */
     private function getTemporaryPermissions(string $userId): array
     {
-        $sql = "SELECT p.identificador
+        $sql = "SELECT p.identificador, tp.recurso_id
                 FROM temporary_permissions tp
                 INNER JOIN permissions p ON p.id = tp.permission_id
                 WHERE tp.user_id = :uid
@@ -562,15 +627,30 @@ final class AuthorizationService
 
         $stmt = $this->db->getConnection()->prepare($sql);
         $stmt->execute(['uid' => $userId]);
-        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        return array_column($rows, 'identificador');
+        $globales = [];
+        $porRecurso = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $recurso = $row['recurso_id'];
+            if ($recurso === null || $recurso === '') {
+                $globales[] = (string) $row['identificador'];
+                continue;
+            }
+            $porRecurso[(string) $recurso][] = (string) $row['identificador'];
+        }
+
+        return ['globales' => $globales, 'por_recurso' => $porRecurso];
     }
 
     /**
      * Caducidad del permiso temporal vigente más próximo del usuario
      * (v1.13.0): se guarda en la caché para que la expiración de un
      * temporal invalide la entrada sin esperar al TTL de 60 s.
+     *
+     * v1.19.7: se calcula sobre TODOS los ámbitos (con o sin `recurso_id`),
+     * porque la entrada cacheada es única por usuario y sirve para todas
+     * las lecturas: si caduca un temporal de recurso, la entrada entera se
+     * recalcula y ese temporal desaparece de su ámbito.
      */
     private function nearestTemporaryExpiry(string $userId): ?string
     {

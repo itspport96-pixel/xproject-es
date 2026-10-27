@@ -14,8 +14,6 @@ interface UserRepositoryInterface
 
     public function getUserRoles(string $userId, string $tenantId): array;
 
-    public function getUserPermissions(string $userId, string $tenantId): array;
-
     public function isActive(string $userId, string $tenantId): bool;
 
     /**

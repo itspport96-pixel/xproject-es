@@ -120,6 +120,7 @@ final class UserPreferencesEndpointTest extends TestCase
         $this->pdo->exec(
             "CREATE TABLE temporary_permissions (
                 id TEXT PRIMARY KEY, user_id TEXT, permission_id TEXT,
+                recurso_id TEXT,
                 motivo TEXT, fecha_inicio TEXT, fecha_expiracion TEXT,
                 activo INTEGER DEFAULT 1
             )"
