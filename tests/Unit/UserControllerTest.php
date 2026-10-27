@@ -102,6 +102,40 @@ final class UserControllerTest extends PlatformControlSqliteTestCase
         return $estado === false ? null : (string) $estado;
     }
 
+    /**
+     * v1.19.7 (bloque 4): otorga `users.user.view` al emisor de los claims
+     * (rol CUSTOM con ese unico permiso, asignado directamente). Sin esto el
+     * listado se sirve proyectado, porque la ruta de GET /users es OR con
+     * groups.group.manage_members.
+     */
+    private function grantUserView(): void
+    {
+        $this->seedPermission('users.user.view');
+        $this->seedRole('role-view-pcs', 'VISOR', ['users.user.view']);
+        $this->assignRole(self::USER, 'role-view-pcs');
+    }
+
+    /** Fija el telefono y el ultimo login de la cuenta propia. */
+    private function setDetallePropio(string $telefono, string $ultimoLogin): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE users SET telefono = :tel, ultimo_login = :ul WHERE id = :id'
+        );
+        $stmt->execute(['tel' => $telefono, 'ul' => $ultimoLogin, 'id' => self::USER]);
+    }
+
+    /** @return array<string, mixed>|null fila del listado (data.data) */
+    private function filaDe(array $result, string $userId): ?array
+    {
+        foreach ($result['data']['data'] as $row) {
+            if ($row['id'] === $userId) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
     // ====================================================================
     // GET /users/{id}/roles — procedencia
     // ====================================================================
@@ -447,6 +481,7 @@ final class UserControllerTest extends PlatformControlSqliteTestCase
 
     public function testIndexNoExponeMfaSecretNiBackupCodes(): void
     {
+        $this->grantUserView();
         $this->enableMfa(self::USER);
         $_GET = ['per_page' => '50'];
 
@@ -460,6 +495,64 @@ final class UserControllerTest extends PlatformControlSqliteTestCase
 
         $this->assertNotNull($fila, 'La fila propia aparece en el listado');
         $this->assertArrayHasKey('mfa_habilitado', $fila);
+        $this->assertArrayNotHasKey('mfa_secret', $fila);
+        $this->assertArrayNotHasKey('mfa_backup_codes', $fila);
+        $this->assertArrayNotHasKey('password', $fila);
+    }
+
+    // ====================================================================
+    // GET /users — proyeccion de campos de detalle (v1.19.7, bloque 4)
+    // ====================================================================
+
+    public function testIndexSinUsersUserViewProyectaTelefonoMfaYUltimoLogin(): void
+    {
+        $this->enableMfa(self::USER);
+        $this->setDetallePropio('600111222', '2026-01-01 10:00:00');
+        $_GET = ['per_page' => '50'];
+
+        $result = $this->controller->index();
+
+        $this->assertSame(200, $result['status']);
+
+        $fila = $this->filaDe($result, self::USER);
+        $this->assertNotNull($fila, 'La fila aparece en el listado');
+        $this->assertArrayNotHasKey('telefono', $fila, 'Sin users.user.view el telefono no sale');
+        $this->assertArrayNotHasKey(
+            'mfa_habilitado',
+            $fila,
+            'Sin users.user.view el indicador MFA no sale'
+        );
+        $this->assertArrayNotHasKey('ultimo_login', $fila, 'Sin users.user.view el ultimo login no sale');
+
+        // El resto de la fila se conserva: es lo que la UI necesita para
+        // pintar el listado (incluida la via de grupos que abre la ruta OR).
+        $this->assertSame(self::USER, $fila['id']);
+        foreach (['email', 'nombre', 'apellido', 'estado', 'tenant_id', 'roles'] as $campo) {
+            $this->assertArrayHasKey($campo, $fila, "El campo {$campo} sigue en el listado");
+        }
+    }
+
+    public function testIndexConUsersUserViewDevuelveLosCamposDeDetalle(): void
+    {
+        $this->grantUserView();
+        $this->enableMfa(self::USER);
+        $this->setDetallePropio('600111222', '2026-01-01 10:00:00');
+        $_GET = ['per_page' => '50'];
+
+        $result = $this->controller->index();
+
+        $this->assertSame(200, $result['status']);
+
+        $fila = $this->filaDe($result, self::USER);
+        $this->assertNotNull($fila, 'La fila aparece en el listado');
+        $this->assertArrayHasKey('telefono', $fila, 'Con users.user.view el telefono sale');
+        $this->assertSame('600111222', $fila['telefono']);
+        $this->assertArrayHasKey('mfa_habilitado', $fila);
+        $this->assertSame(1, (int) $fila['mfa_habilitado'], 'El indicador MFA sigue para la UI');
+        $this->assertArrayHasKey('ultimo_login', $fila);
+        $this->assertSame('2026-01-01 10:00:00', $fila['ultimo_login']);
+
+        // Sigue sin exponer material sensible en el listado.
         $this->assertArrayNotHasKey('mfa_secret', $fila);
         $this->assertArrayNotHasKey('mfa_backup_codes', $fila);
         $this->assertArrayNotHasKey('password', $fila);

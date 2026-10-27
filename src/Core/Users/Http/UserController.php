@@ -64,6 +64,20 @@ final class UserController
 
         $result = $this->userService->findAll($tenantId, $filters);
 
+        // v1.19.7 (bloque 4): la ruta es OR (users.user.view |
+        // groups.group.manage_members), asi que quien entra por la via de
+        // grupos ve el listado. En esa variante se proyectan los campos de
+        // detalle (telefono, mfa_habilitado, ultimo_login) y se conserva lo
+        // demas (id, email, nombre, estado, roles...), que es lo que la UI
+        // de grupos necesita. checkMfa=false: el MFA de sesion ya lo exigio
+        // el middleware; aqui solo interesa si el permiso esta concedido.
+        $puedeVerDetalle = $this->authz->hasPermission(
+            (string) $claims['user_id'],
+            (string) $tenantId,
+            'users.user.view',
+            false
+        );
+
         // v1.13.3: columna Roles de la tabla. Misma fuente que
         // GET /users/{id}/roles (origen direct/group/temporary); sólo lo que
         // pinta la UI (sin el JSON de permisos, que multiplaría el payload).
@@ -77,6 +91,9 @@ final class UserController
                 ],
                 $this->authz->getUserRolesWithOrigin((string) $row['id'], (string) $tenantId)
             );
+            if (!$puedeVerDetalle) {
+                unset($row['telefono'], $row['mfa_habilitado'], $row['ultimo_login']);
+            }
         }
         unset($row);
 
