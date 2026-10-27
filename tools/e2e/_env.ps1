@@ -91,6 +91,22 @@ try {
     # ------------------------------------------------------------- mysql.exe
     if ($env:PATH -notlike '*C:\xampp\mysql\bin*') { $env:PATH = 'C:\xampp\mysql\bin;' + $env:PATH }
 
+    # ------------------------------------------------ time_zone del servidor
+    # v1.19.7 (desviaciones (a) e (i)): la app fija UTC POR CONEXION
+    # (DB_TIME_ZONE=+00:00 del .env -> DatabaseService), pero los mysql.exe
+    # de los scripts corren con la sesion del servidor (SYSTEM = la zona
+    # local, Europe/Paris): NOW() salia 1 h por delante de la app y los
+    # TIMESTAMP se leian con el desfase local, asi que los checks que
+    # comparaban lo guardado con lo que espera la app salian desviados
+    # (e2e-v1130 caducidad del temporal y e2e-v180 hora_entrega_esperada).
+    # El MariaDB de XAMPP NO admite 'time_zone' en my.ini (arranque con
+    # "unknown variable", comprobado) ni SET PERSIST (error 1064), de modo
+    # que se fija el GLOBAL aqui: lo heredan las sesiones nuevas, que son
+    # las que usan los scripts, y vuelve a aplicarse en cada ejecucion aunque
+    # MySQL se reinicie. No toca a la app (esta fija su propia sesion) ni a
+    # los datos: es un ajuste de lectura/escritura de las consultas crudas.
+    try { $null = & mysql.exe -u root -e "SET GLOBAL time_zone='+00:00'" 2>$null } catch { }
+
     # ----------------------------------------------------------- redis-cli
     # v1.19.2: la ruta del redis-cli es de la MAQUINA, no del repo (aqui la
     # instalacion portable vive en C:\redis, y otras maquinas pueden usar
