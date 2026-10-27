@@ -1455,7 +1455,7 @@
         "discrepancies_title": "Écarts ({count})",
         "select_action": "Sélectionner...",
         "justification_placeholder": "Obligatoire pour Justifier",
-        "reconcile_hint": "AJUSTER met la quantité à jour avec la valeur trouvée ; JUSTIFIER laisse l'écart sans toucher au stock.",
+        "reconcile_hint": "AJUSTAR met la quantité à jour avec la valeur trouvée ; JUSTIFICAR laisse l'écart sans toucher au stock.",
         "adjustments_title": "Ajustements appliqués ({count})"
       },
       "modals": {
@@ -1495,8 +1495,8 @@
         "stale_field_error": "Justifiez l'écart ou lancez un nouveau comptage.",
         "stale_title": "Feuille théorique obsolète",
         "stale_message": "Unité {unidad} : attendue {esperada}, actuelle {actual}. Passez la ligne en Justifier ou lancez un nouveau comptage.",
-        "adjustment_state_field_error": "Enregistrez l'action JUSTIFIER avec sa justification.",
-        "justification_required": "L'action JUSTIFIER requiert une justification.",
+        "adjustment_state_field_error": "Enregistrez l'action JUSTIFICAR avec sa justification.",
+        "justification_required": "L'action JUSTIFICAR requiert une justification.",
         "error_actions_required": "Choisissez Ajuster ou Justifier sur au moins un écart en attente.",
         "reconciled_title": "Écarts réconciliés",
         "reconciled_message": "Actions appliquées : {acciones}.",
@@ -1666,10 +1666,10 @@
           "context_label": "Incident",
           "requires_result": "Nécessite un résultat d'inventaire",
           "estado_label": "Statut final",
-          "estado_hint": "Resuelta clôt l'incident ; No resuelto le laisse clos sans solution.",
+          "estado_hint": "Résolu clôt l'incident ; Non résolu le laisse clos sans solution.",
           "resultado_label": "Résultat d'inventaire",
           "select_resultado": "Sélectionnez un résultat",
-          "resultado_hint": "Encontrada rend l'unité à DISPONIBLE ; No encontrada la marque PERDIDA.",
+          "resultado_hint": "Trouvée rend l'unité à DISPONIBLE ; Non trouvée la marque PERDIDA.",
           "ubicacion_destino_label": "Emplacement de destination",
           "previous_location": "L'emplacement précédent",
           "loading_locations": "Chargement des emplacements...",
@@ -2046,7 +2046,7 @@
       "save": "Enregistrer les permissions",
       "load_error": "Les permissions du rôle n'ont pas pu être chargées.",
       "summary": "{count} permissions sélectionnées ({critical} critiques)",
-      "critical_alert": "Vous êtes sur le point d'enregistrer {count} permissions CRITIQUES : vérifiez-les avant de confirmer."
+      "critical_alert": "Vous êtes sur le point d'enregistrer {count} permissions CRITICAL : vérifiez-les avant de confirmer."
     },
     "errors": {
       "load": "Les rôles n'ont pas pu être chargés.",
@@ -2449,10 +2449,10 @@
       "count_unit_not_in_sheet": "L'unité physique '{unitId}' n'est pas dans la liste théorique du comptage.",
       "count_results_required": "Le comptage doit enregistrer au moins une unité.",
       "count_discrepancy_already_resolved": "L'écart de l'unité physique '{unitId}' a déjà une action enregistrée.",
-      "count_adjustment_state_not_allowed": "L'unité physique '{unitId}' est à '{estado}' : l'ajustement automatique n'est autorisé que en DISPONIBLE ou DAÑADO. Enregistrez l'action JUSTIFIER avec votre justification.",
+      "count_adjustment_state_not_allowed": "L'unité physique '{unitId}' est à '{estado}' : l'ajustement automatique n'est autorisé que en DISPONIBLE ou DAÑADO. Enregistrez l'action JUSTIFICAR avec votre justification.",
       "count_invalid_action": "Action de réconciliation inconnue : '{accion}'. Valides : AJUSTAR, JUSTIFICAR.",
       "count_justification_required": "L'action JUSTIFICAR requiert une `justificacion` obligatoire.",
-      "count_stale_quantity": "L'unité physique '{unitId}' ne correspond plus à la feuille théorique du comptage : cantidad_esperada {expected}, quantité actuelle {current}. Pas d'ajustement sur des données obsolètes : enregistrez l'action JUSTIFIER avec justification ou lancez un nouveau comptage."
+      "count_stale_quantity": "L'unité physique '{unitId}' ne correspond plus à la feuille théorique du comptage : cantidad_esperada {expected}, quantité actuelle {current}. Pas d'ajustement sur des données obsolètes : enregistrez l'action JUSTIFICAR avec justification ou lancez un nouveau comptage."
     }
   }
 }

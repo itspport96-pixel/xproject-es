@@ -1666,10 +1666,10 @@
           "context_label": "Incidência",
           "requires_result": "Requer resultado de inventário",
           "estado_label": "Estado final",
-          "estado_hint": "Resuelta encerra a incidência; No resuelto deixa-a encerrada sem solução.",
+          "estado_hint": "Resolvida encerra a incidência; Não resolvida deixa-a encerrada sem solução.",
           "resultado_label": "Resultado do inventário",
           "select_resultado": "Selecione um resultado",
-          "resultado_hint": "Encontrada devolve a unidade a DISPONIBLE; No encontrada marca-a como PERDIDA.",
+          "resultado_hint": "Encontrada devolve a unidade a DISPONIBLE; Não encontrada marca-a como PERDIDA.",
           "ubicacion_destino_label": "Localização de destino",
           "previous_location": "A localização anterior",
           "loading_locations": "A carregar localizações...",
@@ -2046,7 +2046,7 @@
       "save": "Guardar permissões",
       "load_error": "Não foi possível carregar as permissões da função.",
       "summary": "{count} permissões selecionadas ({critical} críticas)",
-      "critical_alert": "Vais guardar {count} permissões CRÍTICAS: revê-as antes de confirmar."
+      "critical_alert": "Vais guardar {count} permissões CRITICAL: revê-as antes de confirmar."
     },
     "errors": {
       "load": "Não foi possível carregar as funções.",
