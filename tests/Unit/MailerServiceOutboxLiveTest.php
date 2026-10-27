@@ -66,7 +66,6 @@ final class MailerServiceOutboxLiveTest extends TestCase
         // unicamente ese por reflection (mismo patron que TenantSettingsTest).
         $tenantService = (new ReflectionClass(TenantService::class))->newInstanceWithoutConstructor();
         $prop = new ReflectionProperty(TenantService::class, 'tenants');
-        $prop->setAccessible(true);
         $prop->setValue($tenantService, new TenantRepository($this->db));
 
         $this->mailer = new MailerService($tenantService);

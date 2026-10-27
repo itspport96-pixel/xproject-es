@@ -94,7 +94,6 @@ final class AdminResetLiveTest extends TestCase
         // sobreescribiendo sendMail, punto unico de salida).
         $tenantService = (new ReflectionClass(TenantService::class))->newInstanceWithoutConstructor();
         $prop = new ReflectionProperty(TenantService::class, 'tenants');
-        $prop->setAccessible(true);
         $prop->setValue($tenantService, new TenantRepository($this->db));
         $mailer = new MailerService($tenantService);
 

@@ -34,7 +34,6 @@ final class InventoryDashboardRoutesTest extends TestCase
         $router->loadRoutes(dirname(__DIR__, 2) . '/src/Modules/Inventory/routes.php');
 
         $prop = new \ReflectionProperty(Router::class, 'routes');
-        $prop->setAccessible(true);
         $this->routes = $prop->getValue($router);
     }
 

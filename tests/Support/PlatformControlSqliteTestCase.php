@@ -44,14 +44,27 @@ abstract class PlatformControlSqliteTestCase extends TestCase
             $this->markTestSkipped('ext-pdo_sqlite no disponible');
         }
 
-        $this->pdo = new PDO('sqlite::memory:');
+        // PHP 8.5 depreca PDO::sqliteCreateFunction(); su sustituto
+        // Pdo\Sqlite::createFunction() solo existe desde 8.5 (el composer
+        // fija >= 8.4), asi que se elige el constructor en tiempo de ejecucion.
+        $this->pdo = class_exists(\Pdo\Sqlite::class)
+            ? new \Pdo\Sqlite('sqlite::memory:')
+            : new PDO('sqlite::memory:');
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $this->pdo->sqliteCreateFunction(
-            'now',
-            static fn(): string => gmdate('Y-m-d H:i:s'),
-            0
-        );
+        if ($this->pdo instanceof \Pdo\Sqlite) {
+            $this->pdo->createFunction(
+                'now',
+                static fn(): string => gmdate('Y-m-d H:i:s'),
+                0
+            );
+        } else {
+            $this->pdo->sqliteCreateFunction(
+                'now',
+                static fn(): string => gmdate('Y-m-d H:i:s'),
+                0
+            );
+        }
 
         $this->createSchema();
 

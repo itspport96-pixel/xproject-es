@@ -48,7 +48,6 @@ final class InventoryServiceProviderTest extends TestCase
     private function registeredKeys(Container $container): array
     {
         $prop = new \ReflectionProperty(Container::class, 'bindings');
-        $prop->setAccessible(true);
 
         return array_keys($prop->getValue($container));
     }

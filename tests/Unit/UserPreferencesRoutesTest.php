@@ -35,7 +35,6 @@ final class UserPreferencesRoutesTest extends TestCase
         $router->loadRoutes(BASE_PATH . '/routes/api.php');
 
         $prop = new \ReflectionProperty(Router::class, 'routes');
-        $prop->setAccessible(true);
         $this->routes = $prop->getValue($router);
     }
 

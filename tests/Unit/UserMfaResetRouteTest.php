@@ -36,7 +36,6 @@ final class UserMfaResetRouteTest extends TestCase
         $router->loadRoutes(BASE_PATH . '/routes/api.php');
 
         $prop = new \ReflectionProperty(Router::class, 'routes');
-        $prop->setAccessible(true);
 
         foreach ($prop->getValue($router) as $route) {
             if (

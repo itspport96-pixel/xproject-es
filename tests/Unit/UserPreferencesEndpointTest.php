@@ -50,7 +50,11 @@ final class UserPreferencesEndpointTest extends TestCase
 
         Container::setInstance(new Container());
 
-        $this->pdo = new PDO('sqlite::memory:');
+        // PHP 8.5 depreca PDO::sqliteCreateFunction(); Pdo\Sqlite::createFunction
+        // solo existe desde 8.5 (composer fija >= 8.4), se elige en ejecucion.
+        $this->pdo = class_exists(\Pdo\Sqlite::class)
+            ? new \Pdo\Sqlite('sqlite::memory:')
+            : new PDO('sqlite::memory:');
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
@@ -74,11 +78,19 @@ final class UserPreferencesEndpointTest extends TestCase
         );
 
         // Función NOW() de MySQL para las consultas de AuthorizationService.
-        $this->pdo->sqliteCreateFunction(
-            'now',
-            static fn(): string => gmdate('Y-m-d H:i:s'),
-            0
-        );
+        if ($this->pdo instanceof \Pdo\Sqlite) {
+            $this->pdo->createFunction(
+                'now',
+                static fn(): string => gmdate('Y-m-d H:i:s'),
+                0
+            );
+        } else {
+            $this->pdo->sqliteCreateFunction(
+                'now',
+                static fn(): string => gmdate('Y-m-d H:i:s'),
+                0
+            );
+        }
 
         // Tablas que consulta /auth/me (v1.12.1: roles con origen, permisos
         // efectivos y permisos temporales se calculan en cada peticion).
