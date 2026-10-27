@@ -13,6 +13,7 @@ use App\Core\Tenants\Repository\TenantRepositoryInterface;
 use App\Core\Users\Service\UserService;
 use App\Modules\Inventory\Application\Services\TransitLocationService;
 use App\Shared\Container\Container;
+use App\Shared\Security\PasswordPolicy;
 use App\Shared\Services\DatabaseService;
 use App\Shared\Services\RedisService;
 
@@ -666,8 +667,18 @@ final class TenantService
             throw (new TenantException('Email del admin inválido', 400))->withMessageKey('tenants.admin_email_invalid');
         }
 
-        if (strlen((string) $data['password']) < 8) {
-            throw (new TenantException('Password del admin debe tener mínimo 8 caracteres', 400))->withMessageKey('tenants.admin_password_min_length');
+        // v1.19.7 (desviacion de 1.19.6): la creacion del tenant exigia 8
+        // mientras el resto de la app exige 9 desde 1.19.6 (PasswordPolicy y
+        // el frontend de cambio de password). La longitud se lee de la
+        // constante para que no vuelvan a divergir. SOLO la longitud: el
+        // resto de la politica (mayuscula, digito, caracter especial y
+        // historial de contrasenas) sigue sin aplicarse en el alta de tenant,
+        // reportado como pendiente aparte.
+        if (strlen((string) $data['password']) < PasswordPolicy::MIN_LENGTH) {
+            throw (new TenantException(
+                'Password del admin debe tener mínimo ' . PasswordPolicy::MIN_LENGTH . ' caracteres',
+                400
+            ))->withMessageKey('tenants.admin_password_min_length');
         }
     }
 

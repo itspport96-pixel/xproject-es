@@ -2349,7 +2349,7 @@
       "nombre_interno_already_exists": "The internal name '{nombre}' is already registered.",
       "nombre_interno_invalid": "Invalid internal name '{nombre}'. Use lowercase, numbers, hyphens or underscores, no spaces.",
       "admin_email_invalid": "Invalid admin email",
-      "admin_password_min_length": "Admin password must be at least 8 characters",
+      "admin_password_min_length": "Admin password must be at least 9 characters",
       "tenant_id_required": "tenant_id cannot be empty.",
       "context_not_initialized": "The tenant context has not been initialized.",
       "email_contacto_invalid": "The contact email is invalid.",

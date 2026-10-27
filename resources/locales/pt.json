@@ -2349,7 +2349,7 @@
       "nombre_interno_already_exists": "O nome interno '{nombre}' já está registado.",
       "nombre_interno_invalid": "O nome interno '{nombre}' é inválido. Usa minúsculas, números, hífenes ou sublinhado, sem espaços.",
       "admin_email_invalid": "Email do admin inválido",
-      "admin_password_min_length": "A palavra-passe do admin deve ter no mínimo 8 caracteres",
+      "admin_password_min_length": "A palavra-passe do admin deve ter no mínimo 9 caracteres",
       "tenant_id_required": "O tenant_id não pode ficar vazio.",
       "context_not_initialized": "O contexto de tenant não foi inicializado.",
       "email_contacto_invalid": "O email de contacto é inválido.",

@@ -2349,7 +2349,7 @@
       "nombre_interno_already_exists": "Le nom interne '{nombre}' est déjà enregistré.",
       "nombre_interno_invalid": "Le nom interne '{nombre}' est invalide. Utilisez des minuscules, des chiffres, des tirets ou un tiret bas, sans espaces.",
       "admin_email_invalid": "E-mail d'administrateur invalide",
-      "admin_password_min_length": "Le mot de passe de l'admin doit contenir au moins 8 caractères",
+      "admin_password_min_length": "Le mot de passe de l'admin doit contenir au moins 9 caractères",
       "tenant_id_required": "Le tenant_id ne peut pas être vide.",
       "context_not_initialized": "Le contexte de tenant n'a pas été initialisé.",
       "email_contacto_invalid": "L'e-mail de contact est invalide.",
