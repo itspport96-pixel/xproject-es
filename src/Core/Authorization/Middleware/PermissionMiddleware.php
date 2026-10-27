@@ -63,12 +63,17 @@ final class PermissionMiddleware
         $userId = (string) $claims['user_id'];
         $tenantId = (string) $claims['tenant_id'];
 
+        // v1.19.7: MFA verificado por la sesion, si el token lo trae. null
+        // cuando el claim no existe (token antiguo) y AuthorizationService
+        // aplica la tolerancia de transicion.
+        $mfaSesion = array_key_exists('mfa', $claims) ? (bool) $claims['mfa'] : null;
+
         // Verificar si tiene AL MENOS UNO de los permisos (OR lógico)
         $hasPermission = false;
         $missingPermissions = [];
 
         foreach ($this->requiredPermissions as $permission) {
-            if ($this->auth->hasPermission($userId, $tenantId, $permission)) {
+            if ($this->auth->hasPermission($userId, $tenantId, $permission, true, $mfaSesion)) {
                 $hasPermission = true;
                 break;
             }
@@ -77,6 +82,20 @@ final class PermissionMiddleware
 
         if (!$hasPermission) {
             $permissionList = implode(', ', $this->requiredPermissions);
+
+            // v1.19.7: si el permiso existe para el usuario pero la sesion no
+            // verifico MFA, es otra denegacion (mismo 403, clave distinta para
+            // el audit y la UI). Con checkMfa=false se comprueba el permiso a
+            // secas; sin ese contexto el 403 sigue siendo el de siempre.
+            if ($mfaSesion === false
+                && $this->auth->hasAnyPermission($userId, $tenantId, $this->requiredPermissions, false)
+            ) {
+                throw (new HttpException(
+                    "Acceso denegado: se requiere una sesión verificada con MFA para: {$permissionList}",
+                    403
+                ))->withMessageKey('auth.mfa_session_required');
+            }
+
             throw new HttpException(
                 "Acceso denegado: se requiere uno de los siguientes permisos: {$permissionList}",
                 403

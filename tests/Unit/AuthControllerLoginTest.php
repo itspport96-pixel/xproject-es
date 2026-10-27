@@ -38,6 +38,7 @@ final class AuthControllerLoginTest extends PlatformControlSqliteTestCase
 
     private AuthController $controller;
     private LoginInMemoryRedisService $redis;
+    private array $tokenClaims = [];
     private mixed $prevUri;
     private mixed $prevRemoteAddr;
 
@@ -63,8 +64,13 @@ final class AuthControllerLoginTest extends PlatformControlSqliteTestCase
         $this->redis = new LoginInMemoryRedisService();
         Container::getInstance()->instance('redis', $this->redis);
 
+        // Captura de claims emitidos (v1.19.7: 'mfa' en el access token).
+        $this->tokenClaims = [];
         $jwt = $this->createStub(JwtService::class);
-        $jwt->method('generateToken')->willReturn('access-token');
+        $jwt->method('generateToken')->willReturnCallback(function (array $claims): string {
+            $this->tokenClaims[] = $claims;
+            return 'access-token';
+        });
         $jwt->method('generateRefreshToken')->willReturn('refresh-token');
         $jwt->method('getExpiration')->willReturn(3600);
 
@@ -199,6 +205,47 @@ final class AuthControllerLoginTest extends PlatformControlSqliteTestCase
 
         $this->assertSame(429, $still['status'], 'El bloqueo se aplica antes de validar la contraseña');
     }
+
+    // ====================================================================
+    // Claim 'mfa' y marca de sesión (v1.19.7)
+    // ====================================================================
+
+    public function testLoginSinMfaEmiteElClaimMfaEnFalsoYNoMarcaLaSesion(): void
+    {
+        $ok = $this->login(['password' => self::PASSWORD]);
+
+        $this->assertSame(200, $ok['status']);
+        $claims = end($this->tokenClaims);
+        $this->assertIsArray($claims);
+        $this->assertArrayHasKey('mfa', $claims, 'El access token lleva el claim mfa');
+        $this->assertFalse($claims['mfa'], 'Cuenta sin MFA => claim en false');
+        $this->assertNotNull($claims['fam']);
+        $this->assertNull(
+            $this->redis->get('session:mfa:' . $claims['fam']),
+            'Sin MFA no se crea la marca de sesión'
+        );
+    }
+
+    public function testLogoutBorraLaMarcaMfaDeLaSesion(): void
+    {
+        $this->redis->set('session:mfa:fam-mfa', 1);
+
+        $result = $this->controller->logout([
+            'user' => [
+                'user_id' => self::USER,
+                'tenant_id' => self::TENANT,
+                'fam' => 'fam-mfa',
+            ],
+            'ip' => '127.0.0.1',
+            'user_agent' => 'PHPUnit',
+        ]);
+
+        $this->assertSame(200, $result['status']);
+        $this->assertNull(
+            $this->redis->get('session:mfa:fam-mfa'),
+            'Cerrar la sesión retira la marca de MFA'
+        );
+    }
 }
 
 /**
@@ -232,6 +279,12 @@ final class LoginInMemoryRedisService extends RedisService
     public function get(string $key): mixed
     {
         return $this->values[$key] ?? null;
+    }
+
+    public function delete(string $key): bool
+    {
+        unset($this->values[$key]);
+        return true;
     }
 
     public function ping(): bool

@@ -39,26 +39,31 @@ final class AuthorizationService
         $this->redis = $redis ?? $container->get(RedisService::class);
     }
 
-    public function hasPermission(string $userId, string $tenantId, string $permissionId, bool $checkMfa = true): bool
+    /**
+     * v1.19.7: $mfaSesion indica si la sesion (login) verifico MFA: true/false
+     * desde el claim 'mfa' del token, o null cuando no hay contexto (tokens
+     * antiguos, llamadas internas) y no se exige nada por eso.
+     */
+    public function hasPermission(string $userId, string $tenantId, string $permissionId, bool $checkMfa = true, ?bool $mfaSesion = null): bool
     {
         $permisos = $this->getUserPermissions($userId, $tenantId);
 
         if (in_array($permissionId, $permisos, true)) {
-            return $this->validateMfaIfNeeded($userId, $permissionId, $checkMfa);
+            return $this->validateMfaIfNeeded($userId, $permissionId, $checkMfa, $mfaSesion);
         }
 
         foreach ($permisos as $perm) {
             if ($this->matchesPattern($permissionId, $perm)) {
-                return $this->validateMfaIfNeeded($userId, $permissionId, $checkMfa);
+                return $this->validateMfaIfNeeded($userId, $permissionId, $checkMfa, $mfaSesion);
             }
         }
 
         return false;
     }
 
-    public function requirePermission(string $userId, string $tenantId, string $permissionId, bool $checkMfa = true): void
+    public function requirePermission(string $userId, string $tenantId, string $permissionId, bool $checkMfa = true, ?bool $mfaSesion = null): void
     {
-        if (!$this->hasPermission($userId, $tenantId, $permissionId, $checkMfa)) {
+        if (!$this->hasPermission($userId, $tenantId, $permissionId, $checkMfa, $mfaSesion)) {
             throw new AuthorizationException(
                 "El usuario '{$userId}' no tiene el permiso '{$permissionId}' en el tenant '{$tenantId}'.",
                 403
@@ -66,20 +71,20 @@ final class AuthorizationService
         }
     }
 
-    public function hasAnyPermission(string $userId, string $tenantId, array $permissionIds, bool $checkMfa = true): bool
+    public function hasAnyPermission(string $userId, string $tenantId, array $permissionIds, bool $checkMfa = true, ?bool $mfaSesion = null): bool
     {
         foreach ($permissionIds as $pid) {
-            if ($this->hasPermission($userId, $tenantId, $pid, $checkMfa)) {
+            if ($this->hasPermission($userId, $tenantId, $pid, $checkMfa, $mfaSesion)) {
                 return true;
             }
         }
         return false;
     }
 
-    public function hasAllPermissions(string $userId, string $tenantId, array $permissionIds, bool $checkMfa = true): bool
+    public function hasAllPermissions(string $userId, string $tenantId, array $permissionIds, bool $checkMfa = true, ?bool $mfaSesion = null): bool
     {
         foreach ($permissionIds as $pid) {
-            if (!$this->hasPermission($userId, $tenantId, $pid, $checkMfa)) {
+            if (!$this->hasPermission($userId, $tenantId, $pid, $checkMfa, $mfaSesion)) {
                 return false;
             }
         }
@@ -609,14 +614,33 @@ final class AuthorizationService
         return array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'identificador');
     }
 
-    private function validateMfaIfNeeded(string $userId, string $permissionId, bool $checkMfa): bool
+    /**
+     * v1.19.7: la exigencia de MFA pasa del estado de la cuenta a la sesion.
+     *
+     * - requiere_mfa (flag del permiso): estricto; la cuenta debe tener MFA
+     *   habilitado (semantica anterior, sin cambios).
+     * - criticidad CRITICAL: exige MFA aunque requiere_mfa este a 0 (la regla
+     *   es por criticidad, asi que cualquier permiso nuevo CRITICAL la hereda
+     *   sin tocar su seeder ni su controller).
+     * - Cuenta sin MFA y permiso solo CRITICAL: se tolera (fase 1; hoy ninguna
+     *   cuenta tiene MFA, no se bloquea ningun flujo).
+     * - Sin contexto de sesion ($mfaSesion null: token antiguo o llamada
+     *   interna): se tolera. Con contexto, manda el login: la sesion que no
+     *   verifico MFA no ejecuta la accion.
+     */
+    private function validateMfaIfNeeded(string $userId, string $permissionId, bool $checkMfa, ?bool $mfaSesion = null): bool
     {
         if (!$checkMfa) {
             return true;
         }
 
         $permission = $this->permissions->findByIdentificador($permissionId);
-        if ($permission === null || !$permission->requiresMfa()) {
+        if ($permission === null) {
+            return true;
+        }
+
+        $requiereMfa = $permission->requiresMfa();
+        if (!$requiereMfa && !$permission->isCritical()) {
             return true;
         }
 
@@ -625,7 +649,21 @@ final class AuthorizationService
         $stmt->execute(['uid' => $userId]);
         $mfaHabilitado = (bool) $stmt->fetchColumn();
 
-        return $mfaHabilitado;
+        if ($requiereMfa) {
+            // Estricto: la cuenta sin MFA no puede ejercer el permiso.
+            if (!$mfaHabilitado) {
+                return false;
+            }
+        } elseif (!$mfaHabilitado) {
+            // Tolerancia de fase 1 para los CRITICAL.
+            return true;
+        }
+
+        if ($mfaSesion === null) {
+            return true;
+        }
+
+        return $mfaSesion;
     }
 
     private function matchesPattern(string $required, string $granted): bool

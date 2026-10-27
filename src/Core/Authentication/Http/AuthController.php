@@ -235,6 +235,17 @@ class AuthController
         $sessionId = $this->generateUuid();
         $refreshJti = $this->generateUuid();
 
+        // v1.19.7: MFA verificado en este login. Si la cuenta no tiene MFA
+        // habilitado se llega aqui sin haber exigido codigo (arriba devuelve
+        // mfa_required con 200) y el claim queda en false: AuthorizationService
+        // aplica entonces la tolerancia de fase 1 para no bloquear flujos.
+        $mfaVerificado = !empty($user['mfa_habilitado'])
+            && ($user['mfa_metodo'] ?? '') === 'TOTP';
+
+        // v1.19.7: 'mfa' certifica que esta sesion verifico MFA en el login.
+        // PermissionMiddleware lo extrae de los claims y se lo pasa a
+        // AuthorizationService.hasPermission(), unico punto que decide si el
+        // permiso (CRITICAL o requiere_mfa) exige MFA de sesion.
         $accessToken = $this->jwt->generateToken([
             'user_id' => $user['id'],
             'email' => $user['email'],
@@ -242,6 +253,7 @@ class AuthController
             'roles' => $roles,
             'jti' => $this->generateUuid(),
             'fam' => $sessionId,
+            'mfa' => $mfaVerificado,
         ]);
 
         $refreshToken = $this->jwt->generateRefreshToken([
@@ -252,7 +264,7 @@ class AuthController
         ]);
 
         $this->storeRefreshToken($refreshJti, $user['id'], $tenantId, $sessionId);
-        $this->touchSession($sessionId);
+        $this->touchSession($sessionId, $mfaVerificado);
         $this->users->updateLastLogin($user['id']);
 
         $this->auditLogin($request, $tenantId, (string) $user['id'], [
@@ -352,7 +364,11 @@ class AuthController
         }
 
         $newRefreshJti = $this->rotateRefreshToken($refreshJti, $sessionId, $userId, $tenantId);
-        $this->touchSession($sessionId);
+        // v1.19.7: al refrescar se reemite el MFA de la sesion (si hubo) y se
+        // renueva su TTL; si Redis perdio el flag (reinicio), el claim sale en
+        // false y la accion CRITICAL queda denegada hasta re-login (fail-closed).
+        $mfaSesion = $this->sessionMfaVerified($sessionId);
+        $this->touchSession($sessionId, $mfaSesion);
 
         // v1.12.1: los claims del nuevo access token reflejan los roles
         // efectivos vigentes (directos + de grupo), no los del login.
@@ -367,6 +383,7 @@ class AuthController
                     'roles' => $roles,
                     'jti' => $this->generateUuid(),
                     'fam' => $sessionId,
+                    'mfa' => $mfaSesion,
                 ]),
                 'refresh_token' => $this->jwt->generateRefreshToken([
                     'user_id' => $userId,
@@ -836,14 +853,35 @@ class AuthController
         if ($accessTtl > 0) {
             Container::getInstance()->get('redis')->set('session:act:' . $sessionId, 0, $accessTtl);
         }
+        // v1.19.7: al cerrar la sesion desaparece tambien su marca de MFA.
+        Container::getInstance()->get('redis')->delete('session:mfa:' . $sessionId);
     }
 
-    private function touchSession(string $sessionId): void
+    private function touchSession(string $sessionId, ?bool $mfaVerificado = null): void
     {
         $timeout = (int) ($_ENV['SESSION_TIMEOUT'] ?? 1800);
         if ($timeout > 0) {
             Container::getInstance()->get('redis')->set('session:act:' . $sessionId, time(), $timeout);
         }
+
+        // v1.19.7: marca de MFA de la sesion, con la misma vida que el
+        // refresh token (la sesión solo puede revalidarse mientras viva).
+        if ($mfaVerificado === true) {
+            $refreshTtl = (int) ($_ENV['JWT_REFRESH_EXPIRATION'] ?? 604800);
+            Container::getInstance()->get('redis')->set('session:mfa:' . $sessionId, 1, $refreshTtl > 0 ? $refreshTtl : null);
+        }
+    }
+
+    /**
+     * v1.19.7: true si esta sesion verifico MFA en su login y la marca sigue
+     * viva en Redis. false tambien cuando Redis esta caido: el claim sale en
+     * false y las acciones que exigen MFA quedan denegadas (fail-closed).
+     */
+    private function sessionMfaVerified(string $sessionId): bool
+    {
+        $value = Container::getInstance()->get('redis')->get('session:mfa:' . $sessionId);
+
+        return $value === true || $value === 1 || $value === '1';
     }
 
     private function generateUuid(): string

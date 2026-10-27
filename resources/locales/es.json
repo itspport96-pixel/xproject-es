@@ -2254,6 +2254,7 @@
       "token_invalid": "Token inválido",
       "claims_incomplete": "Claims incompletos",
       "missing_user_claims": "No autorizado: faltan claims de usuario",
+      "mfa_session_required": "Se requiere una sesión verificada con MFA para esta operación.",
       "invalid_credentials": "Credenciales inválidas",
       "account_suspended": "La cuenta de usuario se encuentra suspendida.",
       "account_inactive": "Cuenta inactiva o suspendida",

@@ -2254,6 +2254,7 @@
       "token_invalid": "Jeton invalide",
       "claims_incomplete": "Claims incomplets",
       "missing_user_claims": "Non autorisé : claims utilisateur manquants",
+      "mfa_session_required": "Une session vérifiée par MFA est requise pour cette opération.",
       "invalid_credentials": "Identifiants invalides",
       "account_suspended": "Le compte utilisateur est suspendu.",
       "account_inactive": "Compte inactif ou suspendu",
