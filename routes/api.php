@@ -137,11 +137,14 @@ $router->get('/api/users', [UserController::class, 'index'], [
 // PATCH /api/users/me (v1.13.36): auto-edición de perfil (nombre, apellido,
 // email). Sin PermissionMiddleware: cada usuario se edita a sí mismo.
 // Cambio de email requiere password_actual. Declarada antes de /users/{id}.
+// v1.19.7 (bloque 2): bucket 'sensitive' (10 req / 5 min) en vez de 'api'
+// (100 req / 1 min): escribir el propio perfil, y sobre todo el email con
+// password_actual, no es una operación de lectura masiva.
 $router->patch('/api/users/me', [UserController::class, 'updateMe'], [
     AuditMiddleware::class,
     AuthenticationMiddleware::class,
     TenantMiddleware::class,
-    RateLimitMiddleware::class . ':api',
+    RateLimitMiddleware::class . ':sensitive',
 ]);
 
 // GET /api/users/me/preferences (v1.10.3): preferencias del propio usuario.

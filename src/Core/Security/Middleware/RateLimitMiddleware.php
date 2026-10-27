@@ -54,7 +54,7 @@ final class RateLimitMiddleware
     /**
      * @param string|null $config Configuración del rate limit:
      *   - null o vacío: usa defaults del .env
-     *   - "login" | "api" | "critical" | "bulk" | "upload": acción predefinida
+     *   - "login" | "api" | "critical" | "sensitive" | "bulk" | "upload": acción predefinida
      *   - "20,120": límite custom (20 requests / 120 segundos)
      */
     public function __construct(?string $config = null, ?RateLimiter $limiter = null)
@@ -273,7 +273,7 @@ final class RateLimitMiddleware
         }
 
         // ¿Es una acción predefinida?
-        $validActions = ['login', 'api', 'critical', 'bulk', 'upload'];
+        $validActions = ['login', 'api', 'critical', 'sensitive', 'bulk', 'upload'];
         if (in_array($config, $validActions, true)) {
             $this->action = $config;
             return;

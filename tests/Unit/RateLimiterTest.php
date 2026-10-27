@@ -75,6 +75,7 @@ final class RateLimiterTest extends TestCase
         $this->assertSame(['limit' => 5, 'window' => 300], $limiter->getLimitsForAction('login'));
         $this->assertSame(['limit' => 100, 'window' => 60], $limiter->getLimitsForAction('api'));
         $this->assertSame(['limit' => 10, 'window' => 60], $limiter->getLimitsForAction('critical'));
+        $this->assertSame(['limit' => 10, 'window' => 300], $limiter->getLimitsForAction('sensitive'));
     }
 
     public function testGetLimitsForActionFallsBackToEnvDefaults(): void

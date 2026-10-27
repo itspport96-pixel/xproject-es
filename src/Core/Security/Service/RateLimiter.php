@@ -372,6 +372,7 @@ final class RateLimiter
             'login' => ['limit' => 5, 'window' => 300],        // 5 intentos / 5 min
             'api' => ['limit' => 100, 'window' => 60],         // 100 req / 1 min
             'critical' => ['limit' => 10, 'window' => 60],     // 10 req / 1 min
+            'sensitive' => ['limit' => 10, 'window' => 300],   // 10 req / 5 min
             'bulk' => ['limit' => 5, 'window' => 60],          // 5 req / 1 min
             'upload' => ['limit' => 10, 'window' => 3600],     // 10 uploads / 1 hora
             default => ['limit' => $this->defaultLimit, 'window' => $this->defaultWindow],
