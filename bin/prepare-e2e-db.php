@@ -12,9 +12,12 @@ declare(strict_types=1);
  *      tenants, users, roles, permissions, role_assignments,
  *      role_permissions. Nunca stock, movimientos ni auditoria: cada E2E
  *      genera sus propios datos.
- *   4. Garantiza los fixtures que los E2E asumen: producto PROD-001 y las
- *      ubicaciones ALMACENAMIENTO y PICKING activas. TRANSITO y DANADOS los
- *      crea el seeder real del dominio (bin/seed-transit-locations.php).
+ *   4. Garantiza los fixtures que los E2E asumen: producto PROD-001, las
+ *      ubicaciones ALMACENAMIENTO y PICKING activas, y las identidades de
+ *      acceso que usan los scripts (manager@acme.local,
+ *      itspport96@gmail.com y admin@acme.local, con su rol BUILT_IN).
+ *      TRANSITO y DANADOS los crea el seeder real del dominio
+ *      (bin/seed-transit-locations.php).
  *
  * Uso:
  *   php bin/prepare-e2e-db.php [--db=nombre] [--fresh] [--sin-fixtures] [--verify]
@@ -349,6 +352,78 @@ try {
         if ($producto === null || $origen === null || $picking === null) {
             fail('No se pudieron crear los fixtures de E2E');
         }
+
+        // ------------------------------ identidades de los scripts E2E
+        // v1.19.7 (desviacion (c)): el paso 2 copia lo que haya en la BD de
+        // trabajo y desde el origen limpio del 2026-10-26 ahi solo esta
+        // aleon@acme.local, de modo que tras un --fresh cuatro suites
+        // entraban sin manager@acme.local ni itspport96@gmail.com y había
+        // que restaurarlas a mano con un script externo (fuera del repo).
+        // Aqui se siembran SOLO si faltan: en users no sirve INSERT IGNORE
+        // porque el email no es unico, asi que se comprueba antes; en
+        // role_assignments si, porque su unique (user_id, role_id, tenant_id)
+        // lo deduplica.
+        $identidades = [
+            // email, password, nombre, apellido, rol BUILT_IN que exigen los checks
+            ['admin@acme.local',     'Admin1234!', 'Admin',  'E2E', 'ADMIN'],
+            ['manager@acme.local',   'Admin123!',  'Gestor', 'E2E', 'MANAGER'],
+            ['itspport96@gmail.com', 'Admin123!',  'Soporte', 'E2E', 'USER'],
+        ];
+
+        $sembradas = [];
+        foreach ($identidades as [$email, $password, $nombre, $apellido, $rolNombre]) {
+            $idRol = scalar(
+                $pdo,
+                "SELECT id FROM `{$target}`.roles
+                 WHERE nombre = " . $pdo->quote($rolNombre) . "
+                   AND tipo = 'BUILT_IN' AND deleted_at IS NULL
+                 LIMIT 1"
+            );
+            if ($idRol === null) {
+                fail("Falta el rol BUILT_IN {$rolNombre} en {$target}: no se puede sembrar {$email}");
+            }
+
+            $idUsuario = scalar(
+                $pdo,
+                "SELECT id FROM `{$target}`.users
+                 WHERE email = " . $pdo->quote($email) . " AND deleted_at IS NULL
+                 LIMIT 1"
+            );
+
+            if ($idUsuario === null) {
+                // Mismo algoritmo que PasswordHasher (bcrypt, cost 12);
+                // password_verify() no mira el cost, asi que el login sirve.
+                $idUsuario = 'e2e00000-0000-4000-8000-' . substr(md5('user:' . $email), 0, 12);
+                $pdo->exec(sprintf(
+                    "INSERT INTO `{$target}`.users
+                        (id, tenant_id, email, nombre, apellido, password, estado,
+                         email_verificado, created_at, updated_at)
+                     VALUES (%s, %s, %s, %s, %s, %s, 'ACTIVO', 1, NOW(), NOW())",
+                    $pdo->quote($idUsuario),
+                    $pdo->quote($tenantId),
+                    $pdo->quote($email),
+                    $pdo->quote($nombre),
+                    $pdo->quote($apellido),
+                    $pdo->quote(password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]))
+                ));
+                $sembradas[] = $email;
+            }
+
+            $pdo->exec(sprintf(
+                "INSERT IGNORE INTO `{$target}`.role_assignments
+                    (id, user_id, role_id, tenant_id)
+                 VALUES (%s, %s, %s, %s)",
+                $pdo->quote('e2e00000-0000-4000-8000-' . substr(md5('ra:' . $email . $idRol), 0, 12)),
+                $pdo->quote($idUsuario),
+                $pdo->quote($idRol),
+                $pdo->quote($tenantId)
+            ));
+        }
+
+        $cuentas = (int) scalar($pdo, "SELECT COUNT(*) FROM `{$target}`.users WHERE deleted_at IS NULL");
+        echo 'Identidades E2E: '
+            . ($sembradas === [] ? 'ya presentes' : 'sembradas ' . implode(', ', $sembradas))
+            . " ({$cuentas} usuarios en la BD)\n";
     }
 
     // ------------------------------------------------- 4) TRANSITO y DANADOS
