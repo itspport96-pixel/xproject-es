@@ -91,11 +91,18 @@ async function state(page) {
       menuOptions: opts.length,
       hasStockCard: titles.includes('Stock actual'),
       hasFlowCard: titles.includes('Flujo operativo'),
-      hasWeekCard: titles.includes('Últimos 7 días'),
+      hasCapacityCard: titles.includes('Ocupación de almacenes'),
+      // La tira de 7 días ya no lleva .card-title: el rótulo va dentro de la
+      // propia tira (UI.summaryCards en modo inline).
+      hasWeekCard: (() => {
+        const w = document.querySelector('#module-container [data-zone="week"]');
+        return w ? /Últimos 7 días/.test(w.textContent) : false;
+      })(),
       hasOnboarding: titles.includes('Empieza con los pasos básicos'),
       zoneCount: document.querySelectorAll(
         '#module-container [data-zone="alerts"], #module-container [data-zone="stock"],' +
-        ' #module-container [data-zone="flow"], #module-container [data-zone="week"]').length,
+        ' #module-container [data-zone="flow"], #module-container [data-zone="capacity"],' +
+        ' #module-container [data-zone="week"]').length,
       chipCount: document.querySelectorAll('#module-container .chip').length,
       statCards: document.querySelectorAll('.stat-card').length,
       sidebarHasPanel: !!document.querySelector('.sidebar-item[data-route="dashboard/inventory"]'),
@@ -202,9 +209,10 @@ async function main() {
     check('panel: tarjeta Stock actual presente', s.hasStockCard === true);
     check('panel: tarjeta Flujo operativo presente en el PRIMER render (sin espera)',
       s.hasFlowCard === true);
-    check('panel: las 4 zonas del panel montadas', s.zoneCount === 4,
+    check('panel: las 5 zonas del panel montadas', s.zoneCount === 5,
       `zones=${s.zoneCount}`);
-    check('panel: linea de 7 dias presente', s.hasWeekCard === true);
+    check('panel: tira de 7 dias presente', s.hasWeekCard === true);
+    check('panel: grafico de ocupacion presente', s.hasCapacityCard === true);
     check('panel: secondary pedida a la entrada (sin timer de 5s)', net.secondary >= 1,
       `secondary=${net.secondary}`);
     check('panel: sin scroll horizontal', s.hScrollPage === false, `hScroll=${s.hScrollPage}`);

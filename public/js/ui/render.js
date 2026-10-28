@@ -316,18 +316,51 @@
     /**
      * Tarjetas de resumen en un grid ya renderizado por la plantilla.
      *
+     * Con `opts.inline` la misma lista se pinta como UNA sola fila compacta
+     * (titulo opcional + pares etiqueta/valor en linea) para resumenes de una
+     * linea; cada item puede llevar `route` para quedar enlazado mediante el
+     * gestor de acciones de la vista (`data-action="navigate"`). Sin `route`
+     * el item sale como texto plano, igual que el modo apilado.
+     *
      * @param {Element} root
-     * @param {Array<{label: string, value: string|number}>} cards
+     * @param {Array<{label: string, value: string|number, route?: string}>} cards
+     * @param {{inline?: boolean, title?: string}} [opts]
      */
-    function summaryCards(root, cards) {
+    function summaryCards(root, cards, opts) {
         if (!root) return;
-        root.innerHTML = (cards || []).map(c => `
+        const list = cards || [];
+
+        if (opts && opts.inline) {
+            const title = opts.title
+                ? `<span class="text-sm font-medium">${UI.escapeHtml(opts.title)}</span>`
+                : '';
+            root.innerHTML = `
+                <div class="flex items-center gap-x-4 gap-y-2 flex-wrap">
+                    ${title}
+                    ${list.map(summaryInlineItem).join('')}
+                </div>`;
+            animateList(root);
+            return;
+        }
+
+        root.innerHTML = list.map(c => `
             <div class="card p-3">
                 <div class="text-xs text-muted">${UI.escapeHtml(c.label)}</div>
                 <div class="text-xl font-bold">${UI.escapeHtml(UI.formatNumber(c.value))}</div>
             </div>
         `).join('');
         animateList(root);
+    }
+
+    /** Par etiqueta/valor de la tira inline (ver summaryCards). */
+    function summaryInlineItem(c) {
+        const inner = `<span class="text-xs text-muted">${UI.escapeHtml(c.label)}</span>
+            <strong class="text-sm">${UI.escapeHtml(UI.formatNumber(c.value))}</strong>`;
+        if (!c.route) {
+            return `<span class="flex items-baseline gap-1.5">${inner}</span>`;
+        }
+        return `<span class="flex items-baseline gap-1.5 cursor-pointer" role="button" tabindex="0"
+            data-action="navigate" data-route="${UI.escapeHtml(c.route)}">${inner}</span>`;
     }
 
     // ---- AutoAnimate (v1.19) -------------------------------------------------

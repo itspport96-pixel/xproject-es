@@ -7,18 +7,24 @@
  *   1. Acciones de cabecera (alta de producto / recepción) por permiso.
  *   2. Chips de alerta: sólo se pintan con valor > 0 y con permiso para
  *      navegar al destino; si no hay ninguna alerta visible, "Todo en orden".
- *   3. Stock (2/3): tabla con las filas que devuelve CAPA 1 (máx. 20,
+ *   3. Tira de 7 días: una sola línea con movimientos, correcciones y
+ *      devoluciones (UI.summaryCards en modo inline), con fecha_desde =
+ *      hoy - 7 calculado en UTC.
+ *   4. Stock (2/3): tabla con las filas que devuelve CAPA 1 (máx. 20,
  *      STOCK_LIMIT) y conmutador Sin stock / Todos (filtro en cliente).
- *   4. Flujo operativo (1/3): reservas, picking, envíos, entregas, conteos y
+ *   5. Flujo operativo (1/3): reservas, picking, envíos, entregas, conteos y
  *      unidades en tránsito; cada fila con su permiso real.
- *   5. Métricas de 7 días: movimientos, correcciones y devoluciones con
- *      fecha_desde = hoy - 7 calculado en UTC.
- *   6. Onboarding de 3 pasos sólo si el catálogo está vacío
+ *   6. Ocupación de almacenes (2/3, bajo la tabla de stock): gráfico de barras
+ *      con las ubicaciones activas que tienen capacidad definida, de más a
+ *      menos llena. Las virtuales (sin capacidad, p. ej. TRANSITO) no se
+ *      pintan.
+ *   7. Onboarding de 3 pasos sólo si el catálogo está vacío
  *      (counts.productos_activos === 0).
  *
  * Endpoints usados (todos existentes; ninguno inventado):
  * - GET /inventory/dashboard/critical  → chips + tabla + onboarding + tránsito
  * - GET /inventory/dashboard/secondary → chips + reservas activas
+ * - GET /inventory/locations           → capacidad/capacidad_usada del gráfico
  * - GET /inventory/picking             → summary.en_curso
  * - GET /inventory/shipments           → summary.en_ruta
  * - GET /inventory/deliveries          → summary.pendientes
@@ -29,7 +35,8 @@
  * Las cuatro peticiones de resumen se hacen con per_page=1 para leer sólo el
  * summary. La línea de 7 días añade fecha_desde (YYYY-MM-DD en UTC).
  *
- * Carga progresiva por zona: cada zona (alertas, stock, flujo, semana) tiene
+ * Carga progresiva por zona: cada zona (alertas, tira de 7 días, stock, flujo
+ * y ocupación) tiene
  * su propio skeleton (UI.skeletonGate) y su propio reintento (UI.errorState
  * con retryAction); el fallo de una zona no pinta error en las demás. No hay
  * spinner global ni timer de 5s.
@@ -62,8 +69,15 @@
   const ZONE_ALERTS = 'alerts';
   const ZONE_STOCK = 'stock';
   const ZONE_FLOW = 'flow';
+  const ZONE_CAPACITY = 'capacity';
   const ZONE_WEEK = 'week';
-  const ZONES = [ZONE_ALERTS, ZONE_STOCK, ZONE_FLOW, ZONE_WEEK];
+  const ZONES = [ZONE_ALERTS, ZONE_STOCK, ZONE_FLOW, ZONE_CAPACITY, ZONE_WEEK];
+
+  // El gráfico de ocupación pinta como máximo estas ubicaciones, ordenadas de
+  // más a menos llena. El listado de ubicaciones pagina en el servidor con
+  // per_page <= 100, así que el gráfico refleja esas primeras 100 filas.
+  const CAPACITY_MAX_BARS = 8;
+  const CAPACITY_PAGE_SIZE = 100;
 
   const CHEVRON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 
@@ -85,6 +99,7 @@
       alerts: { loading: false },
       stock: { loading: false },
       flow: { loading: false },
+      capacity: { loading: false },
       week: { loading: false }
     };
   }
@@ -157,6 +172,9 @@
   const LOADERS = {
     critical: () => get('/inventory/dashboard/critical'),
     secondary: () => get('/inventory/dashboard/secondary'),
+    // Listado de ubicaciones (capacidad + capacidad_usada) para el gráfico de
+    // ocupación. Se pide sólo si el usuario tiene inventory.location.view.
+    capacity_locations: () => get('/inventory/locations', { per_page: CAPACITY_PAGE_SIZE }),
     flow_picking: () => getSummary('/inventory/picking', { per_page: 1 }),
     flow_shipments: () => getSummary('/inventory/shipments', { per_page: 1 }),
     flow_deliveries: () => getSummary('/inventory/deliveries', { per_page: 1 }),
@@ -247,6 +265,11 @@
         if (can(row.perm, row.roles) && keys.indexOf(row.resource) === -1) keys.push(row.resource);
       });
       return keys;
+    }
+    // Sin inventory.location.view no se pinta el gráfico y, sobre todo, no se
+    // emite la petición de ubicaciones.
+    if (name === ZONE_CAPACITY) {
+      return can('inventory.location.view', ROLES_VIEW) ? ['capacity_locations'] : [];
     }
     if (name === ZONE_WEEK) {
       const keys = ['week_movements'];
@@ -339,6 +362,7 @@
 
     zoneEl.innerHTML = zoneContent(name);
     if (name === ZONE_STOCK) renderOnboarding(contentOnboarding());
+    if (name === ZONE_WEEK) renderWeekMetrics();
   }
 
   function zoneError(name) {
@@ -351,6 +375,7 @@
     if (name === ZONE_ALERTS) return block;
     if (name === ZONE_STOCK) return stockCard(block, '');
     if (name === ZONE_FLOW) return flowCard(block);
+    if (name === ZONE_CAPACITY) return capacityCard(block);
     return weekCard(block);
   }
 
@@ -362,6 +387,7 @@
     }
     if (name === ZONE_STOCK) return stockCard(UI.tableSkeleton(stockColumns(), 6), '');
     if (name === ZONE_FLOW) return flowCard(UI.rowsSkeleton(5, [70, 40]));
+    if (name === ZONE_CAPACITY) return capacityCard(UI.rowsSkeleton(4, [55, 30]));
     return weekCard(UI.rowsSkeleton(2, [60, 45]));
   }
 
@@ -369,6 +395,7 @@
     if (name === ZONE_ALERTS) return alertsContent();
     if (name === ZONE_STOCK) return stockContent();
     if (name === ZONE_FLOW) return flowContent();
+    if (name === ZONE_CAPACITY) return capacityContent();
     return weekContent();
   }
 
@@ -520,12 +547,93 @@
     return flowCard(body);
   }
 
-  // ---------- últimos 7 días ----------
-  function weekCard(bodyHtml) {
+  // ---------- ocupación de almacenes (gráfico de barras) ----------
+  function capacityCard(bodyHtml) {
     return '<div class="card">' +
       '<div class="card-header">' +
-      '<h3 class="card-title">' + esc(t('dashboard.inventory.week.title')) + '</h3>' +
+      '<h3 class="card-title">' + esc(t('dashboard.inventory.capacity.title')) + '</h3>' +
       '</div>' +
+      '<div class="card-body">' + bodyHtml + '</div>' +
+      '</div>';
+  }
+
+  /**
+   * Ubicaciones activas con capacidad definida, de más a menos llena, para
+   * dibujar cuáles se están por llenar. Las ubicaciones virtuales (sin
+   * capacidad, p. ej. TRANSITO) quedan fuera: no hay porcentaje que pintar.
+   * Acepta la forma data.data (listado paginado) o data.locations.
+   */
+  function capacityRows() {
+    const data = dataOf('capacity_locations');
+    if (!data) return [];
+    const rows = Array.isArray(data.data) ? data.data
+      : (Array.isArray(data.locations) ? data.locations : []);
+
+    return rows
+      .filter(function(loc) {
+        return loc.activa !== false && num(loc.capacidad) > 0;
+      })
+      .map(function(loc) {
+        const total = num(loc.capacidad);
+        const used = num(loc.capacidad_usada);
+        return {
+          codigo: loc.codigo,
+          nombre: loc.nombre,
+          total: total,
+          used: used,
+          pct: Math.max(0, Math.min(100, Math.round((used / total) * 100)))
+        };
+      })
+      .sort(function(a, b) { return b.pct - a.pct || b.total - a.total; })
+      .slice(0, CAPACITY_MAX_BARS);
+  }
+
+  /** Clase de barra según el grado de ocupación (tema claro y oscuro). */
+  function capacityBarClass(pct) {
+    if (pct >= 90) return 'danger';
+    if (pct >= 70) return 'warning';
+    return 'success';
+  }
+
+  function capacityContent() {
+    // Sin permiso no se pinta nada (la petición tampoco se emite: ver
+    // zoneKeys). Este guard evita que la zona salga como "vacía".
+    if (!can('inventory.location.view', ROLES_VIEW)) return '';
+
+    const rows = capacityRows();
+    if (!rows.length) {
+      return capacityCard(UI.emptyState({
+        title: t('dashboard.inventory.capacity.empty'),
+        message: ''
+      }));
+    }
+
+    const body = rows.map(function(row) {
+      const label = t('dashboard.inventory.capacity.units', {
+        usadas: fmt(row.used),
+        total: fmt(row.total)
+      });
+      return '<div class="py-2 border-b border-default last:border-0 cursor-pointer" ' +
+        'role="button" tabindex="0" data-action="navigate" data-route="inventory/locations" ' +
+        'title="' + esc(row.nombre || row.codigo) + '">' +
+        '<div class="flex items-center justify-between gap-2 mb-1">' +
+        '<span class="text-sm truncate">' + esc(row.codigo) + '</span>' +
+        '<span class="text-xs text-muted whitespace-nowrap">' + esc(label) + '</span>' +
+        '</div>' +
+        '<div class="progress">' +
+        '<div class="progress-bar ' + capacityBarClass(row.pct) + '" style="width:' + row.pct + '%"></div>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+
+    return capacityCard(body);
+  }
+
+  // ---------- últimos 7 días (tira compacta de una línea) ----------
+  // `.card.p-3` es el override de padding compacto sancionado por el repo
+  // (style.css); sin él la card sumaría 1.5rem propios sobre el card-body.
+  function weekCard(bodyHtml) {
+    return '<div class="card p-3">' +
       '<div class="card-body">' + bodyHtml + '</div>' +
       '</div>';
   }
@@ -533,28 +641,28 @@
   function weekItems() {
     const movements = dataOf('week_movements') || {};
     const items = [
-      { labelKey: 'dashboard.inventory.week.movements', value: num(movements.total), route: 'inventory/movements' },
-      { labelKey: 'dashboard.inventory.week.corrections', value: num(movements.correcciones), route: 'inventory/movements' }
+      { label: t('dashboard.inventory.week.movements'), value: num(movements.total), route: 'inventory/movements' },
+      { label: t('dashboard.inventory.week.corrections'), value: num(movements.correcciones), route: 'inventory/movements' }
     ];
     if (can('inventory.return.view', ROLES_VIEW)) {
       const returns = dataOf('week_returns') || {};
-      items.push({ labelKey: 'dashboard.inventory.week.returns', value: num(returns.total), route: 'inventory/returns' });
+      items.push({ label: t('dashboard.inventory.week.returns'), value: num(returns.total), route: 'inventory/returns' });
     }
     return items;
   }
 
   function weekContent() {
-    const items = weekItems();
-    const cols = items.length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2';
-    const body = '<div class="grid grid-cols-1 ' + cols + ' gap-4">' +
-      items.map(function(item) {
-        return '<div class="cursor-pointer" role="button" tabindex="0" data-action="navigate" data-route="' + esc(item.route) + '">' +
-          '<div class="text-muted text-xs">' + esc(t(item.labelKey)) + '</div>' +
-          '<div class="text-xl font-bold">' + fmt(item.value) + '</div>' +
-          '</div>';
-      }).join('') +
-      '</div>';
-    return weekCard(body);
+    return weekCard('<div data-week-metrics></div>');
+  }
+
+  /** Pinta la tira de 7 días con el componente compartido (UI.summaryCards). */
+  function renderWeekMetrics() {
+    const zoneEl = container.querySelector('[data-zone="' + ZONE_WEEK + '"] [data-week-metrics]');
+    if (!zoneEl) return;
+    UI.summaryCards(zoneEl, weekItems(), {
+      inline: true,
+      title: t('dashboard.inventory.week.title')
+    });
   }
 
   // ---------- onboarding (catálogo vacío) ----------
@@ -652,12 +760,19 @@
         subtitle: t('dashboard.inventory.subtitle'),
         actionsHtml: headerActions()
       }) +
-      '<div data-zone="' + ZONE_ALERTS + '" class="mb-4"></div>' +
+      '<div data-zone="' + ZONE_ALERTS + '" class="mb-3"></div>' +
+      // Tira de 7 días en una sola línea, justo debajo de las alertas.
+      '<div data-zone="' + ZONE_WEEK + '" class="mb-4"></div>' +
       '<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">' +
-      '<div class="lg:col-span-2" data-zone="' + ZONE_STOCK + '"></div>' +
+      // Columna ancha: la tabla de stock y, debajo, el gráfico de ocupación.
+      // Ir juntas en la 2/3 evita dejar un hueco grande bajo la tabla, que
+      // casi siempre es corta (el filtro por defecto es "Sin stock").
+      '<div class="lg:col-span-2 flex flex-col gap-4">' +
+      '<div data-zone="' + ZONE_STOCK + '"></div>' +
+      '<div data-zone="' + ZONE_CAPACITY + '"></div>' +
+      '</div>' +
       '<div data-zone="' + ZONE_FLOW + '"></div>' +
       '</div>' +
-      '<div data-zone="' + ZONE_WEEK + '" class="mb-4"></div>' +
       '<div data-zone="onboarding"></div>' +
       '</div>';
   }

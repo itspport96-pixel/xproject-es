@@ -63,6 +63,20 @@ async function panelState(page) {
         .map(e => ({ route: e.getAttribute('data-route'), text: e.textContent.replace(/\s+/g, ' ').trim() })),
       week: Array.from(c ? c.querySelectorAll('[data-zone="week"] [data-route]') : [])
         .map(e => ({ route: e.getAttribute('data-route'), text: e.textContent.replace(/\s+/g, ' ').trim() })),
+      weekTitle: text('[data-zone="week"]'),
+      weekHeight: (() => {
+        const el = c && c.querySelector('[data-zone="week"] .card');
+        return el ? Math.round(el.getBoundingClientRect().height) : null;
+      })(),
+      capacityBars: Array.from(c ? c.querySelectorAll('[data-zone="capacity"] [data-route]') : [])
+        .map(e => ({
+          route: e.getAttribute('data-route'),
+          code: (e.querySelector('span') || {}).textContent || '',
+          text: e.textContent.replace(/\s+/g, ' ').trim(),
+          width: (e.querySelector('.progress-bar') || {}).style
+            ? e.querySelector('.progress-bar').style.width : null,
+          cls: (e.querySelector('.progress-bar') || {}).className || ''
+        })),
       onboardingSteps: c ? c.querySelectorAll('[data-zone="onboarding"] .card.p-3').length : 0,
       onboardingCtas: Array.from(c ? c.querySelectorAll('[data-zone="onboarding"] button[data-route]') : [])
         .map(e => e.getAttribute('data-route')),
@@ -174,6 +188,48 @@ async function main() {
     check('semana: usa fecha_desde UTC de 7 dias (' + yesterday + ')',
       true, yesterday); // la peticion anterior la hace el propio backend con esa fecha
 
+    // --- tira compacta de 7 dias (una sola línea, sin card-header) ---
+    check('tira 7 dias: rotulo "Ultimos 7 dias" visible en la tira',
+      !!s.weekTitle && /Últimos 7 días/.test(s.weekTitle), s.weekTitle && s.weekTitle.slice(0, 60));
+    check('tira 7 dias: altura compacta (< 70px, antes era una tarjeta alta)',
+      s.weekHeight !== null && s.weekHeight > 0 && s.weekHeight < 70, `height=${s.weekHeight}`);
+
+    // --- ocupación de almacenes: mapeo endpoint -> gráfico (respuesta real) ---
+    const locs = await apiJson(page, '/inventory/locations?per_page=100');
+    const locRows = Array.isArray(locs.data) ? locs.data
+      : (Array.isArray(locs.locations) ? locs.locations : []);
+    const expectedBars = locRows
+      .filter(l => l.activa !== false && Number(l.capacidad) > 0)
+      .map(l => ({
+        code: l.codigo,
+        pct: Math.max(0, Math.min(100, Math.round(Number(l.capacidad_usada) / Number(l.capacidad) * 100)))
+      }))
+      .sort((a, b) => b.pct - a.pct)
+      .slice(0, 8);
+
+    check('ocupacion: hay grafico de barras', s.capacityBars.length > 0,
+      JSON.stringify(s.capacityBars.map(b => b.code)));
+    check('ocupacion: barras = ubicaciones activas con capacidad real (' + expectedBars.length + ')',
+      s.capacityBars.length === expectedBars.length,
+      `dom=${s.capacityBars.length} api=${expectedBars.length}`);
+    if (expectedBars.length) {
+      check('ocupacion: la primera barra es la mas llena (' + expectedBars[0].code + ')',
+        s.capacityBars[0] && s.capacityBars[0].code === expectedBars[0].code,
+        JSON.stringify({ dom: s.capacityBars[0] && s.capacityBars[0].code, api: expectedBars[0].code }));
+      check('ocupacion: ancho de barra = % real de ocupacion',
+        expectedBars.every(e => {
+          const bar = s.capacityBars.find(b => b.code === e.code);
+          return bar && bar.width === e.pct + '%';
+        }),
+        JSON.stringify(s.capacityBars.map(b => ({ c: b.code, w: b.width }))));
+      const full = expectedBars.find(e => e.pct >= 90);
+      if (full) {
+        const bar = s.capacityBars.find(b => b.code === full.code);
+        check('ocupacion: ubicacion casi llena (' + full.code + ', ' + full.pct + '%) usa barra danger',
+          !!bar && /\bdanger\b/.test(bar.cls), bar && bar.cls);
+      }
+    }
+
     await shot(page, 'panel-datos-1366');
 
     // --- clic de cada indicador ---
@@ -198,6 +254,8 @@ async function main() {
     }
     const destViewAll = await clickRoute(page, '[data-zone="stock"] button[data-route="inventory/stock"]');
     check('clic "Ver todo el stock" -> inventory/stock', destViewAll === 'inventory/stock', destViewAll);
+    const destCap = await clickRoute(page, '[data-zone="capacity"] [data-route="inventory/locations"]');
+    check('clic barra de ocupacion -> inventory/locations', destCap === 'inventory/locations', destCap);
 
     // --- conmutador Sin stock / Todos ---
     const rowsDefault = s.stockRows;
@@ -278,6 +336,16 @@ async function main() {
           data: { counts: { ubicaciones_disponibles: 0, reservas_activas: 0, transporte_transito: 0, incidencias_abiertas: 0 } }
         })
       }));
+    // Catalogo vacio = sin ubicaciones: el grafico de ocupacion no tiene nada
+    // que dibujar y debe pintar su propio estado vacio.
+    await page.route('**/inventory/locations?*', (route) =>
+      route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          status: 200,
+          data: { data: [], pagination: { total: 0, page: 1, per_page: 100, has_next: false } }
+        })
+      }));
 
     await page.goto(BASE + '/#/dashboard/inventory', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1600);
@@ -296,6 +364,17 @@ async function main() {
 
     const dest = await clickRoute(page, '[data-zone="onboarding"] button[data-route="inventory"]');
     check('clic CTA onboarding -> inventory (alta de producto)', dest === 'inventory', dest);
+
+    // Sin ubicaciones con capacidad, el grafico pinta su estado vacio propio.
+    const capEmpty = await page.evaluate(() => {
+      const zone = document.querySelector('#module-container [data-zone="capacity"]');
+      const title = zone && zone.querySelector('.empty-state-title');
+      return { bars: zone ? zone.querySelectorAll('.progress').length : 0,
+        title: title ? title.textContent.trim() : null };
+    });
+    check('vacio: grafico de ocupacion sin barras', capEmpty.bars === 0, JSON.stringify(capEmpty));
+    check('vacio: grafico de ocupacion con estado vacio propio', !!capEmpty.title,
+      JSON.stringify(capEmpty));
     await context.close();
   }
 
@@ -327,8 +406,11 @@ async function main() {
       JSON.stringify({ errorZones: s.errorZones, retry: s.retryButtons }));
     check('error: el Flujo operativo NO se ve afectado', s.titles.includes('Flujo operativo'),
       JSON.stringify(s.titles));
-    check('error: la semana NO se ve afectada', s.titles.includes('Últimos 7 días'),
-      JSON.stringify(s.titles));
+    // La tira de 7 días ya no lleva .card-title: se comprueba su contenido.
+    check('error: la tira de 7 dias NO se ve afectada', s.week.length >= 1,
+      JSON.stringify(s.week));
+    check('error: el grafico de ocupacion NO se ve afectado', s.capacityBars.length >= 1,
+      JSON.stringify(s.capacityBars.map(b => b.code)));
     await shot(page, 'panel-error-1366');
 
     failMode = false;
@@ -405,11 +487,21 @@ async function main() {
       const grid = await page.evaluate(() => {
         const stock = document.querySelector('[data-zone="stock"]');
         const flow = document.querySelector('[data-zone="flow"]');
+        const cap = document.querySelector('[data-zone="capacity"]');
         if (!stock || !flow) return null;
-        return { sameLine: stock.getBoundingClientRect().top === flow.getBoundingClientRect().top };
+        const sr = stock.getBoundingClientRect();
+        const cr = cap ? cap.getBoundingClientRect() : null;
+        return {
+          sameLine: sr.top === flow.getBoundingClientRect().top,
+          // El gráfico va en la MISMA columna que el stock y debajo de él.
+          capSameColumn: cr ? Math.abs(cr.left - sr.left) < 2 : null,
+          capBelowStock: cr ? cr.top >= sr.bottom - 1 : null
+        };
       });
       check('viewport ' + w + 'px: ' + (w >= 1024 ? 'stock y flujo en linea (grid 2/3 + 1/3)' : 'stock y flujo apilados'),
         grid && (w >= 1024 ? grid.sameLine === true : grid.sameLine === false), JSON.stringify(grid));
+      check('viewport ' + w + 'px: ocupacion en la columna del stock y debajo',
+        grid && grid.capSameColumn === true && grid.capBelowStock === true, JSON.stringify(grid));
       await shot(page, 'panel-vp' + w);
     }
     await context.close();

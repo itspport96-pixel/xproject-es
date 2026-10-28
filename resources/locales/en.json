@@ -1712,6 +1712,11 @@
         "counts": "Pending counts",
         "in_transit": "Units in transit"
       },
+      "capacity": {
+        "title": "Warehouse occupancy",
+        "empty": "No locations with a defined capacity",
+        "units": "{usadas} of {total}"
+      },
       "week": {
         "title": "Last 7 days",
         "movements": "Movements",

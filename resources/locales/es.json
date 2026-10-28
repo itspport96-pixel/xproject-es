@@ -1712,6 +1712,11 @@
         "counts": "Conteos pendientes",
         "in_transit": "Unidades en tránsito"
       },
+      "capacity": {
+        "title": "Ocupación de almacenes",
+        "empty": "Sin ubicaciones con capacidad definida",
+        "units": "{usadas} de {total}"
+      },
       "week": {
         "title": "Últimos 7 días",
         "movements": "Movimientos",

@@ -1712,6 +1712,11 @@
         "counts": "Comptages en attente",
         "in_transit": "Unités en transit"
       },
+      "capacity": {
+        "title": "Occupation des entrepôts",
+        "empty": "Aucun emplacement avec une capacité définie",
+        "units": "{usadas} sur {total}"
+      },
       "week": {
         "title": "7 derniers jours",
         "movements": "Mouvements",
