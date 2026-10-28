@@ -6,8 +6,19 @@ namespace App\Shared\Services;
 
 use Predis\Client;
 use Predis\Connection\ConnectionException;
+use Predis\PredisException;
 use App\Shared\Exceptions\RedisException;
 
+/**
+ * Cliente Redis con fail-open: cualquier fallo de Redis se degrada a un valor
+ * neutro (null/false) con error_log, en vez de romper la peticion.
+ *
+ * El catch es `PredisException` (la base de Predis, de la que cuelgan
+ * ConnectionException y tambien ServerException) mas la RedisException propia
+ * que lanza connect(): cubre tanto la CAIDA del servidor como un ERROR DEL
+ * SERVIDOR en marcha (p. ej. MISCONF, que rechaza las escrituras). Con solo
+ * ConnectionException ese segundo caso escapaba y salia un 500 en la app.
+ */
 class RedisService
 {
     private ?Client $client = null;
@@ -32,7 +43,7 @@ class RedisService
         try {
             $value = $this->getClient()->get($key);
             return $value === null ? null : json_decode($value, true);
-        } catch (ConnectionException|RedisException $e) {
+        } catch (PredisException|RedisException $e) {
             error_log("Redis get failed (fail-open): {$e->getMessage()}");
             return null;
         }
@@ -50,7 +61,7 @@ class RedisService
             }
 
             return true;
-        } catch (ConnectionException|RedisException $e) {
+        } catch (PredisException|RedisException $e) {
             error_log("Redis set failed (fail-open): {$e->getMessage()}");
             return false;
         }
@@ -61,7 +72,7 @@ class RedisService
         try {
             $this->getClient()->del([$key]);
             return true;
-        } catch (ConnectionException|RedisException $e) {
+        } catch (PredisException|RedisException $e) {
             error_log("Redis delete failed (fail-open): {$e->getMessage()}");
             return false;
         }
@@ -71,7 +82,7 @@ class RedisService
     {
         try {
             return (bool)$this->getClient()->exists($key);
-        } catch (ConnectionException|RedisException $e) {
+        } catch (PredisException|RedisException $e) {
             error_log("Redis exists failed (fail-open): {$e->getMessage()}");
             return false;
         }
@@ -81,7 +92,7 @@ class RedisService
     {
         try {
             return (bool)$this->getClient()->expire($key, $seconds);
-        } catch (ConnectionException|RedisException $e) {
+        } catch (PredisException|RedisException $e) {
             error_log("Redis expire failed (fail-open): {$e->getMessage()}");
             return false;
         }
@@ -92,7 +103,7 @@ class RedisService
         try {
             $this->getClient()->flushdb();
             return true;
-        } catch (ConnectionException|RedisException $e) {
+        } catch (PredisException|RedisException $e) {
             error_log("Redis flush failed (fail-open): {$e->getMessage()}");
             return false;
         }
@@ -104,7 +115,7 @@ class RedisService
             // Predis devuelve 'PONG' (string), no true: basta con que no lance excepción
             $this->getClient()->ping();
             return true;
-        } catch (ConnectionException|RedisException $e) {
+        } catch (PredisException|RedisException $e) {
             return false;
         }
     }

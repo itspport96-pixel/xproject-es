@@ -7,7 +7,7 @@ use App\Core\Security\Repository\RateLimitRepository;
 use App\Shared\Exceptions\RedisException;
 use App\Shared\Exceptions\SecurityException;
 use App\Shared\Services\RedisService;
-use Predis\Connection\ConnectionException;
+use Predis\PredisException;
 
 /**
  * RateLimiter - Protección contra abuso y ataques de fuerza bruta.
@@ -121,7 +121,7 @@ final class RateLimiter
             $client->expire($redisKey . ':meta', $decaySeconds);
 
             return $attempts;
-        } catch (ConnectionException|RedisException $e) {
+        } catch (PredisException|RedisException $e) {
             error_log("RateLimiter hit failed (fail-open): {$e->getMessage()}");
             return 0;
         }
@@ -140,7 +140,7 @@ final class RateLimiter
         try {
             $attempts = $this->redis->getClient()->get($redisKey);
             return $attempts !== null ? (int) $attempts : 0;
-        } catch (ConnectionException|RedisException $e) {
+        } catch (PredisException|RedisException $e) {
             error_log("RateLimiter getAttempts failed (fail-open): {$e->getMessage()}");
             return 0;
         }
@@ -159,7 +159,7 @@ final class RateLimiter
         try {
             $ttl = (int) $this->redis->getClient()->ttl($redisKey);
             return $ttl > 0 ? $ttl : 0;
-        } catch (ConnectionException|RedisException $e) {
+        } catch (PredisException|RedisException $e) {
             error_log("RateLimiter availableIn failed (fail-open): {$e->getMessage()}");
             return 0;
         }
@@ -178,7 +178,7 @@ final class RateLimiter
         try {
             $this->redis->getClient()->del([$redisKey, $redisKey . ':meta']);
             return true;
-        } catch (ConnectionException|RedisException $e) {
+        } catch (PredisException|RedisException $e) {
             error_log("RateLimiter clear failed (fail-open): {$e->getMessage()}");
             return false;
         }
