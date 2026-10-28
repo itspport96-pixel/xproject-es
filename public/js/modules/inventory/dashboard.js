@@ -1,344 +1,700 @@
 /**
  * Dashboard del módulo Inventory (ruta: dashboard/inventory).
  *
- * Landing del módulo Inventario: métricas del inventario (conteo de
- * productos y ubicaciones) + los widgets operativos que antes vivían en el
- * dashboard general (resumen de stock y contadores de operación).
+ * Landing del módulo Inventario con el layout del adjunto de referencia
+ * (dashboard_inventory.html), adaptado a los contratos REALES del repo:
  *
- * Endpoints usados:
- * - GET /inventory/products (page 1, per_page 1)  → total de productos
- * - GET /inventory/locations (page 1, per_page 1) → total de ubicaciones
- * - GET /inventory/dashboard/critical             → CAPA 1 (stock resumido)
- * - GET /inventory/dashboard/secondary            → CAPA 2 (operación)
+ *   1. Acciones de cabecera (alta de producto / recepción) por permiso.
+ *   2. Chips de alerta: sólo se pintan con valor > 0 y con permiso para
+ *      navegar al destino; si no hay ninguna alerta visible, "Todo en orden".
+ *   3. Stock (2/3): tabla con las filas que devuelve CAPA 1 (máx. 20,
+ *      STOCK_LIMIT) y conmutador Sin stock / Todos (filtro en cliente).
+ *   4. Flujo operativo (1/3): reservas, picking, envíos, entregas, conteos y
+ *      unidades en tránsito; cada fila con su permiso real.
+ *   5. Métricas de 7 días: movimientos, correcciones y devoluciones con
+ *      fecha_desde = hoy - 7 calculado en UTC.
+ *   6. Onboarding de 3 pasos sólo si el catálogo está vacío
+ *      (counts.productos_activos === 0).
  *
- * Las cuatro peticiones salen EN PARALELO a la entrada del panel y todo se
- * pinta en UNA sola actualización: sin timer de 5s ni pintados encadenados
- * (la carga escalonada de la spec §9 se retiró: el usuario ve las tarjetas
- * de conteo, Stock resumido y Operación a la vez). Un fallo de capa
- * (permiso o backend) deja su tarjeta en null sin tumbar el resto.
+ * Endpoints usados (todos existentes; ninguno inventado):
+ * - GET /inventory/dashboard/critical  → chips + tabla + onboarding + tránsito
+ * - GET /inventory/dashboard/secondary → chips + reservas activas
+ * - GET /inventory/picking             → summary.en_curso
+ * - GET /inventory/shipments           → summary.en_ruta
+ * - GET /inventory/deliveries          → summary.pendientes
+ * - GET /inventory/counts              → summary.pendientes
+ * - GET /inventory/movements           → summary.total / summary.correcciones
+ * - GET /inventory/returns             → summary.total
  *
- * No inventa endpoints. Cada petición se hace sólo si el usuario tiene el
- * permiso correspondiente (evita 403 y pantallas de "Acceso denegado").
+ * Las cuatro peticiones de resumen se hacen con per_page=1 para leer sólo el
+ * summary. La línea de 7 días añade fecha_desde (YYYY-MM-DD en UTC).
+ *
+ * Carga progresiva por zona: cada zona (alertas, stock, flujo, semana) tiene
+ * su propio skeleton (UI.skeletonGate) y su propio reintento (UI.errorState
+ * con retryAction); el fallo de una zona no pinta error en las demás. No hay
+ * spinner global ni timer de 5s.
+ *
+ * Permisos: el panel entero exige inventory.stock.view (lo exigen los dos
+ * endpoints del panel: routes.php /dashboard/critical y /dashboard/secondary).
+ * Dentro del panel, cada chip, fila, métrica, acción y CTA adicional gatea
+ * además por el permiso de su pantalla destino: sin permiso no se pinta y no
+ * se emite ninguna petición para esa fila. Sin permiso de base la vista pinta
+ * la pantalla estándar de "sin permiso" (UI.deniedState).
+ *
+ * Navegación: los indicadores enlazan a la ruta real SIN query string. Las
+ * pantallas destino no leen filtros del query (sólo ?tab= en picking,
+ * shipments y deliveries), así que un ?estado=... / ?producto_id= se perdería.
  */
 (function(global) {
   'use strict';
 
   const UI = global.UI;
 
-  // ============================================
-  // ICONOS SVG (inline, currentColor)
-  // ============================================
-  const ICONS = {
-    box: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
-    mapPin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
-  };
+  // Roles en fallback cuando la sesión aún no expone permisos. Mismos
+  // fallbacks que usa cada pantalla de destino (products, locations,
+  // receiving, picking, ...), de modo que el gate del dashboard coincide
+  // con el de la pantalla a la que navega.
+  const ROLES_VIEW = ['ADMIN', 'MANAGER', 'USER', 'VIEWER'];
+  const ROLES_CREATE = ['ADMIN', 'MANAGER', 'USER'];
+  const ROLES_EDIT = ['ADMIN', 'MANAGER'];
+  const ROLES_ADMIN = ['ADMIN'];
+
+  const ZONE_ALERTS = 'alerts';
+  const ZONE_STOCK = 'stock';
+  const ZONE_FLOW = 'flow';
+  const ZONE_WEEK = 'week';
+  const ZONES = [ZONE_ALERTS, ZONE_STOCK, ZONE_FLOW, ZONE_WEEK];
+
+  const CHEVRON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 
   // ============================================
   // ESTADO
   // ============================================
   let container = null;
-  let state = {
-    counts: null,
-    critical: null,
-    secondary: null,
-    loading: true,
-    error: null
+
+  const state = {
+    filter: 'sin_stock',
+    zones: null
   };
 
-  // ============================================
-  // TEMPLATE
-  // ============================================
-  const TEMPLATE = `
-    <div class="max-w-7xl mx-auto">
-      ${UI.pageHeader({
-        title: t('dashboard.inventory.title'),
-        subtitle: t('dashboard.inventory.subtitle'),
-        titleAttrs: 'data-inventory-dashboard-title',
-        wrapperClass: 'mb-6'
-      })}
+  /** key -> {status: 'pending'|'ok'|'error', data, error, promise} */
+  const resources = Object.create(null);
 
-      <div data-inventory-dashboard-content>${UI.cardsSkeleton(2)}
-      </div>
-    </div>
-  `;
+  function freshZones() {
+    return {
+      alerts: { loading: false },
+      stock: { loading: false },
+      flow: { loading: false },
+      week: { loading: false }
+    };
+  }
+
+  state.zones = freshZones();
+
+  // ============================================
+  // PERMISOS
+  // ============================================
+  function can(permission, fallbackRoles) {
+    if (UI && typeof UI.can === 'function') return UI.can(permission, fallbackRoles);
+    return false;
+  }
+
+  const canStockView = () => can('inventory.stock.view', ROLES_VIEW);
+
+  // ============================================
+  // HELPERS DE DATOS
+  // ============================================
+  function num(value) {
+    const n = typeof value === 'number' ? value : parseFloat(value);
+    return isFinite(n) ? n : 0;
+  }
+
+  function fmt(value) {
+    const n = typeof value === 'number' ? value : parseFloat(value);
+    if (!isFinite(n)) return '0';
+    let locale = 'es';
+    if (typeof i18n !== 'undefined' && i18n && typeof i18n.getLocale === 'function') {
+      locale = i18n.getLocale();
+    }
+    try {
+      return n.toLocaleString(locale);
+    } catch (err) {
+      return String(n);
+    }
+  }
+
+  /** Fecha (YYYY-MM-DD) de hoy menos 7 días, calculada en UTC. */
+  function sevenDaysAgo() {
+    return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  }
+
+  function esc(value) {
+    return UI.escapeHtml(value === null || value === undefined ? '' : String(value));
+  }
+
+  /** Datos ya resueltos de una clave, o null si no está en estado 'ok'. */
+  function dataOf(key) {
+    const entry = resources[key];
+    return entry && entry.status === 'ok' ? entry.data : null;
+  }
+
+  // ============================================
+  // PETICIONES (recursos cacheados por clave)
+  // ============================================
+  async function get(path, params) {
+    if (!global.HttpClient || typeof global.HttpClient.get !== 'function') {
+      throw new Error(t('dashboard.messages.http_unavailable'));
+    }
+    const res = await global.HttpClient.get(path, params ? { params: params } : {});
+    return (res && res.data) || {};
+  }
+
+  async function getSummary(path, params) {
+    const data = await get(path, params);
+    return data.summary || {};
+  }
+
+  const LOADERS = {
+    critical: () => get('/inventory/dashboard/critical'),
+    secondary: () => get('/inventory/dashboard/secondary'),
+    flow_picking: () => getSummary('/inventory/picking', { per_page: 1 }),
+    flow_shipments: () => getSummary('/inventory/shipments', { per_page: 1 }),
+    flow_deliveries: () => getSummary('/inventory/deliveries', { per_page: 1 }),
+    flow_counts: () => getSummary('/inventory/counts', { per_page: 1 }),
+    week_movements: () => getSummary('/inventory/movements', { per_page: 1, fecha_desde: sevenDaysAgo() }),
+    week_returns: () => getSummary('/inventory/returns', { per_page: 1, fecha_desde: sevenDaysAgo() })
+  };
+
+  /**
+   * Devuelve la promesa de una clave, creándola la primera vez. Varios
+   * usos de la misma clave (alertas + stock + flujo) comparten UNA sola
+   * petición. Un fallo queda registrado en entry.status y la clave se
+   * borra sólo al reintentar, para que el reintento vuelva a pedirla.
+   */
+  function resource(key) {
+    let entry = resources[key];
+    if (!entry) {
+      const loader = LOADERS[key];
+      entry = { status: 'pending', data: null, error: null, promise: null };
+      resources[key] = entry;
+      entry.promise = Promise.resolve()
+        .then(function() {
+          if (typeof loader !== 'function') throw new Error('missing loader: ' + key);
+          return loader();
+        })
+        .then(
+          function(data) {
+            entry.status = 'ok';
+            entry.data = data;
+            return data;
+          },
+          function(err) {
+            entry.status = 'error';
+            entry.error = err;
+            throw err;
+          }
+        );
+      // El error se consume aquí (se lee en entry.status): evita
+      // unhandledRejection mientras otra zona espera la misma clave.
+      entry.promise.catch(function() {});
+    }
+    return entry.promise;
+  }
+
+  // ============================================
+  // ZONAS
+  // ============================================
+  const FLOW_ROWS = [
+    {
+      resource: 'secondary', perm: 'inventory.reservation.view', roles: ROLES_VIEW,
+      labelKey: 'dashboard.inventory.flow.reservations', route: 'inventory/reservations',
+      value: (d) => num((d.counts || {}).reservas_activas)
+    },
+    {
+      resource: 'flow_picking', perm: 'inventory.picking.view', roles: ROLES_VIEW,
+      labelKey: 'dashboard.inventory.flow.picking', route: 'inventory/picking',
+      value: (d) => num(d)
+    },
+    {
+      resource: 'flow_shipments', perm: 'inventory.shipping.view', roles: ROLES_VIEW,
+      labelKey: 'dashboard.inventory.flow.shipments', route: 'inventory/shipments',
+      value: (d) => num(d)
+    },
+    {
+      resource: 'flow_deliveries', perm: 'inventory.delivery.view', roles: ROLES_VIEW,
+      labelKey: 'dashboard.inventory.flow.deliveries', route: 'inventory/deliveries',
+      value: (d) => num(d)
+    },
+    {
+      resource: 'flow_counts', perm: 'inventory.count.view', roles: ROLES_VIEW,
+      labelKey: 'dashboard.inventory.flow.counts', route: 'inventory/counts',
+      value: (d) => num(d)
+    },
+    {
+      resource: 'critical', perm: 'inventory.stock.view', roles: ROLES_VIEW,
+      labelKey: 'dashboard.inventory.flow.in_transit', route: 'inventory/stock',
+      value: (d) => num((d.counts || {}).unidades_en_transito)
+    }
+  ];
+
+  /** Claves de las que depende cada zona (según permisos del usuario). */
+  function zoneKeys(name) {
+    if (name === ZONE_ALERTS) return ['critical', 'secondary'];
+    if (name === ZONE_STOCK) return ['critical'];
+    if (name === ZONE_FLOW) {
+      const keys = [];
+      FLOW_ROWS.forEach(function(row) {
+        if (can(row.perm, row.roles) && keys.indexOf(row.resource) === -1) keys.push(row.resource);
+      });
+      return keys;
+    }
+    if (name === ZONE_WEEK) {
+      const keys = ['week_movements'];
+      if (can('inventory.return.view', ROLES_VIEW)) keys.push('week_returns');
+      return keys;
+    }
+    return [];
+  }
+
+  function zoneStatus(name) {
+    const keys = zoneKeys(name);
+    let pending = false;
+    let error = false;
+    for (let i = 0; i < keys.length; i++) {
+      const entry = resources[keys[i]];
+      if (!entry || entry.status === 'pending') pending = true;
+      else if (entry.status === 'error') error = true;
+    }
+    if (pending) return 'loading';
+    return error ? 'error' : 'ok';
+  }
+
+  /**
+   * Carga de una zona: skeleton propio (UI.skeletonGate) mientras espera y
+   * render al terminar. Nunca rechaza: el fallo se lee con zoneStatus().
+   */
+  function loadZone(name) {
+    const zoneState = state.zones[name];
+    if (!zoneState) return Promise.resolve();
+    const gate = UI.skeletonGate(zoneState, 'loading', function() { renderZone(name); });
+    const keys = zoneKeys(name);
+    return Promise.all(keys.map(function(key) { return resource(key); }))
+      .catch(function(err) {
+        console.error('[InventoryDashboard] zone ' + name + ' error:', err);
+      })
+      .then(function() {
+        gate.done();
+        renderZone(name);
+      });
+  }
+
+  function loadAll() {
+    ZONES.forEach(function(name) {
+      loadZone(name).catch(function(err) {
+        console.error('[InventoryDashboard] loadZone ' + name + ':', err);
+      });
+    });
+  }
+
+  /**
+   * Reintento de una zona: borra sus claves y vuelve a cargarla. Las otras
+   * zonas que comparten alguna de esas claves también se recargan, para que
+   * un fallo compartido (p. ej. critical) no deje tarjetas congeladas en
+   * error mientras una ya se recuperó.
+   */
+  function retryZone(name) {
+    if (ZONES.indexOf(name) === -1) return;
+    const cleared = zoneKeys(name);
+    cleared.forEach(function(key) { delete resources[key]; });
+    ZONES.forEach(function(other) {
+      const keys = zoneKeys(other);
+      if (other !== name && !keys.some(function(k) { return cleared.indexOf(k) !== -1; })) return;
+      loadZone(other).catch(function(err) {
+        console.error('[InventoryDashboard] retryZone ' + other + ':', err);
+      });
+    });
+  }
 
   // ============================================
   // RENDER
   // ============================================
-
-  function render() {
+  function renderZone(name) {
     if (!container) return;
+    const zoneEl = container.querySelector('[data-zone="' + name + '"]');
+    if (!zoneEl) return;
 
-    const content = container.querySelector('[data-inventory-dashboard-content]');
-    if (!content) return;
+    const zoneState = state.zones[name] || { loading: false };
+    const status = zoneStatus(name);
 
-    if (state.loading) {
-      content.innerHTML = UI.cardsSkeleton(2);
+    if (status === 'loading' || zoneState.loading) {
+      zoneEl.innerHTML = zoneSkeleton(name);
+      if (name === ZONE_STOCK) renderOnboarding('');
+      return;
+    }
+    if (status === 'error') {
+      zoneEl.innerHTML = zoneError(name);
+      if (name === ZONE_STOCK) renderOnboarding('');
       return;
     }
 
-    if (state.error) {
-      content.innerHTML = `
-        <div class="card max-w-md">
-          <div class="card-header">
-            <h3 class="card-title text-danger">${t('dashboard.messages.error_title')}</h3>
-          </div>
-          <div class="card-body">
-            <p class="text-sm">${escapeHtml(state.error)}</p>
-          </div>
-          <div class="mt-4 flex justify-end gap-2">
-            <button class="btn btn-secondary btn-sm" data-action="retry">${t('dashboard.messages.retry')}</button>
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    const counts = state.counts || {};
-    const statCards = [];
-    if (canItemView()) {
-      statCards.push(renderStatCard(t('nav.products'), counts.productos || 0, ICONS.box, 'inventory'));
-    }
-    if (canLocationView()) {
-      statCards.push(renderStatCard(t('nav.locations'), counts.ubicaciones || 0, ICONS.mapPin, 'inventory/locations'));
-    }
-    const gridClass = statCards.length > 2 ? 'lg:grid-cols-4' : 'lg:grid-cols-2';
-
-    content.innerHTML = `
-      ${statCards.length ? `
-      <div class="grid grid-cols-1 md:grid-cols-2 ${gridClass} gap-4 mb-6">
-        ${statCards.join('')}
-      </div>` : ''}
-
-      ${renderStockSummary(state.critical)}
-      ${renderOperationSummary(state.secondary)}
-    `;
+    zoneEl.innerHTML = zoneContent(name);
+    if (name === ZONE_STOCK) renderOnboarding(contentOnboarding());
   }
 
-  function renderStatCard(label, value, icon, route) {
-    const formattedValue = typeof value === 'number' ? value.toLocaleString(i18n.getLocale()) : '—';
-    const clickable = route ? `data-action="navigate" data-route="${escapeHtml(route)}" role="button" tabindex="0"` : '';
-    const hoverClass = route ? 'cursor-pointer hover:border-strong' : '';
-
-    return `
-      <div class="stat-card ${hoverClass}" ${clickable}>
-        <div class="flex items-start justify-between mb-3">
-          <div class="text-muted" style="width:1.5rem;height:1.5rem;">${icon}</div>
-        </div>
-        <div class="stat-label">${escapeHtml(label)}</div>
-        <div class="stat-value">${formattedValue}</div>
-      </div>
-    `;
+  function zoneError(name) {
+    const block = UI.errorState({
+      title: t('dashboard.messages.error_title'),
+      message: '',
+      retryAction: 'retry-' + name,
+      retryLabel: t('dashboard.messages.retry')
+    });
+    if (name === ZONE_ALERTS) return block;
+    if (name === ZONE_STOCK) return stockCard(block, '');
+    if (name === ZONE_FLOW) return flowCard(block);
+    return weekCard(block);
   }
 
-  /**
-   * CAPA 1 (GET /inventory/dashboard/critical): tabla de stock resumida
-   * (máx. 20 filas, sin stock primero) + alertas del catálogo.
-   */
-  function renderStockSummary(critical) {
-    if (!critical) return '';
+  function zoneSkeleton(name) {
+    if (name === ZONE_ALERTS) {
+      const chip = (width) => '<span class="skeleton" style="width:' + width + ';height:1.5rem;border-radius:9999px"></span>';
+      return '<div class="flex items-center gap-2 flex-wrap" aria-hidden="true">' +
+        chip('9rem') + chip('11rem') + chip('10rem') + '</div>';
+    }
+    if (name === ZONE_STOCK) return stockCard(UI.tableSkeleton(stockColumns(), 6), '');
+    if (name === ZONE_FLOW) return flowCard(UI.rowsSkeleton(5, [70, 40]));
+    return weekCard(UI.rowsSkeleton(2, [60, 45]));
+  }
 
+  function zoneContent(name) {
+    if (name === ZONE_ALERTS) return alertsContent();
+    if (name === ZONE_STOCK) return stockContent();
+    if (name === ZONE_FLOW) return flowContent();
+    return weekContent();
+  }
+
+  // ---------- alertas ----------
+  function alertsContent() {
+    const critical = dataOf('critical') || {};
+    const secondary = dataOf('secondary') || {};
     const counts = critical.counts || {};
-    const rows = Array.isArray(critical.stock) ? critical.stock : [];
-    const tenant = critical.tenant && critical.tenant.nombre ? critical.tenant.nombre : '';
+    const secondaryCounts = secondary.counts || {};
 
-    const table = rows.length ? `
-      <div class="table-wrapper">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th>${t('dashboard.stock.columns.product')}</th>
-              <th class="text-right">${t('dashboard.stock.columns.units')}</th>
-              <th class="text-right">${t('dashboard.stock.columns.quantity')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map(row => `
-            <tr>
-              <td>${escapeHtml(row.sku)}</td>
-              <td>${escapeHtml(row.nombre)}</td>
-              <td class="text-right">${formatNumber(row.unidades)}</td>
-              <td class="text-right">${formatNumber(row.cantidad)}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`
-      : `<p class="table-empty">${t('dashboard.stock.empty')}</p>`;
-
-    return `
-      <div class="card mb-6">
-        <div class="card-header">
-          <h3 class="card-title">${t('dashboard.cards.stock_summary')}</h3>
-          ${tenant ? `<span class="text-muted text-sm">${escapeHtml(tenant)}</span>` : ''}
-        </div>
-        <div class="card-body">
-          <div class="flex flex-wrap gap-4 mb-4 text-sm">
-            <span class="text-muted">${t('dashboard.stock.counts.products_without_stock')}: <strong class="text-danger">${formatNumber(counts.productos_sin_stock)}</strong></span>
-            <span class="text-muted">${t('dashboard.stock.counts.critical_locations')}: <strong>${formatNumber(counts.ubicaciones_criticas)}</strong></span>
-            <span class="text-muted">${t('dashboard.stock.counts.units_in_stock')}: <strong>${formatNumber(counts.unidades_total)}</strong></span>
-          </div>
-          ${table}
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * CAPA 2 (GET /inventory/dashboard/secondary): contadores operativos,
-   * pedidos en paralelo con el resto y pintados en la misma actualización.
-   */
-  function renderOperationSummary(secondary) {
-    if (!secondary || !secondary.counts) return '';
-
-    const counts = secondary.counts;
-    const items = [
-      [t('dashboard.metrics.locations_available'), counts.ubicaciones_disponibles],
-      [t('dashboard.metrics.active_reservations'), counts.reservas_activas],
-      [t('dashboard.metrics.in_transit'), counts.transporte_transito],
-      [t('dashboard.metrics.open_incidents'), counts.incidencias_abiertas]
+    const candidates = [
+      {
+        value: num(counts.productos_sin_stock),
+        label: t('dashboard.stock.counts.products_without_stock'),
+        cls: 'chip-danger', perm: 'inventory.stock.view', roles: ROLES_VIEW,
+        route: 'inventory/stock'
+      },
+      {
+        value: num(counts.ubicaciones_criticas),
+        label: t('dashboard.stock.counts.critical_locations'),
+        cls: 'chip-warning', perm: 'inventory.location.view', roles: ROLES_VIEW,
+        route: 'inventory/locations'
+      },
+      {
+        value: num(secondaryCounts.incidencias_abiertas),
+        label: t('dashboard.metrics.open_incidents'),
+        cls: 'chip-danger', perm: 'inventory.incident.view', roles: ROLES_VIEW,
+        route: 'inventory/incidents'
+      }
     ];
 
-    return `
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">${t('dashboard.cards.operation')}</h3>
-        </div>
-        <div class="card-body">
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            ${items.map(([label, value]) => `
-            <div>
-              <div class="text-muted text-xs">${escapeHtml(label)}</div>
-              <div class="text-xl font-bold">${formatNumber(value)}</div>
-            </div>`).join('')}
-          </div>
-        </div>
-      </div>
-    `;
+    // Cada chip exige dato > 0 + permiso para navegar a su destino.
+    const visible = candidates.filter(function(c) {
+      return c.value > 0 && can(c.perm, c.roles);
+    });
+
+    const wrapper = function(inner) {
+      return '<div class="flex items-center gap-2 flex-wrap" aria-label="' +
+        esc(t('dashboard.inventory.alerts.title')) + '">' + inner + '</div>';
+    };
+
+    if (visible.length) {
+      return wrapper(visible.map(function(c) {
+        return '<span class="chip ' + c.cls + '" role="button" tabindex="0" style="cursor:pointer" ' +
+          'data-action="navigate" data-route="' + esc(c.route) + '">' +
+          esc(c.label) + ': <strong>' + fmt(c.value) + '</strong></span>';
+      }).join(''));
+    }
+
+    // Sin alertas visibles: sólo se dice "Todo en orden" si de verdad no
+    // hay ninguna. Si hay valor > 0 pero no se puede navegar al destino,
+    // no se pinta nada (regla: sin navegación válida no se pinta).
+    const anyAlert = candidates.some(function(c) { return c.value > 0; });
+    if (anyAlert) return wrapper('');
+    return wrapper('<span class="chip chip-success">' + esc(t('dashboard.inventory.alerts.all_clear')) + '</span>');
   }
 
-  function formatNumber(value) {
-    return typeof value === 'number' ? value.toLocaleString(i18n.getLocale()) : '0';
+  // ---------- stock ----------
+  function stockColumns() {
+    return [
+      { label: 'SKU' },
+      { label: t('dashboard.stock.columns.product') },
+      { label: t('dashboard.stock.columns.units'), className: 'text-right' },
+      { label: t('dashboard.stock.columns.quantity'), className: 'text-right' }
+    ];
+  }
+
+  function stockCard(bodyHtml, headerExtra) {
+    return '<div class="card">' +
+      '<div class="card-header">' +
+      '<h3 class="card-title">' + esc(t('inventory.stock.title')) + '</h3>' +
+      (headerExtra || '') +
+      '</div>' +
+      '<div class="card-body">' + bodyHtml + '</div>' +
+      '</div>';
+  }
+
+  function stockRow(row) {
+    return '<tr>' +
+      '<td>' + esc(row.sku) + '</td>' +
+      '<td>' + esc(row.nombre) + '</td>' +
+      '<td class="text-right">' + fmt(row.unidades) + '</td>' +
+      '<td class="text-right">' + fmt(row.cantidad) + '</td>' +
+      '</tr>';
+  }
+
+  function stockToggle() {
+    const noStockActive = state.filter !== 'all';
+    const btn = function(active, value, label) {
+      return '<button type="button" class="btn btn-sm ' + (active ? 'btn-primary' : 'btn-secondary') + '" ' +
+        'data-action="filter" data-filter="' + esc(value) + '" aria-pressed="' + (active ? 'true' : 'false') + '">' +
+        esc(label) + '</button>';
+    };
+    return '<div class="flex items-center gap-2 flex-wrap">' +
+      '<div class="btn-group" role="group">' +
+      btn(noStockActive, 'sin_stock', t('dashboard.inventory.stock.filter_no_stock')) +
+      btn(!noStockActive, 'all', t('dashboard.inventory.stock.filter_all')) +
+      '</div>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-action="navigate" data-route="inventory/stock">' +
+      esc(t('dashboard.inventory.stock.view_all')) + '</button>' +
+      '</div>';
+  }
+
+  function stockContent() {
+    const critical = dataOf('critical') || {};
+    const rows = Array.isArray(critical.stock) ? critical.stock : [];
+    const filtered = state.filter === 'all'
+      ? rows
+      : rows.filter(function(row) { return num(row.unidades) === 0; });
+
+    let body;
+    if (!rows.length) {
+      body = '<p class="table-empty">' + esc(t('dashboard.stock.empty')) + '</p>';
+    } else if (!filtered.length) {
+      body = '<p class="table-empty">' + esc(t('dashboard.inventory.stock.no_results')) + '</p>';
+    } else {
+      body = '<div class="table-wrapper">' +
+        UI.tableShell(stockColumns(), filtered.map(stockRow).join('')) +
+        '</div>';
+    }
+    return stockCard(body, stockToggle());
+  }
+
+  // ---------- flujo operativo ----------
+  function flowCard(bodyHtml) {
+    return '<div class="card">' +
+      '<div class="card-header">' +
+      '<h3 class="card-title">' + esc(t('dashboard.inventory.flow.title')) + '</h3>' +
+      '</div>' +
+      '<div class="card-body">' + bodyHtml + '</div>' +
+      '</div>';
+  }
+
+  function flowContent() {
+    const rows = FLOW_ROWS.filter(function(row) { return can(row.perm, row.roles); });
+    if (!rows.length) {
+      return flowCard(UI.emptyState({ title: t('ui.empty_title'), message: '' }));
+    }
+    const body = rows.map(function(row) {
+      const data = dataOf(row.resource);
+      const value = data === null ? 0 : row.value(data);
+      return '<div class="flex items-center justify-between gap-2 py-2 border-b border-default last:border-0 cursor-pointer" ' +
+        'role="button" tabindex="0" data-action="navigate" data-route="' + esc(row.route) + '">' +
+        '<span class="text-sm">' + esc(t(row.labelKey)) + '</span>' +
+        '<span class="flex items-center gap-2 text-sm">' +
+        '<strong>' + fmt(value) + '</strong>' + CHEVRON +
+        '</span></div>';
+    }).join('');
+    return flowCard(body);
+  }
+
+  // ---------- últimos 7 días ----------
+  function weekCard(bodyHtml) {
+    return '<div class="card">' +
+      '<div class="card-header">' +
+      '<h3 class="card-title">' + esc(t('dashboard.inventory.week.title')) + '</h3>' +
+      '</div>' +
+      '<div class="card-body">' + bodyHtml + '</div>' +
+      '</div>';
+  }
+
+  function weekItems() {
+    const movements = dataOf('week_movements') || {};
+    const items = [
+      { labelKey: 'dashboard.inventory.week.movements', value: num(movements.total), route: 'inventory/movements' },
+      { labelKey: 'dashboard.inventory.week.corrections', value: num(movements.correcciones), route: 'inventory/movements' }
+    ];
+    if (can('inventory.return.view', ROLES_VIEW)) {
+      const returns = dataOf('week_returns') || {};
+      items.push({ labelKey: 'dashboard.inventory.week.returns', value: num(returns.total), route: 'inventory/returns' });
+    }
+    return items;
+  }
+
+  function weekContent() {
+    const items = weekItems();
+    const cols = items.length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2';
+    const body = '<div class="grid grid-cols-1 ' + cols + ' gap-4">' +
+      items.map(function(item) {
+        return '<div class="cursor-pointer" role="button" tabindex="0" data-action="navigate" data-route="' + esc(item.route) + '">' +
+          '<div class="text-muted text-xs">' + esc(t(item.labelKey)) + '</div>' +
+          '<div class="text-xl font-bold">' + fmt(item.value) + '</div>' +
+          '</div>';
+      }).join('') +
+      '</div>';
+    return weekCard(body);
+  }
+
+  // ---------- onboarding (catálogo vacío) ----------
+  function contentOnboarding() {
+    const critical = dataOf('critical');
+    if (!critical) return '';
+    const counts = critical.counts || {};
+    if (num(counts.productos_activos) > 0) return '';
+
+    const steps = [
+      {
+        titleKey: 'dashboard.inventory.onboarding.step_location_title',
+        descKey: 'dashboard.inventory.onboarding.step_location_desc',
+        ctaKey: 'inventory.locations.actions.create',
+        perm: 'inventory.location.manage', roles: ROLES_ADMIN, route: 'inventory/locations'
+      },
+      {
+        titleKey: 'dashboard.inventory.onboarding.step_product_title',
+        descKey: 'dashboard.inventory.onboarding.step_product_desc',
+        ctaKey: 'inventory.products.actions.create',
+        perm: 'inventory.item.create', roles: ROLES_EDIT, route: 'inventory'
+      },
+      {
+        titleKey: 'dashboard.inventory.onboarding.step_receiving_title',
+        descKey: 'dashboard.inventory.onboarding.step_receiving_desc',
+        ctaKey: 'inventory.receiving.card_title',
+        perm: 'inventory.receiving.create', roles: ROLES_CREATE, route: 'inventory/receiving'
+      }
+    ];
+
+    const body = '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' +
+      steps.map(function(step, index) {
+        const cta = can(step.perm, step.roles)
+          ? '<button type="button" class="btn btn-secondary btn-sm" data-action="navigate" data-route="' + esc(step.route) + '">' +
+            esc(t(step.ctaKey)) + '</button>'
+          : '';
+        return '<div class="card p-3">' +
+          '<div class="flex items-center gap-2 mb-2">' +
+          '<span class="chip chip-primary">' + (index + 1) + '</span>' +
+          '<strong class="text-sm">' + esc(t(step.titleKey)) + '</strong>' +
+          '</div>' +
+          '<p class="text-muted text-sm mb-3">' + esc(t(step.descKey)) + '</p>' +
+          cta +
+          '</div>';
+      }).join('') +
+      '</div>';
+
+    return '<div class="card">' +
+      '<div class="card-header">' +
+      '<div>' +
+      '<h3 class="card-title">' + esc(t('dashboard.inventory.onboarding.title')) + '</h3>' +
+      '<p class="text-muted text-sm">' + esc(t('dashboard.inventory.onboarding.subtitle')) + '</p>' +
+      '</div>' +
+      '</div>' +
+      '<div class="card-body">' + body + '</div>' +
+      '</div>';
+  }
+
+  function renderOnboarding(html) {
+    const zoneEl = container.querySelector('[data-zone="onboarding"]');
+    if (zoneEl) zoneEl.innerHTML = html;
+  }
+
+  // ---------- cabecera ----------
+  function navButton(label, route, variant) {
+    return '<button type="button" class="btn ' + variant + ' btn-sm" data-action="navigate" data-route="' +
+      esc(route) + '">' + esc(label) + '</button>';
+  }
+
+  function headerActions() {
+    const actions = [];
+    if (can('inventory.item.create', ROLES_EDIT)) {
+      actions.push(navButton(t('inventory.products.actions.create'), 'inventory', 'btn-primary'));
+    }
+    if (can('inventory.receiving.create', ROLES_CREATE)) {
+      actions.push(navButton(t('inventory.receiving.title'), 'inventory/receiving', 'btn-secondary'));
+    }
+    if (!actions.length) return '';
+    return '<div class="flex items-center gap-2 flex-wrap">' + actions.join('') + '</div>';
+  }
+
+  function deniedTemplate() {
+    return UI.deniedState({
+      title: t('dashboard.inventory.permission.title'),
+      message: t('dashboard.inventory.permission.body', { permiso: 'inventory.stock.view' }),
+      ctaHref: '#/dashboard',
+      ctaLabel: t('router.go_dashboard')
+    });
+  }
+
+  function buildTemplate() {
+    return '<div class="max-w-7xl mx-auto">' +
+      UI.pageHeader({
+        title: t('dashboard.inventory.title'),
+        subtitle: t('dashboard.inventory.subtitle'),
+        actionsHtml: headerActions()
+      }) +
+      '<div data-zone="' + ZONE_ALERTS + '" class="mb-4"></div>' +
+      '<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">' +
+      '<div class="lg:col-span-2" data-zone="' + ZONE_STOCK + '"></div>' +
+      '<div data-zone="' + ZONE_FLOW + '"></div>' +
+      '</div>' +
+      '<div data-zone="' + ZONE_WEEK + '" class="mb-4"></div>' +
+      '<div data-zone="onboarding"></div>' +
+      '</div>';
   }
 
   // ============================================
-  // DATA
+  // EVENTOS
   // ============================================
-
-  function canView(permission, fallbackRoles) {
-    if (global.UI && typeof global.UI.can === 'function') {
-      return global.UI.can(permission, fallbackRoles);
-    }
-    return false;
-  }
-
-  const canStockLayers = () => canView('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
-  const canItemView = () => canView('inventory.item.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
-  const canLocationView = () => canView('inventory.location.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER']);
-
-  async function loadData() {
-    state.error = null;
-    const gate = UI.skeletonGate(state, 'loading', render);
-
-    if (!global.HttpClient) {
-      gate.done();
-      state.error = t('dashboard.messages.http_unavailable');
-      render();
-      return;
-    }
-
-    const wantsItems = canItemView();
-    const wantsLocations = canLocationView();
-    const wantsStock = canStockLayers();
-
-    if (!wantsItems && !wantsLocations && !wantsStock) {
-      // Sin ningún permiso del módulo: no hay conteos ni widgets.
-      state.counts = null;
-      state.critical = null;
-      state.secondary = null;
-      gate.done();
-      render();
-      return;
-    }
-
-    try {
-      // Todo en paralelo y UN solo render al final: las tarjetas de conteo,
-      // Stock resumido y Operación aparecen a la vez (sin pop-in escalonado).
-      // Las capas se envuelven para que un 403/caída deje su tarjeta en
-      // null sin tumbar los conteos (mismo criterio que antes).
-      const [prodRes, locRes, critical, secondary] = await Promise.all([
-        wantsItems
-          ? global.HttpClient.get('/inventory/products', { params: { page: 1, per_page: 1 } })
-          : Promise.resolve(null),
-        wantsLocations
-          ? global.HttpClient.get('/inventory/locations', { params: { page: 1, per_page: 1 } })
-          : Promise.resolve(null),
-        wantsStock ? loadLayer('/inventory/dashboard/critical') : Promise.resolve(null),
-        wantsStock ? loadLayer('/inventory/dashboard/secondary') : Promise.resolve(null)
-      ]);
-
-      state.counts = (wantsItems || wantsLocations)
-        ? {
-            productos: wantsItems ? totalOf(prodRes) : 0,
-            ubicaciones: wantsLocations ? totalOf(locRes) : 0
-          }
-        : null;
-      state.critical = critical;
-      state.secondary = secondary;
-      gate.done();
-      render();
-    } catch (err) {
-      console.error('[InventoryDashboard] loadData error:', err);
-      gate.done();
-      state.error = err.message || t('dashboard.messages.stats_load_error');
-      render();
+  function navigate(route) {
+    if (!route) return;
+    if (global.AppRouter && typeof global.AppRouter.navigate === 'function') {
+      global.AppRouter.navigate(route);
+    } else {
+      global.location.hash = '#/' + route;
     }
   }
-
-  function totalOf(response) {
-    const pagination = response && response.data && response.data.pagination;
-    if (pagination && typeof pagination.total === 'number') return pagination.total;
-    if (response && Array.isArray(response.data)) return response.data.length;
-    return 0;
-  }
-
-  /**
-   * CAPA 1 (critical) o CAPA 2 (secondary): se piden junto con los conteos.
-   * Un fallo (permiso o backend) devuelve null y sólo falta esa tarjeta.
-   */
-  async function loadLayer(url) {
-    try {
-      const response = await global.HttpClient.get(url);
-      return (response && response.data) || null;
-    } catch (err) {
-      console.error('[InventoryDashboard] ' + url + ' error:', err);
-      return null;
-    }
-  }
-
-  // ============================================
-  // EVENTS
-  // ============================================
 
   function handleClick(e) {
+    if (!container || !e.target || typeof e.target.closest !== 'function') return;
     const target = e.target.closest('[data-action]');
-    if (!target) return;
+    if (!target || !container.contains(target)) return;
 
-    const action = target.dataset.action;
+    const action = target.getAttribute('data-action') || '';
     if (action === 'navigate') {
-      const route = target.dataset.route;
-      if (route && global.AppRouter) {
-        global.AppRouter.navigate(route);
-      }
-    } else if (action === 'retry') {
-      loadData();
+      navigate(target.getAttribute('data-route'));
+    } else if (action === 'filter') {
+      state.filter = target.getAttribute('data-filter') === 'all' ? 'all' : 'sin_stock';
+      renderZone(ZONE_STOCK);
+    } else if (action.indexOf('retry-') === 0) {
+      retryZone(action.slice('retry-'.length));
     }
   }
 
   function handleKeydown(e) {
     if (e.key !== 'Enter' && e.key !== ' ') return;
+    if (!container || !e.target || typeof e.target.closest !== 'function') return;
     const target = e.target.closest('[data-action="navigate"]');
-    if (!target) return;
+    if (!target || !container.contains(target)) return;
     e.preventDefault();
     target.click();
   }
@@ -356,55 +712,49 @@
   }
 
   // ============================================
-  // HELPERS
-  // ============================================
-
-  function escapeHtml(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  // ============================================
   // PUBLIC API
   // ============================================
-
   const InventoryDashboardModule = {
     init(params, targetContainer) {
       container = targetContainer;
       if (!container) return;
-      container.innerHTML = TEMPLATE;
+
+      if (!canStockView()) {
+        container.innerHTML = deniedTemplate();
+        return;
+      }
+
+      container.innerHTML = buildTemplate();
       bindEvents();
-      loadData();
+      loadAll();
     },
 
-    onActivate() {
-      if (container && !container.querySelector('[data-inventory-dashboard-content]')) {
-        container.innerHTML = TEMPLATE;
+    onActivate(params) {
+      if (!container) return;
+
+      if (!canStockView()) {
+        container.innerHTML = deniedTemplate();
+        return;
+      }
+
+      if (!container.querySelector('[data-zone="' + ZONE_STOCK + '"]')) {
+        container.innerHTML = buildTemplate();
         bindEvents();
       }
-      loadData();
+      loadAll();
     },
 
     destroy() {
       unbindEvents();
-      if (container) {
-        container.innerHTML = '';
-      }
+      if (container) container.innerHTML = '';
       container = null;
-      state = {
-        counts: null,
-        critical: null,
-        secondary: null,
-        loading: true,
-        error: null
-      };
+
+      Object.keys(resources).forEach(function(key) { delete resources[key]; });
+      state.filter = 'sin_stock';
+      state.zones = freshZones();
     }
   };
 
   global.InventoryDashboardModule = InventoryDashboardModule;
+
 })(window);

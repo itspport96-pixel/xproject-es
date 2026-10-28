@@ -1688,7 +1688,46 @@
     "greeting": "Olá, {name}",
     "inventory": {
       "title": "Painel de Inventário",
-      "subtitle": "Resumo do módulo de inventário"
+      "subtitle": "Resumo do módulo de inventário",
+      "permission": {
+        "title": "Sem permissão",
+        "body": "Você precisa de <code>{permiso}</code> para ver este painel."
+      },
+      "alerts": {
+        "title": "Alertas",
+        "all_clear": "Tudo em ordem"
+      },
+      "stock": {
+        "filter_no_stock": "Sem estoque",
+        "filter_all": "Todos",
+        "view_all": "Ver todo o estoque",
+        "no_results": "Nenhum produto corresponde ao filtro."
+      },
+      "flow": {
+        "title": "Fluxo operacional",
+        "reservations": "Reservas ativas",
+        "picking": "Picking em andamento",
+        "shipments": "Envios em rota",
+        "deliveries": "Entregas pendentes",
+        "counts": "Contagens pendentes",
+        "in_transit": "Unidades em trânsito"
+      },
+      "week": {
+        "title": "Últimos 7 dias",
+        "movements": "Movimentos",
+        "corrections": "Correções",
+        "returns": "Devoluções"
+      },
+      "onboarding": {
+        "title": "Comece com os passos básicos",
+        "subtitle": "Três passos para ter o seu inventário a funcionar.",
+        "step_location_title": "Crie uma localização",
+        "step_location_desc": "Defina onde o estoque é guardado antes de receber mercadorias.",
+        "step_product_title": "Crie um produto",
+        "step_product_desc": "Registre o primeiro item do seu catálogo.",
+        "step_receiving_title": "Registre uma recepção",
+        "step_receiving_desc": "Receba mercadorias para começar a ter unidades em estoque."
+      }
     },
     "cards": {
       "active_users": "Utilizadores ativos",

@@ -1688,7 +1688,46 @@
     "greeting": "Hola, {name}",
     "inventory": {
       "title": "Panel de Inventario",
-      "subtitle": "Resumen del módulo de inventario"
+      "subtitle": "Resumen del módulo de inventario",
+      "permission": {
+        "title": "Sin permiso",
+        "body": "Necesitas <code>{permiso}</code> para ver este panel."
+      },
+      "alerts": {
+        "title": "Alertas",
+        "all_clear": "Todo en orden"
+      },
+      "stock": {
+        "filter_no_stock": "Sin stock",
+        "filter_all": "Todos",
+        "view_all": "Ver todo el stock",
+        "no_results": "Ningún producto coincide con el filtro."
+      },
+      "flow": {
+        "title": "Flujo operativo",
+        "reservations": "Reservas activas",
+        "picking": "Picking en curso",
+        "shipments": "Envíos en ruta",
+        "deliveries": "Entregas pendientes",
+        "counts": "Conteos pendientes",
+        "in_transit": "Unidades en tránsito"
+      },
+      "week": {
+        "title": "Últimos 7 días",
+        "movements": "Movimientos",
+        "corrections": "Correcciones",
+        "returns": "Devoluciones"
+      },
+      "onboarding": {
+        "title": "Empieza con los pasos básicos",
+        "subtitle": "Tres pasos para tener tu inventario operativo.",
+        "step_location_title": "Crea una ubicación",
+        "step_location_desc": "Define dónde se guarda el stock antes de recibir mercancía.",
+        "step_product_title": "Crea un producto",
+        "step_product_desc": "Da de alta el primer artículo de tu catálogo.",
+        "step_receiving_title": "Registra una recepción",
+        "step_receiving_desc": "Entra mercancía para empezar a tener unidades en stock."
+      }
     },
     "cards": {
       "active_users": "Usuarios activos",

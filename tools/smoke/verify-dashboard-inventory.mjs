@@ -5,12 +5,13 @@
  * Contra Apache (localhost/xp/public) y la BD viva:
  *  - Sidebar: sección "Módulos" con la acción "Inventory" (→ panel); los items
  *    detallados de inventario ya NO están en el sidebar.
- *  - Panel #/dashboard/inventory: widgets de stock y operación + subnav con
- *    TODAS las opciones de inventario (sin opción "Dashboard").
+ *  - Panel #/dashboard/inventory: zonas del nuevo diseño (chips de alerta,
+ *    tabla de stock 2/3 con conmutador, flujo operativo 1/3, línea de 7 días)
+ *    + subnav con TODAS las opciones de inventario (sin opción "Dashboard").
  *  - Subnav persiste en #/inventory/* y gatea cada opción por permiso.
  *  - Cero respuestas 403 en toda la navegación (MANAGER).
- *  - Panel en paralelo: conteos + CAPA 1 + CAPA 2 se piden a la entrada y
- *    "Operación" se pinta SIN espera de 5s; al salir no queda ninguna
+ *  - Panel en paralelo: las zonas se piden a la entrada y el "Flujo
+ *    operativo" se pinta SIN espera de 5s; al salir no queda ninguna
  *    petición de secondary pendiente.
  *  - Responsive: escritorio con pestanas (sin scroll horizontal) y movil con
  *    desplegable (sin scroll horizontal); el subnav NO aparece en el general.
@@ -88,8 +89,14 @@ async function state(page) {
       tabRoutes: routes,
       hasDashboardTab: routes.includes('dashboard'),
       menuOptions: opts.length,
-      hasStockSummary: titles.includes('Stock resumido'),
-      hasOperation: titles.includes('Operación'),
+      hasStockCard: titles.includes('Stock actual'),
+      hasFlowCard: titles.includes('Flujo operativo'),
+      hasWeekCard: titles.includes('Últimos 7 días'),
+      hasOnboarding: titles.includes('Empieza con los pasos básicos'),
+      zoneCount: document.querySelectorAll(
+        '#module-container [data-zone="alerts"], #module-container [data-zone="stock"],' +
+        ' #module-container [data-zone="flow"], #module-container [data-zone="week"]').length,
+      chipCount: document.querySelectorAll('#module-container .chip').length,
       statCards: document.querySelectorAll('.stat-card').length,
       sidebarHasPanel: !!document.querySelector('.sidebar-item[data-route="dashboard/inventory"]'),
       sidebarHasProducts: !!document.querySelector('.sidebar-item[data-route="inventory"]'),
@@ -159,7 +166,7 @@ async function main() {
 
   try {
     console.log('MANAGER (manager@acme.local): sidebar + panel + subnav');
-    await login(page, 'manager@acme.local', 'Admin123!');
+    await login(page, 'manager@acme.local', 'Manager2026!');
 
     // ---------- 1) Dashboard general: sin subnav, sidebar con accion Inventory ----------
     resetNet();
@@ -172,8 +179,8 @@ async function main() {
     check('general: sidebar seccion etiquetada Módulos', /M[oó]dulos/i.test(s.sidebarModulesLabel || ''), s.sidebarModulesLabel);
     check('general: sidebar accion Inventory presente', s.sidebarHasPanel === true);
     check('general: sidebar SIN items detallados inventario', s.sidebarHasProducts === false && s.sidebarHasStock === false);
-    check('general: sin widget Stock resumido', s.hasStockSummary === false);
-    check('general: sin widget Operacion', s.hasOperation === false);
+    check('general: sin widget Stock actual', s.hasStockCard === false);
+    check('general: sin widget Flujo operativo', s.hasFlowCard === false);
     check('general: cero 403', net.api403 === 0, `403=${net.api403}`);
     await shot(page, 'nav-manager-general-1920');
 
@@ -192,18 +199,20 @@ async function main() {
     check('panel: subnav con las 12 opciones de inventario', s.tabRoutes.length === 12 && missing.length === 0,
       JSON.stringify({ n: s.tabRoutes.length, missing }));
     check('panel: sidebar accion Inventory activa', s.sidebarPanelActive === true);
-    check('panel: widget Stock resumido presente', s.hasStockSummary === true);
-    check('panel: widget Operacion presente en el PRIMER render (sin espera)',
-      s.hasOperation === true);
-    check('panel: conteos (stat cards) en el mismo pintado', s.statCards >= 2,
-      `statCards=${s.statCards}`);
+    check('panel: tarjeta Stock actual presente', s.hasStockCard === true);
+    check('panel: tarjeta Flujo operativo presente en el PRIMER render (sin espera)',
+      s.hasFlowCard === true);
+    check('panel: las 4 zonas del panel montadas', s.zoneCount === 4,
+      `zones=${s.zoneCount}`);
+    check('panel: linea de 7 dias presente', s.hasWeekCard === true);
     check('panel: secondary pedida a la entrada (sin timer de 5s)', net.secondary >= 1,
       `secondary=${net.secondary}`);
     check('panel: sin scroll horizontal', s.hScrollPage === false, `hScroll=${s.hScrollPage}`);
     check('panel: cero 403', net.api403 === 0, `403=${net.api403}`);
     await shot(page, 'nav-manager-panel-1920');
-    // Captura legada del escenario "CAPA 2 a los 5s": el pintado ya es único
-    // y el panel no cambia tras la primera carga; se conserva el nombre.
+    // Captura legada del escenario "CAPA 2 a los 5s": la carga ya es por
+    // zona, sin timer, y el panel no cambia tras la primera carga; se
+    // conserva el nombre de fichero.
     await shot(page, 'nav-manager-panel-1920-capa2');
 
     // ---------- 3) Subnav navega a una opcion y persiste ----------
@@ -245,11 +254,11 @@ async function main() {
     await page.goto(BASE + '/#/dashboard', { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
     await page.goto(BASE + '/#/dashboard/inventory', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1200); // pintado único: conteos + CAPA 1 + CAPA 2
+    await page.waitForTimeout(1200); // carga progresiva por zona
     check('panel paralelo: secondary pedida en la entrada (sin timer de 5s)',
       net.secondary >= 1, `secondary=${net.secondary}`);
     const s4 = await state(page);
-    check('panel paralelo: Operacion visible sin espera extra', s4.hasOperation === true);
+    check('panel paralelo: Flujo operativo visible sin espera extra', s4.hasFlowCard === true);
     net.leaving = true;
     await page.goto(BASE + '/#/dashboard', { waitUntil: 'networkidle' }); // salir
     await page.waitForTimeout(6000);
@@ -323,7 +332,7 @@ async function main() {
     s = await state(page);
     check('admin general: subnav oculto', s.subHidden === true, `hidden=${s.subHidden}`);
     check('admin general: tarjetas de tenant (>=4)', s.statCards >= 4, `statCards=${s.statCards}`);
-    check('admin general: sin widget inventario', s.hasStockSummary === false && s.hasOperation === false);
+    check('admin general: sin widget inventario', s.hasStockCard === false && s.hasFlowCard === false);
     check('admin: cero 403', net.api403 === 0, `403=${net.api403}`);
     await shot(page, 'nav-admin-general-1920');
   } finally {

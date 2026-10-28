@@ -1688,7 +1688,46 @@
     "greeting": "Hello, {name}",
     "inventory": {
       "title": "Inventory Dashboard",
-      "subtitle": "Summary of the inventory module"
+      "subtitle": "Summary of the inventory module",
+      "permission": {
+        "title": "No permission",
+        "body": "You need <code>{permiso}</code> to view this panel."
+      },
+      "alerts": {
+        "title": "Alerts",
+        "all_clear": "All clear"
+      },
+      "stock": {
+        "filter_no_stock": "Out of stock",
+        "filter_all": "All",
+        "view_all": "View all stock",
+        "no_results": "No product matches the filter."
+      },
+      "flow": {
+        "title": "Operational flow",
+        "reservations": "Active reservations",
+        "picking": "Picking in progress",
+        "shipments": "Shipments in transit",
+        "deliveries": "Pending deliveries",
+        "counts": "Pending counts",
+        "in_transit": "Units in transit"
+      },
+      "week": {
+        "title": "Last 7 days",
+        "movements": "Movements",
+        "corrections": "Corrections",
+        "returns": "Returns"
+      },
+      "onboarding": {
+        "title": "Start with the basic steps",
+        "subtitle": "Three steps to get your inventory running.",
+        "step_location_title": "Create a location",
+        "step_location_desc": "Define where stock is stored before receiving goods.",
+        "step_product_title": "Create a product",
+        "step_product_desc": "Add the first item to your catalog.",
+        "step_receiving_title": "Record a receipt",
+        "step_receiving_desc": "Receive goods to start having units in stock."
+      }
     },
     "cards": {
       "active_users": "Active users",

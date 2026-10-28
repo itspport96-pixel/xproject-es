@@ -1688,7 +1688,46 @@
     "greeting": "Bonjour, {name}",
     "inventory": {
       "title": "Tableau de bord des stocks",
-      "subtitle": "Résumé du module de stocks"
+      "subtitle": "Résumé du module de stocks",
+      "permission": {
+        "title": "Sans permission",
+        "body": "Vous avez besoin de <code>{permiso}</code> pour voir ce tableau de bord."
+      },
+      "alerts": {
+        "title": "Alertes",
+        "all_clear": "Tout est en ordre"
+      },
+      "stock": {
+        "filter_no_stock": "Sans stock",
+        "filter_all": "Tous",
+        "view_all": "Voir tout le stock",
+        "no_results": "Aucun produit ne correspond au filtre."
+      },
+      "flow": {
+        "title": "Flux opérationnel",
+        "reservations": "Réservations actives",
+        "picking": "Picking en cours",
+        "shipments": "Envois en route",
+        "deliveries": "Livraisons en attente",
+        "counts": "Comptages en attente",
+        "in_transit": "Unités en transit"
+      },
+      "week": {
+        "title": "7 derniers jours",
+        "movements": "Mouvements",
+        "corrections": "Corrections",
+        "returns": "Retours"
+      },
+      "onboarding": {
+        "title": "Commencez par les étapes de base",
+        "subtitle": "Trois étapes pour opérationnaliser votre inventaire.",
+        "step_location_title": "Créez un emplacement",
+        "step_location_desc": "Définissez où le stock est stocké avant de recevoir des marchandises.",
+        "step_product_title": "Créez un produit",
+        "step_product_desc": "Ajoutez le premier article de votre catalogue.",
+        "step_receiving_title": "Enregistrez une réception",
+        "step_receiving_desc": "Recevez des marchandises pour commencer à avoir des unités en stock."
+      }
     },
     "cards": {
       "active_users": "Utilisateurs actifs",

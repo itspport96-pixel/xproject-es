@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.19.8] - 2026-10-28
+
+**Rediseño del panel de Inventario (`#/dashboard/inventory`) segun el adjunto `dashboard_inventory.html`, con la regla de que ningun indicador se pinta sin dato real + permiso real + navegacion valida.** El panel anterior era una rejilla generica de tarjetas de resumen; el nuevo reproduce el layout fijo del adjunto (chips de alerta, tabla de stock 2/3 con conmutador, flujo operativo 1/3, linea de metricas de 7 dias y onboarding de 3 pasos) y carga por zonas con skeleton propio, de modo que un endpoint lento o caido no bloquea el render de los demas. Sin cambios de backend: todo se apoya en los endpoints ya existentes del modulo.
+
+### Added
+- **`public/js/modules/inventory/dashboard.js` (reescrito)**: 4 zonas + onboarding, cada una con su `UI.skeletonGate`, su `UI.errorState({retryAction})` y su caché de recursos por clave. El gate del panel completo es `inventory.stock.view`; sin ese permiso se pinta `UI.deniedState` y no se emite ni una peticion. Dentro del panel, cada chip, fila, metrica y accion gatea por el permiso de su pantalla destino (mismos fallbacks de roles que esa pantalla), de modo que un indicador que no puede abrirse no se pinta.
+- **Claves i18n** en `resources/locales/{es,en,pt,fr}.json` bajo `dashboard.inventory.*` (chips, tabla, flujo, semana, onboarding y estados). Sin literales fijos: `check-i18n` en verde.
+- **`tools/smoke/verify-dashboard-inventory.mjs`** (navegador real): sidebar + panel + subnav + sticky, escalado 1920/1366/movil, cero 403. **46 OK, 0 FAIL.**
+- **`tools/smoke/verify-inventory-panel.mjs`** (nuevo, navegador real + BD viva): 5 escenarios — datos reales con el mapeo endpoint→indicador contrastado contra la respuesta real del mismo endpoint, clic de cada indicador y del conmutador; permisos parciales (`viewer@acme.local`, rol VIEWER: todo `*.view`, ningun `*.create`); catalogo vacio (`page.route` con el contrato real en ceros → chip "Todo en orden" + onboarding de 3 pasos con CTAs gateados); error simulado 500 en `critical` (solo la zona Stock en error, con "Reintentar" que la recupera); idiomas es/en, tema claro/oscuro y viewports 1366/1024/768 px sin scroll horizontal. **50 OK, 0 FAIL.**
+- **`public/css/tailwind.css`** regenerado con `npm run build:css` (regla 18) y commiteado.
+
+### Fixed
+- **El onboarding no pintaba nunca** (`public/js/modules/inventory/dashboard.js`): la zona Stock llamaba `zoneContentOnboarding()`, pero la funcion se llama `contentOnboarding()`. El `TypeError` lo tragaba el flujo de pintado, de modo que con el catalogo vacio la tabla se quedaba en skeleton/mensaje vacio y los 3 pasos de alta no aparecian. Corregido el nombre; cubierto por el escenario 3 de `verify-inventory-panel.mjs`.
+
+### Notes
+- **Discrepancias del adjunto `dashboard_inventory.html` vs el repo** (todas resueltas sin inventar datos ni endpoints):
+  - `counts.por_estado.EN_TRANSITO` llega como mapa (y `[]` cuando no hay filas), no como entero: se lee como numero con fallback 0.
+  - `stock[].producto_id` es UUID, no SKU: la fila muestra `sku` + `nombre`, que son los campos que el contrato si trae.
+  - `stock[]` esta limitado a 20 filas por el backend: la tabla pagina en cliente sobre esa lista y "Ver todo el stock" lleva a `#/inventory/stock`, que si pagina en servidor.
+  - Los permisos del adjunto (`inventory.dashboard.view`, `inventory.alerts.view`, …) no existen en el catalogo. Se usan los reales de cada pantalla destino: `location.view`, `incident.view`, `reservation.view`, `shipping.view`, `delivery.view`, `count.view`, `stock.view`, `return.view`, mas `item.create` y `receiving.create` para los CTAs.
+  - Rutas del adjunto inexistentes: `#/inventory/products/new` (el alta real es el modal de `#/inventory` con `data-action="create"`) y `#/inventory/receptions` (la pantalla real es `#/inventory/receiving`).
+  - Ninguna pantalla del modulo lee filtros del query string salvo `?tab=`: los enlaces del panel se emiten sin query string; el limitacion se documenta aqui en lugar de simular un filtrado que nadie aplicaria.
+  - Claves del adjunto sin uso en el repo: `common.retry` y `common.open` no existen; se reutilizan `dashboard.messages.retry` y los CTAs propios de cada accion.
+  - El `tailwind.css` generado no tiene utilidades `dark:` ni la paleta roja/ambar del adjunto: los chips de alerta usan las clases `.chip-danger` / `.chip-warning` / `.chip-success` y los tokens `--color-*` ya presentes, para no tocar la paleta del tema.
+- **Datos de prueba sembrados por API en la BD viva** (criterio "Equipo Acme", fuera del repo): usuarios `manager@acme.local` (rol MANAGER, password `Manager2026!`) y `viewer@acme.local` (rol VIEWER, password `Viewer123!`), ubicaciones `DEMO-ALM` (capacidad llena → critica) / `DEMO-PICK` / `DEMO-TRANS`, 20 productos `DEMO-*` (uno sin stock), recepciones, 1 incidencia abierta y 1 reserva activa. Efecto a tener en cuenta: los scripts E2E sueltos que loguean `manager@acme.local` con `Admin123!` (`e2e-audit`, `e2e-v1103`, `e2e-v170`, `e2e-v171`, `e2e-v1132`) fallaran el login, porque el password de esa cuenta ahora es `Manager2026!`; las 4 suites por dominio del cierre (`e2e-auth`, `e2e-control`, `e2e-inventory`, `e2e-settings`) no la usan y siguen en verde.
+- **Cierres en verde**: `check-i18n` OK (0 errores, 220 avisos), `check-schema-drift` **SIN DRIFT**, `check-data-integrity` **DATOS CONSISTENTES**, smokes `bloque2-permisos` 28/0, `v162` 107/0, `v171` 109/0, `v1102` 47/0, y GET de solo lectura de los 14 endpoints del modulo con admin: todos 200, ninguno 500.
+- **Pendiente de decision**: `tools/dev-start.ps1` sigue sin trackear (no se ha borrado ni commiteado a la espera de confirmacion).
+
 ## [1.19.7] - 2026-10-27
 
 **Mitigaciones de seguridad (bloques 1-4 de 4): el MFA deja de ser un estado de la cuenta y pasa a ser un hecho de la SESION, la regla aplica por criticidad del permiso, la auto-edicion de perfil sale del bucket generico de 100 req/min, un permiso temporal acotado a un recurso deja de autorizar en todos y el listado de usuarios deja de filtrar campos de detalle a quien no puede ver usuarios.** Un permiso `CRITICAL` se ejercia sin segundo factor: los 5 criticos del catalogo estan con `requiere_mfa = 0` y `validateMfaIfNeeded()` unicamente miraba `mfa_habilitado` del usuario, de modo que con la cuenta sin MFA (cualquiera hoy) siempre devolvia `true`. Cero DDL y cero seeders: la regla se lee de `permissions.criticidad`, ya existente, asi que cualquier permiso CRITICAL futuro la hereda sin tocar su seeder ni su controller.
