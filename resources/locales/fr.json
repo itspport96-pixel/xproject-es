@@ -1705,6 +1705,7 @@
       },
       "flow": {
         "title": "Flux opérationnel",
+        "total_products": "Total des produits",
         "reservations": "Réservations actives",
         "picking": "Picking en cours",
         "shipments": "Envois en route",

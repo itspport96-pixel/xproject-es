@@ -173,7 +173,7 @@ async function main() {
 
   try {
     console.log('MANAGER (manager@acme.local): sidebar + panel + subnav');
-    await login(page, 'manager@acme.local', 'Manager2026!');
+    await login(page, 'manager@acme.local', 'Admin123!');
 
     // ---------- 1) Dashboard general: sin subnav, sidebar con accion Inventory ----------
     resetNet();

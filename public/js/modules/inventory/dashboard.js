@@ -12,8 +12,9 @@
  *      hoy - 7 calculado en UTC.
  *   4. Stock (2/3): tabla con las filas que devuelve CAPA 1 (máx. 20,
  *      STOCK_LIMIT) y conmutador Sin stock / Todos (filtro en cliente).
- *   5. Flujo operativo (1/3): reservas, picking, envíos, entregas, conteos y
- *      unidades en tránsito; cada fila con su permiso real.
+ *   5. Flujo operativo (1/3): total de productos del catálogo, reservas,
+ *      picking, envíos, entregas, conteos y unidades en tránsito; cada fila
+ *      con su permiso real.
  *   6. Ocupación de almacenes (2/3, bajo la tabla de stock): gráfico de barras
  *      con las ubicaciones activas que tienen capacidad definida, de más a
  *      menos llena. Las virtuales (sin capacidad, p. ej. TRANSITO) no se
@@ -223,6 +224,16 @@
   // ZONAS
   // ============================================
   const FLOW_ROWS = [
+    {
+      // Total del catálogo (counts.productos_activos del critical): la cifra
+      // general de productos que el panel general dejará de mostrar con la
+      // llegada de los nuevos módulos, así que vive en su panel de módulo.
+      // Destino: listado de productos, gateado por inventory.item.view
+      // (mismo permiso y roles que esa pantalla).
+      resource: 'critical', perm: 'inventory.item.view', roles: ROLES_VIEW,
+      labelKey: 'dashboard.inventory.flow.total_products', route: 'inventory',
+      value: (d) => num((d.counts || {}).productos_activos)
+    },
     {
       resource: 'secondary', perm: 'inventory.reservation.view', roles: ROLES_VIEW,
       labelKey: 'dashboard.inventory.flow.reservations', route: 'inventory/reservations',

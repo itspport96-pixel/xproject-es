@@ -131,7 +131,7 @@ async function main() {
     console.log('ESCENARIO 1: datos reales (manager@acme.local)');
     const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
     const page = await context.newPage();
-    await login(page, 'manager@acme.local', 'Manager2026!');
+    await login(page, 'manager@acme.local', 'Admin123!');
     await page.goto(BASE + '/#/dashboard/inventory', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1800);
     const s = await panelState(page);
@@ -178,6 +178,10 @@ async function main() {
       s.flowRows.some(r => r.route === 'inventory/stock' &&
         r.text.includes(String(ccounts.unidades_en_transito || 0))),
       JSON.stringify(s.flowRows));
+    const flowTotal = s.flowRows.find(r => r.route === 'inventory');
+    check('flujo: total de productos = counts.productos_activos real (' + ccounts.productos_activos + ')',
+      !!flowTotal && flowTotal.text.includes(String(ccounts.productos_activos || 0)),
+      JSON.stringify(flowTotal));
 
     const yesterday = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
     const movements = await apiJson(page, '/inventory/movements?per_page=1&fecha_desde=' + yesterday);
@@ -282,7 +286,7 @@ async function main() {
     console.log('ESCENARIO 2: permisos parciales (viewer@acme.local, rol VIEWER)');
     const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
     const page = await context.newPage();
-    await login(page, 'viewer@acme.local', 'Viewer123!');
+    await login(page, 'viewer@acme.local', 'Admin123!');
     await page.goto(BASE + '/#/dashboard/inventory', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1600);
     const s = await panelState(page);
@@ -307,7 +311,7 @@ async function main() {
     console.log('ESCENARIO 3: catalogo vacio (contrato real con ceros)');
     const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
     const page = await context.newPage();
-    await login(page, 'manager@acme.local', 'Manager2026!');
+    await login(page, 'manager@acme.local', 'Admin123!');
 
     // Contrato REAL de /inventory/dashboard/critical con el catalogo vacio.
     await page.route('**/inventory/dashboard/critical*', (route) =>
@@ -383,7 +387,7 @@ async function main() {
     console.log('ESCENARIO 4: error simulado en critical + Reintentar');
     const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
     const page = await context.newPage();
-    await login(page, 'manager@acme.local', 'Manager2026!');
+    await login(page, 'manager@acme.local', 'Admin123!');
 
     let failMode = true;
     await page.route('**/inventory/dashboard/critical*', (route) => {
@@ -429,7 +433,7 @@ async function main() {
     console.log('ESCENARIO 5: idiomas, tema y viewports');
     const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
     const page = await context.newPage();
-    await login(page, 'manager@acme.local', 'Manager2026!');
+    await login(page, 'manager@acme.local', 'Admin123!');
 
     // --- es ---
     await page.evaluate(() => window.i18n && window.i18n.setLocale('es'));
