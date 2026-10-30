@@ -60,7 +60,14 @@ async function panelState(page) {
       stockCells: Array.from(c ? c.querySelectorAll('[data-zone="stock"] tbody tr') : []).slice(0, 3)
         .map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim()).join(' | ')),
       flowRows: Array.from(c ? c.querySelectorAll('[data-zone="flow"] [data-route]') : [])
-        .map(e => ({ route: e.getAttribute('data-route'), text: e.textContent.replace(/\s+/g, ' ').trim() })),
+        .map(e => ({
+          route: e.getAttribute('data-route'),
+          text: e.textContent.replace(/\s+/g, ' ').trim(),
+          // El valor numérico va aislado en <strong>: permite comparar el
+          // número exacto en vez de un includes() que un cero equivocado
+          // también satisfaría.
+          value: (e.querySelector('strong') || {}).textContent || null
+        })),
       week: Array.from(c ? c.querySelectorAll('[data-zone="week"] [data-route]') : [])
         .map(e => ({ route: e.getAttribute('data-route'), text: e.textContent.replace(/\s+/g, ' ').trim() })),
       weekTitle: text('[data-zone="week"]'),
@@ -165,23 +172,34 @@ async function main() {
         JSON.stringify({ dom: s.stockCells[0], api: stockRows[0].sku }));
     }
 
-    const picking = await apiJson(page, '/inventory/picking?per_page=1');
-    const flowPicking = s.flowRows.find(r => r.route === 'inventory/picking');
-    check('flujo: picking = summary.en_curso real (' + ((picking.summary || {}).en_curso) + ')',
-      !!flowPicking && flowPicking.text.includes(String(((picking.summary || {}).en_curso) || 0)),
-      JSON.stringify(flowPicking));
+    // Cada fila del flujo se contrasta contra la CLAVE concreta de su
+    // summary (no contra el objeto entero: getSummary devuelve data.summary,
+    // que es un objeto). La comparación es del número exacto del <strong>,
+    // no un includes(), para que un cero equivocado no pase el check.
+    const flowValue = (route) => {
+      const r = s.flowRows.find(x => x.route === route);
+      return r ? r.value : null;
+    };
+    const expectFlow = async (route, path, key, label) => {
+      const res = await apiJson(page, path);
+      const expected = String(((res.summary || {})[key]) ?? 0);
+      check('flujo: ' + label + ' = summary.' + key + ' real (' + expected + ')',
+        flowValue(route) === expected, `dom=${flowValue(route)} api=${expected}`);
+    };
+    await expectFlow('inventory/picking', '/inventory/picking?per_page=1', 'en_curso', 'picking en curso');
+    await expectFlow('inventory/shipments', '/inventory/shipments?per_page=1', 'en_ruta', 'envios en ruta');
+    await expectFlow('inventory/deliveries', '/inventory/deliveries?per_page=1', 'pendientes', 'entregas pendientes');
+    await expectFlow('inventory/counts', '/inventory/counts?per_page=1', 'pendientes', 'conteos pendientes');
+
     check('flujo: reservas activas = counts.reservas_activas real (' + scounts.reservas_activas + ')',
-      s.flowRows.some(r => r.route === 'inventory/reservations' &&
-        r.text.includes(String(scounts.reservas_activas || 0))),
-      JSON.stringify(s.flowRows));
+      flowValue('inventory/reservations') === String(scounts.reservas_activas ?? 0),
+      `dom=${flowValue('inventory/reservations')} api=${scounts.reservas_activas}`);
     check('flujo: en transito = counts.unidades_en_transito real (' + ccounts.unidades_en_transito + ')',
-      s.flowRows.some(r => r.route === 'inventory/stock' &&
-        r.text.includes(String(ccounts.unidades_en_transito || 0))),
-      JSON.stringify(s.flowRows));
-    const flowTotal = s.flowRows.find(r => r.route === 'inventory');
+      flowValue('inventory/stock') === String(ccounts.unidades_en_transito ?? 0),
+      `dom=${flowValue('inventory/stock')} api=${ccounts.unidades_en_transito}`);
     check('flujo: total de productos = counts.productos_activos real (' + ccounts.productos_activos + ')',
-      !!flowTotal && flowTotal.text.includes(String(ccounts.productos_activos || 0)),
-      JSON.stringify(flowTotal));
+      flowValue('inventory') === String(ccounts.productos_activos ?? 0),
+      `dom=${flowValue('inventory')} api=${ccounts.productos_activos}`);
 
     const yesterday = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
     const movements = await apiJson(page, '/inventory/movements?per_page=1&fecha_desde=' + yesterday);

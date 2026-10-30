@@ -242,22 +242,24 @@
     {
       resource: 'flow_picking', perm: 'inventory.picking.view', roles: ROLES_VIEW,
       labelKey: 'dashboard.inventory.flow.picking', route: 'inventory/picking',
-      value: (d) => num(d)
+      // El loader devuelve data.summary (objeto), no un número: hay que leer
+      // la clave concreta de cada fila.
+      value: (d) => num((d || {}).en_curso)
     },
     {
       resource: 'flow_shipments', perm: 'inventory.shipping.view', roles: ROLES_VIEW,
       labelKey: 'dashboard.inventory.flow.shipments', route: 'inventory/shipments',
-      value: (d) => num(d)
+      value: (d) => num((d || {}).en_ruta)
     },
     {
       resource: 'flow_deliveries', perm: 'inventory.delivery.view', roles: ROLES_VIEW,
       labelKey: 'dashboard.inventory.flow.deliveries', route: 'inventory/deliveries',
-      value: (d) => num(d)
+      value: (d) => num((d || {}).pendientes)
     },
     {
       resource: 'flow_counts', perm: 'inventory.count.view', roles: ROLES_VIEW,
       labelKey: 'dashboard.inventory.flow.counts', route: 'inventory/counts',
-      value: (d) => num(d)
+      value: (d) => num((d || {}).pendientes)
     },
     {
       resource: 'critical', perm: 'inventory.stock.view', roles: ROLES_VIEW,
