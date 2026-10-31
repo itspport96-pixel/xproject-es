@@ -36,6 +36,13 @@ use PDO;
  * incidencias sin escalar.
  * v1.10.0 (E4) añade `inventory.stock.block` (bloquear/desbloquear unidades;
  * escritura → sólo ADMIN y MANAGER): total 34.
+ *
+ * FIX-B8 (v1.19.9): 4 permisos sembrados sin endpoint que los use aún:
+ * `inventory.receiving.confirm`, `inventory.return.confirm`,
+ * `inventory.delivery.reject`, `inventory.stock.adjust`. Se mantienen para
+ * futuras funcionalidades (confirmación separada de recepción, rechazo
+ * explícito de entrega, ajuste manual de stock). No se eliminan para no
+ * romper roles CUSTOM que los tengan asignados.
  */
 final class InventoryPermissionSeeder
 {
@@ -54,7 +61,7 @@ final class InventoryPermissionSeeder
         ['inventory.count.reconcile', 'Reconciliar Conteo', 'inventory', 'count', 'edit', 'HIGH', 0, 1],
         ['inventory.count.view', 'Ver Conteos', 'inventory', 'count', 'view', 'MEDIUM', 0, 1],
         ['inventory.delivery.confirm', 'Confirmar Entrega', 'inventory', 'delivery', 'edit', 'HIGH', 0, 1],
-        ['inventory.delivery.reject', 'Rechazar Entrega', 'inventory', 'delivery', 'edit', 'HIGH', 0, 1],
+        ['inventory.delivery.reject', 'Rechazar Entrega', 'inventory', 'delivery', 'edit', 'HIGH', 0, 1], // FIX-B8: reservado para futuro endpoint de rechazo explícito
         ['inventory.delivery.view', 'Ver Entregas', 'inventory', 'delivery', 'view', 'MEDIUM', 0, 1],
         ['inventory.incident.report', 'Reportar Incidencia', 'inventory', 'incident', 'create', 'MEDIUM', 0, 1],
         ['inventory.incident.resolve', 'Resolver Incidencia', 'inventory', 'incident', 'edit', 'HIGH', 0, 1],
@@ -70,18 +77,18 @@ final class InventoryPermissionSeeder
         ['inventory.picking.create', 'Crear Picking', 'inventory', 'picking', 'create', 'MEDIUM', 0, 1],
         ['inventory.picking.verify', 'Verificar Picking', 'inventory', 'picking', 'edit', 'HIGH', 0, 1],
         ['inventory.picking.view', 'Ver Picking', 'inventory', 'picking', 'view', 'MEDIUM', 0, 1],
-        ['inventory.receiving.confirm', 'Confirmar Recepción', 'inventory', 'receiving', 'edit', 'HIGH', 0, 1],
+        ['inventory.receiving.confirm', 'Confirmar Recepción', 'inventory', 'receiving', 'edit', 'HIGH', 0, 1], // FIX-B8: reservado para futuro endpoint de confirmación separada
         ['inventory.receiving.create', 'Recibir Inventario', 'inventory', 'receiving', 'create', 'HIGH', 0, 1],
         ['inventory.reservation.cancel', 'Cancelar Reserva', 'inventory', 'reservation', 'edit', 'MEDIUM', 0, 1],
         ['inventory.reservation.create', 'Crear Reserva', 'inventory', 'reservation', 'create', 'MEDIUM', 0, 1],
         ['inventory.reservation.view', 'Ver Reservas', 'inventory', 'reservation', 'view', 'MEDIUM', 0, 1],
-        ['inventory.return.confirm', 'Confirmar Devolución', 'inventory', 'return', 'edit', 'MEDIUM', 0, 1],
+        ['inventory.return.confirm', 'Confirmar Devolución', 'inventory', 'return', 'edit', 'MEDIUM', 0, 1], // FIX-B8: reservado para futuro endpoint de confirmación separada
         ['inventory.return.create', 'Crear Devolución', 'inventory', 'return', 'create', 'MEDIUM', 0, 1],
         ['inventory.return.view', 'Ver Devoluciones', 'inventory', 'return', 'view', 'MEDIUM', 0, 1],
         ['inventory.shipping.confirm', 'Confirmar Envío', 'inventory', 'shipping', 'edit', 'HIGH', 0, 1],
         ['inventory.shipping.create', 'Crear Envío', 'inventory', 'shipping', 'create', 'HIGH', 0, 1],
         ['inventory.shipping.view', 'Ver Envíos', 'inventory', 'shipping', 'view', 'MEDIUM', 0, 1],
-        ['inventory.stock.adjust', 'Ajustar Stock', 'inventory', 'stock', 'edit', 'HIGH', 0, 1],
+        ['inventory.stock.adjust', 'Ajustar Stock', 'inventory', 'stock', 'edit', 'HIGH', 0, 1], // FIX-B8: reservado para futuro endpoint de ajuste manual de stock
         ['inventory.stock.block', 'Bloquear Stock', 'inventory', 'stock', 'edit', 'HIGH', 0, 1],
         ['inventory.stock.view', 'Ver Stock', 'inventory', 'stock', 'view', 'MEDIUM', 0, 1],
     ];

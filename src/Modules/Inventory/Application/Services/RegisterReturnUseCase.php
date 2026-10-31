@@ -58,6 +58,13 @@ use App\Shared\Services\IdempotencyService;
  *  - unidad_fisica_id (obligatorio)
  *  - motivo (obligatorio), estado_al_devolver (obligatorio)
  *  - ubicacion_destino_id? , observaciones? , delivery_id?
+ *
+ * Nota FIX-B9: Si no se indica `ubicacion_destino_id` y la unidad está en una
+ * ubicación física válida, `defaultDestination()` devuelve esa misma ubicación.
+ * Aunque parece un no-op (la unidad no se mueve), el comportamiento es correcto:
+ * la unidad transiciona de DEVUELTO a DISPONIBLE en la misma ubicación física,
+ * y el evento de stock registra el cambio de estado. La capacidad se decrementa
+ * y se re-incrementa (neto 0), lo cual es consistente con el flujo de devolución.
  */
 final class RegisterReturnUseCase
 {

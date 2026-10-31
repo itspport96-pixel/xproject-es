@@ -217,3 +217,23 @@ contenido en claro; cualquier cifrado futuro debe preservarla o migrarla.
 Deviation observada durante el probe (no corregida, fuera de alcance): los
 404 de `users` y `roles` devuelven el literal `{id}` sin interpolar en el
 mensaje ("El usuario con ID '{id}' no existe."); el de `groups` si interpola.
+
+## 7. Runbook de deploy para tenants legacy (v1.19.9)
+
+Tras desplegar en un entorno con tenants creados antes de v1.7.1, ejecutar:
+
+```bash
+php bin/seed-transit-locations.php
+```
+
+Este script es **idempotente** y siembra las ubicaciones virtuales `TRANSITO` y
+`DAÑADOS` para cada tenant que no las tenga. Sin esto:
+
+- `POST /api/inventory/shipments/authorize` responde **404** con error
+  `transitLocationMissing` (no puede autorizar envíos sin ubicación de tránsito).
+- `POST /api/inventory/returns/register` con `estado_al_devolver = DAÑADO`
+  responde **404** con error `damagedZoneMissing` (no puede devolver artículos
+  dañados sin zona de dañados).
+
+Los tenants creados desde v1.7.1 en adelante ya reciben estas ubicaciones
+automáticamente en `TenantService::create()` vía `TransitLocationService`.
