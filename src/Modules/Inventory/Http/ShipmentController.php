@@ -124,7 +124,7 @@ final class ShipmentController
         );
 
         if (!$this->isReplay($response)) {
-            $this->auditOperation($request, $claims, 'shipment.load', 'CREATE', $key, $response);
+            $this->auditOperation($request, $claims, 'inventory.shipment.load', 'CREATE', $key, $response);
         }
 
         return $this->useCaseResponse($response);
@@ -146,7 +146,7 @@ final class ShipmentController
         );
 
         if (!$this->isReplay($response)) {
-            $this->auditOperation($request, $claims, 'shipment.authorize', 'UPDATE', $key, $response);
+            $this->auditOperation($request, $claims, 'inventory.shipment.authorize', 'UPDATE', $key, $response);
         }
 
         return $this->useCaseResponse($response);

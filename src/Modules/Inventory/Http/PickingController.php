@@ -115,7 +115,7 @@ final class PickingController
         );
 
         if (!$this->isReplay($response)) {
-            $this->auditOperation($request, $claims, 'picking.start', 'CREATE', $key, $response);
+            $this->auditOperation($request, $claims, 'inventory.picking.start', 'CREATE', $key, $response);
         }
 
         return $this->useCaseResponse($response);
@@ -139,7 +139,7 @@ final class PickingController
         );
 
         if (!$this->isReplay($response)) {
-            $this->auditOperation($request, $claims, 'picking.complete', 'UPDATE', $key, $response);
+            $this->auditOperation($request, $claims, 'inventory.picking.complete', 'UPDATE', $key, $response);
         }
 
         return $this->useCaseResponse($response);
@@ -166,7 +166,7 @@ final class PickingController
         );
 
         if (!$this->isReplay($response)) {
-            $this->auditOperation($request, $claims, 'picking.verify', 'UPDATE', $key, $response);
+            $this->auditOperation($request, $claims, 'inventory.picking.verify', 'UPDATE', $key, $response);
         }
 
         return $this->useCaseResponse($response);

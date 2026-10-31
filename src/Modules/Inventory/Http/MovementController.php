@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Http;
 
+use App\Core\Audit\AuditLogger;
 use App\Modules\Inventory\Application\Services\MovementQueryService;
 use App\Modules\Inventory\Application\Services\MoveStockUseCase;
 use App\Modules\Inventory\Http\Concerns\ExtractsIdempotencyKey;
@@ -33,11 +34,31 @@ final class MovementController
 
     private MoveStockUseCase $useCase;
     private ?MovementQueryService $queryService;
+    private ?AuditLogger $audit;
 
-    public function __construct(?MoveStockUseCase $useCase = null, ?MovementQueryService $queryService = null)
-    {
+    public function __construct(
+        ?MoveStockUseCase $useCase = null,
+        ?MovementQueryService $queryService = null,
+        ?AuditLogger $audit = null
+    ) {
         $this->useCase = $useCase ?? Container::getInstance()->get(MoveStockUseCase::class);
         $this->queryService = $queryService;
+        $this->audit = $audit ?? $this->resolveAuditLogger();
+    }
+
+    /**
+     * El logger se resuelve sin romper si el contenedor no está inicializado
+     * (mismo patrón que ReceivingController).
+     */
+    private function resolveAuditLogger(): ?AuditLogger
+    {
+        try {
+            $container = Container::getInstance();
+
+            return $container->has(AuditLogger::class) ? $container->get(AuditLogger::class) : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -84,6 +105,49 @@ final class MovementController
             (string) $claims['user_id']
         );
 
+        if (!$this->isReplay($response)) {
+            $this->auditMovement($request, $claims, $key, $response);
+        }
+
         return $this->useCaseResponse($response);
+    }
+
+    /**
+     * Auditoría de dominio del movimiento interno (CU-002, FIX-B4).
+     *
+     * Sólo en éxito: los errores (400/404/409/422) ya los registra el hook
+     * del Router (AuditMiddleware) con su causa.
+     *
+     * @param array<string, mixed> $request
+     * @param array<string, mixed> $claims
+     * @param array<string, mixed> $response
+     */
+    private function auditMovement(array $request, array $claims, string $key, array $response): void
+    {
+        if ($this->audit === null) {
+            return;
+        }
+
+        $data = is_array($response['data'] ?? null) ? $response['data'] : [];
+        $movimiento = is_array($data['movimiento'] ?? null) ? $data['movimiento'] : [];
+
+        $this->audit->record([
+            'tenant_id' => $claims['tenant_id'] ?? null,
+            'usuario_id' => $claims['user_id'] ?? null,
+            'operacion' => 'inventory.movement.create',
+            'modulo' => 'inventory',
+            'recurso' => 'movement',
+            'entidad_id' => is_string($movimiento['movimiento_id'] ?? null) ? $movimiento['movimiento_id'] : null,
+            'tipo_cambio' => 'CREATE',
+            'resultado' => 'SUCCESS',
+            'valores_nuevos' => $data,
+            'ip_address' => $request['ip'] ?? null,
+            'user_agent' => $request['user_agent'] ?? null,
+            'request_id' => $request['request_id'] ?? null,
+            'detalles_adicionales' => [
+                'idempotency_key' => $key,
+                'codigo_respuesta' => $response['status'] ?? null,
+            ],
+        ]);
     }
 }

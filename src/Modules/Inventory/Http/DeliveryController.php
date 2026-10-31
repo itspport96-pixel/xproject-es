@@ -102,7 +102,7 @@ final class DeliveryController
         );
 
         if (!$this->isReplay($response)) {
-            $this->auditOperation($request, $claims, 'delivery.confirm', 'UPDATE', $key, $response);
+            $this->auditOperation($request, $claims, 'inventory.delivery.confirm', 'UPDATE', $key, $response);
         }
 
         return $this->useCaseResponse($response);
@@ -124,7 +124,7 @@ final class DeliveryController
         );
 
         if (!$this->isReplay($response)) {
-            $this->auditOperation($request, $claims, 'delivery.failed', 'UPDATE', $key, $response);
+            $this->auditOperation($request, $claims, 'inventory.delivery.failed', 'UPDATE', $key, $response);
         }
 
         return $this->useCaseResponse($response);

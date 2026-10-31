@@ -97,7 +97,7 @@ final class ReceivingController
         $this->audit->record([
             'tenant_id' => $claims['tenant_id'] ?? null,
             'usuario_id' => $claims['user_id'] ?? null,
-            'operacion' => 'receiving.create',
+            'operacion' => 'inventory.receiving.create',
             'modulo' => 'inventory',
             'recurso' => 'receiving',
             'entidad_id' => is_string($data['unidad_fisica_id'] ?? null) ? $data['unidad_fisica_id'] : null,

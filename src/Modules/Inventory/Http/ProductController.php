@@ -154,7 +154,7 @@ final class ProductController
 
         $product = $this->service->create($data);
 
-        $this->auditEvent('product.create', 'CREATE', $request, $claims, [
+        $this->auditEvent('inventory.product.create', 'CREATE', $request, $claims, [
             'entidad_id' => is_array($product) ? ($product['id'] ?? null) : null,
             'valores_nuevos' => $product,
         ]);
@@ -180,7 +180,7 @@ final class ProductController
 
         $product = $this->service->update($id, $data);
 
-        $this->auditEvent('product.update', 'UPDATE', $request, $claims, [
+        $this->auditEvent('inventory.product.update', 'UPDATE', $request, $claims, [
             'entidad_id' => (string) $id,
             'valores_anteriores' => $before,
             'valores_nuevos' => $product,
@@ -206,7 +206,7 @@ final class ProductController
         $this->service->delete($id);
         $after = $this->service->findIncludingDeleted($id);
 
-        $this->auditEvent('product.delete', 'DELETE', $request, $claims, [
+        $this->auditEvent('inventory.product.delete', 'DELETE', $request, $claims, [
             'entidad_id' => (string) $id,
             'valores_anteriores' => $before,
             'detalles_adicionales' => ['valores_despues' => $after],
@@ -234,7 +234,7 @@ final class ProductController
 
         $product = $this->service->activate($id);
 
-        $this->auditEvent('product.activate', 'UPDATE', $request, $claims, [
+        $this->auditEvent('inventory.product.activate', 'UPDATE', $request, $claims, [
             'entidad_id' => (string) $id,
             'valores_nuevos' => $product,
         ]);
@@ -257,7 +257,7 @@ final class ProductController
 
         $product = $this->service->deactivate($id);
 
-        $this->auditEvent('product.deactivate', 'UPDATE', $request, $claims, [
+        $this->auditEvent('inventory.product.deactivate', 'UPDATE', $request, $claims, [
             'entidad_id' => (string) $id,
             'valores_nuevos' => $product,
         ]);

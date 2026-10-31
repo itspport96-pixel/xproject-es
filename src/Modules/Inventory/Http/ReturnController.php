@@ -95,7 +95,7 @@ final class ReturnController
         );
 
         if (!$this->isReplay($response)) {
-            $this->auditOperation($request, $claims, 'return.register', 'CREATE', $key, $response);
+            $this->auditOperation($request, $claims, 'inventory.return.register', 'CREATE', $key, $response);
         }
 
         return $this->useCaseResponse($response);

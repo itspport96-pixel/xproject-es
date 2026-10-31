@@ -179,7 +179,7 @@ final class LocationController
 
         $location = $this->service->create($data);
 
-        $this->auditEvent('location.create', 'CREATE', $request, $claims, [
+        $this->auditEvent('inventory.location.create', 'CREATE', $request, $claims, [
             'entidad_id' => is_array($location) ? ($location['id'] ?? null) : null,
             'valores_nuevos' => $location,
         ]);
@@ -205,7 +205,7 @@ final class LocationController
 
         $location = $this->service->update($id, $data);
 
-        $this->auditEvent('location.update', 'UPDATE', $request, $claims, [
+        $this->auditEvent('inventory.location.update', 'UPDATE', $request, $claims, [
             'entidad_id' => (string) $id,
             'valores_anteriores' => $before,
             'valores_nuevos' => $location,
@@ -231,7 +231,7 @@ final class LocationController
         $this->service->delete($id);
         $after = $this->service->findIncludingDeleted($id);
 
-        $this->auditEvent('location.delete', 'DELETE', $request, $claims, [
+        $this->auditEvent('inventory.location.delete', 'DELETE', $request, $claims, [
             'entidad_id' => (string) $id,
             'valores_anteriores' => $before,
             'detalles_adicionales' => ['valores_despues' => $after],
@@ -259,7 +259,7 @@ final class LocationController
 
         $location = $this->service->activate($id);
 
-        $this->auditEvent('location.activate', 'UPDATE', $request, $claims, [
+        $this->auditEvent('inventory.location.activate', 'UPDATE', $request, $claims, [
             'entidad_id' => (string) $id,
             'valores_nuevos' => $location,
         ]);
@@ -282,7 +282,7 @@ final class LocationController
 
         $location = $this->service->deactivate($id);
 
-        $this->auditEvent('location.deactivate', 'UPDATE', $request, $claims, [
+        $this->auditEvent('inventory.location.deactivate', 'UPDATE', $request, $claims, [
             'entidad_id' => (string) $id,
             'valores_nuevos' => $location,
         ]);

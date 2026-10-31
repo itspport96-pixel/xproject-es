@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Http;
 
+use App\Core\Audit\AuditLogger;
 use App\Modules\Inventory\Application\Services\BlockStockUseCase;
 use App\Modules\Inventory\Application\Services\StockHistoryQueryService;
 use App\Modules\Inventory\Application\Services\StockQueryService;
@@ -39,15 +40,33 @@ final class StockController
     private StockQueryService $query;
     private ?StockHistoryQueryService $historyService;
     private ?BlockStockUseCase $blockUseCase;
+    private ?AuditLogger $audit;
 
     public function __construct(
         ?StockQueryService $query = null,
         ?StockHistoryQueryService $historyService = null,
-        ?BlockStockUseCase $blockUseCase = null
+        ?BlockStockUseCase $blockUseCase = null,
+        ?AuditLogger $audit = null
     ) {
         $this->query = $query ?? Container::getInstance()->get(StockQueryService::class);
         $this->historyService = $historyService;
         $this->blockUseCase = $blockUseCase;
+        $this->audit = $audit ?? $this->resolveAuditLogger();
+    }
+
+    /**
+     * El logger se resuelve sin romper si el contenedor no está inicializado
+     * (mismo patrón que ReceivingController).
+     */
+    private function resolveAuditLogger(): ?AuditLogger
+    {
+        try {
+            $container = Container::getInstance();
+
+            return $container->has(AuditLogger::class) ? $container->get(AuditLogger::class) : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -162,7 +181,53 @@ final class StockController
             (string) $claims['user_id']
         );
 
+        if (!$this->isReplay($response)) {
+            $this->auditBlock($request, $claims, $params, $accion, $key, $response);
+        }
+
         return $this->useCaseResponse($response);
+    }
+
+    /**
+     * Auditoría de dominio del bloqueo/desbloqueo de unidad (E4, FIX-B4).
+     *
+     * Sólo en éxito: los errores (400/404/409/422) ya los registra el hook
+     * del Router (AuditMiddleware) con su causa.
+     *
+     * @param array<string, mixed> $request
+     * @param array<string, mixed> $claims
+     * @param array<string, string> $params
+     * @param array<string, mixed> $response
+     */
+    private function auditBlock(array $request, array $claims, array $params, string $accion, ?string $key, array $response): void
+    {
+        if ($this->audit === null) {
+            return;
+        }
+
+        $data = is_array($response['data'] ?? null) ? $response['data'] : [];
+
+        $this->audit->record([
+            'tenant_id' => $claims['tenant_id'] ?? null,
+            'usuario_id' => $claims['user_id'] ?? null,
+            'operacion' => $accion === BlockStockUseCase::ACCION_BLOQUEAR
+                ? 'inventory.stock.block'
+                : 'inventory.stock.unblock',
+            'modulo' => 'inventory',
+            'recurso' => 'stock_unit',
+            'entidad_id' => is_string($params['id'] ?? null) ? $params['id'] : null,
+            'tipo_cambio' => 'UPDATE',
+            'resultado' => 'SUCCESS',
+            'valores_anteriores' => is_string($data['estado_anterior'] ?? null) ? ['estado' => $data['estado_anterior']] : null,
+            'valores_nuevos' => $data,
+            'ip_address' => $request['ip'] ?? null,
+            'user_agent' => $request['user_agent'] ?? null,
+            'request_id' => $request['request_id'] ?? null,
+            'detalles_adicionales' => [
+                'idempotency_key' => $key,
+                'codigo_respuesta' => $response['status'] ?? null,
+            ],
+        ]);
     }
 
     // ====================================================================

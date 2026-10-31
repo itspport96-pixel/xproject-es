@@ -124,7 +124,7 @@ final class IncidentController
         );
 
         if (!$this->isReplay($response)) {
-            $this->auditOperation($request, $claims, 'incident.report', 'CREATE', $key, $response);
+            $this->auditOperation($request, $claims, 'inventory.incident.report', 'CREATE', $key, $response);
         }
 
         return $this->useCaseResponse($response);
@@ -151,7 +151,7 @@ final class IncidentController
         );
 
         if (!$this->isReplay($response)) {
-            $this->auditOperation($request, $claims, 'incident.investigate', 'UPDATE', $key, $response);
+            $this->auditOperation($request, $claims, 'inventory.incident.investigate', 'UPDATE', $key, $response);
         }
 
         return $this->useCaseResponse($response);
@@ -179,7 +179,7 @@ final class IncidentController
         );
 
         if (!$this->isReplay($response)) {
-            $this->auditOperation($request, $claims, 'incident.resolve', 'UPDATE', $key, $response);
+            $this->auditOperation($request, $claims, 'inventory.incident.resolve', 'UPDATE', $key, $response);
         }
 
         return $this->useCaseResponse($response);
