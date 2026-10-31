@@ -237,3 +237,24 @@ Este script es **idempotente** y siembra las ubicaciones virtuales `TRANSITO` y
 
 Los tenants creados desde v1.7.1 en adelante ya reciben estas ubicaciones
 automáticamente en `TenantService::create()` vía `TransitLocationService`.
+
+## 8. Runbook de deploy: sembrar TRANSITO y DAÑADOS
+
+Tras desplegar en un entorno con tenants pre-v1.7.1, ejecutar:
+
+    php bin/seed-transit-locations.php
+
+Es idempotente (crea si falta, no duplica). Crea las dos zonas fijas
+por tenant:
+
+  - TRANSITO: usada por CU-006 authorize.
+  - DAÑADOS: usada por CU-009 returns con estado_al_devolver=DAÑADO.
+
+Sin esto:
+
+  - POST /api/inventory/shipments/authorize → 404 transitLocationMissing
+  - POST /api/inventory/returns/register con estado_al_devolver=DAÑADO
+    → 404 damagedZoneMissing
+
+Los tenants nuevos (creados con TenantService::create) ya nacen con
+ambas zonas; no necesitan el script.
