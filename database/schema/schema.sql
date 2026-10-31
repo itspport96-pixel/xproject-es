@@ -527,7 +527,7 @@ CREATE TABLE `deliveries` (
   `shipment_id` char(36) NOT NULL,
   `unidad_fisica_id` char(36) NOT NULL,
   `cantidad` decimal(15,4) DEFAULT NULL,
-  `estado` enum('PENDIENTE','ENTREGADA','RECHAZADA','PARCIAL') DEFAULT 'PENDIENTE',
+  `estado` enum('ENTREGADA','RECHAZADA','PARCIAL') NOT NULL,
   `destinatario_real` varchar(255) DEFAULT NULL,
   `firma_comprobante` varchar(255) DEFAULT NULL,
   `observaciones` text DEFAULT NULL,

@@ -302,7 +302,7 @@ function createEnv({ perms = [], roles = ['ADMIN'], getHandlers = {}, postImpl =
       w.AppRouter.getCurrentRoute = () => route;
     }
     w.InventorySubnav.init();
-    return [...w.document.querySelectorAll('#inventory-subnav .subnav-tab')].map(a => a.dataset.route);
+    return [...w.document.querySelectorAll('#inventory-subnav .subnav-tabs [data-route]')].map(a => a.dataset.route);
   };
 
   env.container = w.document.getElementById('module-container');

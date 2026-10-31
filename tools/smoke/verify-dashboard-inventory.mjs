@@ -77,7 +77,10 @@ async function state(page) {
   return page.evaluate(() => {
     const vis = (el) => el ? (window.getComputedStyle(el).display !== 'none') : false;
     const sub = document.getElementById('inventory-subnav');
-    const tabs = Array.from(document.querySelectorAll('.subnav-tab'));
+    // Rutas del escritorio: pestañas directas + opciones de los menús de
+    // grupo. Los disparadores de grupo NO llevan data-route (sólo abren el
+    // menú), y el desplegable móvil va aparte (.subnav-select).
+    const tabs = Array.from(document.querySelectorAll('.subnav-tabs [data-route]'));
     const opts = Array.from(document.querySelectorAll('.subnav-select-option'));
     const titles = Array.from(document.querySelectorAll('.card-title')).map(e => (e.textContent || '').trim());
     const routes = tabs.map(a => a.dataset.route);
@@ -87,6 +90,8 @@ async function state(page) {
       tabsVisible: vis(document.querySelector('.subnav-tabs')),
       selectVisible: vis(document.querySelector('.subnav-select')),
       tabRoutes: routes,
+      groupCount: document.querySelectorAll('.subnav-tabs [data-group-toggle]').length,
+      directCount: document.querySelectorAll('.subnav-tabs .subnav-tab[data-route]').length,
       hasDashboardTab: routes.includes('dashboard'),
       menuOptions: opts.length,
       hasStockCard: titles.includes('Stock actual'),
@@ -203,8 +208,16 @@ async function main() {
       JSON.stringify({ hidden: s.subHidden, tabs: s.tabsVisible }));
     check('panel: subnav SIN opcion Dashboard', s.hasDashboardTab === false, JSON.stringify(s.tabRoutes));
     const missing = INVENTORY_ROUTES.filter(r => !s.tabRoutes.includes(r));
-    check('panel: subnav con las 12 opciones de inventario', s.tabRoutes.length === 12 && missing.length === 0,
+    check('panel: subnav con las 12 rutas de inventario (agrupadas en 5 elementos)',
+      s.tabRoutes.length === 12 && missing.length === 0,
       JSON.stringify({ n: s.tabRoutes.length, missing }));
+    // La agrupación es el motivo del rediseño: 5 elementos en vez de 12
+    // pestañas planas, para que no se desborde a segunda fila en francés.
+    // Incidencias (1 hijo) colapsa a pestaña directa, asi que son 4 grupos
+    // con menú + 1 directa.
+    check('panel: subnav con 5 elementos (4 grupos con menú + Incidencias directa)',
+      s.groupCount === 4 && s.directCount === 1,
+      JSON.stringify({ groups: s.groupCount, direct: s.directCount }));
     check('panel: sidebar accion Inventory activa', s.sidebarPanelActive === true);
     check('panel: tarjeta Stock actual presente', s.hasStockCard === true);
     check('panel: tarjeta Flujo operativo presente en el PRIMER render (sin espera)',
@@ -224,14 +237,19 @@ async function main() {
     await shot(page, 'nav-manager-panel-1920-capa2');
 
     // ---------- 3) Subnav navega a una opcion y persiste ----------
-    await page.locator('.subnav-tab[data-route="inventory/locations"]').click();
+    // Ubicaciones vive dentro del menú del grupo "Catálogo": se abre el
+    // grupo y se pulsa la opción (el disparador sólo abre el menú).
+    await page.locator('.subnav-tabs [data-group-toggle][aria-controls="subnav-group-catalog"]').click();
+    await page.waitForTimeout(200);
+    await page.locator('.subnav-group .dropdown-menu:not([hidden]) [data-route="inventory/locations"]').click();
     await page.waitForURL(/inventory\/locations/, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(1200);
     s = await state(page);
     check('subnav: navega a ubicaciones', s.route === 'inventory/locations', s.route);
     check('subnav: sigue visible en la opcion', s.subHidden === false && s.tabsVisible === true);
-    check('subnav: ubicaciones activa',
-      s.tabRoutes.includes('inventory/locations') && await page.locator('.subnav-tab.is-active[data-route="inventory/locations"]').count() > 0);
+    check('subnav: ubicaciones activa (opcion del menú Catálogo)',
+      s.tabRoutes.includes('inventory/locations') &&
+        await page.locator('.subnav-group .dropdown-item.is-active[data-route="inventory/locations"]').count() > 0);
     check('subnav: cero 403', net.api403 === 0, `403=${net.api403}`);
     await shot(page, 'nav-manager-locations-1920');
 
@@ -343,6 +361,45 @@ async function main() {
     check('admin general: sin widget inventario', s.hasStockCard === false && s.hasFlowCard === false);
     check('admin: cero 403', net.api403 === 0, `403=${net.api403}`);
     await shot(page, 'nav-admin-general-1920');
+
+    // ---------- 7) FRANCES: la subnav agrupada cabe en UNA sola fila ----------
+    // Motivo del rediseño: con 12 pestañas planas, el francés a 1024px con la
+    // sidebar abierta medía 1041px contra 748px disponibles y se partía en 2
+    // filas (36px -> 75px). Medido aquí con el sidebar visible.
+    console.log('frances: subnav en 1 fila (1366 y 1024, sidebar abierto)');
+    await page.evaluate(() => window.i18n && window.i18n.setLocale('fr'));
+    await page.waitForTimeout(900);
+    for (const width of [1366, 1024]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(BASE + '/#/dashboard/inventory', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(1500);
+      const m = await page.evaluate(() => {
+        const wrap = document.querySelector('.subnav-tabs');
+        // Sólo los 5 elementos visibles de primer nivel: disparadores de
+        // grupo (.dropdown > button) y pestañas directas. Los items de los
+        // menús cerrados van dentro de .dropdown-menu (position absolute,
+        // rect a 0) y no deben contar como fila.
+        const tabs = Array.from(document.querySelectorAll(
+          '.subnav-tabs > .dropdown > [data-group-toggle], .subnav-tabs > .subnav-tab[data-route]'));
+        const tops = [...new Set(tabs.map(t => Math.round(t.getBoundingClientRect().top)))];
+        const sidebar = document.querySelector('.sidebar');
+        return {
+          rows: tops.length,
+          wrapW: wrap ? Math.round(wrap.getBoundingClientRect().width) : null,
+          contentW: wrap ? wrap.scrollWidth : null,
+          sidebarVisible: sidebar ? getComputedStyle(sidebar).display !== 'none' : false,
+          elements: tabs.length
+        };
+      });
+      check('fr ' + width + 'px: subnav en UNA sola fila', m.rows === 1, JSON.stringify(m));
+      check('fr ' + width + 'px: 5 elementos visibles de primer nivel', m.elements === 5,
+        JSON.stringify({ elements: m.elements }));
+      check('fr ' + width + 'px: sin desborde horizontal del contenido',
+        m.contentW !== null && m.wrapW !== null && m.contentW <= m.wrapW,
+        JSON.stringify({ content: m.contentW, wrap: m.wrapW }));
+      check('fr ' + width + 'px: sidebar visible (condicion de la medida)', m.sidebarVisible === true);
+      await shot(page, 'nav-subnav-fr-' + width);
+    }
   } finally {
     await browser.close();
   }

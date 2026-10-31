@@ -188,8 +188,11 @@ async function main() {
     };
     await expectFlow('inventory/picking', '/inventory/picking?per_page=1', 'en_curso', 'picking en curso');
     await expectFlow('inventory/shipments', '/inventory/shipments?per_page=1', 'en_ruta', 'envios en ruta');
-    await expectFlow('inventory/deliveries', '/inventory/deliveries?per_page=1', 'pendientes', 'entregas pendientes');
     await expectFlow('inventory/counts', '/inventory/counts?per_page=1', 'pendientes', 'conteos pendientes');
+    // No hay fila de "entregas pendientes": ese contador (summary.pendientes
+    // de GET /inventory/deliveries) suma estado='PENDIENTE' y ningún código
+    // lo escribe, así que era un 0 estructural. La fila de "envios en ruta"
+    // (shipments.summary.en_ruta) es la que cubre ese caso.
 
     check('flujo: reservas activas = counts.reservas_activas real (' + scounts.reservas_activas + ')',
       flowValue('inventory/reservations') === String(scounts.reservas_activas ?? 0),

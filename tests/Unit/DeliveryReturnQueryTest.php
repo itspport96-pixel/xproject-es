@@ -90,7 +90,7 @@ final class DeliveryReturnQueryTest extends InventorySqliteTestCase
         $deliveries = [
             ['del-q-1', self::T1, self::S1, self::U1, 'ENTREGADA', '2026-10-01 10:00:00'],
             ['del-q-2', self::T1, self::S1, self::U2, 'RECHAZADA', '2026-10-02 10:00:00'],
-            ['del-q-3', self::T1, self::S2, self::U3, 'PENDIENTE', '2026-10-03 10:00:00'],
+            ['del-q-3', self::T1, self::S2, self::U3, 'ENTREGADA', '2026-10-03 10:00:00'],
             ['del-q-t2', self::T2, self::ST2, self::UT2, 'ENTREGADA', '2026-10-04 10:00:00'],
         ];
 
@@ -130,7 +130,7 @@ final class DeliveryReturnQueryTest extends InventorySqliteTestCase
         $result = (new DeliveryQueryService($this->pdo))->list(self::T1);
 
         $this->assertSame(
-            ['total' => 3, 'entregadas' => 1, 'rechazadas' => 1, 'pendientes' => 1, 'parciales' => 0],
+            ['total' => 3, 'entregadas' => 2, 'rechazadas' => 1],
             $result['summary']
         );
         $this->assertCount(3, $result['data']);

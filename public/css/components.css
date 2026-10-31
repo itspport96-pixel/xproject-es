@@ -2115,6 +2115,38 @@ outline-offset: -2px;
 border-radius: 2px;
 }
 
+/* Disparador de grupo: es un <button> que SÓLO abre el menú (no navega),
+   con el mismo aspecto que .subnav-tab. Sólo se resetea el chrome nativo
+   del botón; el menú de abajo reutiliza .dropdown-menu/.dropdown-item. */
+.subnav-group-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.subnav-chevron {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-left: 0.25rem;
+  color: currentColor;
+  opacity: 0.7;
+}
+
+/* Menú de grupo: cae bajo su disparador, alineado a su izquierda. El resto
+   (posición, sombra, .dropdown-item) viene de .dropdown-menu. */
+.subnav-group .dropdown-menu {
+  left: 0;
+  right: auto;
+  min-width: 11rem;
+}
+
+.subnav-group .dropdown-item.is-active {
+  color: rgb(var(--color-primary));
+  font-weight: 500;
+}
+
 /* Desplegable (móvil): oculto en escritorio */
 .subnav-select {
 display: none;
@@ -2175,6 +2207,16 @@ outline: none;
 .subnav-select-option.is-active {
 color: rgb(var(--color-primary));
 font-weight: 500;
+}
+
+/* Encabezado de grupo en el desplegable móvil: no clicable, sólo agrupa. */
+.subnav-select-group {
+padding: 0.5rem 0.75rem 0.25rem;
+font-size: 0.75rem;
+font-weight: 600;
+letter-spacing: 0.02em;
+text-transform: uppercase;
+color: rgb(var(--color-text-muted));
 }
 
 /* Móvil: pestañas fuera, desplegable dentro. Sin scroll horizontal. */

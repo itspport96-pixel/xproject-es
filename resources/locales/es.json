@@ -163,7 +163,13 @@
     "section_admin": "Administración",
     "section_system": "Sistema",
     "inventory": "Inventario",
-    "section_modules": "Módulos"
+    "section_modules": "Módulos",
+    "group": {
+      "catalog": "Catálogo",
+      "intake": "Entradas",
+      "stock": "Stock",
+      "outbound": "Salidas"
+    }
   },
   "routes": {
     "login": "Iniciar sesión",
@@ -934,10 +940,8 @@
         "destinatario_real": "Destinatario real"
       },
       "states": {
-        "pendiente": "Pendiente",
         "entregada": "Entregada",
-        "rechazada": "Rechazada",
-        "parcial": "Parcial"
+        "rechazada": "Rechazada"
       },
       "reasons": {
         "no_disponible": "No disponible",
@@ -948,8 +952,7 @@
       "summary": {
         "entregas": "Entregas",
         "entregadas": "Entregadas",
-        "rechazadas": "Rechazadas",
-        "pendientes": "Pendientes"
+        "rechazadas": "Rechazadas"
       },
       "empty": {
         "en_ruta_title": "Sin envíos en ruta",
@@ -1709,7 +1712,6 @@
         "reservations": "Reservas activas",
         "picking": "Picking en curso",
         "shipments": "Envíos en ruta",
-        "deliveries": "Entregas pendientes",
         "counts": "Conteos pendientes",
         "in_transit": "Unidades en tránsito"
       },

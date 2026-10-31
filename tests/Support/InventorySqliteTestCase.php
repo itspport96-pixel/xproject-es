@@ -814,7 +814,7 @@ abstract class InventorySqliteTestCase extends TestCase
                 shipment_id TEXT NOT NULL,
                 unidad_fisica_id TEXT NOT NULL,
                 cantidad REAL,
-                estado TEXT DEFAULT \'PENDIENTE\',
+                estado TEXT,
                 destinatario_real TEXT,
                 firma_comprobante TEXT,
                 observaciones TEXT,

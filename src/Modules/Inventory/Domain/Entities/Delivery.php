@@ -10,29 +10,23 @@ use DateTimeImmutable;
 /**
  * Entidad: Entrega (deliveries) - spec §3.15 / CU-007 / CU-008
  *
- * Una fila POR UNIDAD FÍSICA del envío:
+ * Una fila POR UNIDAD FÍSICA del envío, que sólo se crea al cerrar la
+ * entrega. Un envío EN_RUTA NO genera filas: por eso no existe un estado
+ * "pendiente" de entrega (el pendiente lo vive el envío, en shipments).
  *
  *  - ENTREGADA  → la unidad llegó a destino (CU-007)
  *  - RECHAZADA  → la unidad no pudo entregarse y vuelve al almacén (CU-008)
- *  - PARCIAL    → reserva del spec para entregas de cantidad parcial; en
- *                 v1.8.0 la unidad no se divide (misma regla que CU-004/005),
- *                 por lo que queda sin usar (decisión documentada).
- *  - PENDIENTE  → estado por defecto del spec, tampoco se emite aún.
  *
- * @property-read string $estado PENDIENTE | ENTREGADA | RECHAZADA | PARCIAL
+ * @property-read string $estado ENTREGADA | RECHAZADA
  */
 final class Delivery
 {
-    public const ESTADO_PENDIENTE  = 'PENDIENTE';
     public const ESTADO_ENTREGADA  = 'ENTREGADA';
     public const ESTADO_RECHAZADA  = 'RECHAZADA';
-    public const ESTADO_PARCIAL    = 'PARCIAL';
 
     public const ESTADOS_VALIDOS = [
-        self::ESTADO_PENDIENTE,
         self::ESTADO_ENTREGADA,
         self::ESTADO_RECHAZADA,
-        self::ESTADO_PARCIAL,
     ];
 
     private function __construct(
@@ -57,8 +51,14 @@ final class Delivery
      */
     public static function fromArray(array $data): self
     {
-        $estado = strtoupper(trim((string) ($data['estado'] ?? self::ESTADO_PENDIENTE)));
+        // Estado obligatorio: la fila sólo se crea al cerrar la entrega, así
+        // que no hay valor por defecto razonable (antes era PENDIENTE, que
+        // nunca se escribía y se ha eliminado del enum).
+        $estado = strtoupper(trim((string) ($data['estado'] ?? '')));
 
+        if ($estado === '') {
+            throw InventoryException::requiredField('estado');
+        }
         if (!in_array($estado, self::ESTADOS_VALIDOS, true)) {
             throw InventoryException::invalidField('estado', "Estado de entrega desconocido: '{$estado}'.");
         }

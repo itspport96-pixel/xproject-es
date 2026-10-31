@@ -28,7 +28,6 @@
  * - GET /inventory/locations           → capacidad/capacidad_usada del gráfico
  * - GET /inventory/picking             → summary.en_curso
  * - GET /inventory/shipments           → summary.en_ruta
- * - GET /inventory/deliveries          → summary.pendientes
  * - GET /inventory/counts              → summary.pendientes
  * - GET /inventory/movements           → summary.total / summary.correcciones
  * - GET /inventory/returns             → summary.total
@@ -178,7 +177,6 @@
     capacity_locations: () => get('/inventory/locations', { per_page: CAPACITY_PAGE_SIZE }),
     flow_picking: () => getSummary('/inventory/picking', { per_page: 1 }),
     flow_shipments: () => getSummary('/inventory/shipments', { per_page: 1 }),
-    flow_deliveries: () => getSummary('/inventory/deliveries', { per_page: 1 }),
     flow_counts: () => getSummary('/inventory/counts', { per_page: 1 }),
     week_movements: () => getSummary('/inventory/movements', { per_page: 1, fecha_desde: sevenDaysAgo() }),
     week_returns: () => getSummary('/inventory/returns', { per_page: 1, fecha_desde: sevenDaysAgo() })
@@ -249,12 +247,12 @@
     {
       resource: 'flow_shipments', perm: 'inventory.shipping.view', roles: ROLES_VIEW,
       labelKey: 'dashboard.inventory.flow.shipments', route: 'inventory/shipments',
+      // Es LA fila de "en ruta": un envío en curso de entrega. Antes había
+      // otra fila "Entregas pendientes" que leía summary.pendientes de
+      // GET /inventory/deliveries, pero ese contador suma estado='PENDIENTE'
+      // y ningún código lo escribe (sólo ENTREGADA y RECHAZADA), así que era
+      // un 0 estructural sin fuente de dato real.
       value: (d) => num((d || {}).en_ruta)
-    },
-    {
-      resource: 'flow_deliveries', perm: 'inventory.delivery.view', roles: ROLES_VIEW,
-      labelKey: 'dashboard.inventory.flow.deliveries', route: 'inventory/deliveries',
-      value: (d) => num((d || {}).pendientes)
     },
     {
       resource: 'flow_counts', perm: 'inventory.count.view', roles: ROLES_VIEW,

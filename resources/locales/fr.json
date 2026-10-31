@@ -163,7 +163,13 @@
     "section_admin": "Administration",
     "section_system": "Système",
     "inventory": "Inventaire",
-    "section_modules": "Modules"
+    "section_modules": "Modules",
+    "group": {
+      "catalog": "Catalogue",
+      "intake": "Entrées",
+      "stock": "Stock",
+      "outbound": "Sorties"
+    }
   },
   "routes": {
     "login": "Se connecter",
@@ -934,10 +940,8 @@
         "destinatario_real": "Destinataire réel"
       },
       "states": {
-        "pendiente": "En attente",
         "entregada": "Livrée",
-        "rechazada": "Rejetée",
-        "parcial": "Partielle"
+        "rechazada": "Rejetée"
       },
       "reasons": {
         "no_disponible": "Indisponible",
@@ -948,8 +952,7 @@
       "summary": {
         "entregas": "Livrées",
         "entregadas": "Livrées",
-        "rechazadas": "Rejetées",
-        "pendientes": "En attente"
+        "rechazadas": "Rejetées"
       },
       "empty": {
         "en_ruta_title": "Aucune expédition en route",
@@ -1709,7 +1712,6 @@
         "reservations": "Réservations actives",
         "picking": "Picking en cours",
         "shipments": "Envois en route",
-        "deliveries": "Livraisons en attente",
         "counts": "Comptages en attente",
         "in_transit": "Unités en transit"
       },

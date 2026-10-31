@@ -44,7 +44,7 @@
     let state = {
         tab: 'en_ruta',
         items: [],
-        summary: { total: 0, entregadas: 0, rechazadas: 0, pendientes: 0, parciales: 0 },
+        summary: { total: 0, entregadas: 0, rechazadas: 0 },
         pagination: { total: 0, page: 1, per_page: 25, has_next: false },
         filters: { estado: '', fecha_desde: '', fecha_hasta: '', shipment_id: '' },
         listLoading: false,
@@ -57,18 +57,17 @@
         sending: false
     };
 
+    // Estados que el backend escribe en `deliveries`: la fila sólo se crea al
+    // cerrar la entrega (CU-007 ENTREGADA / CU-008 RECHAZADA). No hay estado
+    // "pendiente": un envío EN_RUTA no genera filas en deliveries.
     const ESTADOS_ENTREGA = [
-        { value: 'PENDIENTE', color: 'warning' },
         { value: 'ENTREGADA', color: 'success' },
-        { value: 'RECHAZADA', color: 'danger' },
-        { value: 'PARCIAL', color: 'info' }
+        { value: 'RECHAZADA', color: 'danger' }
     ];
 
     const ESTADO_KEYS = {
-        PENDIENTE: 'inventory.deliveries.states.pendiente',
         ENTREGADA: 'inventory.deliveries.states.entregada',
-        RECHAZADA: 'inventory.deliveries.states.rechazada',
-        PARCIAL: 'inventory.deliveries.states.parcial'
+        RECHAZADA: 'inventory.deliveries.states.rechazada'
     };
 
     const MOTIVOS_FALLO = [
@@ -129,7 +128,7 @@
             {
                 id: 'history',
                 html: `
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" data-del-summary></div>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4" data-del-summary></div>
 
             ${UI.filtersCard(`
                 <div class="form-group mb-0">
@@ -334,8 +333,7 @@
         UI.summaryCards(root, [
             { label: t('inventory.deliveries.summary.entregas'), value: s.total },
             { label: t('inventory.deliveries.summary.entregadas'), value: s.entregadas },
-            { label: t('inventory.deliveries.summary.rechazadas'), value: s.rechazadas },
-            { label: t('inventory.deliveries.summary.pendientes'), value: s.pendientes }
+            { label: t('inventory.deliveries.summary.rechazadas'), value: s.rechazadas }
         ]);
     }
 

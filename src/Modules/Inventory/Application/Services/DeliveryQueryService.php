@@ -34,7 +34,7 @@ final class DeliveryQueryService
      * Entregas del tenant con filtros y paginación.
      *
      * @param array<string, mixed> $filters Filtros opcionales:
-     *        estado (PENDIENTE|ENTREGADA|RECHAZADA|PARCIAL),
+     *        estado (ENTREGADA|RECHAZADA),
      *        fecha_desde, fecha_hasta (rango sobre timestamp_entrega, UTC),
      *        shipment_id, unidad_fisica_id
      *
@@ -57,9 +57,7 @@ final class DeliveryQueryService
         $countSql = "
             SELECT COUNT(*) AS total,
                    COALESCE(SUM(d.estado = 'ENTREGADA'), 0) AS entregadas,
-                   COALESCE(SUM(d.estado = 'RECHAZADA'), 0) AS rechazadas,
-                   COALESCE(SUM(d.estado = 'PENDIENTE'), 0) AS pendientes,
-                   COALESCE(SUM(d.estado = 'PARCIAL'), 0) AS parciales
+                   COALESCE(SUM(d.estado = 'RECHAZADA'), 0) AS rechazadas
             FROM deliveries d
             WHERE {$where}";
         $countStmt = $this->pdo->prepare($countSql);
@@ -103,8 +101,6 @@ final class DeliveryQueryService
                 'total' => $total,
                 'entregadas' => (int) ($summary['entregadas'] ?? 0),
                 'rechazadas' => (int) ($summary['rechazadas'] ?? 0),
-                'pendientes' => (int) ($summary['pendientes'] ?? 0),
-                'parciales' => (int) ($summary['parciales'] ?? 0),
             ],
             'data' => array_map(
                 fn(array $row): array => $this->mapRow($row),
