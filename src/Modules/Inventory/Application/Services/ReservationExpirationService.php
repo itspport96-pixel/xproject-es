@@ -290,4 +290,46 @@ final class ReservationExpirationService
             'estado_unidad_nuevo' => $estadoNuevo,
         ];
     }
+
+    /**
+     * Ejecuta el barrido de reservas vencidas del tenant actual como mucho
+     * una vez cada 60 segundos (flag en Redis). Pensado para llamarse desde
+     * los endpoints de lectura (GET /reservations, GET /stock) y de escritura
+     * (POST /reservations) para dar expiración perezosa SIN cron.
+     *
+     * - Un fallo de Redis NO bloquea la petición: se ejecuta el barrido
+     *   (fail-open, mejor expirar de más que de menos).
+     * - Un fallo del barrido NO bloquea la petición: se loguea y sigue.
+     *
+     * @return array{ejecutado: bool, expiradas: int, omitidas: int}
+     */
+    public function expireIfNeeded(int $limit = 500): array
+    {
+        $tenantId = $this->tenantContext->getTenantId();
+
+        try {
+            $redis = \App\Shared\Container\Container::getInstance()->get('redis');
+            $flag  = 'reservations:expired:' . $tenantId;
+            if ($redis->get($flag) !== null) {
+                return ['ejecutado' => false, 'expiradas' => 0, 'omitidas' => 0];
+            }
+            // TTL 60s: mientras exista, no se vuelve a barrer este tenant.
+            $redis->set($flag, 1, 60);
+        } catch (\Throwable $e) {
+            // Sin Redis: se ejecuta el barrido igualmente (fail-open).
+            error_log('[Reservations] expireIfNeeded sin Redis: ' . $e->getMessage());
+        }
+
+        try {
+            $result = $this->expire($limit);
+            return [
+                'ejecutado' => true,
+                'expiradas' => (int) ($result['expiradas'] ?? 0),
+                'omitidas'  => (int) ($result['omitidas'] ?? 0),
+            ];
+        } catch (\Throwable $e) {
+            error_log('[Reservations] expireIfNeeded fallo el barrido: ' . $e->getMessage());
+            return ['ejecutado' => false, 'expiradas' => 0, 'omitidas' => 0];
+        }
+    }
 }

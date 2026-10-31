@@ -6,6 +6,7 @@ namespace App\Modules\Inventory\Http;
 
 use App\Core\Audit\AuditLogger;
 use App\Modules\Inventory\Application\Services\BlockStockUseCase;
+use App\Modules\Inventory\Application\Services\ReservationExpirationService;
 use App\Modules\Inventory\Application\Services\StockHistoryQueryService;
 use App\Modules\Inventory\Application\Services\StockQueryService;
 use App\Modules\Inventory\Http\Concerns\ExtractsIdempotencyKey;
@@ -41,17 +42,20 @@ final class StockController
     private ?StockHistoryQueryService $historyService;
     private ?BlockStockUseCase $blockUseCase;
     private ?AuditLogger $audit;
+    private ?ReservationExpirationService $expirationService;
 
     public function __construct(
         ?StockQueryService $query = null,
         ?StockHistoryQueryService $historyService = null,
         ?BlockStockUseCase $blockUseCase = null,
-        ?AuditLogger $audit = null
+        ?AuditLogger $audit = null,
+        ?ReservationExpirationService $expirationService = null
     ) {
         $this->query = $query ?? Container::getInstance()->get(StockQueryService::class);
         $this->historyService = $historyService;
         $this->blockUseCase = $blockUseCase;
         $this->audit = $audit ?? $this->resolveAuditLogger();
+        $this->expirationService = $expirationService;
     }
 
     /**
@@ -75,6 +79,11 @@ final class StockController
     public function index(array $request): array
     {
         $claims = $this->requireAuthenticated($request);
+
+        // Expiración perezosa: las reservas vencidas se reflejan como
+        // DISPONIBLE en el listado de stock sin esperar a un cron.
+        $expirationService = $this->expirationService ?? Container::getInstance()->get(ReservationExpirationService::class);
+        $expirationService->expireIfNeeded();
 
         $query = $request['query'] ?? [];
         $filters = [];

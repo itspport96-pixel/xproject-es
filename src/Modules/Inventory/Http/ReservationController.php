@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Inventory\Http;
 
 use App\Modules\Inventory\Application\Services\ReleaseReservationUseCase;
+use App\Modules\Inventory\Application\Services\ReservationExpirationService;
 use App\Modules\Inventory\Application\Services\ReservationQueryService;
 use App\Modules\Inventory\Application\Services\ReserveStockUseCase;
 use App\Modules\Inventory\Http\Concerns\ExtractsIdempotencyKey;
@@ -43,11 +44,13 @@ final class ReservationController
     private ReserveStockUseCase $reserveUseCase;
     private ReleaseReservationUseCase $releaseUseCase;
     private ?ReservationQueryService $queryService;
+    private ?ReservationExpirationService $expirationService;
 
     public function __construct(
         ?ReserveStockUseCase $reserve = null,
         ?ReleaseReservationUseCase $release = null,
-        ?ReservationQueryService $query = null
+        ?ReservationQueryService $query = null,
+        ?ReservationExpirationService $expirationService = null
     ) {
         if ($reserve === null || $release === null) {
             $container = Container::getInstance();
@@ -60,6 +63,7 @@ final class ReservationController
         // Resuelto bajo demanda en index(): store/release (y sus tests) no
         // deben depender de que el contenedor tenga el servicio de consulta.
         $this->queryService = $query;
+        $this->expirationService = $expirationService;
     }
 
     /**
@@ -71,6 +75,11 @@ final class ReservationController
     public function index(array $request): array
     {
         $claims = $this->requireAuthenticated($request);
+
+        // Expiración perezosa (sin cron): antes de listar, se barren las
+        // vencidas del tenant. Máximo 1 vez / 60s por tenant (flag Redis).
+        $expirationService = $this->expirationService ?? Container::getInstance()->get(ReservationExpirationService::class);
+        $expirationService->expireIfNeeded();
 
         $query = $request['query'] ?? [];
         $filters = [];
@@ -98,6 +107,12 @@ final class ReservationController
         $claims = $this->requireAuthenticated($request);
 
         $key = $this->idempotencyKey($request);
+
+        // Expiración perezosa: si la unidad tenía una reserva vencida, se
+        // libera antes de intentar la nueva (evita 409 por reserva activa
+        // fantasma).
+        $expirationService = $this->expirationService ?? Container::getInstance()->get(ReservationExpirationService::class);
+        $expirationService->expireIfNeeded();
 
         $response = $this->reserveUseCase->execute(
             $request['body'] ?? [],

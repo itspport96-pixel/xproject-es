@@ -26,11 +26,21 @@ class DatabaseService
      * con nombre exigen las tablas de zona horaria cargadas en el servidor.
      */
     private const DEFAULT_SQL_MODE = 'STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
-    private const DEFAULT_TIME_ZONE = '+00:00';
+    // Se resuelve en connect(): offset actual de date_default_timezone_get()
+    // para que MySQL y PHP compartan la misma hora de pared.
 
     public function __construct(array $config)
     {
         $this->config = $config;
+    }
+
+    private static function defaultSessionTimeZone(): string
+    {
+        // Misma zona que PHP (bootstrap.php fija Europe/Madrid por defecto).
+        // MySQL no acepta "Europe/Madrid" si no tiene cargadas las tablas de
+        // zona horaria, así que se manda como offset numérico actual.
+        $offset = (new \DateTimeImmutable('now', new \DateTimeZone(date_default_timezone_get())))->format('P');
+        return $offset === '' ? '+00:00' : $offset;
     }
 
     public function getConnection(): PDO
@@ -166,7 +176,7 @@ class DatabaseService
                 throw new SecurityException("Invalid sql_mode configuration: '{$sqlMode}'.");
             }
 
-            $timeZone = (string) ($this->config['time_zone'] ?? self::DEFAULT_TIME_ZONE);
+            $timeZone = (string) ($this->config['time_zone'] ?? self::defaultSessionTimeZone());
             if (preg_match('/^(?:UTC|[+-][0-9]{2}:[0-9]{2})$/D', $timeZone) !== 1) {
                 throw new SecurityException(
                     "Invalid time_zone configuration: '{$timeZone}'. Use UTC or an offset such as +00:00."

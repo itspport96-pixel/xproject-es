@@ -18,7 +18,7 @@ $dotenv->required(['APP_ENV', 'DB_HOST', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSW
 // misma clave que usa el helper now()); default UTC y si el valor no es una
 // zona conocida se cae a UTC en vez de dejar la app a medias. my.ini/php.ini
 // quedan como refuerzo para los procesos ajenos a la app.
-$appTimeZone = (string) (getenv('TIMEZONE') ?: ($_ENV['TIMEZONE'] ?? 'UTC'));
+$appTimeZone = (string) (getenv('TIMEZONE') ?: ($_ENV['TIMEZONE'] ?? 'Europe/Madrid'));
 if (!in_array($appTimeZone, \DateTimeZone::listIdentifiers(\DateTimeZone::ALL_WITH_BC), true)) {
     $appTimeZone = 'UTC';
 }
