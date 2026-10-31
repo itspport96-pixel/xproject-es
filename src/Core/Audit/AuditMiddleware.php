@@ -121,6 +121,14 @@ final class AuditMiddleware
             ]);
         };
 
+        // FIX-V2: verificación de payload size MOVIDA desde Router::buildRequest()
+        // para que quede auditada (el hook audit_finish ya está instalado).
+        // Router::buildRequest() ya no leyó el body si Content-Length > 1MB (protección DoS).
+        $contentLength = (int) ($request['headers']['content-length'] ?? 0);
+        if ($contentLength > 1048576) {
+            throw (new HttpException('Payload demasiado grande (máximo 1MB)', 413))->withMessageKey('common.payload_too_large');
+        }
+
         return $request;
     }
 

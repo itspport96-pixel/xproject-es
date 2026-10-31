@@ -363,12 +363,20 @@ class AuthController
             return $this->jsonError('Sesión expirada por inactividad', 401, 'auth.session_expired_inactivity');
         }
 
-        $newRefreshJti = $this->rotateRefreshToken($refreshJti, $sessionId, $userId, $tenantId);
-        // v1.19.7: al refrescar se reemite el MFA de la sesion (si hubo) y se
-        // renueva su TTL; si Redis perdio el flag (reinicio), el claim sale en
-        // false y la accion CRITICAL queda denegada hasta re-login (fail-closed).
-        $mfaSesion = $this->sessionMfaVerified($sessionId);
-        $this->touchSession($sessionId, $mfaSesion);
+        // FIX-V9: operaciones atómicas para prevenir refresh concurrente
+        // (race condition: dos requests con el mismo refresh_token podrían
+        // generar dos tokens nuevos válidos). La transacción garantiza que
+        // rotateRefreshToken (UPDATE + INSERT) sea atómico.
+        $newRefreshJti = null;
+        $mfaSesion = null;
+        $this->db->transaction(function() use ($refreshJti, $sessionId, $userId, $tenantId, &$newRefreshJti, &$mfaSesion) {
+            $newRefreshJti = $this->rotateRefreshToken($refreshJti, $sessionId, $userId, $tenantId);
+            // v1.19.7: al refrescar se reemite el MFA de la sesion (si hubo) y se
+            // renueva su TTL; si Redis perdio el flag (reinicio), el claim sale en
+            // false y la accion CRITICAL queda denegada hasta re-login (fail-closed).
+            $mfaSesion = $this->sessionMfaVerified($sessionId);
+            $this->touchSession($sessionId, $mfaSesion);
+        });
 
         // v1.12.1: los claims del nuevo access token reflejan los roles
         // efectivos vigentes (directos + de grupo), no los del login.

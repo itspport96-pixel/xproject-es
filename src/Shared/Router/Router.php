@@ -184,18 +184,19 @@ final class Router
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 
         if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
-            // Tope de tamaño de payload (DoS de memoria)
-            if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 1048576) {
-                throw (new HttpException('Payload demasiado grande (máximo 1MB)', 413))->withMessageKey('common.payload_too_large');
-            }
-            $rawBody = (string) file_get_contents('php://input');
-            if (str_contains($contentType, 'application/json') && $rawBody !== '') {
-                $decoded = json_decode($rawBody, true);
-                if (is_array($decoded)) {
-                    $body = $decoded;
+            // Verificar Content-Length ANTES de leer el body (FIX-V2: protección DoS)
+            // Si es > 1MB, no leer el body. AuditMiddleware lanzará la excepción 413 después.
+            $contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+            if ($contentLength <= 1048576) {
+                $rawBody = (string) file_get_contents('php://input');
+                if (str_contains($contentType, 'application/json') && $rawBody !== '') {
+                    $decoded = json_decode($rawBody, true);
+                    if (is_array($decoded)) {
+                        $body = $decoded;
+                    }
+                } elseif (!empty($_POST)) {
+                    $body = $_POST;
                 }
-            } elseif (!empty($_POST)) {
-                $body = $_POST;
             }
         }
 

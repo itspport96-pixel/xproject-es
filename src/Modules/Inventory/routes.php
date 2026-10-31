@@ -286,14 +286,14 @@ $router->group('/api/inventory', function ($router) {
     // transiciones; sin cambio de ubicación ni de cupo. Idempotency-Key opcional.
     $router->post('/stock/{id}/block', [StockController::class, 'block'], [
         PermissionMiddleware::class . ':inventory.stock.block',
-        RateLimitMiddleware::class . ':api',
+        RateLimitMiddleware::class . ':30,60', // FIX-V6: 30 req/min (antes 100/min)
     ]);
 
     // POST /api/inventory/stock/{id}/unblock
     // Desbloquea la unidad (v1.10.0, E4): BLOQUEADO → DISPONIBLE. Idempotency-Key opcional.
     $router->post('/stock/{id}/unblock', [StockController::class, 'unblock'], [
         PermissionMiddleware::class . ':inventory.stock.block',
-        RateLimitMiddleware::class . ':api',
+        RateLimitMiddleware::class . ':30,60', // FIX-V6: 30 req/min (antes 100/min)
     ]);
 
     // ================================================================
