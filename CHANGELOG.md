@@ -27,6 +27,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **F5 / V6**: Rate limit específico para `/stock/{id}/block` y `/stock/{id}/unblock`: cambiado de `:api` (100 req/min) a `:30,60` (30 req/min) para prevenir abuso de bloqueo/desbloqueo masivo.
 - **F5 / V9**: Operaciones críticas de `AuthController::refresh()` ahora son atómicas: `rotateRefreshToken()` (UPDATE + INSERT) y `touchSession()` envueltos en `$this->db->transaction()` para prevenir condición de carrera donde dos requests concurrentes con el mismo refresh_token generarían dos tokens nuevos válidos.
 
+- **F6 / Errata (A1, A2, A3)**: Creado `docs/INVENTORY-MANUAL-ERRATA.md` con las correcciones al manual de prueba:
+  - **A1**: `fecha_expiracion` pasada en reservas devuelve 400 (no 201). `Reservation::create()` valida que sea posterior a `fecha_reserva`.
+  - **A2**: `actor_id_autoriza_salida` es el `user_id` del JWT del usuario autenticado, no un admin fijo.
+  - **A3**: Rol USER tiene 17 permisos (no 13). Lista completa documentada en el archivo de errata.
+
 ## [1.19.8] - 2026-10-28
 
 **Rediseño del panel de Inventario (`#/dashboard/inventory`) segun el adjunto `dashboard_inventory.html`, con la regla de que ningun indicador se pinta sin dato real + permiso real + navegacion valida.** El panel anterior era una rejilla generica de tarjetas de resumen con mucho espacio muerto; el nuevo ordena la pantalla en una tira compacta de 7 dias a una sola linea, chips de alerta, tabla de stock 2/3 con conmutador, grafico de barras de ocupacion de almacenes bajo la tabla y flujo operativo 1/3, y carga por zonas con skeleton propio, de modo que un endpoint lento o caido no bloquea el render de los demas. Sin cambios de backend: todo se apoya en los endpoints ya existentes del modulo.
