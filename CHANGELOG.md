@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.19.9] - 2026-10-31
+
+**Sprint FIX (FIX.md): correcciones de flujo del modulo Inventory, unificacion de la auditoria de dominio y endurecimiento.** Sin cambios de esquema salvo la migracion pendiente del WIP anterior (`deliveries.estado` + `PARCIAL`, aplicada en la BD viva).
+
+### Fixed
+- **F1 / B1**: `DEVUELTO -> BLOQUEADO` anadido a la matriz de transiciones (`StateTransitionService::TRANSITIONS`). Antes `POST /inventory/stock/{id}/block` sobre una unidad DEVUELTO devolvia 422 `field: estado`; ahora 200 y la unidad pasa a BLOQUEADO, alineado con el resto de estados no terminales.
+- **F1 / B2**: `PERDIDO` anadido como destino valido desde `EN_PREPARACION`, `CARGADO` y `EN_TRANSITO` (opcion A del plan). `POST /incidents/report` tipo PERDIDA ya puede reportarse en cualquier punto del flujo logistico sin workaround; antes solo era posible tras fail delivery (DEVUELTO -> PERDIDO). `ENTREGADO -> PERDIDO` sigue rechazandose. Docblock de la matriz actualizado con la desviacion FIX-B1/B2.
+- **Migracion pendiente del WIP**: `ALTER TABLE deliveries MODIFY estado enum('ENTREGADA','RECHAZADA','PARCIAL')` aplicado en la BD viva `xproject` (extension de ENUM in-place, sin tocar datos). `check-schema-drift` pasa a SIN DRIFT; `check-data-integrity` DATOS CONSISTENTES. Reportado como desviacion (regla 4/17): el fichero `schema.sql` ya declaraba PARCIAL pero la BD viva no lo tenia.
+
 ## [1.19.8] - 2026-10-28
 
 **Rediseño del panel de Inventario (`#/dashboard/inventory`) segun el adjunto `dashboard_inventory.html`, con la regla de que ningun indicador se pinta sin dato real + permiso real + navegacion valida.** El panel anterior era una rejilla generica de tarjetas de resumen con mucho espacio muerto; el nuevo ordena la pantalla en una tira compacta de 7 dias a una sola linea, chips de alerta, tabla de stock 2/3 con conmutador, grafico de barras de ocupacion de almacenes bajo la tabla y flujo operativo 1/3, y carga por zonas con skeleton propio, de modo que un endpoint lento o caido no bloquea el render de los demas. Sin cambios de backend: todo se apoya en los endpoints ya existentes del modulo.

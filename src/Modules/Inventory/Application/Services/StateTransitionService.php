@@ -20,11 +20,11 @@ use App\Modules\Inventory\Domain\ValueObjects\StockState;
  *
  *   DISPONIBLE      → RESERVADO, EN_PREPARACION, DAÑADO, BLOQUEADO, PERDIDO*
  *   RESERVADO       → DISPONIBLE (cancelación), EN_PREPARACION, BLOQUEADO
- *   EN_PREPARACION  → CARGADO, DAÑADO, BLOQUEADO
- *   CARGADO         → EN_TRANSITO, DAÑADO, BLOQUEADO
- *   EN_TRANSITO     → ENTREGADO, DEVUELTO, BLOQUEADO
+ *   EN_PREPARACION  → CARGADO, DAÑADO, BLOQUEADO, PERDIDO**
+ *   CARGADO         → EN_TRANSITO, DAÑADO, BLOQUEADO, PERDIDO**
+ *   EN_TRANSITO     → ENTREGADO, DEVUELTO, BLOQUEADO, PERDIDO**
  *   ENTREGADO       → DEVUELTO
- *   DEVUELTO        → DISPONIBLE, DAÑADO, PERDIDO
+ *   DEVUELTO        → DISPONIBLE, DAÑADO, BLOQUEADO**, PERDIDO
  *   DAÑADO          → BLOQUEADO, PERDIDO
  *   BLOQUEADO       → DISPONIBLE, DAÑADO, PERDIDO
  *   PERDIDO         → (ninguno: estado terminal)
@@ -34,8 +34,16 @@ use App\Modules\Inventory\Domain\ValueObjects\StockState;
  *    de una pérdida en almacén) y CU-011 (reconciliar con cantidad 0) lo
  *    necesitan desde DISPONIBLE, y `accion_marcar_perdido() → PERDIDO` de la
  *    spec no limita el estado de origen. Cualquier otro origen no contemplado
- *    (RESERVADO, EN_PREPARACION, CARGADO, EN_TRANSITO, ENTREGADO) sigue
- *    rechazándose con 422.
+ *    (RESERVADO, ENTREGADO) sigue rechazándose con 422.
+ *
+ *  ** DESVIACIÓN FIX-B1/B2 (aprobada): B1 añade DEVUELTO → BLOQUEADO para
+ *    alinear con el resto de estados no terminales (DISPONIBLE, RESERVADO,
+ *    EN_PREPARACION, CARGADO, EN_TRANSITO, DAÑADO ya lo admitían). B2 añade
+ *    PERDIDO a EN_PREPARACION, CARGADO y EN_TRANSITO para que
+ *    `POST /incidents/report` tipo PERDIDA (CU-010) pueda reportarse en
+ *    cualquier punto del flujo logístico sin workaround (antes la única vía
+ *    era fail delivery → DEVUELTO → return PERDIDO). ENTREGADO → PERDIDO
+ *    sigue rechazándose: una entrega confirmada no se pierde.
  *
  * Nota: la transición X → X (sin cambio) tampoco es válida (las casillas
  * diagonales de la matriz están vacías).
@@ -64,16 +72,19 @@ final class StateTransitionService
             StockState::CARGADO,
             StockState::DANADO,
             StockState::BLOQUEADO,
+            StockState::PERDIDO,
         ],
         StockState::CARGADO => [
             StockState::EN_TRANSITO,
             StockState::DANADO,
             StockState::BLOQUEADO,
+            StockState::PERDIDO,
         ],
         StockState::EN_TRANSITO => [
             StockState::ENTREGADO,
             StockState::DEVUELTO,
             StockState::BLOQUEADO,
+            StockState::PERDIDO,
         ],
         StockState::ENTREGADO => [
             StockState::DEVUELTO,
@@ -81,6 +92,7 @@ final class StateTransitionService
         StockState::DEVUELTO => [
             StockState::DISPONIBLE,
             StockState::DANADO,
+            StockState::BLOQUEADO,
             StockState::PERDIDO,
         ],
         StockState::DANADO => [
