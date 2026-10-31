@@ -55,6 +55,12 @@ use App\Shared\Services\IdempotencyService;
  *    firma_comprobante?, observaciones?
  *  - destinatario_real?, firma_comprobante?, observaciones? (defecto común)
  *  - motivo_fallo? (motivo CU-008 para las unidades no indicadas, defecto OTRO)
+ *
+ * Las unidades no incluidas en el body de confirm se procesan con
+ * RegisterDeliveryFailureUseCase en la MISMA transacción (CU-008):
+ * pasan a RECHAZADA + DEVUELTO + incidencia. No existe el concepto
+ * "dejar en ruta": si se necesitara, se añadiría un campo
+ * unidades_en_ruta[] explícito. Decisión de producto, no bug.
  */
 final class ConfirmDeliveryUseCase
 {

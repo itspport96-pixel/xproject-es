@@ -26,6 +26,11 @@ use App\Shared\Services\IdempotencyService;
  *     carga) son pasos aparte (spec CU-004/CU-005).
  *
  * Input: id_lote_picking (path), cuerpo ignorado.
+ *
+ * El actor que completa queda en audit_logs.usuario_id (dominio), no
+ * en la fila de picking_operations: la tabla sólo persiste selector
+ * (quien inició) y supervisor (quien verificó). Es una decisión de
+ * diseño, no un bug.
  */
 final class CompletePickingUseCase
 {

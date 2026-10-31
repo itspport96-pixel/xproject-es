@@ -60,6 +60,9 @@ use App\Shared\Services\IdempotencyService;
  *
  * Input:
  *  - id_lote_picking (obligatorio, único por tenant)
+ *    id_lote_picking es único por tenant y no se reutiliza tras cierre
+ *    (mismo criterio que SKU y código de ubicación: el borrado lógico libera
+ *    el identificador, no se restaura).
  *  - ubicacion_preparacion_id (obligatorio, tipo PICKING)
  *  - unidades: [{unidad_fisica_id, cantidad?}] (obligatorio, no vacío)
  *  - referencia_orden (opcional)
