@@ -201,6 +201,10 @@ borro al terminar (audit_logs, refresh_tokens, rate_limit_log,
 role_assignments, role_permissions, user, role, tenant): la BD viva quedo
 identica (4 usuarios, 1 tenant, 0 restos de la sonda).
 
+**V7 evaluado (FIX2)**: middleware global de tenant no se añade. Los use
+cases ya validan `belongsToTenant`; tests cross-tenant en esta sección
+cubren el caso.
+
 ### 6b. Residual abierto: cifrado de datos y auditoria en claro
 
 Decision: **no se re-implementa el cifrado punto-a-punto ahora**; volvera de
@@ -217,6 +221,14 @@ contenido en claro; cualquier cifrado futuro debe preservarla o migrarla.
 Deviation observada durante el probe (no corregida, fuera de alcance): los
 404 de `users` y `roles` devuelven el literal `{id}` sin interpolar en el
 mensaje ("El usuario con ID '{id}' no existe."); el de `groups` si interpola.
+
+**V5 evaluado (FIX2)**: se deja como está por decisión de producto. Las
+entregas vencidas se confirman sin aviso.
+
+**F7 no aplicado (FIX2)**: DML de `audit_logs` no ejecutado. La tabla mezcla
+operaciones históricas (`product.create`) y nuevas (`inventory.product.create`).
+Coexisten sin conflicto. Un UPDATE alteraría una tabla append-only con valor
+forense; se deja fuera.
 
 ## 7. Runbook de deploy para tenants legacy (v1.19.9)
 
