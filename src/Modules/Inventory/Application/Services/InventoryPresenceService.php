@@ -24,9 +24,37 @@ final class InventoryPresenceService
 {
     private PDO $pdo;
 
+    /**
+     * Tipos virtuales derivados de LocationType::isVirtual() (fuente de
+     * verdad). Si se añade otro LocationType virtual en el futuro, snapshot()
+     * y cupoUsado() lo excluyen automáticamente sin tocar esta clase
+     * (FIX-B10).
+     *
+     * @var array<int, string>|null
+     */
+    private ?array $virtualTypes = null;
+
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function virtualTypes(): array
+    {
+        if ($this->virtualTypes === null) {
+            $this->virtualTypes = [];
+
+            foreach (LocationType::VALID_VALUES as $t) {
+                if (LocationType::fromString($t)->isVirtual()) {
+                    $this->virtualTypes[] = $t;
+                }
+            }
+        }
+
+        return $this->virtualTypes;
     }
 
     /**
@@ -37,28 +65,28 @@ final class InventoryPresenceService
      */
     public function snapshot(string $tenantId, ?string $ubicacionId = null): array
     {
+        $virtualTypes = $this->virtualTypes();
+        $placeholders = implode(',', array_fill(0, count($virtualTypes), '?'));
+
         $sql = 'SELECT u.id, u.codigo_barcode, u.producto_id, u.ubicacion_id, u.cantidad, l.codigo
                   FROM stock_units u
                   JOIN locations l
                     ON l.id = u.ubicacion_id AND l.tenant_id = u.tenant_id
-                 WHERE u.tenant_id = :tenant
+                 WHERE u.tenant_id = ?
                    AND l.deleted_at IS NULL
-                   AND l.tipo <> :virtual';
+                   AND l.tipo NOT IN (' . $placeholders . ')';
 
-        $params = [
-            'tenant' => $tenantId,
-            'virtual' => LocationType::TRANSITO,
-        ];
+        $bindValues = array_merge([$tenantId], $virtualTypes);
 
         if ($ubicacionId !== null) {
-            $sql .= ' AND u.ubicacion_id = :ubicacion';
-            $params['ubicacion'] = $ubicacionId;
+            $sql .= ' AND u.ubicacion_id = ?';
+            $bindValues[] = $ubicacionId;
         }
 
         $sql .= ' ORDER BY l.codigo, u.codigo_barcode';
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
+        $stmt->execute($bindValues);
 
         $lista = [];
 
@@ -92,7 +120,7 @@ final class InventoryPresenceService
             return 0;
         }
 
-        if ((string) $row['tipo'] === LocationType::TRANSITO) {
+        if (in_array((string) $row['tipo'], $this->virtualTypes(), true)) {
             return 0;
         }
 

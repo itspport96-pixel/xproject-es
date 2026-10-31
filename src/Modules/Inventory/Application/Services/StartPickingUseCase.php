@@ -207,6 +207,9 @@ final class StartPickingUseCase
                 if (!$origen->belongsToTenant($tenantId)) {
                     throw InventoryException::tenantIsolationViolation($origen->tenantId(), $tenantId);
                 }
+                if ($origen->tipo()->isVirtual()) {
+                    throw InventoryException::locationIsVirtual($origen->codigo()->value(), 'origen');
+                }
             }
 
             // 8. Capacidad (v1.8.2): 1 slot por unidad (`ceil(cantidad)`),
