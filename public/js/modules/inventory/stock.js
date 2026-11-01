@@ -467,6 +467,19 @@
         };
 
         const root = container.querySelector('[data-modal-root]');
+
+        // El calendario nativo del input trae un boton "Hoy" que fija la
+        // fecha a 00:00 (hora ya pasada) y la validacion la rechaza. Para
+        // poder reservar aun hoy: min = ahora + 1 min (esas horas quedan
+        // deshabilitadas en el picker) y el valor por defecto es ahora + 1h
+        // (la reserva dura 1 hora), de modo que "Hoy" con una hora futura
+        // si es seleccionable y el formulario se puede enviar sin tocar nada.
+        const ahora = new Date();
+        const pad2 = (n) => String(n).padStart(2, '0');
+        const aLocal = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+        const minExpiracion = aLocal(new Date(ahora.getTime() + 60000));
+        const valorExpiracion = aLocal(new Date(ahora.getTime() + 3600000));
+
         root.innerHTML = `
             <div class="modal-overlay" data-modal>
                 <div class="modal">
@@ -499,7 +512,8 @@
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">${t('inventory.stock.modals.reserve.expiration_label')}</label>
-                                    <input type="datetime-local" class="input" name="fecha_expiracion">
+                                    <input type="datetime-local" class="input" name="fecha_expiracion"
+                                           min="${minExpiracion}" value="${valorExpiracion}">
                                     <span class="form-hint">${t('inventory.stock.modals.reserve.expiration_hint')}</span>
                                     <span class="form-error hidden" data-error="fecha_expiracion"></span>
                                 </div>
