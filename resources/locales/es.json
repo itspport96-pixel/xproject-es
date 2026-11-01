@@ -1708,7 +1708,8 @@
       },
       "flow": {
         "title": "Flujo operativo",
-        "total_products": "Total de productos",
+        "catalog_products": "Productos de catálogo",
+        "available_products": "Productos disponibles",
         "reservations": "Reservas activas",
         "picking": "Picking en curso",
         "shipments": "Envíos en ruta",

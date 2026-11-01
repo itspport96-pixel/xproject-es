@@ -223,14 +223,24 @@
   // ============================================
   const FLOW_ROWS = [
     {
-      // Total del catálogo (counts.productos_activos del critical): la cifra
-      // general de productos que el panel general dejará de mostrar con la
-      // llegada de los nuevos módulos, así que vive en su panel de módulo.
+      // Productos del catálogo (counts.productos_activos del critical): la
+      // cifra general de productos que el panel general dejará de mostrar con
+      // la llegada de los nuevos módulos, así que vive en su panel de módulo.
       // Destino: listado de productos, gateado por inventory.item.view
       // (mismo permiso y roles que esa pantalla).
       resource: 'critical', perm: 'inventory.item.view', roles: ROLES_VIEW,
-      labelKey: 'dashboard.inventory.flow.total_products', route: 'inventory',
+      labelKey: 'dashboard.inventory.flow.catalog_products', route: 'inventory',
       value: (d) => num((d.counts || {}).productos_activos)
+    },
+    {
+      // Productos con cantidad_disponible > 0 en stock_ledger (v1.8.3: esa
+      // columna sólo es > 0 en estado DISPONIBLE, así que RESERVADO /
+      // EN_TRANSITO / DAÑADO quedan fuera; ya tienen su propia fila). Viene
+      // del critical (campo productos_con_disponible), sin card ni endpoint
+      // nuevos. Destino: listado de stock, gateado por inventory.stock.view.
+      resource: 'critical', perm: 'inventory.stock.view', roles: ROLES_VIEW,
+      labelKey: 'dashboard.inventory.flow.available_products', route: 'inventory/stock',
+      value: (d) => num((d.counts || {}).productos_con_disponible)
     },
     {
       resource: 'secondary', perm: 'inventory.reservation.view', roles: ROLES_VIEW,

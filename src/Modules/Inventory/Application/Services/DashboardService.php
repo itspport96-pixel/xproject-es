@@ -61,6 +61,11 @@ final class DashboardService
     /**
      * Contadores del primer render: catálogo, alertas de stock y unidades.
      *
+     * `productos_con_disponible` cuenta productos con alguna unidad cuyo
+     * stock_ledger.cantidad_disponible > 0; esa columna sólo es > 0 en
+     * estado DISPONIBLE (v1.8.3), así que el filtro directo excluye
+     * RESERVADO / EN_TRANSITO / DAÑADO / etc. (ya informados en sus filas).
+     *
      * @return array<string, int|float|array<string, array{unidades: int, cantidad: float}>>
      */
     private function criticalCounts(string $tenantId): array
@@ -81,6 +86,16 @@ final class DashboardService
                              WHERE s.tenant_id = p.tenant_id
                                AND s.producto_id = p.id
                         )) AS productos_sin_stock,
+                    (SELECT COUNT(DISTINCT p.id)
+                       FROM products p
+                       INNER JOIN stock_units u
+                               ON u.producto_id = p.id AND u.tenant_id = p.tenant_id
+                       INNER JOIN stock_ledger l
+                               ON l.unidad_fisica_id = u.id AND l.tenant_id = p.tenant_id
+                      WHERE p.tenant_id = :t5
+                        AND p.deleted_at IS NULL
+                        AND p.activo = 1
+                        AND l.cantidad_disponible > 0) AS productos_con_disponible,
                     (SELECT COUNT(*)
                        FROM locations
                       WHERE tenant_id = :t3
@@ -99,6 +114,7 @@ final class DashboardService
             't2' => $tenantId,
             't3' => $tenantId,
             't4' => $tenantId,
+            't5' => $tenantId,
         ]) ?? [];
 
         $stock = $this->stockByState($tenantId);
@@ -106,6 +122,7 @@ final class DashboardService
         return [
             'productos_activos' => (int) ($row['productos_activos'] ?? 0),
             'productos_sin_stock' => (int) ($row['productos_sin_stock'] ?? 0),
+            'productos_con_disponible' => (int) ($row['productos_con_disponible'] ?? 0),
             'ubicaciones_activas' => (int) ($row['ubicaciones_activas'] ?? 0),
             'ubicaciones_criticas' => (int) ($row['ubicaciones_criticas'] ?? 0),
             'unidades_total' => $stock['unidades_total'],
