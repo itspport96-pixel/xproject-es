@@ -34,14 +34,7 @@
         PERDIDO: 'danger'
     };
 
-    // Resumen de stock por producto: se cachea poco tiempo para no agotar el
-    // rate limit (api: 100 req/min) con una petición por fila.
-    const STOCK_TTL_MS = 15000;
-    const stockCache = new Map();
-
-    // ====================================================================
-    // PERMISOS
-    // ====================================================================
+    const estadoColor = (v) => ESTADO_COLORS[v] || 'neutral';
 
     function can(permission, fallbackRoles) {
         if (global.UI && typeof global.UI.can === 'function') {
@@ -311,9 +304,7 @@
             state.pagination = data.pagination || state.pagination;
             state.pagination.page = page;
 
-            if (can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])) {
-              loadStockTotals(state.items);
-            }
+            await loadStockTotals(state.items);
             return true;
         } catch (err) {
             console.error('[Products] load error:', err);
@@ -334,42 +325,24 @@
     // STOCK (resumen por producto + desglose por ubicación)
     // ====================================================================
 
-    async function fetchStockSummary(productoId) {
-        const now = Date.now();
-        const cached = stockCache.get(productoId);
-        if (cached && (now - cached.at) < STOCK_TTL_MS) return cached.summary;
-
-        const response = await global.HttpClient.get('/inventory/stock', {
-            params: { producto_id: productoId, page: 1, per_page: 1 }
-        });
-        const payload = response.data || response;
-        const summary = payload.summary || null;
-
-        stockCache.set(productoId, { at: now, summary });
-        return summary;
-    }
-
     async function loadStockTotals(items) {
+        if (!items || items.length === 0) return;
         const ids = items.map(p => p.id);
-        const snapshot = ids.join(',');
-        const CONCURRENCY = 5;
-
-        for (let i = 0; i < ids.length; i += CONCURRENCY) {
-            const chunk = ids.slice(i, i + CONCURRENCY);
-            await Promise.all(chunk.map(async (id) => {
-                try {
-                    state.stockTotals[id] = await fetchStockSummary(id);
-                } catch (err) {
-                    console.warn('[Products] inventory summary error:', err.message);
-                }
-            }));
-
-            // La página cambió mientras cargaba: descartar el render.
-            if (!container || snapshot !== state.items.map(p => p.id).join(',')) return;
-        }
-
-        if (container && snapshot === state.items.map(p => p.id).join(',')) {
+        try {
+            const response = await global.HttpClient.get('/inventory/stock/summary', {
+                params: { 'producto_id[]': ids }
+            });
+            const data = response.data || response;
+            const summaries = data.data || data;
+            if (Array.isArray(summaries)) {
+                state.stockTotals = {};
+                summaries.forEach(s => {
+                    if (s && s.producto_id) state.stockTotals[s.producto_id] = s;
+                });
+            }
             renderTable();
+        } catch (err) {
+            console.warn('[Products] stock summary error:', err.message);
         }
     }
 
@@ -699,10 +672,6 @@
         return UI.formatDate(iso);
     }
 
-    function estadoColor(value) {
-        return ESTADO_COLORS[value] || 'neutral';
-    }
-
     function formatNumber(value) {
         const n = parseFloat(value);
         if (!isFinite(n)) return '0';
@@ -767,7 +736,6 @@
                 container.innerHTML = '';
             }
             container = null;
-            stockCache.clear();
             state = {
                 items: [],
                 pagination: { total: 0, page: 1, per_page: 25, has_next: false },
