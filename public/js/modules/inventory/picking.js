@@ -103,17 +103,17 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" data-picking-summary></div>
 
             ${UI.filtersCard(`
-                <div class="form-group mb-0">
+                <div class="form-group">
                     <select class="select" data-filter="estado">
                         <option value="">${t('inventory.picking.filters.all_states')}</option>
                         ${ESTADOS_PICKING.map(e => `<option value="${e.value}">${t(e.labelKey)}</option>`).join('')}
                     </select>
                 </div>
-                <div class="form-group mb-0">
+                <div class="form-group">
                     <input type="text" class="input" data-filter="id_lote_picking"
                            placeholder="${t('inventory.picking.filters.search_placeholder')}">
                 </div>`, {
-                cols: 4,
+                cols: 2,
                 applyLabel: t('inventory.picking.filters.apply'),
                 clearLabel: t('inventory.picking.filters.clear'),
                 clearTitle: t('inventory.picking.filters.clear_title')

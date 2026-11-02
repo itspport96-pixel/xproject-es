@@ -64,7 +64,6 @@
             : '';
 
         return `
-        <div class="max-w-7xl mx-auto">
             ${UI.pageHeader({
                 title: t('inventory.products.title'),
                 subtitle: t('inventory.products.subtitle'),
@@ -72,12 +71,11 @@
             })}
 
             <div class="card mb-4">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <div class="form-group mb-0">
-                        <input type="text" class="input" placeholder="${t('inventory.products.filters.search_placeholder')}"
-                               data-filter="search">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="form-group">
+                        <input type="text" class="input" placeholder="${t('inventory.products.filters.search_placeholder')}" data-filter="search">
                     </div>
-                    <div class="form-group mb-0">
+                    <div class="form-group">
                         <select class="select" data-filter="unidad_medida">
                             <option value="">${t('inventory.products.filters.all_units')}</option>
                             <option value="UNIDAD">UNIDAD</option>
@@ -88,17 +86,17 @@
                             <option value="M3">M3</option>
                         </select>
                     </div>
-                    <div class="form-group mb-0">
+                    <div class="form-group">
                         <select class="select" data-filter="activo">
                             <option value="">${t('inventory.products.filters.all_states')}</option>
                             <option value="1">${t('inventory.products.filters.active')}</option>
                             <option value="0">${t('inventory.products.filters.inactive')}</option>
                         </select>
                     </div>
-                    <div class="form-group mb-0 flex gap-2">
-                        <button class="btn btn-secondary flex-1" data-action="apply-filters">${t('inventory.products.filters.apply')}</button>
-                        <button class="btn btn-ghost" data-action="clear-filters" title="${t('inventory.products.filters.clear')}">✕</button>
-                    </div>
+                </div>
+                <div class="flex items-center gap-2 mt-3 flex-wrap">
+                    <button type="button" class="btn btn-secondary" data-action="apply-filters">${t('inventory.products.filters.apply')}</button>
+                    <button type="button" class="btn btn-ghost" data-action="clear-filters">${t('inventory.products.filters.clear')}</button>
                 </div>
             </div>
 
@@ -106,10 +104,9 @@
                 <div class="table-wrapper" data-products-table></div>
                 <div data-products-pagination class="pagination"></div>
             </div>
-        </div>
 
-        <div data-modal-root></div>
-    `;
+            <div data-modal-root></div>
+        `;
     }
 
     // ====================================================================
@@ -120,26 +117,11 @@
         const root = container.querySelector('[data-products-table]');
         if (!root) return;
 
-        if (state.loading) {
-            root.innerHTML = UI.tableSkeleton([
-                { label: t('inventory.products.columns.sku') },
-                { label: t('inventory.products.columns.nombre') },
-                { label: t('inventory.products.columns.unidad') },
-                { label: t('inventory.products.columns.stock_total') },
-                { label: t('inventory.products.columns.estado') },
-                { label: t('inventory.products.columns.creado') },
-                { label: t('inventory.products.columns.acciones') }
-            ], 8, [12, 24, 12, 12, 10, 14, 16]);
-            return;
-        }
-
         if (state.items.length === 0) {
-            root.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">📦</div>
-                    <div class="empty-state-title">${t('inventory.products.empty.title')}</div>
-                    <p class="text-muted">${t('inventory.products.empty.message')}</p>
-                </div>`;
+            root.innerHTML = UI.emptyState({
+                title: t('inventory.products.empty.title'),
+                message: t('inventory.products.empty.message')
+            });
             return;
         }
 
@@ -209,19 +191,11 @@
         const root = container.querySelector('[data-products-pagination]');
         if (!root) return;
 
-        const { total, page, per_page, has_next } = state.pagination;
-        const totalPages = Math.max(1, Math.ceil(total / per_page));
-
-        root.innerHTML = `
-            <div class="pagination-info">
-                ${t('ui.pagination', { shown: state.items.length, total: total, label: t('inventory.products.pagination_label') })}
-            </div>
-            <div class="pagination-controls">
-                <button class="page-btn" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>‹</button>
-                <span class="page-btn is-active">${page} / ${totalPages}</span>
-                <button class="page-btn" data-page="${page + 1}" ${!has_next ? 'disabled' : ''}>›</button>
-            </div>
-        `;
+        UI.renderPagination(root, {
+            pagination: state.pagination,
+            shown: state.items.length,
+            label: t('inventory.products.pagination_label')
+        });
     }
 
     // ====================================================================
@@ -342,7 +316,10 @@
             return true;
         } catch (err) {
             console.error('[Products] load error:', err);
-            showToast('danger', t('ui.error_generic'), err.message || t('inventory.products.messages.load_error'));
+            UI.handleActionError(err, {
+                fallbackMessage: t('inventory.products.messages.load_error'),
+                tag: 'Products'
+            });
             state.items = [];
             return false;
         } finally {
@@ -535,6 +512,10 @@
                     fieldError.scrollIntoView({ block: 'nearest' });
                 }
             }
+            UI.handleActionError(err, {
+                fallbackMessage: t('inventory.products.messages.save_error'),
+                tag: 'Products'
+            });
         }
     }
 
@@ -547,7 +528,10 @@
                 showToast('success', activate ? t('inventory.products.messages.activated') : t('inventory.products.messages.deactivated'));
             }
         } catch (err) {
-            showToast('danger', t('ui.error_generic'), err.message || t('inventory.products.messages.toggle_error'));
+            UI.handleActionError(err, {
+                fallbackMessage: t('inventory.products.messages.toggle_error'),
+                tag: 'Products'
+            });
         }
     }
 
@@ -561,7 +545,10 @@
                 showToast('success', t('inventory.products.messages.deleted'));
             }
         } catch (err) {
-            showToast('danger', t('ui.error_generic'), err.message || t('inventory.products.messages.delete_error'));
+            UI.handleActionError(err, {
+                fallbackMessage: t('inventory.products.messages.delete_error'),
+                tag: 'Products'
+            });
         }
     }
 
@@ -703,26 +690,18 @@
     // PUBLIC API
     // ====================================================================
 
-    const DENIED_TEMPLATE = `
-        <div class="card max-w-md mx-auto mt-8">
-            <div class="card-header">
-                <h3 class="card-title">${t('inventory.products.permission.title')}</h3>
-            </div>
-            <div class="card-body">
-                <p>${t('inventory.products.permission.body', { permiso: 'inventory.item.view' })}</p>
-                <div class="mt-4">
-                    <a href="#/dashboard" class="btn btn-secondary">${t('router.go_dashboard')}</a>
-                </div>
-            </div>
-        </div>`;
-
     const InventoryProductsModule = {
         init(params, targetContainer) {
             container = targetContainer;
             if (!container) return;
 
             if (!canView()) {
-                container.innerHTML = DENIED_TEMPLATE;
+                container.innerHTML = UI.deniedState({
+                    title: t('inventory.products.permission.title'),
+                    message: t('inventory.products.permission.body', { permiso: 'inventory.item.view' }),
+                    ctaHref: '#/dashboard',
+                    ctaLabel: t('router.go_dashboard')
+                });
                 return;
             }
 
@@ -735,7 +714,12 @@
             if (!container) return;
 
             if (!canView()) {
-                container.innerHTML = DENIED_TEMPLATE;
+                container.innerHTML = UI.deniedState({
+                    title: t('inventory.products.permission.title'),
+                    message: t('inventory.products.permission.body', { permiso: 'inventory.item.view' }),
+                    ctaHref: '#/dashboard',
+                    ctaLabel: t('router.go_dashboard')
+                });
                 return;
             }
 

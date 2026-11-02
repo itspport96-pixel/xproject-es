@@ -129,13 +129,13 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" data-ship-summary></div>
 
             ${UI.filtersCard(`
-                <div class="form-group mb-0">
+                <div class="form-group">
                     <select class="select" data-filter="estado">
                         <option value="">${t('inventory.shipments.filters.all_states')}</option>
                         ${ESTADOS_ENVIO.map(e => `<option value="${e.value}">${t(e.labelKey)}</option>`).join('')}
                     </select>
                 </div>`, {
-                cols: 4,
+                cols: 2,
                 applyLabel: t('inventory.shipments.filters.apply'),
                 clearLabel: t('inventory.shipments.filters.clear'),
                 clearTitle: t('inventory.shipments.filters.clear_title')
