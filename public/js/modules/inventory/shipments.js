@@ -785,7 +785,17 @@
             state.prepared = (stockPayload && stockPayload.data) || [];
 
             const pickingPayload = pickingRes && (pickingRes.data || pickingRes);
-            state.lotes = groupCargables((pickingPayload && pickingPayload.data) || []);
+            const cargables = groupCargables((pickingPayload && pickingPayload.data) || []);
+
+            // FIX UI: solo lotes con al menos una unidad EN_PREPARACION.
+            // groupCargables() filtra por estado del lote (COMPLETADA/VERIFICADA),
+            // pero un lote ya enviado sigue en ese estado con 0 unidades listas y
+            // no debe ofrecerse en el selector (elegirlo dejaba la tabla vacía y
+            // Cargar unidades fallaba con 422 error_unidades_required).
+            const preparadas = preparedSet();
+            state.lotes = cargables.filter(l =>
+                l.unidades.some(id => preparadas.has(id))
+            );
 
             if (state.selectedLote && !state.lotes.some(l => l.lote === state.selectedLote)) {
                 state.selectedLote = '';

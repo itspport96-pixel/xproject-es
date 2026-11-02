@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.19.10] - 2026-11-02
+
+### Fixed
+- **`public/js/modules/inventory/shipments.js`**: el selector **Por lote** del alta de envío filtraba solo por estado del lote (`COMPLETADA`/`VERIFICADA`), así que lotes ya enviados aparecían con `0/0 listas` y al elegirlos el alta fallaba con `422 error_unidades_required`. Ahora `loadCatalogs()` descarta los lotes sin unidades en `EN_PREPARACION` antes de asignar `state.lotes`; si todos caen a 0 se pinta el estado vacío existente. Sin cambios de backend, rutas ni permisos.
+
 ## [1.19.9] - 2026-10-31
 
 **Sprint FIX (FIX.md): correcciones de flujo del modulo Inventory, unificacion de la auditoria de dominio y endurecimiento.** Sin cambios de esquema salvo la migracion pendiente del WIP anterior (`deliveries.estado` + `PARCIAL`, aplicada en la BD viva).
