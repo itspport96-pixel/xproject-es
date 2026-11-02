@@ -1,8 +1,3 @@
-/**
- * Inventory Locations Module
- * CRUD de ubicaciones con tabla paginada, filtros y modal.
- * Expuesto como window.InventoryLocationsModule (convención ModuleLoader).
- */
 (function(global) {
     'use strict';
 
@@ -51,15 +46,11 @@
 
     const estadoColor = (v) => ESTADO_COLORS[v] || 'neutral';
 
-    const formatNumber = (value) => {
+    function formatNumber(value) {
         const n = parseFloat(value);
         if (!isFinite(n)) return '0';
         return Number.isInteger(n) ? String(n) : n.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
-    };
-
-    // ====================================================================
-    // PERMISOS
-    // ====================================================================
+    }
 
     function can(permission, fallbackRoles) {
         if (global.UI && typeof global.UI.can === 'function') {
@@ -73,14 +64,29 @@
     const canEdit = () => can('inventory.location.manage', ['ADMIN']);
     const canDelete = () => can('inventory.location.manage', ['ADMIN']);
 
-    // ====================================================================
-    // PLANTILLA
-    // ====================================================================
-
     function buildTemplate() {
         const createBtn = canCreate()
             ? `<button class="btn btn-primary btn-sm" data-action="create">${t('inventory.locations.actions.create')}</button>`
             : '';
+
+        const filtersHtml = `
+            <div class="form-group mb-0">
+                <input type="text" class="input" placeholder="${t('inventory.locations.filters.search_placeholder')}" data-filter="search">
+            </div>
+            <div class="form-group mb-0">
+                <select class="select" data-filter="tipo">
+                    <option value="">${t('inventory.locations.filters.all_types')}</option>
+                    ${TIPOS.map(tipo => `<option value="${tipo.value}">${t(tipo.labelKey)}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group mb-0">
+                <select class="select" data-filter="activa">
+                    <option value="">${t('inventory.locations.filters.all_states')}</option>
+                    <option value="1">${t('inventory.locations.filters.active')}</option>
+                    <option value="0">${t('inventory.locations.filters.inactive')}</option>
+                </select>
+            </div>
+        `;
 
         return `
         <div class="max-w-7xl mx-auto">
@@ -90,31 +96,12 @@
                 actionsHtml: createBtn
             })}
 
-            <div class="card mb-4">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <div class="form-group mb-0">
-                        <input type="text" class="input" placeholder="${t('inventory.locations.filters.search_placeholder')}"
-                               data-filter="search">
-                    </div>
-                    <div class="form-group mb-0">
-                        <select class="select" data-filter="tipo">
-                            <option value="">${t('inventory.locations.filters.all_types')}</option>
-                            ${TIPOS.map(tipo => `<option value="${tipo.value}">${t(tipo.labelKey)}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group mb-0">
-                        <select class="select" data-filter="activa">
-                            <option value="">${t('inventory.locations.filters.all_states')}</option>
-                            <option value="1">${t('inventory.locations.filters.active')}</option>
-                            <option value="0">${t('inventory.locations.filters.inactive')}</option>
-                        </select>
-                    </div>
-                    <div class="form-group mb-0 flex gap-2">
-                        <button class="btn btn-secondary flex-1" data-action="apply-filters">${t('inventory.locations.filters.apply')}</button>
-                        <button class="btn btn-ghost" data-action="clear-filters" title="${t('inventory.locations.filters.clear')}">✕</button>
-                    </div>
-                </div>
-            </div>
+            ${UI.filtersCard(filtersHtml, {
+                cols: 3,
+                applyLabel: t('inventory.locations.filters.apply'),
+                clearLabel: t('inventory.locations.filters.clear'),
+                clearTitle: t('inventory.locations.filters.clear')
+            })}
 
             <div class="card p-0">
                 <div class="table-wrapper" data-locations-table></div>
@@ -123,12 +110,8 @@
         </div>
 
         <div data-modal-root></div>
-    `;
+        `;
     }
-
-    // ====================================================================
-    // RENDER
-    // ====================================================================
 
     function renderCapacityBar(location) {
         if (location.capacidad === null || location.capacidad === 0) {
@@ -156,26 +139,11 @@
         const root = container.querySelector('[data-locations-table]');
         if (!root) return;
 
-        if (state.loading) {
-            root.innerHTML = UI.tableSkeleton([
-                { label: t('inventory.locations.columns.code') },
-                { label: t('inventory.locations.columns.name_hierarchy') },
-                { label: t('inventory.locations.columns.type') },
-                { label: t('inventory.locations.columns.capacity') },
-                { label: t('inventory.locations.columns.state') },
-                { label: t('inventory.locations.columns.created') },
-                { label: t('inventory.locations.columns.actions') }
-            ], 8, [14, 24, 14, 12, 12, 12, 12]);
-            return;
-        }
-
         if (state.items.length === 0) {
-            root.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">📍</div>
-                    <div class="empty-state-title">${t('inventory.locations.states.empty_title')}</div>
-                    <p class="text-muted">${t('inventory.locations.states.empty_body')}</p>
-                </div>`;
+            root.innerHTML = UI.emptyState({
+                title: t('inventory.locations.states.empty_title'),
+                message: t('inventory.locations.states.empty_body')
+            });
             return;
         }
 
@@ -232,24 +200,12 @@
         const root = container.querySelector('[data-locations-pagination]');
         if (!root) return;
 
-        const { total, page, per_page, has_next } = state.pagination;
-        const totalPages = Math.max(1, Math.ceil(total / per_page));
-
-        root.innerHTML = `
-            <div class="pagination-info">
-                ${t('ui.pagination', { shown: state.items.length, total: total, label: t('inventory.locations.pagination_label') })}
-            </div>
-            <div class="pagination-controls">
-                <button class="page-btn" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>‹</button>
-                <span class="page-btn is-active">${page} / ${totalPages}</span>
-                <button class="page-btn" data-page="${page + 1}" ${!has_next ? 'disabled' : ''}>›</button>
-            </div>
-        `;
+        UI.renderPagination(root, {
+            pagination: state.pagination,
+            shown: state.items.length,
+            label: t('inventory.locations.pagination_label')
+        });
     }
-
-    // ====================================================================
-    // MODAL
-    // ====================================================================
 
     function openModal(location = null) {
         state.editing = location;
@@ -257,64 +213,74 @@
         const title = isEdit ? t('inventory.locations.modals.edit_title') : t('inventory.locations.modals.create_title');
 
         const root = container.querySelector('[data-modal-root]');
-        root.innerHTML = `
-            <div class="modal-overlay" data-modal>
-                <div class="modal modal-lg">
-                    <div class="modal-header">
-                        <h3 class="modal-title">${title}</h3>
-                        <button class="modal-close" data-action="close-modal">×</button>
-                    </div>
-                    <form data-location-form>
-                        <div class="modal-body">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="form-group">
-                                    <label class="form-label">${t('inventory.locations.modals.fields.code')} <span class="required">*</span></label>
-                                    <input type="text" class="input" name="codigo" required maxlength="100"
-                                           value="${isEdit ? escapeHtml(location.codigo) : ''}"
-                                           placeholder="${t('inventory.locations.modals.placeholders.code')}">
-                                    <span class="form-hint">${t('inventory.locations.modals.hints.code')}</span>
-                                    <span class="form-error hidden" data-error="codigo"></span>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">${t('inventory.locations.modals.fields.type')} <span class="required">*</span></label>
-                                    <select class="select" name="tipo" required>
-                                        ${TIPOS.map(tipo => `<option value="${tipo.value}" ${isEdit && location.tipo === tipo.value ? 'selected' : ''}>${t(tipo.labelKey)}</option>`).join('')}
-                                    </select>
-                                    <span class="form-hint">${t('inventory.locations.modals.hints.type')}</span>
-                                    <span class="form-error hidden" data-error="tipo"></span>
-                                </div>
-                                <div class="form-group md:col-span-2">
-                                    <label class="form-label">${t('inventory.locations.modals.fields.name')}</label>
-                                    <input type="text" class="input" name="nombre" maxlength="255"
-                                           value="${isEdit && location.nombre ? escapeHtml(location.nombre) : ''}"
-                                           placeholder="${t('inventory.locations.modals.placeholders.name')}">
-                                </div>
-                                <div class="form-group md:col-span-2">
-                                    <label class="form-label">${t('inventory.locations.modals.fields.hierarchy')}</label>
-                                    <input type="text" class="input" name="jerarquia" maxlength="255"
-                                           value="${isEdit && location.jerarquia ? escapeHtml(location.jerarquia) : ''}"
-                                           placeholder="${t('inventory.locations.modals.placeholders.hierarchy')}">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">${t('inventory.locations.modals.fields.capacity')}</label>
-                                    <input type="number" class="input" name="capacidad" min="0" step="1"
-                                           value="${isEdit && location.capacidad !== null ? location.capacidad : ''}"
-                                           placeholder="${t('inventory.locations.modals.placeholders.capacity')}">
-                                    <span class="form-error hidden" data-error="capacidad"></span>
-                                </div>
-                            </div>
-                            <div data-form-error class="alert alert-danger hidden mt-4"></div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-action="close-modal">${t('inventory.locations.modals.cancel')}</button>
-                            <button type="submit" class="btn btn-primary" data-action="save-location">
-                                ${isEdit ? t('inventory.locations.modals.save_changes') : t('inventory.locations.modals.create_submit')}
-                            </button>
-                        </div>
-                    </form>
+        
+        const bodyHtml = `
+            <div data-form-error class="alert alert-danger hidden mb-4"></div>
+            ${UI.grid(`
+                <div>
+                    ${UI.field({
+                        label: t('inventory.locations.modals.fields.code'),
+                        name: 'codigo',
+                        type: 'text',
+                        value: isEdit ? location.codigo : '',
+                        placeholder: t('inventory.locations.modals.placeholders.code'),
+                        hint: t('inventory.locations.modals.hints.code'),
+                        required: true
+                    })}
                 </div>
-            </div>
+                <div>
+                    ${UI.field({
+                        label: t('inventory.locations.modals.fields.type'),
+                        name: 'tipo',
+                        type: 'select',
+                        value: isEdit ? location.tipo : '',
+                        options: TIPOS.map(tipo => ({ value: tipo.value, label: t(tipo.labelKey) })),
+                        hint: t('inventory.locations.modals.hints.type'),
+                        required: true
+                    })}
+                </div>
+                <div>
+                    ${UI.field({
+                        label: t('inventory.locations.modals.fields.name'),
+                        name: 'nombre',
+                        type: 'text',
+                        value: isEdit && location.nombre ? location.nombre : '',
+                        placeholder: t('inventory.locations.modals.placeholders.name')
+                    })}
+                </div>
+                <div>
+                    ${UI.field({
+                        label: t('inventory.locations.modals.fields.hierarchy'),
+                        name: 'jerarquia',
+                        type: 'text',
+                        value: isEdit && location.jerarquia ? location.jerarquia : '',
+                        placeholder: t('inventory.locations.modals.placeholders.hierarchy')
+                    })}
+                </div>
+                <div>
+                    ${UI.field({
+                        label: t('inventory.locations.modals.fields.capacity'),
+                        name: 'capacidad',
+                        type: 'number',
+                        value: isEdit && location.capacidad !== null ? location.capacidad : '',
+                        placeholder: t('inventory.locations.modals.placeholders.capacity')
+                    })}
+                </div>
+            `, 2)}
         `;
+
+        const footerHtml = UI.modalFooter({
+            cancelLabel: t('inventory.locations.modals.cancel'),
+            submitLabel: isEdit ? t('inventory.locations.modals.save_changes') : t('inventory.locations.modals.create_submit'),
+            submitAction: 'save-location'
+        });
+
+        UI.mountModal(root, UI.modalShell({
+            title: title,
+            size: 'lg',
+            bodyHtml: bodyHtml,
+            footerHtml: footerHtml
+        }));
     }
 
     function closeModal() {
@@ -323,30 +289,26 @@
         state.editing = null;
     }
 
-    // ====================================================================
-    // UNIDADES DE LA UBICACIÓN (GET /inventory/stock?ubicacion_id=)
-    // ====================================================================
-
     async function openUnitsModal(location) {
         if (!can('inventory.stock.view', ['ADMIN', 'MANAGER', 'USER', 'VIEWER'])) {
-            showToast('warning', t('inventory.locations.permission.title'),
-                t('inventory.stock.permission.body', { permiso: 'inventory.stock.view' }));
+            UI.handleActionError({ status: 403 }, {
+                fallbackMessage: t('inventory.stock.permission.body', { permiso: 'inventory.stock.view' }),
+                tag: 'Locations'
+            });
             return;
         }
 
         const root = container.querySelector('[data-modal-root]');
-        root.innerHTML = `
-            <div class="modal-overlay" data-modal>
-                <div class="modal modal-lg">
-                    <div class="modal-header">
-                        <h3 class="modal-title">${t('inventory.locations.modals.units_title', { codigo: escapeHtml(location.codigo) })}</h3>
-                        <button class="modal-close" data-action="close-modal">×</button>
-                    </div>
-                    <div class="modal-body">
-                        ${UI.rowsSkeleton(5)}
-                    </div>
-                </div>
-            </div>`;
+        
+        const bodyHtml = UI.rowsSkeleton(5);
+        const footerHtml = `<button type="button" class="btn btn-secondary" data-action="close-modal">${t('ui.close')}</button>`;
+        
+        UI.mountModal(root, UI.modalShell({
+            title: t('inventory.locations.modals.units_title', { codigo: escapeHtml(location.codigo) }),
+            size: 'lg',
+            bodyHtml: bodyHtml,
+            footerHtml: footerHtml
+        }));
 
         try {
             const response = await global.HttpClient.get('/inventory/stock', {
@@ -356,7 +318,10 @@
             renderUnitsModal(location, payload);
         } catch (err) {
             closeModal();
-            showToast('danger', t('ui.error_generic'), err.message || t('inventory.locations.messages.load_units_error'));
+            UI.handleActionError(err, {
+                fallbackMessage: t('inventory.locations.messages.load_units_error'),
+                tag: 'Locations'
+            });
         }
     }
 
@@ -431,10 +396,6 @@
             </div>`;
     }
 
-    // ====================================================================
-    // API
-    // ====================================================================
-
     async function loadLocations(page = 1) {
         const gate = UI.skeletonGate(state, 'loading', renderTable);
 
@@ -452,8 +413,10 @@
             state.pagination.page = page;
             return true;
         } catch (err) {
-            console.error('[Locations] load error:', err);
-            showToast('danger', t('ui.error_generic'), err.message || t('inventory.locations.messages.load_error'));
+            UI.handleActionError(err, {
+                fallbackMessage: t('inventory.locations.messages.load_error'),
+                tag: 'Locations'
+            });
             state.items = [];
             return false;
         } finally {
@@ -468,10 +431,8 @@
         const url = isEdit ? `/inventory/locations/${state.editing.id}` : '/inventory/locations';
         const method = isEdit ? 'patch' : 'post';
 
-        // Normalizar capacidad: vacío = sin límite (null explícito permite limpiarla al editar)
         const capacidadVacia = formData.capacidad === '' || formData.capacidad === null || formData.capacidad === undefined;
 
-        // Limpiar campos vacíos
         Object.keys(formData).forEach(k => {
             if (formData[k] === '' || formData[k] === null) delete formData[k];
         });
@@ -500,6 +461,10 @@
                     fieldError.scrollIntoView({ block: 'nearest' });
                 }
             }
+            UI.handleActionError(err, {
+                fallbackMessage: t('inventory.locations.messages.save_error'),
+                tag: 'Locations'
+            });
         }
     }
 
@@ -512,7 +477,10 @@
                 showToast('success', activate ? t('inventory.locations.messages.activated') : t('inventory.locations.messages.deactivated'));
             }
         } catch (err) {
-            showToast('danger', t('ui.error_generic'), err.message || t('inventory.locations.messages.toggle_error'));
+            UI.handleActionError(err, {
+                fallbackMessage: t('inventory.locations.messages.toggle_error'),
+                tag: 'Locations'
+            });
         }
     }
 
@@ -526,13 +494,12 @@
                 showToast('success', t('inventory.locations.messages.deleted'));
             }
         } catch (err) {
-            showToast('danger', t('ui.error_generic'), err.message || t('inventory.locations.messages.delete_error'));
+            UI.handleActionError(err, {
+                fallbackMessage: t('inventory.locations.messages.delete_error'),
+                tag: 'Locations'
+            });
         }
     }
-
-    // ====================================================================
-    // EVENTS
-    // ====================================================================
 
     function bindEvents() {
         if (!container) return;
@@ -619,10 +586,6 @@
         loadLocations(1);
     }
 
-    // ====================================================================
-    // HELPERS
-    // ====================================================================
-
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str)
@@ -638,36 +601,18 @@
         return UI.formatDate(iso);
     }
 
-    function showToast(type, title, message = '') {
-        if (global.EventBus) {
-            global.EventBus.emit('toast:show', { type, title, message, duration: 3000 });
-        }
-    }
-
-    // ====================================================================
-    // PUBLIC API
-    // ====================================================================
-
-    const DENIED_TEMPLATE = `
-        <div class="card max-w-md mx-auto mt-8">
-            <div class="card-header">
-                <h3 class="card-title">${t('inventory.locations.permission.title')}</h3>
-            </div>
-            <div class="card-body">
-                <p>${t('inventory.locations.permission.body', { permiso: 'inventory.location.view' })}</p>
-                <div class="mt-4">
-                    <a href="#/dashboard" class="btn btn-secondary">${t('router.go_dashboard')}</a>
-                </div>
-            </div>
-        </div>`;
-
     const InventoryLocationsModule = {
         init(params, targetContainer) {
             container = targetContainer;
             if (!container) return;
 
             if (!canView()) {
-                container.innerHTML = DENIED_TEMPLATE;
+                container.innerHTML = UI.deniedState({
+                    title: t('inventory.locations.permission.title'),
+                    message: t('inventory.locations.permission.body', { permiso: 'inventory.location.view' }),
+                    ctaHref: '#/dashboard',
+                    ctaLabel: t('router.go_dashboard')
+                });
                 return;
             }
 
@@ -680,7 +625,12 @@
             if (!container) return;
 
             if (!canView()) {
-                container.innerHTML = DENIED_TEMPLATE;
+                container.innerHTML = UI.deniedState({
+                    title: t('inventory.locations.permission.title'),
+                    message: t('inventory.locations.permission.body', { permiso: 'inventory.location.view' }),
+                    ctaHref: '#/dashboard',
+                    ctaLabel: t('router.go_dashboard')
+                });
                 return;
             }
 
