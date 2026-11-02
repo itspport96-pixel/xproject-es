@@ -1736,6 +1736,16 @@
         "step_product_desc": "Da de alta el primer artículo de tu catálogo.",
         "step_receiving_title": "Registra una recepción",
         "step_receiving_desc": "Entra mercancía para empezar a tener unidades en stock."
+      },
+      "actions": {
+        "refresh": "Actualizar"
+      },
+      "updated_just_now": "Actualizado ahora",
+      "updated_ago": "Actualizado hace {time}",
+      "empty_cta": {
+        "title": "Catálogo creado, sin stock todavía",
+        "body": "Registra tu primera recepción para que el dashboard muestre datos.",
+        "cta": "Ir a Recepción"
       }
     },
     "cards": {

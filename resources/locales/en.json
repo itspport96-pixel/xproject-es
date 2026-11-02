@@ -1736,6 +1736,16 @@
         "step_product_desc": "Add the first item to your catalog.",
         "step_receiving_title": "Record a receipt",
         "step_receiving_desc": "Receive goods to start having units in stock."
+      },
+      "actions": {
+        "refresh": "Refresh"
+      },
+      "updated_just_now": "Just updated",
+      "updated_ago": "Updated {time} ago",
+      "empty_cta": {
+        "title": "Catalog created, no stock yet",
+        "body": "Record your first receiving so the dashboard shows data.",
+        "cta": "Go to Receiving"
       }
     },
     "cards": {

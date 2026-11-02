@@ -79,6 +79,13 @@
   const CAPACITY_MAX_BARS = 8;
   const CAPACITY_PAGE_SIZE = 100;
 
+  // Refresco automático del panel. 5 minutos y no 60s: con 60s el texto del
+  // meta nunca llega a "hace 1m" porque el polling lo reinicia antes; 5 min
+  // comunica caducidad real y el usuario tiene el botón Actualizar para forzar.
+  const POLL_MS = 300000;
+  // Cadencia de re-pintado del texto relativo del meta (sólo DOM, sin red).
+  const META_TICK_MS = 15000;
+
   const CHEVRON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 
   // ============================================
@@ -88,7 +95,11 @@
 
   const state = {
     filter: 'sin_stock',
-    zones: null
+    zones: null,
+    // Epoch ms del último dato pintado (null = aún sin cargar). Se guarda
+    // como número, no como cadena ISO, para no reinterpretar zona horaria
+    // en cada render.
+    lastLoadedAt: null
   };
 
   /** key -> {status: 'pending'|'ok'|'error', data, error, promise} */
@@ -245,11 +256,13 @@
     {
       resource: 'secondary', perm: 'inventory.reservation.view', roles: ROLES_VIEW,
       labelKey: 'dashboard.inventory.flow.reservations', route: 'inventory/reservations',
+      badgeAction: true,
       value: (d) => num((d.counts || {}).reservas_activas)
     },
     {
       resource: 'flow_picking', perm: 'inventory.picking.view', roles: ROLES_VIEW,
       labelKey: 'dashboard.inventory.flow.picking', route: 'inventory/picking',
+      badgeAction: true,
       // El loader devuelve data.summary (objeto), no un número: hay que leer
       // la clave concreta de cada fila.
       value: (d) => num((d || {}).en_curso)
@@ -257,6 +270,7 @@
     {
       resource: 'flow_shipments', perm: 'inventory.shipping.view', roles: ROLES_VIEW,
       labelKey: 'dashboard.inventory.flow.shipments', route: 'inventory/shipments',
+      badgeAction: true,
       // Es LA fila de "en ruta": un envío en curso de entrega. Antes había
       // otra fila "Entregas pendientes" que leía summary.pendientes de
       // GET /inventory/deliveries, pero ese contador suma estado='PENDIENTE'
@@ -267,6 +281,7 @@
     {
       resource: 'flow_counts', perm: 'inventory.count.view', roles: ROLES_VIEW,
       labelKey: 'dashboard.inventory.flow.counts', route: 'inventory/counts',
+      badgeAction: true,
       value: (d) => num((d || {}).pendientes)
     },
     {
@@ -322,7 +337,16 @@
     if (!zoneState) return Promise.resolve();
     const gate = UI.skeletonGate(zoneState, 'loading', function() { renderZone(name); });
     const keys = zoneKeys(name);
-    return Promise.all(keys.map(function(key) { return resource(key); }))
+    // Promise.all corta en la primera rechazada: si una clave falla antes que
+    // las demás, la zona se resolvería con las pendientes aún en 'loading' y
+    // se pintaría skeleton sin volver a renderizarse cuando cayeran las
+    // últimas (skeleton para siempre). El catch por clave hace que la zona
+    // espere a que TODAS asienten y pinte su estado real (error con
+    // reintento) según zoneStatus(); el fallo se sigue leyendo en
+    // entry.status, igual que antes.
+    return Promise.all(keys.map(function(key) {
+      return resource(key).catch(function() { return null; });
+    }))
       .catch(function(err) {
         console.error('[InventoryDashboard] zone ' + name + ' error:', err);
       })
@@ -332,12 +356,116 @@
       });
   }
 
+  /**
+   * Marca del dato pintado: usa el generated_at del servidor (hora real del
+   * dato, formato 'Y-m-d H:i=s' UTC o ISO 8601) con fallback a Date.now()
+   * si no existe o no parsea (la marca pasa a ser la de la respuesta).
+   */
+  function currentStampMs() {
+    const critical = dataOf('critical');
+    const raw = critical ? critical.generated_at : null;
+    if (raw) {
+      const s = String(raw);
+      // 'Y-m-d H:i:s' sin offset: el backend lo emite en UTC.
+      const iso = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}$/.test(s)
+        ? s.replace(' ', 'T') + 'Z'
+        : s;
+      const parsed = Date.parse(iso);
+      if (!isNaN(parsed)) return parsed;
+    }
+    return Date.now();
+  }
+
+  /** 'Actualizado ahora' | 'Actualizado hace 30s/5m/2h/1d' (con sufijo siempre). */
+  function formatRelative(ms) {
+    const diff = Math.max(0, Date.now() - ms);
+    if (diff < 5000) return t('dashboard.inventory.updated_just_now');
+    let time;
+    if (diff < 60000) time = Math.floor(diff / 1000) + 's';
+    else if (diff < 3600000) time = Math.floor(diff / 60000) + 'm';
+    else if (diff < 86400000) time = Math.floor(diff / 3600000) + 'h';
+    else time = Math.floor(diff / 86400000) + 'd';
+    return t('dashboard.inventory.updated_ago', { time: time });
+  }
+
+  /** Pinta el texto relativo del meta; vacío si aún no hay marca. */
+  function renderMeta() {
+    if (!container) return;
+    const el = container.querySelector('[data-last-updated]');
+    if (!el) return;
+    el.textContent = state.lastLoadedAt === null ? '' : formatRelative(state.lastLoadedAt);
+  }
+
   function loadAll() {
-    ZONES.forEach(function(name) {
-      loadZone(name).catch(function(err) {
+    // Devuelve la promesa agregada de las cinco zonas (cada loadZone nunca
+    // rechaza: el fallo se lee con zoneStatus()).
+    return Promise.all(ZONES.map(function(name) {
+      return loadZone(name).catch(function(err) {
         console.error('[InventoryDashboard] loadZone ' + name + ':', err);
       });
+    })).then(function() {
+      // Si TODAS las zonas quedaron en error no se actualiza la marca: no se
+      // miente diciendo "Actualizado ahora" con la pantalla rota.
+      const allError = ZONES.every(function(name) { return zoneStatus(name) === 'error'; });
+      if (!allError) state.lastLoadedAt = currentStampMs();
+      renderMeta();
     });
+  }
+
+  let reloadInFlight = false;
+
+  /**
+   * Recarga completa (botón Actualizar / polling): borra todas las claves en
+   * caché y vuelve a pedir todo. Con clearStamp se vacía también la marca
+   * para que el meta no mienta mientras llegan los datos nuevos.
+   */
+  function reloadAll(clearStamp) {
+    if (reloadInFlight) return Promise.resolve();
+    reloadInFlight = true;
+    if (clearStamp === true) {
+      state.lastLoadedAt = null;
+      renderMeta();
+    }
+    Object.keys(resources).forEach(function(key) { delete resources[key]; });
+    return loadAll().finally(function() { reloadInFlight = false; });
+  }
+
+  let pollTimer = null;
+  let metaTimer = null;
+
+  /** Vuelve a la pestaña visible: recarga sólo si la marca es vieja o nula. */
+  function handleVisibility() {
+    if (document.visibilityState !== 'visible') return;
+    if (state.lastLoadedAt === null || (Date.now() - state.lastLoadedAt) > POLL_MS) {
+      reloadAll(false);
+    }
+  }
+
+  function startPolling() {
+    if (pollTimer !== null) return;
+    // Guard de visibilidad: un timer dispararía peticiones en pestañas
+    // ocultas que nadie ve, consumiendo conexiones del servidor sin motivo.
+    pollTimer = setInterval(function() {
+      if (document.visibilityState === 'visible') reloadAll(false);
+    }, POLL_MS);
+    // Re-pinta sólo el texto relativo del meta (sin red): sin esto el
+    // "Actualizado ahora" se quedaría congelado hasta el próximo refresco.
+    metaTimer = setInterval(function() {
+      if (container) renderMeta();
+    }, META_TICK_MS);
+    document.addEventListener('visibilitychange', handleVisibility);
+  }
+
+  function stopPolling() {
+    if (pollTimer !== null) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    if (metaTimer !== null) {
+      clearInterval(metaTimer);
+      metaTimer = null;
+    }
+    document.removeEventListener('visibilitychange', handleVisibility);
   }
 
   /**
@@ -384,6 +512,9 @@
     zoneEl.innerHTML = zoneContent(name);
     if (name === ZONE_STOCK) renderOnboarding(contentOnboarding());
     if (name === ZONE_WEEK) renderWeekMetrics();
+    // El CTA "catálogo sin stock" depende sólo de critical: la zona que lo
+    // resuelva primero (stock o flow) lo pinta; la otra es no-op.
+    if (name === ZONE_STOCK || name === ZONE_FLOW) renderEmptyState();
   }
 
   function zoneError(name) {
@@ -558,11 +689,17 @@
     const body = rows.map(function(row) {
       const data = dataOf(row.resource);
       const value = data === null ? 0 : row.value(data);
+      // Fila accionable con pendientes: el número en badge ámbar llama la
+      // atención. Un 0 se queda en strong: ámbar en cero gritaría "urgente"
+      // sin motivo.
+      const shown = row.badgeAction === true && value > 0
+        ? '<span class="badge badge-warning">' + fmt(value) + '</span>'
+        : '<strong>' + fmt(value) + '</strong>';
       return '<div class="flex items-center justify-between gap-2 py-2 border-b border-default last:border-0 cursor-pointer" ' +
         'role="button" tabindex="0" data-action="navigate" data-route="' + esc(row.route) + '">' +
         '<span class="text-sm">' + esc(t(row.labelKey)) + '</span>' +
         '<span class="flex items-center gap-2 text-sm">' +
-        '<strong>' + fmt(value) + '</strong>' + CHEVRON +
+        shown + CHEVRON +
         '</span></div>';
     }).join('');
     return flowCard(body);
@@ -747,6 +884,39 @@
     if (zoneEl) zoneEl.innerHTML = html;
   }
 
+  // ---------- CTA vacío (catálogo creado, sin stock) ----------
+  /**
+   * Condición: hay productos en el catálogo pero NINGUNA unidad en stock
+   * (counts.unidades_total cuenta stock_units de cualquier estado: un tenant
+   * con 1 unidad RESERVADA tiene unidades_total = 1 y NO ve el CTA; no se
+   * confunde con unidades_disponibles). Se apoya sólo en `critical`, así que
+   * la zona que resuelva ese dato primero lo pinta y la otra es no-op.
+   */
+  function renderEmptyState() {
+    const zoneEl = container.querySelector('[data-zone="empty-cta"]');
+    if (!zoneEl) return;
+
+    const critical = dataOf('critical');
+    if (!critical) {
+      zoneEl.innerHTML = '';
+      return;
+    }
+    const counts = critical.counts || {};
+    if (!(num(counts.productos_activos) > 0 && num(counts.unidades_total) === 0)) {
+      zoneEl.innerHTML = '';
+      return;
+    }
+
+    zoneEl.innerHTML = '<div class="card">' +
+      '<div class="card-body">' +
+      '<h3 class="card-title">' + esc(t('dashboard.inventory.empty_cta.title')) + '</h3>' +
+      '<p class="text-muted text-sm mb-3">' + esc(t('dashboard.inventory.empty_cta.body')) + '</p>' +
+      '<button type="button" class="btn btn-primary btn-sm" data-action="navigate" ' +
+      'data-route="inventory/receiving">' + esc(t('dashboard.inventory.empty_cta.cta')) + '</button>' +
+      '</div>' +
+      '</div>';
+  }
+
   // ---------- cabecera ----------
   function navButton(label, route, variant) {
     return '<button type="button" class="btn ' + variant + ' btn-sm" data-action="navigate" data-route="' +
@@ -781,6 +951,12 @@
         subtitle: t('dashboard.inventory.subtitle'),
         actionsHtml: headerActions()
       }) +
+      // Meta de frescura: texto relativo del dato + botón de recarga total.
+      '<div class="flex items-center justify-end gap-2 mb-2 text-xs text-muted" data-dashboard-meta>' +
+      '<span data-last-updated></span>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-action="refresh-all">' +
+      esc(t('dashboard.inventory.actions.refresh')) + '</button>' +
+      '</div>' +
       '<div data-zone="' + ZONE_ALERTS + '" class="mb-3"></div>' +
       // Tira de 7 días en una sola línea, justo debajo de las alertas.
       '<div data-zone="' + ZONE_WEEK + '" class="mb-4"></div>' +
@@ -795,6 +971,9 @@
       '<div data-zone="' + ZONE_FLOW + '"></div>' +
       '</div>' +
       '<div data-zone="onboarding"></div>' +
+      // CTA "catálogo sin stock" (al final, después del onboarding): sólo
+      // pinta si hay productos y ninguna unidad en stock.
+      '<div data-zone="empty-cta" class="mt-4"></div>' +
       '</div>';
   }
 
@@ -818,6 +997,8 @@
     const action = target.getAttribute('data-action') || '';
     if (action === 'navigate') {
       navigate(target.getAttribute('data-route'));
+    } else if (action === 'refresh-all') {
+      reloadAll(true);
     } else if (action === 'filter') {
       state.filter = target.getAttribute('data-filter') === 'all' ? 'all' : 'sin_stock';
       renderZone(ZONE_STOCK);
@@ -863,6 +1044,7 @@
       container.innerHTML = buildTemplate();
       bindEvents();
       loadAll();
+      startPolling();
     },
 
     onActivate(params) {
@@ -881,6 +1063,7 @@
     },
 
     destroy() {
+      stopPolling();
       unbindEvents();
       if (container) container.innerHTML = '';
       container = null;
@@ -888,6 +1071,7 @@
       Object.keys(resources).forEach(function(key) { delete resources[key]; });
       state.filter = 'sin_stock';
       state.zones = freshZones();
+      state.lastLoadedAt = null;
     }
   };
 

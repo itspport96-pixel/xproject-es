@@ -1736,6 +1736,16 @@
         "step_product_desc": "Registre o primeiro item do seu catálogo.",
         "step_receiving_title": "Registre uma recepção",
         "step_receiving_desc": "Receba mercadorias para começar a ter unidades em estoque."
+      },
+      "actions": {
+        "refresh": "Atualizar"
+      },
+      "updated_just_now": "Atualizado agora",
+      "updated_ago": "Atualizado há {time}",
+      "empty_cta": {
+        "title": "Catálogo criado, sem stock ainda",
+        "body": "Registre sua primeira recepção para o dashboard mostrar dados.",
+        "cta": "Ir para Recebimento"
       }
     },
     "cards": {

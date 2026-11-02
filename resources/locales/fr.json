@@ -1736,6 +1736,16 @@
         "step_product_desc": "Ajoutez le premier article de votre catalogue.",
         "step_receiving_title": "Enregistrez une réception",
         "step_receiving_desc": "Recevez des marchandises pour commencer à avoir des unités en stock."
+      },
+      "actions": {
+        "refresh": "Actualiser"
+      },
+      "updated_just_now": "À l'instant",
+      "updated_ago": "Mis à jour il y a {time}",
+      "empty_cta": {
+        "title": "Catalogue créé, sans stock pour l'instant",
+        "body": "Enregistrez votre première réception pour que le tableau de bord affiche des données.",
+        "cta": "Aller à la Réception"
       }
     },
     "cards": {
