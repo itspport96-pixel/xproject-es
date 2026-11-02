@@ -785,7 +785,25 @@
             state.prepared = (stockPayload && stockPayload.data) || [];
 
             const pickingPayload = pickingRes && (pickingRes.data || pickingRes);
-            const cargables = groupCargables((pickingPayload && pickingPayload.data) || []);
+            const pickingRows = (pickingPayload && pickingPayload.data) || [];
+
+            // FIX UI: deduplicar picking_operations por stock_unit_id.
+            // Una misma unidad física puede aparecer en varias operaciones de picking
+            // (ciclos anteriores ya cargados/entregados/devueltos y reutilizados).
+            // Sin deduplicación, groupCargables() agruparía la misma unidad en lotes
+            // históricos y actuales, haciendo que lotes viejos aparezcan como cargables.
+            const mapaUnidades = new Map();
+            pickingRows.forEach(r => {
+                const uid = String(r.stock_unit_id || '').trim();
+                if (!uid) return;
+                const existente = mapaUnidades.get(uid);
+                if (!existente || String(r.fecha_creacion) > String(existente.fecha_creacion)) {
+                    mapaUnidades.set(uid, r);
+                }
+            });
+            const pickingDedup = Array.from(mapaUnidades.values());
+
+            const cargables = groupCargables(pickingDedup);
 
             // FIX UI: solo lotes con al menos una unidad EN_PREPARACION.
             // groupCargables() filtra por estado del lote (COMPLETADA/VERIFICADA),
