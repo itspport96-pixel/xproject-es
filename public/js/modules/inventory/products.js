@@ -15,7 +15,8 @@
         filters: { search: '', unidad_medida: '', categoria: '', activo: '' },
         loading: false,
         editing: null,
-        stockTotals: {}
+        stockTotals: {},
+        pendingDeleteId: null
     };
 
     const UNIDADES = ['UNIDAD', 'KG', 'LT', 'M', 'M2', 'M3'];
@@ -536,8 +537,25 @@
     }
 
     async function deleteProduct(id) {
-        if (!confirm(t('inventory.products.messages.confirm_delete'))) return;
-
+        const root = container.querySelector('[data-modal-root]');
+        const bodyHtml = `<p>${t('inventory.products.messages.confirm_delete')}</p>`;
+        const footerHtml = UI.modalFooter({
+            cancelLabel: t('ui.cancel'),
+            submitLabel: t('inventory.products.actions.delete'),
+            submitAction: 'confirm-delete-product'
+        });
+        
+        UI.mountModal(root, UI.modalShell({
+            title: t('inventory.products.actions.delete'),
+            size: 'sm',
+            bodyHtml: bodyHtml,
+            footerHtml: footerHtml
+        }));
+        
+        state.pendingDeleteId = id;
+    }
+    
+    async function executeDeleteProduct(id) {
         try {
             await global.HttpClient.delete(`/inventory/products/${id}`);
             const recargado = await loadProducts(state.pagination.page);
@@ -549,6 +567,14 @@
                 fallbackMessage: t('inventory.products.messages.delete_error'),
                 tag: 'Products'
             });
+        }
+    }
+    
+    function confirmDeleteProduct() {
+        if (state.pendingDeleteId) {
+            executeDeleteProduct(state.pendingDeleteId);
+            state.pendingDeleteId = null;
+            closeModal();
         }
     }
 
@@ -598,6 +624,9 @@
                 break;
             case 'delete':
                 deleteProduct(id);
+                break;
+            case 'confirm-delete-product':
+                confirmDeleteProduct();
                 break;
             case 'apply-filters':
                 readFilters();

@@ -42,7 +42,9 @@
         loading: false,
         modal: null,
         history: null,
-        blocking: false
+        blocking: false,
+        pendingBlockUnit: null,
+        pendingBlockAction: null
     };
 
     const ESTADOS = [
@@ -719,13 +721,33 @@
         if (state.blocking) return;
 
         const esBloquear = accion === 'BLOQUEAR';
-        const confirmed = global.confirm(esBloquear
+        const mensaje = esBloquear
             ? t('inventory.stock.messages.confirm_block')
-            : t('inventory.stock.messages.confirm_unblock'));
-        if (!confirmed) return;
-
+            : t('inventory.stock.messages.confirm_unblock');
+        
+        const root = container.querySelector('[data-modal-root]');
+        const bodyHtml = `<p>${mensaje}</p>`;
+        const footerHtml = UI.modalFooter({
+            cancelLabel: t('ui.cancel'),
+            submitLabel: esBloquear ? t('inventory.stock.actions.block') : t('inventory.stock.actions.unblock'),
+            submitAction: 'confirm-toggle-block'
+        });
+        
+        UI.mountModal(root, UI.modalShell({
+            title: esBloquear ? t('inventory.stock.actions.block') : t('inventory.stock.actions.unblock'),
+            size: 'sm',
+            bodyHtml: bodyHtml,
+            footerHtml: footerHtml
+        }));
+        
+        state.pendingBlockUnit = unit;
+        state.pendingBlockAction = accion;
+    }
+    
+    async function executeToggleBlock(unit, accion) {
         state.blocking = true;
-
+        const esBloquear = accion === 'BLOQUEAR';
+        
         try {
             const response = await global.HttpClient.post(
                 '/inventory/stock/' + encodeURIComponent(unit.unidad_fisica_id)
@@ -749,11 +771,19 @@
                 : t('inventory.stock.messages.unblock_error'));
 
             if (err && (err.status === 422 || err.status === 404)) {
-                // Estado ya cambiado o unidad fuera: refrescar la lista.
                 await loadStock(state.pagination.page || 1);
             }
         } finally {
             state.blocking = false;
+        }
+    }
+    
+    function confirmToggleBlock() {
+        if (state.pendingBlockUnit && state.pendingBlockAction) {
+            executeToggleBlock(state.pendingBlockUnit, state.pendingBlockAction);
+            state.pendingBlockUnit = null;
+            state.pendingBlockAction = null;
+            closeModal();
         }
     }
 
@@ -1118,6 +1148,9 @@
                 break;
             case 'close-modal':
                 closeModal();
+                break;
+            case 'confirm-toggle-block':
+                confirmToggleBlock();
                 break;
         }
 

@@ -9,7 +9,8 @@
         pagination: { total: 0, page: 1, per_page: 25, has_next: false },
         filters: { search: '', tipo: '', activa: '' },
         loading: false,
-        editing: null
+        editing: null,
+        pendingDeleteId: null
     };
 
     const TIPOS = [
@@ -485,8 +486,25 @@
     }
 
     async function deleteLocation(id) {
-        if (!confirm(t('inventory.locations.messages.delete_confirm'))) return;
-
+        const root = container.querySelector('[data-modal-root]');
+        const bodyHtml = `<p>${t('inventory.locations.messages.delete_confirm')}</p>`;
+        const footerHtml = UI.modalFooter({
+            cancelLabel: t('ui.cancel'),
+            submitLabel: t('inventory.locations.actions.delete'),
+            submitAction: 'confirm-delete-location'
+        });
+        
+        UI.mountModal(root, UI.modalShell({
+            title: t('inventory.locations.modals.confirm_delete_title'),
+            size: 'sm',
+            bodyHtml: bodyHtml,
+            footerHtml: footerHtml
+        }));
+        
+        state.pendingDeleteId = id;
+    }
+    
+    async function executeDeleteLocation(id) {
         try {
             await global.HttpClient.delete(`/inventory/locations/${id}`);
             const recargado = await loadLocations(state.pagination.page);
@@ -498,6 +516,14 @@
                 fallbackMessage: t('inventory.locations.messages.delete_error'),
                 tag: 'Locations'
             });
+        }
+    }
+    
+    function confirmDeleteLocation() {
+        if (state.pendingDeleteId) {
+            executeDeleteLocation(state.pendingDeleteId);
+            state.pendingDeleteId = null;
+            closeModal();
         }
     }
 
@@ -550,6 +576,9 @@
                 break;
             case 'clear-filters':
                 clearFilters();
+                break;
+            case 'confirm-delete-location':
+                confirmDeleteLocation();
                 break;
         }
 

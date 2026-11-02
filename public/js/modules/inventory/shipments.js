@@ -50,7 +50,8 @@
         detail: null,
         detailItems: [],
         detailLoading: false,
-        sending: false
+        sending: false,
+        pendingAuthorizeId: null
     };
 
     const ESTADOS_ENVIO = [
@@ -1006,11 +1007,25 @@
     }
 
     async function authorizeShipment(shipmentId) {
-        const confirmado = global.confirm(
-            t('inventory.shipments.messages.authorize_confirm', { id: shipmentId })
-        );
-        if (!confirmado) return;
-
+        const root = container.querySelector('[data-modal-root]');
+        const bodyHtml = `<p>${t('inventory.shipments.messages.authorize_confirm', { id: shipmentId })}</p>`;
+        const footerHtml = UI.modalFooter({
+            cancelLabel: t('ui.cancel'),
+            submitLabel: t('inventory.shipments.actions.authorize'),
+            submitAction: 'confirm-authorize-shipment'
+        });
+        
+        UI.mountModal(root, UI.modalShell({
+            title: t('inventory.shipments.actions.authorize'),
+            size: 'sm',
+            bodyHtml: bodyHtml,
+            footerHtml: footerHtml
+        }));
+        
+        state.pendingAuthorizeId = shipmentId;
+    }
+    
+    async function executeAuthorizeShipment(shipmentId) {
         try {
             const response = await global.HttpClient.post('/inventory/shipments/authorize', {
                 shipment_id: shipmentId
@@ -1037,6 +1052,14 @@
             handleActionError(err, t('inventory.shipments.messages.authorize_error'), () => {
                 state.shipmentKeys[shipmentId] = newIdempotencyKey();
             }, state.detail !== null);
+        }
+    }
+    
+    function confirmAuthorizeShipment() {
+        if (state.pendingAuthorizeId) {
+            executeAuthorizeShipment(state.pendingAuthorizeId);
+            state.pendingAuthorizeId = null;
+            closeDetail();
         }
     }
 
@@ -1244,6 +1267,9 @@
                 break;
             case 'authorize':
                 authorizeShipment(id);
+                break;
+            case 'confirm-authorize-shipment':
+                confirmAuthorizeShipment();
                 break;
         }
 

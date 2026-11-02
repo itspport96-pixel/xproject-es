@@ -29,7 +29,8 @@
         items: [],
         summary: { total: 0, activas: 0, con_expiracion: 0 },
         pagination: { total: 0, page: 1, per_page: 25, has_next: false },
-        loading: false
+        loading: false,
+        pendingReleaseId: null
     };
 
     // Mismo mapeo que v1.6.2: ACTIVA success, CANCELADA secondary y el
@@ -224,9 +225,25 @@
     }
 
     async function releaseReservation(id) {
-        const confirmed = global.confirm(t('inventory.reservations.messages.confirm_release'));
-        if (!confirmed) return;
-
+        const root = container.querySelector('[data-modal-root]');
+        const bodyHtml = `<p>${t('inventory.reservations.messages.confirm_release')}</p>`;
+        const footerHtml = UI.modalFooter({
+            cancelLabel: t('ui.cancel'),
+            submitLabel: t('inventory.reservations.actions.release'),
+            submitAction: 'confirm-release-reservation'
+        });
+        
+        UI.mountModal(root, UI.modalShell({
+            title: t('inventory.reservations.actions.release'),
+            size: 'sm',
+            bodyHtml: bodyHtml,
+            footerHtml: footerHtml
+        }));
+        
+        state.pendingReleaseId = id;
+    }
+    
+    async function executeReleaseReservation(id) {
         try {
             await global.HttpClient.post('/inventory/reservations/' + encodeURIComponent(id) + '/release');
             const recargado = await loadReservations(state.pagination.page || 1);
@@ -247,6 +264,14 @@
             } else {
                 UI.toast('danger', t('ui.error_generic'), (err && err.message) || t('inventory.reservations.messages.release_error'));
             }
+        }
+    }
+    
+    function confirmReleaseReservation() {
+        if (state.pendingReleaseId) {
+            executeReleaseReservation(state.pendingReleaseId);
+            state.pendingReleaseId = null;
+            closeModal();
         }
     }
 
@@ -271,6 +296,9 @@
         switch (action) {
             case 'release':
                 releaseReservation(btn.dataset.id);
+                break;
+            case 'confirm-release-reservation':
+                confirmReleaseReservation();
                 break;
         }
 
