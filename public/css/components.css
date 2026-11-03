@@ -467,6 +467,16 @@
     background-color: transparent;
 }
 
+@media (min-width: 1280px) {
+    .table-wrapper {
+        overflow-x: clip;
+    }
+
+    [data-modal-root] .table-wrapper {
+        overflow-x: auto;
+    }
+}
+
 .table {
     width: 100%;
     border-collapse: collapse;

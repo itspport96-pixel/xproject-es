@@ -457,6 +457,31 @@ html.dark .tabs {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: rgb(var(--color-text-subtle));
+    position: sticky;
+    top: var(--app-header-height, 3.5rem);
+    z-index: 10;
+    background-color: rgb(var(--color-surface));
+    box-shadow: 0 1px 0 rgb(var(--color-border));
+}
+
+@media (max-width: 1279px) {
+    .table-wrapper .table th {
+        top: 0;
+    }
+}
+
+[data-modal-root] .table th {
+    top: 0;
+}
+
+@media (min-width: 1280px) {
+    #inventory-subnav:not([hidden]) ~ #module-container .table th {
+        top: calc(var(--app-header-height, 3.5rem) + 2.25rem);
+    }
+
+    #inventory-subnav ~ #module-container [data-modal-root] .table th {
+        top: 0;
+    }
 }
 
 .table td {
