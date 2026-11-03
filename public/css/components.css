@@ -2066,7 +2066,7 @@ font-weight: 500;
 
 #inventory-subnav {
   position: sticky;
-  top: var(--app-header-height, 0px);
+  top: calc(var(--app-header-height, 0px) - 1px);
   z-index: calc(var(--z-header) - 1);
   margin: -1rem -1rem 1rem;
 }

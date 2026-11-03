@@ -458,7 +458,7 @@ html.dark .tabs {
     letter-spacing: 0.04em;
     color: rgb(var(--color-text-subtle));
     position: sticky;
-    top: var(--app-header-height, 3.5rem);
+    top: calc(var(--app-header-height, 3.5rem) - 1px);
     z-index: 10;
     background-color: rgb(var(--color-surface));
     box-shadow: 0 1px 0 rgb(var(--color-border));
@@ -475,8 +475,12 @@ html.dark .tabs {
 }
 
 @media (min-width: 1280px) {
+    .table th {
+        white-space: normal;
+    }
+
     #inventory-subnav:not([hidden]) ~ #module-container .table th {
-        top: calc(var(--app-header-height, 3.5rem) + 2.25rem);
+        top: calc(var(--app-header-height, 3.5rem) + 2.25rem - 2px);
     }
 
     #inventory-subnav ~ #module-container [data-modal-root] .table th {
