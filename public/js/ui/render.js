@@ -379,6 +379,7 @@
 
     function animateList(root) {
         if (!root || animatedRoots.has(root)) return;
+        if (root.closest('[data-panel]')) return;
         if (typeof global.autoAnimate !== 'function' || !motionAllowed()) return;
         animatedRoots.add(root);
         global.autoAnimate(root);
