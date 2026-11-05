@@ -166,8 +166,8 @@
             <div data-active-filters class="flex flex-wrap gap-2 mb-3 hidden"></div>
 
             <div data-bulk-actions class="hidden card p-3 mb-3 flex items-center justify-between">
-                <span data-selected-count>0 ${t('inventory.stock.units')}</span>
-                <button type="button" class="btn btn-danger btn-sm" data-action="bulk-block">${t('inventory.stock.actions.block')}</button>
+                <span data-selected-count>${t('inventory.stock.bulk.selected', { count: 0 })}</span>
+                <button type="button" class="btn btn-danger btn-sm" data-action="bulk-block">${t('inventory.stock.bulk.block_selected')}</button>
             </div>
 
             <div class="card p-0">
@@ -219,13 +219,14 @@
         if (state.loading) {
             root.innerHTML = UI.tableSkeleton([
                 { label: '' },
+                { label: '' },
                 { label: t('inventory.stock.columns.barcode') },
                 { label: t('inventory.stock.columns.producto') },
                 { label: t('inventory.stock.columns.ubicacion') },
                 { label: t('inventory.stock.columns.cantidad') },
                 { label: t('inventory.stock.columns.estado') },
                 { label: t('inventory.stock.columns.acciones') }
-            ], 8, [4, 22, 24, 16, 10, 14, 14]);
+            ], 8, [4, 4, 22, 24, 16, 10, 14, 14]);
             return;
         }
 
@@ -239,9 +240,11 @@
         }
 
         const allChecked = state.items.every(u => state.selectedIds.has(u.unidad_fisica_id));
+        const rowOffset = (Math.max(1, Number(state.pagination.page) || 1) - 1) * (Number(state.pagination.per_page) || 0);
 
-        const rows = state.items.map(u => `
+        const rows = state.items.map((u, idx) => `
             <tr>
+                <td class="text-right text-muted">${rowOffset + idx + 1}</td>
                 <td><input type="checkbox" data-action="toggle-row" data-id="${escapeHtml(u.unidad_fisica_id)}"${state.selectedIds.has(u.unidad_fisica_id) ? ' checked' : ''}></td>
                 <td class="font-mono text-xs hidden md:table-cell">${escapeHtml(u.codigo_barcode)}</td>
                 <td>
@@ -266,6 +269,7 @@
             <table class="table">
                 <thead>
                     <tr>
+                        <th>#</th>
                         <th><input type="checkbox" data-action="toggle-all" data-select-all${allChecked ? ' checked' : ''}></th>
                         <th class="hidden md:table-cell" data-sort="barcode" style="cursor:pointer">${t('inventory.stock.columns.barcode')}</th>
                         <th data-sort="producto" style="cursor:pointer">${t('inventory.stock.columns.producto')}</th>
@@ -322,7 +326,7 @@
         bar.classList.toggle('hidden', count === 0);
 
         const label = bar.querySelector('[data-selected-count]');
-        if (label) label.textContent = count + ' ' + t('inventory.stock.units');
+        if (label) label.textContent = t('inventory.stock.bulk.selected', { count });
 
         const bulkBtn = bar.querySelector('[data-action="bulk-block"]');
         if (bulkBtn) bulkBtn.disabled = state.blocking;
@@ -871,7 +875,7 @@
 
     async function toggleBlock(unit, accion) {
         if (state.blocking) {
-            showToast('warning', t('inventory.stock.messages.sending'));
+            showToast('warning', t('inventory.stock.messages.block_in_progress'));
             return;
         }
 

@@ -443,6 +443,10 @@
         "unblock": "Unblock",
         "history": "History"
       },
+      "bulk": {
+        "selected": "{count} selected",
+        "block_selected": "Block selected"
+      },
       "modals": {
         "cancel": "Cancel",
         "unit": "Unit",
@@ -485,6 +489,7 @@
       },
       "messages": {
         "sending": "Sending...",
+        "block_in_progress": "A blocking operation is already in progress",
         "unit_not_found_title": "Unit not found",
         "unit_not_found_message": "The unit no longer exists.",
         "history_forbidden": "You need inventory.stock.view to view the history.",
@@ -573,6 +578,7 @@
         "create_title": "New location",
         "edit_title": "Edit location",
         "units_title": "Units in {codigo}",
+        "confirm_delete_title": "Delete location",
         "cancel": "Cancel",
         "save_changes": "Save changes",
         "create_submit": "Create location",

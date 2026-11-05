@@ -47,10 +47,6 @@
 
     /* Pomo del toggle (antes `white` en components.css) */
     --toggle-knob: 255 255 255;
-
-    /* Impresion (antes `white`/`black` en style.css) */
-    --print-background: 255 255 255;
-    --print-text: 0 0 0;
 }
 
 *, *::before, *::after {

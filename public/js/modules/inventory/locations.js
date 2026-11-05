@@ -148,8 +148,11 @@
             return;
         }
 
-        const rows = state.items.map(l => `
+        const rowOffset = (Math.max(1, Number(state.pagination.page) || 1) - 1) * (Number(state.pagination.per_page) || 0);
+
+        const rows = state.items.map((l, idx) => `
             <tr>
+                <td class="text-right text-muted">${rowOffset + idx + 1}</td>
                 <td class="font-mono text-xs">${escapeHtml(l.codigo)}</td>
                 <td>
                     <div class="font-medium">${escapeHtml(l.nombre || '—')}</div>
@@ -183,6 +186,7 @@
             <table class="table">
                 <thead>
                     <tr>
+                        <th>#</th>
                         <th data-sort="codigo" style="cursor:pointer">${t('inventory.locations.columns.code')}</th>
                         <th data-sort="nombre" style="cursor:pointer">${t('inventory.locations.columns.name_hierarchy')}</th>
                         <th data-sort="tipo" style="cursor:pointer">${t('inventory.locations.columns.type')}</th>

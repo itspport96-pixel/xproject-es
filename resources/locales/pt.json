@@ -443,6 +443,10 @@
         "unblock": "Desbloquear",
         "history": "Histórico"
       },
+      "bulk": {
+        "selected": "{count} selecionadas",
+        "block_selected": "Bloquear selecionadas"
+      },
       "modals": {
         "cancel": "Cancelar",
         "unit": "Unidade",
@@ -485,6 +489,7 @@
       },
       "messages": {
         "sending": "A enviar...",
+        "block_in_progress": "Já existe uma operação de bloqueio em curso",
         "unit_not_found_title": "Unidade não encontrada",
         "unit_not_found_message": "A unidade já não existe.",
         "history_forbidden": "Precisas de inventory.stock.view para ver o histórico.",
@@ -573,6 +578,7 @@
         "create_title": "Nova localização",
         "edit_title": "Editar localização",
         "units_title": "Unidades em {codigo}",
+        "confirm_delete_title": "Eliminar localização",
         "cancel": "Cancelar",
         "save_changes": "Guardar alterações",
         "create_submit": "Criar localização",

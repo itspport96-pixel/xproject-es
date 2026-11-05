@@ -443,6 +443,10 @@
         "unblock": "Débloquer",
         "history": "Historique"
       },
+      "bulk": {
+        "selected": "{count} sélectionnées",
+        "block_selected": "Bloquer la sélection"
+      },
       "modals": {
         "cancel": "Annuler",
         "unit": "Unité",
@@ -485,6 +489,7 @@
       },
       "messages": {
         "sending": "Envoi en cours...",
+        "block_in_progress": "Une opération de blocage est déjà en cours",
         "unit_not_found_title": "Unité introuvable",
         "unit_not_found_message": "L'unité n'existe plus.",
         "history_forbidden": "Vous avez besoin de inventory.stock.view pour voir l'historique.",
@@ -573,6 +578,7 @@
         "create_title": "Nouvel emplacement",
         "edit_title": "Modifier l'emplacement",
         "units_title": "Unités dans {codigo}",
+        "confirm_delete_title": "Supprimer l'emplacement",
         "cancel": "Annuler",
         "save_changes": "Enregistrer les modifications",
         "create_submit": "Créer l'emplacement",
