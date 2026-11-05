@@ -40,6 +40,7 @@
         products: [],
         locations: [],
         loading: false,
+        selectedIds: new Set(),
         modal: null,
         history: null,
         blocking: false,
@@ -164,6 +165,11 @@
 
             <div data-active-filters class="flex flex-wrap gap-2 mb-3 hidden"></div>
 
+            <div data-bulk-actions class="hidden card p-3 mb-3 flex items-center justify-between">
+                <span data-selected-count>0 ${t('inventory.stock.units')}</span>
+                <button type="button" class="btn btn-danger btn-sm" data-action="bulk-block">${t('inventory.stock.actions.block')}</button>
+            </div>
+
             <div class="card p-0">
                 <div class="table-wrapper" data-stock-table></div>
                 <div data-stock-pagination class="pagination"></div>
@@ -208,15 +214,18 @@
         const root = container.querySelector('[data-stock-table]');
         if (!root) return;
 
+        updateBulkUI();
+
         if (state.loading) {
             root.innerHTML = UI.tableSkeleton([
+                { label: '' },
                 { label: t('inventory.stock.columns.barcode') },
                 { label: t('inventory.stock.columns.producto') },
                 { label: t('inventory.stock.columns.ubicacion') },
                 { label: t('inventory.stock.columns.cantidad') },
                 { label: t('inventory.stock.columns.estado') },
                 { label: t('inventory.stock.columns.acciones') }
-            ], 8, [22, 24, 16, 10, 14, 14]);
+            ], 8, [4, 22, 24, 16, 10, 14, 14]);
             return;
         }
 
@@ -229,14 +238,17 @@
             return;
         }
 
+        const allChecked = state.items.every(u => state.selectedIds.has(u.unidad_fisica_id));
+
         const rows = state.items.map(u => `
             <tr>
-                <td class="font-mono text-xs">${escapeHtml(u.codigo_barcode)}</td>
+                <td><input type="checkbox" data-action="toggle-row" data-id="${escapeHtml(u.unidad_fisica_id)}"${state.selectedIds.has(u.unidad_fisica_id) ? ' checked' : ''}></td>
+                <td class="font-mono text-xs hidden md:table-cell">${escapeHtml(u.codigo_barcode)}</td>
                 <td>
                     <div class="font-medium">${escapeHtml(u.producto_nombre)}</div>
                     <div class="text-xs text-muted font-mono">${escapeHtml(u.sku)}</div>
                 </td>
-                <td class="font-mono text-xs">${u.ubicacion_codigo ? escapeHtml(u.ubicacion_codigo) : '<span class="text-muted">—</span>'}</td>
+                <td class="font-mono text-xs hidden md:table-cell">${u.ubicacion_codigo ? escapeHtml(u.ubicacion_codigo) : '<span class="text-muted">—</span>'}</td>
                 <td>
                     <div class="font-medium">${formatNumber(u.cantidad_fisica)}</div>
                     <div class="text-xs text-muted">
@@ -254,9 +266,10 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th data-sort="barcode" style="cursor:pointer">${t('inventory.stock.columns.barcode')}</th>
+                        <th><input type="checkbox" data-action="toggle-all" data-select-all${allChecked ? ' checked' : ''}></th>
+                        <th class="hidden md:table-cell" data-sort="barcode" style="cursor:pointer">${t('inventory.stock.columns.barcode')}</th>
                         <th data-sort="producto" style="cursor:pointer">${t('inventory.stock.columns.producto')}</th>
-                        <th data-sort="ubicacion" style="cursor:pointer">${t('inventory.stock.columns.ubicacion')}</th>
+                        <th class="hidden md:table-cell" data-sort="ubicacion" style="cursor:pointer">${t('inventory.stock.columns.ubicacion')}</th>
                         <th data-sort="cantidad" style="cursor:pointer">${t('inventory.stock.columns.cantidad')}</th>
                         <th data-sort="estado" style="cursor:pointer">${t('inventory.stock.columns.estado')}</th>
                         <th class="col-actions">${t('inventory.stock.columns.acciones')}</th>
@@ -297,6 +310,28 @@
         });
 
         renderTable();
+    }
+
+    function updateBulkUI() {
+        if (!container) return;
+
+        const bar = container.querySelector('[data-bulk-actions]');
+        if (!bar) return;
+
+        const count = state.selectedIds.size;
+        bar.classList.toggle('hidden', count === 0);
+
+        const label = bar.querySelector('[data-selected-count]');
+        if (label) label.textContent = count + ' ' + t('inventory.stock.units');
+
+        const bulkBtn = bar.querySelector('[data-action="bulk-block"]');
+        if (bulkBtn) bulkBtn.disabled = state.blocking;
+
+        const all = container.querySelector('[data-select-all]');
+        if (all) {
+            const boxes = container.querySelectorAll('[data-action="toggle-row"]');
+            all.checked = boxes.length > 0 && Array.from(boxes).every(cb => cb.checked);
+        }
     }
 
     // Acciones de la fila: sólo si hay permiso Y el estado las admite.
@@ -607,11 +642,45 @@
         renderKeyHint(root);
     }
 
+    async function bulkBlock() {
+        if (state.blocking) return;
+
+        const ids = Array.from(state.selectedIds);
+        if (ids.length === 0) return;
+
+        state.blocking = true;
+        updateBulkUI();
+
+        let fallidas = 0;
+        try {
+            await Promise.all(ids.map(id => global.HttpClient.post(
+                '/inventory/stock/' + encodeURIComponent(id) + '/block',
+                { accion: 'BLOQUEAR' },
+                { headers: { 'Idempotency-Key': newIdempotencyKey() } }
+            ).catch(() => { fallidas += 1; })));
+
+            await loadStock(state.pagination.page || 1);
+            await loadCatalogs();
+
+            if (fallidas === 0) {
+                showToast('success',
+                    t('inventory.stock.messages.blocked_title'),
+                    t('inventory.stock.messages.state_with', { estado: estadoLabel('BLOQUEADO') }));
+            } else {
+                showToast('danger', t('ui.error_generic'), t('inventory.stock.messages.block_error'));
+            }
+        } finally {
+            state.blocking = false;
+            updateBulkUI();
+        }
+    }
+
     function closeModal() {
         const root = container.querySelector('[data-modal-root]');
         if (root) root.innerHTML = '';
         state.modal = null;
         state.history = null;
+        window.history.replaceState(null, '', historyParamUrl(''));
     }
 
     // ====================================================================
@@ -770,6 +839,19 @@
         }
     }
 
+    function historyParamUrl(value) {
+        return window.location.pathname + window.location.search
+            + '#/inventory/stock' + (value ? '?history=' + encodeURIComponent(value) : '');
+    }
+
+    function openHistoryFromParams(params) {
+        const id = params && params.history;
+        if (!id || state.history) return;
+
+        const unit = state.items.find(u => u.unidad_fisica_id === id) || { unidad_fisica_id: id };
+        openHistory(unit);
+    }
+
     function openHistory(unit) {
         state.history = {
             unidad: unit,
@@ -778,6 +860,7 @@
             loading: true
         };
         renderHistoryModal();
+        window.history.replaceState(null, '', historyParamUrl(unit.unidad_fisica_id));
         loadHistory(1);
     }
 
@@ -1147,6 +1230,7 @@
             state.items = [];
             return false;
         } finally {
+            state.selectedIds.clear();
             gate.done();
             renderSummary();
             renderTable();
@@ -1198,6 +1282,24 @@
                 break;
             case 'clear-filters':
                 clearFilters();
+                break;
+            case 'toggle-all':
+                state.items.forEach(u => {
+                    if (btn.checked) state.selectedIds.add(u.unidad_fisica_id);
+                    else state.selectedIds.delete(u.unidad_fisica_id);
+                });
+                container.querySelectorAll('[data-action="toggle-row"]').forEach(cb => {
+                    cb.checked = btn.checked;
+                });
+                updateBulkUI();
+                break;
+            case 'toggle-row':
+                if (btn.checked) state.selectedIds.add(id);
+                else state.selectedIds.delete(id);
+                updateBulkUI();
+                break;
+            case 'bulk-block':
+                bulkBlock();
                 break;
             case 'remove-filter': {
                 const key = btn.dataset.filterKey;
@@ -1314,11 +1416,11 @@
             bindEvents();
             renderSummary();
             renderFilters();
-            loadStock(1);
+            loadStock(1).then(() => openHistoryFromParams(params));
             loadCatalogs();
         },
 
-        onActivate() {
+        onActivate(params) {
             if (!container) return;
 
             if (!canView()) {
@@ -1330,7 +1432,7 @@
                 container.innerHTML = TEMPLATE;
                 bindEvents();
             }
-            loadStock(state.pagination.page || 1);
+            loadStock(state.pagination.page || 1).then(() => openHistoryFromParams(params));
             loadCatalogs();
         },
 
@@ -1351,7 +1453,8 @@
                 loading: false,
                 modal: null,
                 history: null,
-                blocking: false
+                blocking: false,
+                selectedIds: new Set()
             };
         }
     };

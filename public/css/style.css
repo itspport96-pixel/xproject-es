@@ -493,11 +493,22 @@ body.shell-booting .shell-boot {
    PRINT
    ============================================ */
 @media print {
-    .app-header, footer, .no-print {
+    .app-header, .sidebar, .subnav, .pagination, .btn, .form-group, [data-action], .tabs, footer, .no-print {
         display: none !important;
     }
+    main {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .table-wrapper {
+        overflow: visible !important;
+        border: none !important;
+    }
     body {
-        background: rgb(var(--print-background));
-        color: rgb(var(--print-text));
+        background: white !important;
+        color: black !important;
+    }
+    .table th, .table td {
+        border-color: #ccc !important;
     }
 }

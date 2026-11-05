@@ -375,14 +375,14 @@
             <tr>
                 <td class="font-mono text-xs">${escapeHtml(d.delivery_id)}</td>
                 <td class="font-mono text-xs">${escapeHtml(d.referencia_externa || d.shipment_id || '—')}</td>
-                <td class="font-mono text-xs">${escapeHtml(d.codigo_barcode || '—')}</td>
+                <td class="font-mono text-xs hidden md:table-cell">${escapeHtml(d.codigo_barcode || '—')}</td>
                 <td class="text-right">${formatNumber(d.cantidad)}</td>
                 <td>${UI.estadoBadge(d.estado, estadoCatalog())}</td>
                 <td>${escapeHtml(d.destinatario_real || '—')}</td>
-                <td class="text-xs">${d.firma_comprobante
+                <td class="text-xs hidden md:table-cell">${d.firma_comprobante
                     ? `<a href="${escapeHtml(d.firma_comprobante)}" target="_blank" rel="noopener">${t('inventory.deliveries.actions.view_signature')}</a>`
                     : '—'}</td>
-                <td class="text-xs">${d.timestamp_entrega ? escapeHtml(UI.formatDateTime(d.timestamp_entrega)) : '—'}</td>
+                <td class="text-xs hidden md:table-cell">${d.timestamp_entrega ? escapeHtml(UI.formatDateTime(d.timestamp_entrega)) : '—'}</td>
             </tr>
         `).join('');
 
@@ -392,12 +392,12 @@
                     <tr>
                         <th>${t('inventory.deliveries.columns.entrega')}</th>
                         <th>${t('inventory.deliveries.columns.envio')}</th>
-                        <th>${t('inventory.deliveries.columns.barcode')}</th>
+                        <th class="hidden md:table-cell">${t('inventory.deliveries.columns.barcode')}</th>
                         <th class="text-right">${t('inventory.deliveries.columns.cantidad')}</th>
                         <th>${t('inventory.deliveries.columns.estado')}</th>
                         <th>${t('inventory.deliveries.columns.destinatario')}</th>
-                        <th>${t('inventory.deliveries.columns.firma')}</th>
-                        <th>${t('inventory.deliveries.columns.entregado')}</th>
+                        <th class="hidden md:table-cell">${t('inventory.deliveries.columns.firma')}</th>
+                        <th class="hidden md:table-cell">${t('inventory.deliveries.columns.entregado')}</th>
                     </tr>
                 </thead>
                 <tbody>${rows}</tbody>

@@ -550,11 +550,11 @@
                     <div class="font-medium">${escapeHtml(s.destinatario_nombre || '—')}</div>
                     <div class="text-xs text-muted">${escapeHtml(s.destino_direccion || s.ubicacion_origen || '—')}</div>
                 </td>
-                <td>${escapeHtml(tipoLabel(s.tipo))}</td>
-                <td class="text-xs">${escapeHtml(s.conductor_nombre || '—')}</td>
+                <td class="hidden md:table-cell">${escapeHtml(tipoLabel(s.tipo))}</td>
+                <td class="text-xs hidden md:table-cell">${escapeHtml(s.conductor_nombre || '—')}</td>
                 <td class="text-right">${formatNumber(s.total_items)}</td>
                 <td><span class="badge badge-${estadoColor(s.estado)}">${escapeHtml(estadoLabel(s.estado))}</span></td>
-                <td class="text-xs">${escapeHtml(UI.formatDateTime(s.fecha_creacion))}</td>
+                <td class="text-xs hidden md:table-cell">${escapeHtml(UI.formatDateTime(s.fecha_creacion))}</td>
                 <td class="table-actions col-actions">${renderRowActions(s)}</td>
             </tr>
         `).join('');
@@ -565,11 +565,11 @@
                     <tr>
                         <th>${t('inventory.shipments.columns.envio')}</th>
                         <th>${t('inventory.shipments.columns.destinatario')}</th>
-                        <th>${t('inventory.shipments.columns.tipo')}</th>
-                        <th>${t('inventory.shipments.columns.conductor')}</th>
+                        <th class="hidden md:table-cell">${t('inventory.shipments.columns.tipo')}</th>
+                        <th class="hidden md:table-cell">${t('inventory.shipments.columns.conductor')}</th>
                         <th class="text-right">${t('inventory.shipments.columns.items')}</th>
                         <th>${t('inventory.shipments.columns.estado')}</th>
-                        <th>${t('inventory.shipments.columns.creado')}</th>
+                        <th class="hidden md:table-cell">${t('inventory.shipments.columns.creado')}</th>
                         <th class="col-actions">${t('inventory.shipments.columns.acciones')}</th>
                     </tr>
                 </thead>
