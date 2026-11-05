@@ -1868,6 +1868,15 @@ transition: margin-left 0.2s ease;
 display: none;
 }
 
+.header-search {
+    width: 250px;
+    margin-right: 1rem;
+}
+
+.header-search input {
+    width: 100%;
+}
+
 .app-layout.is-public .main-content {
 margin-left: 0;
 }

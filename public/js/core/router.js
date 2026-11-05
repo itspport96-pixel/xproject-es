@@ -525,6 +525,16 @@
       // Listener de popstate (back/forward)
       window.addEventListener('popstate', handleRoute);
 
+      const globalSearch = document.getElementById('global-search');
+      if (globalSearch) {
+        globalSearch.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter') return;
+          const valor = globalSearch.value.trim();
+          if (!valor) return;
+          AppRouter.navigate('inventory', { search: valor });
+        });
+      }
+
       // Auth events
       if (global.EventBus) {
         global.EventBus.on('auth:login', () => {

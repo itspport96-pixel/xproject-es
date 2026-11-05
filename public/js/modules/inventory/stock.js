@@ -162,6 +162,8 @@
                 </div>
             </div>
 
+            <div data-active-filters class="flex flex-wrap gap-2 mb-3 hidden"></div>
+
             <div class="card p-0">
                 <div class="table-wrapper" data-stock-table></div>
                 <div data-stock-pagination class="pagination"></div>
@@ -252,17 +254,49 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>${t('inventory.stock.columns.barcode')}</th>
-                        <th>${t('inventory.stock.columns.producto')}</th>
-                        <th>${t('inventory.stock.columns.ubicacion')}</th>
-                        <th>${t('inventory.stock.columns.cantidad')}</th>
-                        <th>${t('inventory.stock.columns.estado')}</th>
+                        <th data-sort="barcode" style="cursor:pointer">${t('inventory.stock.columns.barcode')}</th>
+                        <th data-sort="producto" style="cursor:pointer">${t('inventory.stock.columns.producto')}</th>
+                        <th data-sort="ubicacion" style="cursor:pointer">${t('inventory.stock.columns.ubicacion')}</th>
+                        <th data-sort="cantidad" style="cursor:pointer">${t('inventory.stock.columns.cantidad')}</th>
+                        <th data-sort="estado" style="cursor:pointer">${t('inventory.stock.columns.estado')}</th>
                         <th class="col-actions">${t('inventory.stock.columns.acciones')}</th>
                     </tr>
                 </thead>
                 <tbody>${rows}</tbody>
             </table>
         `;
+    }
+
+    function sortItems(key) {
+        if (state.sortKey === key) {
+            state.sortDir = state.sortDir === 'desc' ? 'asc' : 'desc';
+        } else {
+            state.sortKey = key;
+            state.sortDir = 'asc';
+        }
+
+        const dir = state.sortDir === 'desc' ? -1 : 1;
+        const valueOf = u => {
+            switch (key) {
+                case 'barcode': return String(u.codigo_barcode || '');
+                case 'producto': return String(u.producto_nombre || '');
+                case 'ubicacion': return String(u.ubicacion_codigo || '');
+                case 'cantidad': return Number(u.cantidad_fisica) || 0;
+                case 'estado': return String(u.estado || '');
+                default: return '';
+            }
+        };
+
+        state.items.sort((a, b) => {
+            const va = valueOf(a);
+            const vb = valueOf(b);
+            if (typeof va === 'number' && typeof vb === 'number') {
+                return (va - vb) * dir;
+            }
+            return String(va).localeCompare(String(vb), 'es') * dir;
+        });
+
+        renderTable();
     }
 
     // Acciones de la fila: sólo si hay permiso Y el estado las admite.
@@ -336,6 +370,40 @@
             const key = el.dataset.filter;
             if (state.filters[key] !== undefined) el.value = state.filters[key];
         });
+
+        renderActiveFilters();
+    }
+
+    function renderActiveFilters() {
+        if (!container) return;
+        const box = container.querySelector('[data-active-filters]');
+        if (!box) return;
+
+        const labels = {
+            producto_id: t('inventory.stock.columns.producto'),
+            ubicacion_id: t('inventory.stock.columns.ubicacion'),
+            estado: t('inventory.stock.columns.estado')
+        };
+
+        const active = Object.entries(state.filters).filter(([, v]) => v !== '' && v !== null && v !== undefined);
+        if (active.length === 0) {
+            box.innerHTML = '';
+            box.classList.add('hidden');
+            return;
+        }
+
+        box.classList.remove('hidden');
+        box.innerHTML = active.map(([key, value]) => {
+            let shown = String(value);
+            if (key === 'producto_id') {
+                const p = state.products.find(x => String(x.id) === String(value));
+                if (p) shown = p.nombre;
+            } else if (key === 'ubicacion_id') {
+                const l = state.locations.find(x => String(x.id) === String(value));
+                if (l) shown = l.codigo;
+            }
+            return `<span class="chip chip-primary">${escapeHtml(labels[key] || key)}: ${escapeHtml(shown)}<button type="button" class="chip-close" data-action="remove-filter" data-filter-key="${escapeHtml(key)}">&times;</button></span>`;
+        }).join('');
     }
 
     // ====================================================================
@@ -1083,6 +1151,7 @@
             renderSummary();
             renderTable();
             renderPagination();
+            renderActiveFilters();
         }
     }
 
@@ -1095,11 +1164,26 @@
 
         container.removeEventListener('click', handleClick);
         container.removeEventListener('submit', handleSubmit);
+        container.removeEventListener('keydown', handleKeydown);
         container.addEventListener('click', handleClick);
         container.addEventListener('submit', handleSubmit);
+        container.addEventListener('keydown', handleKeydown);
+    }
+
+    function handleKeydown(e) {
+        if (e.key !== 'Enter' || !e.target.matches('[data-filter]')) return;
+        e.preventDefault();
+        const btn = container.querySelector('[data-action="apply-filters"]');
+        if (btn) btn.click();
     }
 
     function handleClick(e) {
+        const th = e.target.closest('th[data-sort]');
+        if (th) {
+            sortItems(th.getAttribute('data-sort'));
+            return;
+        }
+
         const btn = e.target.closest('[data-action], [data-page]');
         if (!btn) return;
 
@@ -1115,6 +1199,15 @@
             case 'clear-filters':
                 clearFilters();
                 break;
+            case 'remove-filter': {
+                const key = btn.dataset.filterKey;
+                if (!key) break;
+                state.filters[key] = '';
+                const sel = container.querySelector('select[data-filter="' + key + '"]');
+                if (sel) sel.value = '';
+                loadStock(1);
+                break;
+            }
             case 'move': {
                 const unit = state.items.find(u => u.unidad_fisica_id === id);
                 if (unit) openMoveModal(unit);

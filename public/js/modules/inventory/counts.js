@@ -57,7 +57,8 @@
         locations: [],
         locationsMode: 'select',
         modal: null,
-        sending: false
+        sending: false,
+        pendingCompleteId: null
     };
 
     const ESTADOS = [
@@ -375,6 +376,9 @@
             <div class="form-error hidden mb-3" data-form-error></div>
             ${UI.grid(`
                 <div>
+                    ${state.locationsMode === 'select'
+                        ? `<input type="text" class="input mb-2" data-filter-unit placeholder="${t('inventory.counts.filters.apply')}" autocomplete="off">`
+                        : ''}
                     ${UI.field({
                         label: t('inventory.counts.modals.start.ubicacion_label'),
                         name: 'ubicacion_id',
@@ -791,25 +795,43 @@
         });
     }
 
-    async function completeCount() {
+    function completeCount() {
         const modal = state.modal;
         if (state.sending || !modal || modal.mode !== 'detail' || !modal.data) return;
 
-        const root = getModalRoot();
-        UI.clearErrors(root);
+        UI.mountModal(getModalRoot(), UI.modalShell({
+            title: t('inventory.counts.actions.complete'),
+            size: 'sm',
+            bodyHtml: `<p>${t('inventory.counts.messages.confirm_complete')}</p>`,
+            footerHtml: UI.modalFooter({
+                cancelLabel: t('ui.cancel'),
+                submitLabel: t('inventory.counts.actions.complete'),
+                submitAction: 'confirm-complete-count'
+            })
+        }));
 
-        const confirmed = global.confirm(t('inventory.counts.messages.confirm_complete'));
-        if (!confirmed) return;
+        state.pendingCompleteId = modal.id;
+    }
 
+    function confirmCompleteCount() {
+        if (!state.pendingCompleteId) return;
+
+        const id = state.pendingCompleteId;
+        state.pendingCompleteId = null;
+
+        executeCompleteCount(id);
+    }
+
+    async function executeCompleteCount(id) {
         setSending(true);
 
         try {
             const response = await global.HttpClient.post(
-                '/inventory/counts/' + encodeURIComponent(modal.id) + '/complete'
+                '/inventory/counts/' + encodeURIComponent(id) + '/complete'
             );
             const data = response && response.data ? response.data : response;
 
-            const recargadoDetalle = await openDetail(modal.id);
+            const recargadoDetalle = await openDetail(id);
             const recargadoLista = await loadCounts(state.pagination.page || 1);
             if (recargadoDetalle && recargadoLista) {
                 UI.toast('success', t('inventory.counts.messages.completed_title'),
@@ -823,6 +845,8 @@
                 && err.data && err.data.field === 'resultados'
                 && message.indexOf('Faltan resultados para') === 0;
 
+            await openDetail(id);
+
             if (faltaResultados) {
                 UI.showFormError(getModalRoot(), message);
                 markMissingRows(getModalRoot(), message);
@@ -835,9 +859,6 @@
                     inline: true,
                     tag: 'Counts'
                 });
-                if (err && (err.status === 422 || err.status === 404)) {
-                    await openDetail(modal.id);
-                }
             }
         } finally {
             setSending(false);
@@ -1101,12 +1122,37 @@
         container.removeEventListener('click', handleClick);
         container.removeEventListener('change', handleChange);
         container.removeEventListener('input', handleInput);
+        container.removeEventListener('input', handleFilterUnit);
         container.removeEventListener('submit', handleSubmit);
+        container.removeEventListener('keydown', handleKeydown);
 
         container.addEventListener('click', handleClick);
         container.addEventListener('change', handleChange);
         container.addEventListener('input', handleInput);
+        container.addEventListener('input', handleFilterUnit);
         container.addEventListener('submit', handleSubmit);
+        container.addEventListener('keydown', handleKeydown);
+    }
+
+    function handleFilterUnit(e) {
+        const input = e.target.closest('[data-filter-unit]');
+        if (!input) return;
+
+        const select = input.parentElement && input.parentElement.querySelector('select');
+        if (!select) return;
+
+        const term = input.value.trim().toLowerCase();
+        Array.from(select.options).forEach(op => {
+            if (!op.value) return;
+            op.hidden = term !== '' && op.textContent.toLowerCase().indexOf(term) === -1;
+        });
+    }
+
+    function handleKeydown(e) {
+        if (e.key !== 'Enter' || !e.target.matches('[data-filter]')) return;
+        e.preventDefault();
+        const btn = container.querySelector('[data-action="apply-filters"]');
+        if (btn) btn.click();
     }
 
     function handleClick(e) {
@@ -1135,6 +1181,9 @@
                 break;
             case 'complete':
                 completeCount();
+                break;
+            case 'confirm-complete-count':
+                confirmCompleteCount();
                 break;
             case 'submit-reconcile':
                 submitReconcile();

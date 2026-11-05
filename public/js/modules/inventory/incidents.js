@@ -49,7 +49,8 @@
         unitFilterMode: 'select',
         unitOptions: [],
         modal: null,
-        sending: false
+        sending: false,
+        pendingInvestigateId: null
     };
 
     const ESTADOS = [
@@ -226,6 +227,8 @@
         if (state.unitFilterMode === 'select') {
             root.innerHTML = `
                 <label class="form-label">${t('inventory.incidents.filters.unidad')}</label>
+                <input type="text" class="input mb-2" data-filter-unit
+                       placeholder="${t('inventory.incidents.filters.apply')}" autocomplete="off">
                 <select class="select" data-filter="unidad_fisica_id">
                     <option value="">${t('inventory.incidents.filters.all_units')}</option>
                     ${state.unitOptions.map(op => `
@@ -870,15 +873,40 @@
     }
 
     // ====================================================================
-    // INVESTIGAR (sin modal)
+    // INVESTIGAR
     // ====================================================================
 
-    async function investigate(id) {
+    function investigate(id) {
         if (!canResolve()) return;
 
-        const confirmed = global.confirm(t('inventory.incidents.messages.confirm_investigate'));
-        if (!confirmed) return;
+        UI.mountModal(getModalRoot(), UI.modalShell({
+            title: t('inventory.incidents.actions.investigate'),
+            size: 'sm',
+            bodyHtml: `<p>${t('inventory.incidents.messages.confirm_investigate')}</p>`,
+            footerHtml: UI.modalFooter({
+                cancelLabel: t('ui.cancel'),
+                submitLabel: t('inventory.incidents.actions.investigate'),
+                submitAction: 'confirm-investigate'
+            })
+        }));
 
+        state.pendingInvestigateId = id;
+    }
+
+    function confirmInvestigate() {
+        if (!state.pendingInvestigateId) return;
+
+        const id = state.pendingInvestigateId;
+        state.pendingInvestigateId = null;
+
+        if (!(state.modal && state.modal.mode === 'detail' && state.modal.id === id)) {
+            closeModal();
+        }
+
+        executeInvestigate(id);
+    }
+
+    async function executeInvestigate(id) {
         try {
             await global.HttpClient.post('/inventory/incidents/' + encodeURIComponent(id) + '/investigate');
 
@@ -1154,12 +1182,37 @@
         container.removeEventListener('click', handleClick);
         container.removeEventListener('change', handleChange);
         container.removeEventListener('input', handleInput);
+        container.removeEventListener('input', handleFilterUnit);
         container.removeEventListener('submit', handleSubmit);
+        container.removeEventListener('keydown', handleKeydown);
 
         container.addEventListener('click', handleClick);
         container.addEventListener('change', handleChange);
         container.addEventListener('input', handleInput);
+        container.addEventListener('input', handleFilterUnit);
         container.addEventListener('submit', handleSubmit);
+        container.addEventListener('keydown', handleKeydown);
+    }
+
+    function handleFilterUnit(e) {
+        const input = e.target.closest('[data-filter-unit]');
+        if (!input) return;
+
+        const select = input.parentElement && input.parentElement.querySelector('select');
+        if (!select) return;
+
+        const term = input.value.trim().toLowerCase();
+        Array.from(select.options).forEach(op => {
+            if (!op.value) return;
+            op.hidden = term !== '' && op.textContent.toLowerCase().indexOf(term) === -1;
+        });
+    }
+
+    function handleKeydown(e) {
+        if (e.key !== 'Enter' || !e.target.matches('[data-filter]')) return;
+        e.preventDefault();
+        const btn = container.querySelector('[data-action="apply-filters"]');
+        if (btn) btn.click();
     }
 
     function handleClick(e) {
@@ -1185,6 +1238,9 @@
                 break;
             case 'investigate':
                 investigate(id);
+                break;
+            case 'confirm-investigate':
+                confirmInvestigate();
                 break;
             case 'open-resolve':
                 openResolve(id);

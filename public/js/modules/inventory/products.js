@@ -154,18 +154,54 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>${t('inventory.products.columns.sku')}</th>
-                        <th>${t('inventory.products.columns.nombre')}</th>
-                        <th>${t('inventory.products.columns.unidad')}</th>
-                        <th>${t('inventory.products.columns.stock_total')}</th>
-                        <th>${t('inventory.products.columns.estado')}</th>
-                        <th>${t('inventory.products.columns.creado')}</th>
+                        <th data-sort="sku" style="cursor:pointer">${t('inventory.products.columns.sku')}</th>
+                        <th data-sort="nombre" style="cursor:pointer">${t('inventory.products.columns.nombre')}</th>
+                        <th data-sort="unidad" style="cursor:pointer">${t('inventory.products.columns.unidad')}</th>
+                        <th data-sort="stock" style="cursor:pointer">${t('inventory.products.columns.stock_total')}</th>
+                        <th data-sort="estado" style="cursor:pointer">${t('inventory.products.columns.estado')}</th>
+                        <th data-sort="creado" style="cursor:pointer">${t('inventory.products.columns.creado')}</th>
                         <th class="col-actions">${t('inventory.products.columns.acciones')}</th>
                     </tr>
                 </thead>
                 <tbody>${rows}</tbody>
             </table>
         `;
+    }
+
+    function sortItems(key) {
+        if (state.sortKey === key) {
+            state.sortDir = state.sortDir === 'desc' ? 'asc' : 'desc';
+        } else {
+            state.sortKey = key;
+            state.sortDir = 'asc';
+        }
+
+        const dir = state.sortDir === 'desc' ? -1 : 1;
+        const valueOf = p => {
+            switch (key) {
+                case 'sku': return String(p.sku || '');
+                case 'nombre': return String(p.nombre || '');
+                case 'unidad': return String(p.unidad_medida || '');
+                case 'stock': {
+                    const total = state.stockTotals[p.id];
+                    return total ? Number(total.cantidad_fisica) : -1;
+                }
+                case 'estado': return p.activo ? 1 : 0;
+                case 'creado': return Date.parse(p.created_at || '') || 0;
+                default: return '';
+            }
+        };
+
+        state.items.sort((a, b) => {
+            const va = valueOf(a);
+            const vb = valueOf(b);
+            if (typeof va === 'number' && typeof vb === 'number') {
+                return (va - vb) * dir;
+            }
+            return String(va).localeCompare(String(vb), 'es') * dir;
+        });
+
+        renderTable();
     }
 
     function renderStockCell(product) {
@@ -561,12 +597,27 @@
         container.removeEventListener('click', handleClick);
         container.removeEventListener('submit', handleSubmit);
         container.removeEventListener('input', handleInput);
+        container.removeEventListener('keydown', handleKeydown);
         container.addEventListener('click', handleClick);
         container.addEventListener('submit', handleSubmit);
         container.addEventListener('input', handleInput);
+        container.addEventListener('keydown', handleKeydown);
+    }
+
+    function handleKeydown(e) {
+        if (e.key !== 'Enter' || !e.target.matches('[data-filter]')) return;
+        e.preventDefault();
+        const btn = container.querySelector('[data-action="apply-filters"]');
+        if (btn) btn.click();
     }
 
     function handleClick(e) {
+        const th = e.target.closest('th[data-sort]');
+        if (th) {
+            sortItems(th.getAttribute('data-sort'));
+            return;
+        }
+
         const btn = e.target.closest('[data-action], [data-page]');
         if (!btn) return;
 

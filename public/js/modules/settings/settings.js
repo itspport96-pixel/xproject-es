@@ -548,7 +548,7 @@
             ],
             activeTab: state.tab,
             panels: panels
-        });
+        }) + '<div data-modal-root></div>';
     }
 
     function render() {
@@ -877,9 +877,27 @@
         }
     }
 
-    async function removeLogo() {
+    function removeLogo() {
         if (!state.tenant || state.saving) return;
-        if (!global.confirm(t('settings.logo_remove_confirm'))) return;
+
+        UI.mountModal(getModalRoot(), UI.modalShell({
+            title: t('settings.logo_remove'),
+            size: 'sm',
+            bodyHtml: `<p>${t('settings.logo_remove_confirm')}</p>`,
+            footerHtml: UI.modalFooter({
+                cancelLabel: t('ui.cancel'),
+                submitLabel: t('settings.logo_remove'),
+                submitAction: 'confirm-remove-logo',
+                danger: true
+            })
+        }));
+    }
+
+    function getModalRoot() {
+        return container && container.querySelector('[data-modal-root]');
+    }
+
+    async function executeRemoveLogo() {
         state.saving = true;
         try {
             const response = await global.HttpClient.patch('/tenant', { logo_url: null }, { requiresAuth: true });
@@ -985,6 +1003,16 @@
         }
         if (e.target.closest('[data-action="settings-logo-remove"]')) {
             removeLogo();
+            return;
+        }
+        if (e.target.closest('[data-action="confirm-remove-logo"]')) {
+            UI.closeModal(getModalRoot());
+            executeRemoveLogo();
+            return;
+        }
+        if (e.target.closest('[data-action="close-modal"]')) {
+            UI.closeModal(getModalRoot());
+            return;
         }
     }
 

@@ -65,15 +65,9 @@
     // Estados de unidad que RegisterReturnUseCase acepta.
     const ESTADOS_UNIDAD_DEVOLVIBLE = ['ENTREGADO', 'DEVUELTO'];
 
-    const estadoColor = (v) => {
-        const e = ESTADOS_AL_DEVOLVER.find(x => x.value === v);
-        return e ? e.color : 'neutral';
-    };
-
-    const estadoLabel = (v) => {
-        const e = ESTADOS_AL_DEVOLVER.find(x => x.value === v);
-        return e ? t(e.labelKey) : v;
-    };
+    function estadoCatalog() {
+        return ESTADOS_AL_DEVOLVER.map(e => ({ value: e.value, label: t(e.labelKey), color: e.color }));
+    }
 
     // Permiso real (BD) con fallback a roles cuando aún no hay permisos.
     function can(permission, fallbackRoles) {
@@ -240,10 +234,10 @@
                 <td class="font-mono text-xs">${escapeHtml(r.codigo_barcode || '—')}</td>
                 <td class="text-right">${formatNumber(r.cantidad)}</td>
                 <td>${escapeHtml(labelMotivo(r.motivo))}</td>
-                <td><span class="badge badge-${estadoColor(r.estado_al_devolver)}">${escapeHtml(estadoLabel(r.estado_al_devolver))}</span></td>
+                <td>${UI.estadoBadge(r.estado_al_devolver, estadoCatalog())}</td>
                 <td class="font-mono text-xs">${escapeHtml(r.ubicacion_destino || '—')}</td>
                 <td class="text-xs">${escapeHtml(r.descripcion_motivo || '—')}</td>
-                <td class="text-xs">${escapeHtml(r.timestamp_devolucion || '—')}</td>
+                <td class="text-xs">${r.timestamp_devolucion ? escapeHtml(UI.formatDateTime(r.timestamp_devolucion)) : '—'}</td>
             </tr>
         `).join('');
 
@@ -775,11 +769,20 @@
         container.removeEventListener('submit', handleSubmit);
         container.removeEventListener('change', handleChange);
         container.removeEventListener('input', handleInput);
+        container.removeEventListener('keydown', handleKeydown);
 
         container.addEventListener('click', handleClick);
         container.addEventListener('submit', handleSubmit);
         container.addEventListener('change', handleChange);
         container.addEventListener('input', handleInput);
+        container.addEventListener('keydown', handleKeydown);
+    }
+
+    function handleKeydown(e) {
+        if (e.key !== 'Enter' || !e.target.matches('[data-filter]')) return;
+        e.preventDefault();
+        const btn = container.querySelector('[data-action="apply-filters"]');
+        if (btn) btn.click();
     }
 
     function handleClick(e) {

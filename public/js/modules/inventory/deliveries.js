@@ -54,7 +54,9 @@
         enRutaDenied: false,
         enRutaError: false,
         modal: null,
-        sending: false
+        sending: false,
+        pendingPartialPayload: null,
+        pendingPartialMarcadas: 0
     };
 
     // Estados que el backend escribe en `deliveries`: la fila sólo se crea al
@@ -84,12 +86,9 @@
         OTRO: 'inventory.deliveries.reasons.otro'
     };
 
-    const estadoColor = (v) => {
-        const e = ESTADOS_ENTREGA.find(x => x.value === v);
-        return e ? e.color : 'neutral';
-    };
-
-    const estadoLabel = (v) => ESTADO_KEYS[v] ? t(ESTADO_KEYS[v]) : v;
+    function estadoCatalog() {
+        return ESTADOS_ENTREGA.map(e => ({ value: e.value, label: t(ESTADO_KEYS[e.value]), color: e.color }));
+    }
 
     // Permiso real (BD) con fallback a roles cuando aún no hay permisos.
     function can(permission, fallbackRoles) {
@@ -378,12 +377,12 @@
                 <td class="font-mono text-xs">${escapeHtml(d.referencia_externa || d.shipment_id || '—')}</td>
                 <td class="font-mono text-xs">${escapeHtml(d.codigo_barcode || '—')}</td>
                 <td class="text-right">${formatNumber(d.cantidad)}</td>
-                <td><span class="badge badge-${estadoColor(d.estado)}">${escapeHtml(estadoLabel(d.estado))}</span></td>
+                <td>${UI.estadoBadge(d.estado, estadoCatalog())}</td>
                 <td>${escapeHtml(d.destinatario_real || '—')}</td>
                 <td class="text-xs">${d.firma_comprobante
                     ? `<a href="${escapeHtml(d.firma_comprobante)}" target="_blank" rel="noopener">${t('inventory.deliveries.actions.view_signature')}</a>`
                     : '—'}</td>
-                <td class="text-xs">${escapeHtml(d.timestamp_entrega || '—')}</td>
+                <td class="text-xs">${d.timestamp_entrega ? escapeHtml(UI.formatDateTime(d.timestamp_entrega)) : '—'}</td>
             </tr>
         `).join('');
 
@@ -875,13 +874,43 @@
         const marcadas = payload.unidades.length;
         const total = state.modal.items.length;
         if (marcadas < total) {
-            const confirmado = global.confirm(t('inventory.deliveries.messages.confirm_partial', {
-                marcadas: marcadas,
-                total: total,
-                sin_marcar: total - marcadas
+            const root = container && container.querySelector('[data-modal-root]');
+            UI.mountModal(root, UI.modalShell({
+                title: t('inventory.deliveries.modals.confirm_title'),
+                size: 'sm',
+                bodyHtml: `<p>${t('inventory.deliveries.messages.confirm_partial', {
+                    marcadas: marcadas,
+                    total: total,
+                    sin_marcar: total - marcadas
+                })}</p>`,
+                footerHtml: UI.modalFooter({
+                    cancelAction: 'restore-confirm',
+                    cancelLabel: t('ui.cancel'),
+                    submitLabel: t('inventory.deliveries.actions.confirm'),
+                    submitAction: 'confirm-partial'
+                })
             }));
-            if (!confirmado) return;
+            state.pendingPartialPayload = payload;
+            state.pendingPartialMarcadas = marcadas;
+            return;
         }
+
+        executeConfirm(payload, marcadas);
+    }
+
+    function confirmPartialDelivery() {
+        if (!state.pendingPartialPayload) return;
+
+        const payload = state.pendingPartialPayload;
+        const marcadas = state.pendingPartialMarcadas;
+        state.pendingPartialPayload = null;
+        state.pendingPartialMarcadas = 0;
+
+        executeConfirm(payload, marcadas);
+    }
+
+    async function executeConfirm(payload, marcadas) {
+        if (!state.modal) return;
 
         setSending(true);
 
@@ -1097,11 +1126,20 @@
         container.removeEventListener('submit', handleSubmit);
         container.removeEventListener('change', handleChange);
         container.removeEventListener('input', handleInput);
+        container.removeEventListener('keydown', handleKeydown);
 
         container.addEventListener('click', handleClick);
         container.addEventListener('submit', handleSubmit);
         container.addEventListener('change', handleChange);
         container.addEventListener('input', handleInput);
+        container.addEventListener('keydown', handleKeydown);
+    }
+
+    function handleKeydown(e) {
+        if (e.key !== 'Enter' || !e.target.matches('[data-filter]')) return;
+        e.preventDefault();
+        const btn = container.querySelector('[data-action="apply-filters"]');
+        if (btn) btn.click();
     }
 
     function handleClick(e) {
@@ -1141,6 +1179,12 @@
                 break;
             case 'submit-confirm':
                 submitConfirm();
+                break;
+            case 'confirm-partial':
+                confirmPartialDelivery();
+                break;
+            case 'restore-confirm':
+                renderModal();
                 break;
             case 'submit-failed':
                 submitFailed();

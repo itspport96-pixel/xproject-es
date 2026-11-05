@@ -434,8 +434,17 @@
 
         container.removeEventListener('click', handleClick);
         container.removeEventListener('submit', handleSubmit);
+        container.removeEventListener('keydown', handleKeydown);
         container.addEventListener('click', handleClick);
         container.addEventListener('submit', handleSubmit);
+        container.addEventListener('keydown', handleKeydown);
+    }
+
+    function handleKeydown(e) {
+        if (e.key !== 'Enter' || !e.target.matches('[data-filter]')) return;
+        e.preventDefault();
+        const btn = container.querySelector('[data-action="apply-filters"]');
+        if (btn) btn.click();
     }
 
     function handleClick(e) {

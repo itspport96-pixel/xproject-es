@@ -12,7 +12,7 @@
  *     Idempotency-Key obligatorio, spec R7).
  *  2. Listado (`GET /api/inventory/shipments`) con detalle
  *     (`GET /api/inventory/shipments/{id}`) y "Autorizar salida"
- *     (`POST /api/inventory/shipments/authorize`) tras `confirm()`.
+ *     (`POST /api/inventory/shipments/authorize`) tras confirmación modal.
  *
  * Permisos (routes.php):
  *  - inventory.shipping.view    → lectura de listado y detalle
@@ -1221,10 +1221,19 @@
         container.removeEventListener('click', handleClick);
         container.removeEventListener('submit', handleSubmit);
         container.removeEventListener('change', handleChange);
+        container.removeEventListener('keydown', handleKeydown);
 
         container.addEventListener('click', handleClick);
         container.addEventListener('submit', handleSubmit);
         container.addEventListener('change', handleChange);
+        container.addEventListener('keydown', handleKeydown);
+    }
+
+    function handleKeydown(e) {
+        if (e.key !== 'Enter' || !e.target.matches('[data-filter]')) return;
+        e.preventDefault();
+        const btn = container.querySelector('[data-action="apply-filters"]');
+        if (btn) btn.click();
     }
 
     function handleClick(e) {
