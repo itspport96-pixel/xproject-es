@@ -496,6 +496,9 @@ body.shell-booting .shell-boot {
     .app-header, .sidebar, .subnav, .pagination, .btn, .form-group, [data-action], .tabs, footer, .no-print {
         display: none !important;
     }
+    .main-content {
+        margin-left: 0 !important;
+    }
     main {
         padding: 0 !important;
         margin: 0 !important;

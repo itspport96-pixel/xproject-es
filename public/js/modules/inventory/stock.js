@@ -677,10 +677,11 @@
 
     function closeModal() {
         const root = container.querySelector('[data-modal-root]');
+        const conHistorial = Boolean(state.history);
         if (root) root.innerHTML = '';
         state.modal = null;
         state.history = null;
-        window.history.replaceState(null, '', historyParamUrl(''));
+        if (conHistorial) window.history.replaceState(null, '', historyParamUrl(''));
     }
 
     // ====================================================================
@@ -869,7 +870,10 @@
     // ====================================================================
 
     async function toggleBlock(unit, accion) {
-        if (state.blocking) return;
+        if (state.blocking) {
+            showToast('warning', t('inventory.stock.messages.sending'));
+            return;
+        }
 
         const esBloquear = accion === 'BLOQUEAR';
         const mensaje = esBloquear
@@ -1416,7 +1420,7 @@
             bindEvents();
             renderSummary();
             renderFilters();
-            loadStock(1).then(() => openHistoryFromParams(params));
+            loadStock(1).then(() => openHistoryFromParams(params)).catch(() => {});
             loadCatalogs();
         },
 
@@ -1432,7 +1436,7 @@
                 container.innerHTML = TEMPLATE;
                 bindEvents();
             }
-            loadStock(state.pagination.page || 1).then(() => openHistoryFromParams(params));
+            loadStock(state.pagination.page || 1).then(() => openHistoryFromParams(params)).catch(() => {});
             loadCatalogs();
         },
 
