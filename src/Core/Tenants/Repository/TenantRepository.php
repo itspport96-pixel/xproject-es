@@ -167,7 +167,7 @@ final class TenantRepository implements TenantRepositoryInterface
         $settings = $this->decomposeConfig($tenant->configuracion());
 
         $sql = "INSERT INTO tenants
-                (id, nombre_publico, nombre_interno, estado, plan, owner_user_id,
+                (id, nombre_publico, nombre_interno, nombre_interno_hmac, estado, plan, owner_user_id,
                  fecha_creacion, fecha_expiracion, email_contacto, telefono, pais,
                  zona_horaria, idioma_default, logo_url, dominio_custom,
                  direccion, color_primario, moneda, formato_fecha, caducidad_password_dias,
@@ -175,7 +175,7 @@ final class TenantRepository implements TenantRepositoryInterface
                  smtp_from_email, smtp_from_name,
                  metadatos, created_at, updated_at)
                 VALUES
-                (:id, :nombre_publico, :nombre_interno, :estado, :plan, :owner_user_id,
+                (:id, :nombre_publico, :nombre_interno, :nombre_interno_hmac, :estado, :plan, :owner_user_id,
                  :fecha_creacion, :fecha_expiracion, :email_contacto, :telefono, :pais,
                  :zona_horaria, :idioma_default, :logo_url, :dominio_custom,
                  :direccion, :color_primario, :moneda, :formato_fecha, :caducidad_password_dias,
@@ -184,26 +184,38 @@ final class TenantRepository implements TenantRepositoryInterface
                  :metadatos, :created_at, :updated_at)";
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
-            'id'               => $tenant->id(),
-            'nombre_publico'   => $tenant->nombrePublico(),
-            'nombre_interno'   => $tenant->nombreInterno(),
-            'estado'           => $tenant->estado(),
-            'plan'             => $tenant->plan(),
-            'owner_user_id'    => $tenant->ownerUserId(),
-            'fecha_creacion'   => $tenant->fechaCreacion()->format('Y-m-d H:i:s'),
-            'fecha_expiracion' => $tenant->fechaExpiracion()?->format('Y-m-d H:i:s'),
-            'email_contacto'   => $tenant->emailContacto(),
-            'telefono'         => $tenant->telefono(),
-            'pais'             => $tenant->pais(),
-            'zona_horaria'     => $tenant->zonaHoraria(),
-            'idioma_default'   => $tenant->idiomaDefault(),
-            'logo_url'         => $tenant->logoUrl(),
-            'dominio_custom'   => $tenant->dominioCustom(),
-            'metadatos'        => $this->encodeJson($tenant->metadatos()),
-            'created_at'       => $tenant->createdAt()->format('Y-m-d H:i:s'),
-            'updated_at'       => $tenant->updatedAt()?->format('Y-m-d H:i:s'),
-        ] + $settings);
+        try {
+            $stmt->execute([
+                'id'                 => $tenant->id(),
+                'nombre_publico'     => $tenant->nombrePublico(),
+                'nombre_interno'     => $tenant->nombreInterno(),
+                'nombre_interno_hmac' => $this->blindIndexService()->compute($tenant->nombreInterno()),
+                'estado'             => $tenant->estado(),
+                'plan'               => $tenant->plan(),
+                'owner_user_id'      => $tenant->ownerUserId(),
+                'fecha_creacion'     => $tenant->fechaCreacion()->format('Y-m-d H:i:s'),
+                'fecha_expiracion'   => $tenant->fechaExpiracion()?->format('Y-m-d H:i:s'),
+                'email_contacto'     => $tenant->emailContacto(),
+                'telefono'           => $tenant->telefono(),
+                'pais'               => $tenant->pais(),
+                'zona_horaria'       => $tenant->zonaHoraria(),
+                'idioma_default'     => $tenant->idiomaDefault(),
+                'logo_url'           => $tenant->logoUrl(),
+                'dominio_custom'     => $tenant->dominioCustom(),
+                'metadatos'          => $this->encodeJson($tenant->metadatos()),
+                'created_at'         => $tenant->createdAt()->format('Y-m-d H:i:s'),
+                'updated_at'         => $tenant->updatedAt()?->format('Y-m-d H:i:s'),
+            ] + $settings);
+        } catch (PDOException $e) {
+            // Carrera sobre el índice único uq_tenants_nombre_interno_hmac
+            // (dos altas concurrentes con el mismo nombre_interno: una gana,
+            // la otra recibe 409 en vez de crear un tenant duplicado).
+            if ((string) $e->getCode() === '23000'
+                && str_contains($e->getMessage(), 'uq_tenants_nombre_interno_hmac')) {
+                throw TenantException::nombreInternoAlreadyExists($tenant->nombreInterno());
+            }
+            throw $e;
+        }
     }
 
     public function update(Tenant $tenant): void
@@ -333,10 +345,14 @@ final class TenantRepository implements TenantRepositoryInterface
 
     public function existsByNombreInterno(string $nombreInterno, ?string $excludeId = null): bool
     {
+        // Blind index: la comparación es por HMAC normalizado (trim+lowercase),
+        // la misma clave que usa el índice único uq_tenants_nombre_interno_hmac
+        // y que calculan save()/update(). UPPER/LOWER sobre la columna sería
+        // vulnerable a la colación y no coincidiría con la clave del índice.
         $sql = "SELECT COUNT(*) FROM tenants
-                WHERE LOWER(nombre_interno) = LOWER(:nombre_interno)
+                WHERE nombre_interno_hmac = :hmac
                   AND deleted_at IS NULL";
-        $params = ['nombre_interno' => trim($nombreInterno)];
+        $params = ['hmac' => $this->blindIndexService()->compute($nombreInterno)];
         if ($excludeId !== null) {
             $sql .= " AND id != :exclude_id";
             $params['exclude_id'] = $excludeId;
