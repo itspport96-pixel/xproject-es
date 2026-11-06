@@ -505,7 +505,7 @@ final class AuthorizationService
                 INNER JOIN roles r ON r.id = ra.role_id
                 WHERE ra.user_id = :uid
                   AND ra.tenant_id = :tid
-                  AND r.nombre = 'ADMIN'
+                  AND UPPER(r.nombre) = 'ADMIN'
                   AND r.activo = 1
                   AND r.deleted_at IS NULL
                   AND (ra.fecha_expiracion IS NULL OR ra.fecha_expiracion > NOW())";
@@ -525,7 +525,7 @@ final class AuthorizationService
                 INNER JOIN users u ON u.id = ra.user_id
                 WHERE ra.user_id = :uid
                   AND ra.tenant_id = :tid
-                  AND r.nombre = 'ADMIN'
+                  AND UPPER(r.nombre) = 'ADMIN'
                   AND r.activo = 1
                   AND r.deleted_at IS NULL
                   AND u.estado = 'ACTIVO'
@@ -547,7 +547,7 @@ final class AuthorizationService
                 INNER JOIN roles r ON r.id = ra.role_id
                 INNER JOIN users u ON u.id = ra.user_id
                 WHERE ra.tenant_id = :tid
-                  AND r.nombre = 'ADMIN'
+                  AND UPPER(r.nombre) = 'ADMIN'
                   AND r.activo = 1
                   AND r.deleted_at IS NULL
                   AND u.estado = 'ACTIVO'

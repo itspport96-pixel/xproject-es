@@ -38,9 +38,7 @@ if (!$container->has(UserRepository::class)) {
 // Manejo global de errores
 // ============================================
 set_exception_handler(function (Throwable $e) use ($container) {
-    if (($_ENV['APP_ENV'] ?? 'production') !== 'production') {
-        error_log($e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-    }
+    error_log('[500] ' . get_class($e) . ': ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
 
     if (isApiRequest()) {
         $isAuthError = $e instanceof \App\Shared\Exceptions\InvalidTokenException

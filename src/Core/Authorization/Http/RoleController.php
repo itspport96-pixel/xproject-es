@@ -183,7 +183,7 @@ final class RoleController
 
         // Guard: el rol ADMIN no puede desactivarse (perdería todos sus permisos
         // efectivos; extensión de la regla "ADMIN no puede perder permisos").
-        if ($role->nombre() === Role::BUILT_IN_ADMIN
+        if (strtoupper(trim((string) $role->nombre())) === Role::BUILT_IN_ADMIN
             && array_key_exists('activo', $data) && !(bool) $data['activo']) {
             throw (new HttpException('El rol ADMIN no puede desactivarse', 403))->withMessageKey('roles.admin_cannot_deactivate');
         }
@@ -238,7 +238,7 @@ final class RoleController
         $before = $role->permisos();
 
         // Guard: el rol ADMIN no puede perder permisos (spec ajuste F3).
-        if ($role->nombre() === Role::BUILT_IN_ADMIN) {
+        if (strtoupper(trim((string) $role->nombre())) === Role::BUILT_IN_ADMIN) {
             $perdidos = array_diff($before, $permisos);
             if ($perdidos !== []) {
                 throw (new HttpException('El rol ADMIN no puede perder permisos', 403))->withMessageKey('roles.admin_cannot_lose_permissions');

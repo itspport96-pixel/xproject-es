@@ -641,12 +641,18 @@ class AuthController
             throw new UserException('Código MFA inválido.', 400, null, 'code', UserException::CATEGORY_VALIDATION, 'MFA_INVALID_CODE');
         }
 
+        $this->resolveSessions()->revokeAllForUser($userId, null, 'mfa_change');
+
         $this->auditEvent('auth.mfa.enable', 'UPDATE', $request, [
             'tenant_id' => $tenantId, 'usuario_id' => $userId, 'entidad_id' => $userId,
             'recurso' => 'mfa', 'detalles_adicionales' => ['metodo' => 'TOTP', 'backup_codes' => count($backupCodes)],
         ]);
 
-        return $this->json(['backup_codes' => $backupCodes], 200);
+        return $this->json([
+            'backup_codes' => $backupCodes,
+            'sessions_revoked' => true,
+            'message' => 'MFA activado correctamente. Se han cerrado todas tus sesiones; vuelve a iniciar sesión.',
+        ], 200);
     }
 
     /** Deshabilita MFA (exige un código válido y borra secreto y códigos). */
@@ -672,12 +678,17 @@ class AuthController
             throw new UserException('Código MFA inválido.', 400, null, 'code', UserException::CATEGORY_VALIDATION, 'MFA_INVALID_CODE');
         }
 
+        $this->resolveSessions()->revokeAllForUser($userId, null, 'mfa_change');
+
         $this->auditEvent('auth.mfa.disable', 'UPDATE', $request, [
             'tenant_id' => $tenantId, 'usuario_id' => $userId, 'entidad_id' => $userId,
             'recurso' => 'mfa', 'detalles_adicionales' => ['metodo' => 'TOTP'],
         ]);
 
-        return $this->json(['message' => 'MFA deshabilitado correctamente'], 200);
+        return $this->json([
+            'message' => 'MFA deshabilitado correctamente. Se han cerrado todas tus sesiones; vuelve a iniciar sesión.',
+            'sessions_revoked' => true,
+        ], 200);
     }
 
     private function resolveUserService(): UserService

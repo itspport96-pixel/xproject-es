@@ -26,7 +26,7 @@ final class AuditMiddleware
     private const NO_AUDIT_METHODS = ['GET', 'HEAD', 'OPTIONS'];
 
     /** Claves de body que nunca se guardan en claro en audit_logs. */
-    private const SENSITIVE_BODY_KEYS = ['password', 'password_actual', 'password_nuevo'];
+    private const SENSITIVE_BODY_KEYS = ['password', 'password_actual', 'password_nuevo', 'token', 'refresh_token', 'access_token', 'mfa_code', 'code', 'password_confirm', '_csrf_token'];
 
     private const REDACTED = '[REDACTADO]';
 
@@ -120,14 +120,6 @@ final class AuditMiddleware
                 ],
             ]);
         };
-
-        // FIX-V2: verificación de payload size MOVIDA desde Router::buildRequest()
-        // para que quede auditada (el hook audit_finish ya está instalado).
-        // Router::buildRequest() ya no leyó el body si Content-Length > 1MB (protección DoS).
-        $contentLength = (int) ($request['headers']['content-length'] ?? 0);
-        if ($contentLength > 1048576) {
-            throw (new HttpException('Payload demasiado grande (máximo 1MB)', 413))->withMessageKey('common.payload_too_large');
-        }
 
         return $request;
     }

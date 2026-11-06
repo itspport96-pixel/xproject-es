@@ -97,7 +97,7 @@ final class Role
 
         return new self(
             id: (string) $data['id'],
-            nombre: (string) $data['nombre'],
+            nombre: strtoupper(trim((string) $data['nombre'])),
             descripcion: isset($data['descripcion']) ? (string) $data['descripcion'] : null,
             tipo: (string) $data['tipo'],
             tenantId: $tenantId !== null ? (string) $tenantId : null,

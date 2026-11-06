@@ -75,6 +75,9 @@ final class SecretRedactor
     public static function isSensitiveKey(string $key): bool
     {
         $lower = strtolower($key);
+        if ($lower === 'code' || $lower === 'mfa_code') {
+            return true;
+        }
         foreach (self::SENSITIVE_KEY_FRAGMENTS as $fragment) {
             if (str_contains($lower, $fragment)) {
                 return true;

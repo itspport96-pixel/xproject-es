@@ -184,19 +184,26 @@ final class Router
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 
         if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
-            // Verificar Content-Length ANTES de leer el body (FIX-V2: protección DoS)
-            // Si es > 1MB, no leer el body. AuditMiddleware lanzará la excepción 413 después.
-            $contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
-            if ($contentLength <= 1048576) {
-                $rawBody = (string) file_get_contents('php://input');
-                if (str_contains($contentType, 'application/json') && $rawBody !== '') {
-                    $decoded = json_decode($rawBody, true);
-                    if (is_array($decoded)) {
-                        $body = $decoded;
-                    }
-                } elseif (!empty($_POST)) {
-                    $body = $_POST;
+            // Protección DoS (FIX-V2): validar el tamaño ANTES de cargar el body en memoria.
+            if (isset($_SERVER['HTTP_TRANSFER_ENCODING'])
+                && str_contains(strtolower((string) $_SERVER['HTTP_TRANSFER_ENCODING']), 'chunked')) {
+                throw (new HttpException('Payload demasiado grande (máximo 1MB)', 413))->withMessageKey('common.payload_too_large');
+            }
+            if (isset($_SERVER['CONTENT_LENGTH']) && (int) $_SERVER['CONTENT_LENGTH'] > 1048576) {
+                throw (new HttpException('Payload demasiado grande (máximo 1MB)', 413))->withMessageKey('common.payload_too_large');
+            }
+            $fh = fopen('php://input', 'rb');
+            $rawBody = (string) stream_get_contents($fh, 1048576 + 1);
+            if (strlen($rawBody) > 1048576) {
+                throw (new HttpException('Payload demasiado grande (máximo 1MB)', 413))->withMessageKey('common.payload_too_large');
+            }
+            if (str_contains($contentType, 'application/json') && $rawBody !== '') {
+                $decoded = json_decode($rawBody, true);
+                if (is_array($decoded)) {
+                    $body = $decoded;
                 }
+            } elseif (!empty($_POST)) {
+                $body = $_POST;
             }
         }
 

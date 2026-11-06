@@ -28,7 +28,7 @@ date_default_timezone_set($appTimeZone);
 $_ENV['TIMEZONE'] = $appTimeZone;
 
 if (($_ENV['APP_ENV'] ?? 'production') === 'production') {
-    error_reporting(0);
+    error_reporting(E_ALL & ~E_DEPRECATED);
     ini_set('display_errors', '0');
 } else {
     error_reporting(E_ALL);
