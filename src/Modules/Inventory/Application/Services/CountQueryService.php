@@ -177,23 +177,48 @@ final class CountQueryService
      */
     public function sheetCsv(string $tenantId, string $countId): string
     {
-        $sheet = $this->sheet($tenantId, $countId);
+        $lineas = [];
+        foreach ($this->streamSheetCsv($tenantId, $countId) as $linea) {
+            $lineas[] = $linea;
+        }
+        return implode("\r\n", $lineas) . "\r\n";
+    }
 
-        $lineas = ['unidad_fisica_id,codigo_barcode,producto_id,ubicacion,cantidad_esperada,cantidad_contada,notas'];
-
-        foreach ($sheet['filas'] as $fila) {
-            $lineas[] = implode(',', [
-                $this->csv($fila['unidad_fisica_id']),
-                $this->csv($fila['codigo_barcode']),
-                $this->csv($fila['producto_id']),
-                $this->csv($fila['ubicacion_codigo']),
-                $this->csv($fila['cantidad_esperada']),
-                $this->csv($fila['cantidad_contada']),
-                $this->csv($fila['notas']),
-            ]);
+    /**
+     * Versión streaming de sheetCsv() que usa un Generator para evitar
+     * cargar todo el CSV en memoria. A6: Protección contra OOM en conteos grandes.
+     *
+     * @return \Generator<int, string> Cada línea del CSV (sin \r\n)
+     */
+    public function streamSheetCsv(string $tenantId, string $countId): \Generator
+    {
+        // Cargar el conteo y procesar resultados
+        $count = $this->loadEntity($tenantId, $countId);
+        $resultados = [];
+        
+        foreach ($count->resultados() as $fila) {
+            $resultados[(string) $fila['unidad_fisica_id']] = $fila;
         }
 
-        return implode("\r\n", $lineas) . "\r\n";
+        // Yield la cabecera
+        yield 'unidad_fisica_id,codigo_barcode,producto_id,ubicacion,cantidad_esperada,cantidad_contada,notas';
+
+        // Yield cada fila de la lista teórica
+        foreach ($count->listaTeorica() as $fila) {
+            $unidadId = (string) $fila['unidad_fisica_id'];
+            
+            $filaCsv = [
+                $this->csv($unidadId),
+                $this->csv($fila['codigo_barcode'] ?? null),
+                $this->csv($fila['producto_id'] ?? null),
+                $this->csv($fila['ubicacion_codigo'] ?? null),
+                $this->csv((float) ($fila['cantidad_esperada'] ?? 0.0)),
+                $this->csv(isset($resultados[$unidadId]) ? (float) $resultados[$unidadId]['cantidad_encontrada'] : null),
+                $this->csv($resultados[$unidadId]['notas'] ?? null),
+            ];
+            
+            yield implode(',', $filaCsv);
+        }
     }
 
     private function csv(mixed $valor): string

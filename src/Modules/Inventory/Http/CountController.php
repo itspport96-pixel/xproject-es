@@ -132,19 +132,46 @@ final class CountController
         $format = is_string($formatValue) ? strtolower(trim($formatValue)) : '';
 
         if ($format === 'csv') {
-            $csv = $service->sheetCsv((string) $claims['tenant_id'], $countId);
+            // A6: Streaming CSV para evitar OOM en conteos grandes
+            $tenantId = (string) $claims['tenant_id'];
+            $filename = 'conteo-' . preg_replace('/[^A-Za-z0-9._-]/', '_', $countId) . '.csv';
+            
+            try {
+                // Validar que el conteo existe antes de enviar headers
+                $generator = $service->streamSheetCsv($tenantId, $countId);
+                
+                if (PHP_SAPI !== 'cli') {
+                    header('Content-Type: text/csv; charset=utf-8');
+                    header('Content-Disposition: attachment; filename="' . $filename . '"');
+                    // No enviamos Content-Length porque estamos en streaming
+                    header('Cache-Control: no-cache, must-revalidate');
+                }
 
-            if (PHP_SAPI !== 'cli') {
-                header('Content-Type: text/csv; charset=utf-8');
-                header(
-                    'Content-Disposition: attachment; filename="conteo-' .
-                    preg_replace('/[^A-Za-z0-9._-]/', '_', $countId) . '.csv"'
-                );
-                header('Content-Length: ' . strlen("\xEF\xBB\xBF" . $csv));
+                // Abrir stream de salida
+                $out = fopen('php://output', 'w');
+                
+                // Escribir BOM UTF-8
+                fwrite($out, "\xEF\xBB\xBF");
+                
+                // Stream línea por línea
+                foreach ($generator as $linea) {
+                    fwrite($out, $linea . "\r\n");
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+                
+                fclose($out);
+                exit;
+                
+            } catch (\Throwable $e) {
+                // Si hay error antes de enviar headers, limpiar y relanzar
+                if (PHP_SAPI !== 'cli' && !headers_sent()) {
+                    header_remove();
+                }
+                throw $e;
             }
-
-            echo "\xEF\xBB\xBF" . $csv;
-            exit;
         }
 
         return ['status' => 200, 'data' => $service->sheet((string) $claims['tenant_id'], $countId)];
