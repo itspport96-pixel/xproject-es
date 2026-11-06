@@ -606,6 +606,11 @@ class PasswordResetService
     private function buildResetUrl(string $token): string
     {
         $base = rtrim((string) ($_ENV['APP_URL'] ?? ''), '/');
+        $valid = filter_var($base, FILTER_VALIDATE_URL);
+        $scheme = strtolower((string) parse_url($base, PHP_URL_SCHEME));
+        if ($valid === false || !in_array($scheme, ['http', 'https'], true)) {
+            throw new \RuntimeException('APP_URL inválida: se requiere http(s) absoluta. Ejemplo: https://app.dominio.com');
+        }
         return $base . '/#/reset-password?token=' . rawurlencode($token);
     }
 

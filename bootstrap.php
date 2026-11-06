@@ -10,7 +10,17 @@ require_once BASE_PATH . '/vendor/autoload.php';
 
 $dotenv = Dotenv\Dotenv::createImmutable(BASE_PATH);
 $dotenv->load();
-$dotenv->required(['APP_ENV', 'DB_HOST', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD', 'JWT_SECRET']);
+$dotenv->required(['APP_ENV', 'APP_URL', 'DB_HOST', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD', 'JWT_SECRET']);
+
+// C6: APP_URL alimenta los enlaces de email (buildResetUrl). Un valor no
+// http(s) (javascript:, data:, relativo...) acabaria como href clicable en
+// el correo del usuario → XSS en su navegador. Se aborta al arrancar.
+$appUrl = (string) (getenv('APP_URL') ?: ($_ENV['APP_URL'] ?? ''));
+if ($appUrl === ''
+    || filter_var($appUrl, FILTER_VALIDATE_URL) === false
+    || !in_array(strtolower((string) parse_url($appUrl, PHP_URL_SCHEME)), ['http', 'https'], true)) {
+    throw new \RuntimeException('APP_URL debe ser una URL http(s) absoluta válida.');
+}
 
 // Zona horaria de la app (v1.19.1): no depende del date.timezone del php.ini
 // de la maquina. Manda la variable de entorno del proceso (getenv, mismo
