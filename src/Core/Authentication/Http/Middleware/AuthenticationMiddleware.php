@@ -7,6 +7,7 @@ use App\Core\Authentication\Exception\PasswordChangeRequiredException;
 use App\Core\Authentication\Repository\UserRepositoryInterface;
 use App\Core\Authentication\Service\JwtService;
 use App\Shared\Container\Container;
+use App\Shared\Exceptions\HttpException;
 use App\Shared\Exceptions\InvalidTokenException;
 use App\Shared\Exceptions\TokenExpiredException;
 use Firebase\JWT\ExpiredException;
@@ -209,7 +210,11 @@ class AuthenticationMiddleware
      * - clave ausente y Redis vivo  -> sesión vencida por inactividad -> 401
      * - clave en 0                   -> sesión cerrada (denylist de logout) -> 401
      * - clave con timestamp          -> actividad reciente -> renueva TTL
-     * - Redis caído                  -> fail-open (política A), deja pasar
+     * - Redis caído                  -> FAIL-CLOSED: 503 con Retry-After (no deja pasar)
+     * 
+     * Política fail-closed: si Redis no responde y SESSION_TIMEOUT > 0, se rechaza
+     * la petición con 503 en lugar de permitir el acceso. Esto previene que sesiones
+     * abandonadas o robadas permanezcan activas indefinidamente mientras Redis esté caído.
      */
     private function enforceSessionActivity(string $sessionId): void
     {
@@ -226,8 +231,16 @@ class AuthenticationMiddleware
                 error_log("[Auth] Request rechazada por inactividad: session={$sessionId}");
                 throw new InvalidTokenException('Sesión expirada por inactividad', 401);
             }
-            error_log('[Auth] Activity check skipped (fail-open): Redis no disponible');
-            return;
+            // FAIL-CLOSED: Redis no responde, rechazar petición
+            error_log('[Auth] FAIL-CLOSED: Redis no disponible (ping falló), rechazando petición');
+            throw (new HttpException(
+                'No se pudo verificar la sesión; inténtalo de nuevo en unos segundos.',
+                503,
+                null,
+                ['Retry-After' => '5'],
+                null,
+                'auth.session_check_unavailable'
+            ));
         }
 
         if ((int) $value === 0) {

@@ -60,7 +60,13 @@ set_exception_handler(function (Throwable $e) use ($container) {
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=utf-8');
 
-        if ($statusCode === 429) {
+        // Aplicar headers personalizados de HttpException (ej: Retry-After para 503)
+        if ($e instanceof HttpException) {
+            foreach ($e->getHeaders() as $name => $value) {
+                header("{$name}: {$value}");
+            }
+        } elseif ($statusCode === 429) {
+            // Fallback para 429 sin HttpException (legacy)
             $msg = $e->getMessage();
             if (preg_match('/Retry after (\d+) second/i', $msg, $m)) {
                 header('Retry-After: ' . $m[1]);
