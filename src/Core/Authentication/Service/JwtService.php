@@ -29,6 +29,13 @@ class JwtService
         $this->algorithm = $_ENV['JWT_ALGORITHM'] ?? 'HS256';
         $this->expiration = (int) ($_ENV['JWT_EXPIRATION'] ?? 3600);
         $this->refreshExpiration = (int) ($_ENV['JWT_REFRESH_EXPIRATION'] ?? 604800);
+        
+        if ($this->expiration <= 0) {
+            throw new RuntimeException('JWT_EXPIRATION must be a positive integer.');
+        }
+        if ($this->refreshExpiration <= 0) {
+            throw new RuntimeException('JWT_REFRESH_EXPIRATION must be a positive integer.');
+        }
     }
 
     public function generateToken(array $payload): string

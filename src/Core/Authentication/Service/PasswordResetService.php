@@ -532,7 +532,7 @@ class PasswordResetService
     private function revokeSessions(string $userId, string $reason = 'password_reset'): void
     {
         if (!Container::getInstance()->has(\App\Core\Authentication\Service\SessionRevokerService::class)) {
-            return;
+            throw new \RuntimeException('SessionRevokerService no registrado: la revocación de sesiones es obligatoria en este flujo.');
         }
         Container::getInstance()->get(SessionRevokerService::class)
             ->revokeAllForUser($userId, null, $reason);

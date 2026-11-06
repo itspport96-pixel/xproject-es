@@ -38,9 +38,16 @@ final class SessionRevokerService
      * @param string      $reason     Motivo grabado en revoked_reason
      *
      * @return int Número de familias revocadas
+     * @throws \RuntimeException Si JWT_EXPIRATION <= 0
      */
     public function revokeAllForUser(string $userId, ?string $keepFamily = null, string $reason = 'password_change'): int
     {
+        // Validar JWT_EXPIRATION al inicio para garantizar que podemos crear denylist
+        $ttl = (int) ($_ENV['JWT_EXPIRATION'] ?? 3600);
+        if ($ttl <= 0) {
+            throw new \RuntimeException('JWT_EXPIRATION debe ser > 0 para revocar sesiones con denylist Redis.');
+        }
+
         $sql = "SELECT DISTINCT family_id FROM refresh_tokens
                 WHERE user_id = :uid AND revoked = 0";
         $params = ['uid' => $userId];
@@ -73,11 +80,8 @@ final class SessionRevokerService
         // Denylist Redis: la ventana de actividad de cada familia queda en 0,
         // igual que un logout, para que el AuthenticationMiddleware rechace
         // los access tokens aún no vencidos.
-        $ttl = (int) ($_ENV['JWT_EXPIRATION'] ?? 3600);
-        if ($ttl > 0) {
-            foreach ($families as $familyId) {
-                $this->redis->set('session:act:' . $familyId, 0, $ttl);
-            }
+        foreach ($families as $familyId) {
+            $this->redis->set('session:act:' . $familyId, 0, $ttl);
         }
 
         return count($families);
