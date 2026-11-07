@@ -931,13 +931,48 @@ class AuthController
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
+    /**
+     * Deduce el tenant a partir del email cuando el body no trae tenant_id.
+     *
+     * A8: `users` tiene UNIQUE(tenant_id, email) y NO unique global de email,
+     * así que el mismo email puede existir en varios tenants. Con `LIMIT 1` sin
+     * ORDER BY MySQL devolvía una fila con orden no determinista y el login
+     * caía en un tenant al azar. Ahora se piden hasta 2 filas distintas:
+     *  - 0 filas  → null (login responde 401 genérico, anti-enumeración);
+     *  - 1 fila   → ese tenant;
+     *  - 2 filas  → ambigüedad → se exige tenant_id explícito (400).
+     *
+     * @throws UserException 400 con error_code TENANT_REQUIRED
+     */
     private function deduceTenantIdFromEmail(string $email): ?string
     {
-        $sql = "SELECT tenant_id FROM users WHERE email = :email AND deleted_at IS NULL LIMIT 1";
+        $sql = "SELECT DISTINCT tenant_id FROM users WHERE email = :email AND deleted_at IS NULL LIMIT 2";
         $stmt = $this->db->getConnection()->prepare($sql);
         $stmt->execute(['email' => $email]);
-        $tenantId = $stmt->fetchColumn();
-        return $tenantId !== false ? (string) $tenantId : null;
+        $tenants = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        if ($tenants === []) {
+            return null;
+        }
+
+        if (count($tenants) > 1) {
+            // Misma latencia que el resto de respuestas de login (A7).
+            usleep(random_int(50000, 150000));
+            // UserException extiende HttpException y expone getErrorCode():
+            // public/index.php lo serializa en data.error_code (mismo patrón
+            // que MFA_INVALID_CODE en este controlador) para que login.js
+            // sepa que debe desplegar el campo tenant_id.
+            throw (new UserException(
+                'El email existe en varios tenants; indica el tenant_id.',
+                400,
+                null,
+                'tenant_id',
+                UserException::CATEGORY_VALIDATION,
+                'TENANT_REQUIRED'
+            ))->withMessageKey('auth.tenant_required');
+        }
+
+        return (string) $tenants[0];
     }
 
     private function isTenantActive(string $tenantId): bool

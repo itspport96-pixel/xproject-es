@@ -103,9 +103,24 @@ class PasswordResetService
      */
     public function requestReset(string $email, array $context = []): void
     {
-        $tenantId = $this->deduceTenantIdFromEmail($email);
+        $ambiguos = [];
+        $tenantId = $this->deduceTenantIdFromEmail($email, $ambiguos);
         if ($tenantId === null) {
-            $this->auditRequest($context, null, null, $email, 'FAILURE', 'Email no encontrado');
+            // A8: email en varios tenants → sin token y con el MISMO mensaje
+            // genérico que cualquier otro fallo (anti-enumeración). Sólo este
+            // caso queda auditado: auditRequest descarta tenant_id null y aquí
+            // conocemos el primer tenant candidato (un email inexistente no
+            // tiene tenant contra el que auditar, como hasta ahora).
+            if ($ambiguos !== []) {
+                $this->auditRequest(
+                    $context,
+                    $ambiguos[0],
+                    null,
+                    $email,
+                    'FAILURE',
+                    'Email presente en varios tenants: reset omitido (multi-tenant, sin tenant_id)'
+                );
+            }
             return;
         }
 
@@ -481,14 +496,39 @@ class PasswordResetService
     // USUARIO / TENANT
     // ========================================================================
 
-    private function deduceTenantIdFromEmail(string $email): ?string
+    /**
+     * Deduce el tenant a partir del email.
+     *
+     * A8: mismo patrón que AuthController — `users` no tiene unique global de
+     * email (UNIQUE(tenant_id, email)), así que el mismo email puede estar en
+     * varios tenants. Se piden hasta 2 filas distintas:
+     *  - 0 filas  → null (email inexistente);
+     *  - 1 fila   → ese tenant;
+     *  - 2 filas  → null + `$ambiguos` poblado (multi-tenant): NO se emite
+     *               token y se mantiene la respuesta genérica anti-enumeración.
+     *
+     * Futuro: si hay que soportar reset multi-tenant, añadir
+     * `POST /auth/forgot-password?tenant_id=...` y filtrar por ese tenant.
+     *
+     * @param ?list<string> $ambiguos Out-param: tenant_ids del email cuando
+     *                                existe en más de un tenant (para auditoría)
+     */
+    private function deduceTenantIdFromEmail(string $email, ?array &$ambiguos = null): ?string
     {
+        $ambiguos = [];
+
         $stmt = $this->db()->getConnection()->prepare(
-            'SELECT tenant_id FROM users WHERE email = :email AND deleted_at IS NULL LIMIT 1'
+            'SELECT DISTINCT tenant_id FROM users WHERE email = :email AND deleted_at IS NULL LIMIT 2'
         );
         $stmt->execute(['email' => $email]);
-        $tenantId = $stmt->fetchColumn();
-        return $tenantId !== false ? (string) $tenantId : null;
+        $tenants = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        if (count($tenants) > 1) {
+            $ambiguos = array_map('strval', $tenants);
+            return null;
+        }
+
+        return $tenants === [] ? null : (string) $tenants[0];
     }
 
     private function findUserByEmail(string $email, string $tenantId): ?array

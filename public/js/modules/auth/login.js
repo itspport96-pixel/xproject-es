@@ -29,6 +29,26 @@
     let mfaPending = false;
     let pendingCreds = null;
 
+    // A8 multi-tenant: true cuando el backend pidió tenant_id (400 con
+    // error_code TENANT_REQUIRED); el campo se mantiene visible y su valor
+    // se reenvía en cada intento (y en el reenvío con mfa_code).
+    let tenantRequested = false;
+
+    /** Despliega el campo oculto de tenant_id (p. ej. tras400 TENANT_REQUIRED). */
+    function showTenantField() {
+        tenantRequested = true;
+        const group = document.getElementById('login-tenant-group');
+        if (group) group.classList.remove('hidden');
+        const input = document.getElementById('login-tenant-id');
+        if (input && !input.disabled) input.focus();
+    }
+
+    /** Valor actual del campo tenant_id ('' si está vacío o no se ha mostrado). */
+    function tenantIdValue() {
+        const input = document.getElementById('login-tenant-id');
+        return input ? input.value.trim() : '';
+    }
+
     // Tagline bajo el nombre (v1.19.6): APP_TAGLINE de .env es texto de
     // branding escrito en español, así que sólo se muestra en el locale es;
     // en en/pt/fr manda la clave i18n login.tagline (decisión de la auditoría
@@ -91,6 +111,25 @@
                             <button type="button" class="input-addon btn-eye" data-eye-for="login-password" aria-label="${t('ui.show_password')}" aria-pressed="false">${EYE_ICON}</button>
                         </div>
                         <span class="form-error hidden" data-error="password"></span>
+                    </div>
+
+                    <!-- A8 multi-tenant: oculto por defecto; el backend lo pide
+                         (400 error_code TENANT_REQUIRED) sólo si el email
+                         existe en más de un tenant. -->
+                    <div class="form-group hidden" id="login-tenant-group">
+                        <label class="form-label" for="login-tenant-id">Tenant ID</label>
+                        <input
+                            type="text"
+                            id="login-tenant-id"
+                            name="tenant_id"
+                            class="input"
+                            placeholder="p. ej. cb22db62-5379-4b83-8c51-a3c695c6de51"
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                        <p class="form-hint text-xs text-muted mt-1">
+                            Tu correo está registrado en varios tenants: indica en cuál quieres iniciar sesión.
+                        </p>
                     </div>
 
                     <!-- Password Reset SSPR (v1.17.0): enlace siempre visible -->
@@ -255,12 +294,14 @@
         const passwordInput = document.getElementById('login-password');
         const mfaInput = document.getElementById('login-mfa-code');
         const mfaBack = document.getElementById('login-mfa-back');
+        const tenantInput = document.getElementById('login-tenant-id');
 
         if (btn) btn.disabled = loading;
         if (emailInput) emailInput.disabled = loading;
         if (passwordInput) passwordInput.disabled = loading;
         if (mfaInput) mfaInput.disabled = loading;
         if (mfaBack) mfaBack.disabled = loading;
+        if (tenantInput) tenantInput.disabled = loading;
         document.querySelectorAll('[data-eye-for]').forEach(el => { el.disabled = loading; });
 
         if (loading) {
@@ -299,11 +340,14 @@
                 password: pendingCreds.password,
                 mfa_code: mfaCode
             };
+            if (pendingCreds.tenant_id) data.tenant_id = pendingCreds.tenant_id;
         } else {
             data = {
                 email: emailInput.value.trim(),
                 password: passwordInput.value
             };
+            const tenantId = tenantIdValue();
+            if (tenantId) data.tenant_id = tenantId;
             const validation = validate(data);
             if (!validation.valid) {
                 Object.entries(validation.errors).forEach(([field, msg]) => {
@@ -312,7 +356,7 @@
                 return;
             }
             // Se guarda para poder reenviar con mfa_code si el backend lo pide.
-            pendingCreds = { email: data.email, password: data.password };
+            pendingCreds = { email: data.email, password: data.password, tenant_id: data.tenant_id };
         }
 
         setLoading(true);
@@ -393,9 +437,18 @@
             // Otro error (credenciales, rate limit, etc.): salir del paso MFA.
             exitMfaMode();
 
+            // A8: envelope del backend para los códigos de máquina (data.error_code).
+            const envelope = error.data && error.data.data ? error.data.data : null;
+            const errorCode = envelope ? envelope.error_code : null;
+
             let message = t('login.error_generic');
 
-            if (error.status === 401) {
+            if (error.status === 400 && errorCode === 'TENANT_REQUIRED') {
+                // El email existe en varios tenants: se despliega el campo
+                // tenant_id (oculto por defecto) con el mensaje del backend.
+                showTenantField();
+                message = error.message;
+            } else if (error.status === 401) {
                 message = t('login.error_401');
             } else if (error.status === 429) {
                 message = t('login.error_429');
@@ -425,6 +478,10 @@
         });
         const forgotWrap = document.getElementById('login-forgot-wrap');
         if (forgotWrap) forgotWrap.classList.add('hidden');
+        // A8: en el paso MFA sólo se pide el código; el campo tenant_id, si se
+        // mostró, vuelve a aparecer al salir (su valor vive en pendingCreds).
+        const tenantGroup = document.getElementById('login-tenant-group');
+        if (tenantGroup) tenantGroup.classList.add('hidden');
         const label = document.querySelector('#login-submit [data-label]');
         if (label) label.textContent = t('login.mfa_submit');
         const mfaInput = document.getElementById('login-mfa-code');
@@ -444,6 +501,10 @@
         });
         const forgotWrap = document.getElementById('login-forgot-wrap');
         if (forgotWrap) forgotWrap.classList.remove('hidden');
+        if (tenantRequested) {
+            const tenantGroup = document.getElementById('login-tenant-group');
+            if (tenantGroup) tenantGroup.classList.remove('hidden');
+        }
         const mfaInput = document.getElementById('login-mfa-code');
         if (mfaInput) {
             mfaInput.value = '';
@@ -485,6 +546,7 @@
             }
             container = null;
             isSubmitting = false;
+            tenantRequested = false;
         }
     };
 
