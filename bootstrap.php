@@ -10,7 +10,17 @@ require_once BASE_PATH . '/vendor/autoload.php';
 
 $dotenv = Dotenv\Dotenv::createImmutable(BASE_PATH);
 $dotenv->load();
-$dotenv->required(['APP_ENV', 'APP_URL', 'DB_HOST', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD', 'JWT_SECRET']);
+$dotenv->required(['APP_ENV', 'APP_URL', 'DB_HOST', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD', 'JWT_SECRET', 'JWT_ALGORITHM']);
+
+// M1: Validar que JWT_ALGORITHM sea uno de los algoritmos simétricos admitidos.
+// Esto previene ataques de confusión de algoritmo (ej: 'none' o algoritmos asimétricos).
+$jwtAlgorithm = $_ENV['JWT_ALGORITHM'] ?? '';
+if (!in_array($jwtAlgorithm, ['HS256', 'HS384', 'HS512'], true)) {
+    throw new \RuntimeException(
+        "JWT_ALGORITHM inválido: '{$jwtAlgorithm}'. " .
+        "Admitidos: HS256, HS384, HS512 (algoritmos simétricos HMAC-SHA)."
+    );
+}
 
 // C6: APP_URL alimenta los enlaces de email (buildResetUrl). Un valor no
 // http(s) (javascript:, data:, relativo...) acabaria como href clicable en

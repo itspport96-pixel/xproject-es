@@ -19,6 +19,16 @@ class JwtService
     private int $expiration;
     private int $refreshExpiration;
 
+    /**
+     * Constructor de JwtService.
+     * 
+     * M1: Solo se admiten algoritmos simétricos HS* (HS256, HS384, HS512) porque
+     * la aplicación no implementa gestión de claves públicas/privadas para JWT
+     * asimétricos (RS*, ES*, etc). Esto evita ataques de confusión de algoritmo
+     * (ej: 'none' o RS256 con clave pública expuesta).
+     *
+     * @throws RuntimeException Si JWT_SECRET o JWT_ALGORITHM son inválidos
+     */
     public function __construct()
     {
         $secret = $_ENV['JWT_SECRET'] ?? '';
@@ -26,7 +36,16 @@ class JwtService
             throw new RuntimeException('JWT_SECRET environment variable is not configured. Set it in your .env file.');
         }
         $this->secret = $secret;
+        
+        // M1: whitelist de algoritmos simétricos admitidos
         $this->algorithm = $_ENV['JWT_ALGORITHM'] ?? 'HS256';
+        if (!in_array($this->algorithm, ['HS256', 'HS384', 'HS512'], true)) {
+            throw new RuntimeException(
+                "JWT_ALGORITHM inválido: '{$this->algorithm}'. " .
+                "Admitidos: HS256, HS384, HS512 (algoritmos simétricos HMAC-SHA)."
+            );
+        }
+        
         $this->expiration = (int) ($_ENV['JWT_EXPIRATION'] ?? 3600);
         $this->refreshExpiration = (int) ($_ENV['JWT_REFRESH_EXPIRATION'] ?? 604800);
         
