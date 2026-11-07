@@ -53,11 +53,15 @@ final class PdoAuditPort implements AuditPort
 
     public function previousHash(string $tenantId): ?string
     {
+        // M2: Ordenar por seq (AUTO_INCREMENT) en lugar de timestamp+id.
+        // Esto garantiza orden determinístico incluso si dos escrituras
+        // ocurren en el mismo microsegundo, ya que seq refleja el orden
+        // real de inserción.
         $sql = 'SELECT hash_integridad
                   FROM audit_logs
                  WHERE tenant_id = ?
                    AND hash_integridad IS NOT NULL
-                 ORDER BY timestamp DESC, id DESC
+                 ORDER BY seq DESC
                  LIMIT 1' . $this->forUpdate();
 
         $stmt = $this->db->query($sql, [$tenantId]);
