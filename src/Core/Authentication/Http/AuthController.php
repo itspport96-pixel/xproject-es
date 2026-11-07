@@ -24,10 +24,12 @@ class AuthController
 {
     /**
      * Hash bcrypt (cost 12, el mismo que usa PasswordHasher por defecto) de
-     * una contraseña aleatoria. Se verifica contra él cuando el usuario no
-     * existe para que el coste de CPU (y por tanto la latencia de respuesta)
-     * sea idéntico al de un login con credenciales válidas pero password
-     * incorrecto — evita la enumeración de cuentas por timing (A7).
+     * una cadena constante, generado una sola vez — no es un string arbitrario.
+     * Se verifica contra él cuando el usuario no existe para que el coste de
+     * CPU (y por tanto la latencia de respuesta) sea idéntico al de un login
+     * con usuario real pero password incorrecto: evita la enumeración de
+     * cuentas por timing side-channel (A7) y uniformiza el verify en todos
+     * los logins (A9). Nombre: DUMMY_PASSWORD_HASH (creada en A7).
      */
     private const DUMMY_PASSWORD_HASH = '$2y$12$NdWhdDI6f8JLimXB6HjoR.0x.jDxcvpqlBkwjsTD.7Na2xehUSXj2';
 
@@ -119,15 +121,14 @@ class AuthController
             return $this->jsonError('Credenciales inválidas', 401, 'auth.invalid_credentials');
         }
 
+        // A8/A9: se deduce el tenant si el body no lo trae (puede lanzar
+        // 400 TENANT_REQUIRED si el email es ambiguo — se propaga). Si no
+        // existe el email, $tenantId queda '' y el flujo continúa igual que
+        // para un usuario real: ambos caminos ejecutan los MISMOS pasos
+        // (limiter por cuenta, findByEmail, bcrypt verify y usleep) para que
+        // la latencia sea uniforme y no haya side-channel de timing (A9).
         if ($tenantId === '') {
-            $tenantId = $this->deduceTenantIdFromEmail($email);
-            if ($tenantId === null) {
-                // A7: email inexistente → mismo coste de CPU que un login
-                // con usuario real (bcrypt) + mismo usleep + misma respuesta.
-                $this->hasher->verify($password, self::DUMMY_PASSWORD_HASH);
-                usleep(random_int(50000, 150000));
-                return $this->jsonError('Credenciales inválidas', 401, 'auth.invalid_credentials');
-            }
+            $tenantId = $this->deduceTenantIdFromEmail($email) ?? '';
         }
 
         // v1.13.2: bloqueo por CUENTA además de por IP — la clave identifica
@@ -137,6 +138,8 @@ class AuthController
         // (4to fallo seguido => 429): al quedar por debajo del límite IP (5),
         // el residuo del contador IP queda en 4 y el siguiente login con
         // éxito — que limpia todas las claves — sigue pasando sin bloquearse.
+        // A9: también se consume cuando el email no existe (tenant ''), con
+        // lo que el contador es idéntico para emails existentes y no.
         $accountKey = $this->rateLimiter->keyForAccount($tenantId, $email);
         try {
             $this->rateLimiter->attempt($accountKey, 3, 300);
@@ -146,21 +149,23 @@ class AuthController
         }
 
         $user = $this->users->findByEmail($email, $tenantId);
-        $passwordValid = false;
-        if ($user !== null) {
-            $passwordValid = $this->hasher->verify($password, $user['password']);
-        }
+
+        // A9: SIEMPRE se ejecuta un bcrypt verify, con el hash real del usuario
+        // si existe y con el hash dummy (bcrypt cost 12) si no existe. Así la
+        // latencia de "email existe" y "email no existe" es idéntica (100-300 ms
+        // de bcrypt + usleep simétrico de A7) y no hay side-channel de timing.
+        $passwordValid = $this->hasher->verify(
+            $password,
+            $user !== null ? (string) $user['password'] : self::DUMMY_PASSWORD_HASH
+        );
 
         if ($user === null || !$passwordValid) {
+            // auditLogin con tenant '' no escribe fila (AuditLogger requiere
+            // tenant real): un email inexistente no tiene tenant que auditar.
             $this->auditLogin($request, $tenantId, $user !== null ? (string) $user['id'] : null, [
                 'resultado' => 'FAILURE',
                 'razon_fallo' => 'Credenciales inválidas',
             ], $email);
-            if ($user === null) {
-                // A7: no existe el usuario → hash dummy para igualar la
-                // latencia del caso "usuario existe + password incorrecta".
-                $this->hasher->verify($password, self::DUMMY_PASSWORD_HASH);
-            }
             usleep(random_int(50000, 150000));
             return $this->jsonError('Credenciales inválidas', 401, 'auth.invalid_credentials');
         }
