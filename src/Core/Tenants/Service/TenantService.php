@@ -210,23 +210,25 @@ final class TenantService
             $adminUserId = $this->generateUuid();
             $passwordHash = $this->hasher->hash((string) $adminData['password']);
             $now = date('Y-m-d H:i:s');
+            $passwordChangeForced = date('Y-m-d H:i:s', strtotime('+7 days'));
 
             $sql = "INSERT INTO users
-                    (id, tenant_id, email, nombre, apellido, password, estado, telefono, email_verificado, created_at, updated_at)
+                    (id, tenant_id, email, nombre, apellido, password, estado, telefono, email_verificado, password_change_forced, created_at, updated_at)
                     VALUES
-                    (:id, :tenant_id, :email, :nombre, :apellido, :password, 'ACTIVO', :telefono, 1, :created_at, :updated_at)";
+                    (:id, :tenant_id, :email, :nombre, :apellido, :password, 'ACTIVO', :telefono, 1, :password_change_forced, :created_at, :updated_at)";
 
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
-                'id'         => $adminUserId,
-                'tenant_id'  => $tenantId,
-                'email'      => $email,
-                'nombre'     => trim((string) $adminData['nombre']),
-                'apellido'   => trim((string) $adminData['apellido']),
-                'password'   => $passwordHash,
-                'telefono'   => isset($adminData['telefono']) ? trim((string) $adminData['telefono']) : null,
-                'created_at' => $now,
-                'updated_at' => $now,
+                'id'                    => $adminUserId,
+                'tenant_id'             => $tenantId,
+                'email'                 => $email,
+                'nombre'                => trim((string) $adminData['nombre']),
+                'apellido'              => trim((string) $adminData['apellido']),
+                'password'              => $passwordHash,
+                'telefono'              => isset($adminData['telefono']) ? trim((string) $adminData['telefono']) : null,
+                'password_change_forced' => $passwordChangeForced,
+                'created_at'            => $now,
+                'updated_at'            => $now,
             ]);
 
             // 3. Asignar rol ADMIN al usuario
@@ -256,6 +258,20 @@ final class TenantService
 
             // Invalidar cache
             $this->invalidateTenantCache($tenantId);
+
+            // 5. Enviar email de bienvenida (best-effort, no falla la transacción)
+            try {
+                $passwordResetService = \App\Shared\Container\Container::getInstance()
+                    ->get(\App\Core\Authentication\Service\PasswordResetService::class);
+                $passwordResetService->issueWelcome(
+                    $adminUserId,
+                    $tenantId,
+                    'system',
+                    ['source' => 'tenant_onboard']
+                );
+            } catch (\Throwable $e) {
+                error_log('[TenantService] Welcome email failed: ' . $e->getMessage());
+            }
 
             return [
                 'tenant' => $tenant->toPublicArray(),
@@ -667,18 +683,13 @@ final class TenantService
             throw (new TenantException('Email del admin inválido', 400))->withMessageKey('tenants.admin_email_invalid');
         }
 
-        // v1.19.7 (desviacion de 1.19.6): la creacion del tenant exigia 8
-        // mientras el resto de la app exige 9 desde 1.19.6 (PasswordPolicy y
-        // el frontend de cambio de password). La longitud se lee de la
-        // constante para que no vuelvan a divergir. SOLO la longitud: el
-        // resto de la politica (mayuscula, digito, caracter especial y
-        // historial de contrasenas) sigue sin aplicarse en el alta de tenant,
-        // reportado como pendiente aparte.
-        if (strlen((string) $data['password']) < PasswordPolicy::MIN_LENGTH) {
+        // v1.19.8: validar contraseña completa (no solo longitud)
+        $passwordMessageKey = PasswordPolicy::validate((string) $data['password']);
+        if ($passwordMessageKey !== null) {
             throw (new TenantException(
-                'Password del admin debe tener mínimo ' . PasswordPolicy::MIN_LENGTH . ' caracteres',
+                'La contraseña del admin no cumple la política de seguridad',
                 400
-            ))->withMessageKey('tenants.admin_password_min_length');
+            ))->withMessageKey($passwordMessageKey);
         }
     }
 
