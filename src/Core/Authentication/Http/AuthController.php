@@ -22,6 +22,15 @@ use PDO;
 
 class AuthController
 {
+    /**
+     * Hash bcrypt (cost 12, el mismo que usa PasswordHasher por defecto) de
+     * una contraseña aleatoria. Se verifica contra él cuando el usuario no
+     * existe para que el coste de CPU (y por tanto la latencia de respuesta)
+     * sea idéntico al de un login con credenciales válidas pero password
+     * incorrecto — evita la enumeración de cuentas por timing (A7).
+     */
+    private const DUMMY_PASSWORD_HASH = '$2y$12$NdWhdDI6f8JLimXB6HjoR.0x.jDxcvpqlBkwjsTD.7Na2xehUSXj2';
+
     private JwtService $jwt;
     private PasswordHasher $hasher;
     private UserRepositoryInterface $users;
@@ -113,6 +122,9 @@ class AuthController
         if ($tenantId === '') {
             $tenantId = $this->deduceTenantIdFromEmail($email);
             if ($tenantId === null) {
+                // A7: email inexistente → mismo coste de CPU que un login
+                // con usuario real (bcrypt) + mismo usleep + misma respuesta.
+                $this->hasher->verify($password, self::DUMMY_PASSWORD_HASH);
                 usleep(random_int(50000, 150000));
                 return $this->jsonError('Credenciales inválidas', 401, 'auth.invalid_credentials');
             }
@@ -144,6 +156,11 @@ class AuthController
                 'resultado' => 'FAILURE',
                 'razon_fallo' => 'Credenciales inválidas',
             ], $email);
+            if ($user === null) {
+                // A7: no existe el usuario → hash dummy para igualar la
+                // latencia del caso "usuario existe + password incorrecta".
+                $this->hasher->verify($password, self::DUMMY_PASSWORD_HASH);
+            }
             usleep(random_int(50000, 150000));
             return $this->jsonError('Credenciales inválidas', 401, 'auth.invalid_credentials');
         }
@@ -153,7 +170,9 @@ class AuthController
                 'resultado' => 'FAILURE',
                 'razon_fallo' => 'Cuenta inactiva o suspendida',
             ], $email);
-            return $this->jsonError('Cuenta inactiva o suspendida', 403, 'auth.account_inactive');
+            // A7: sin mensaje diferencial — el detalle queda en audit_logs.
+            usleep(random_int(50000, 150000));
+            return $this->jsonError('Credenciales inválidas', 401, 'auth.invalid_credentials');
         }
 
         // Password temporal / cambio de contraseña obligatorio (v1.11.0):
@@ -161,8 +180,8 @@ class AuthController
         // password_change_required) salvo en la allowlist de cambio.
         //
         // Temporal (password_change_forced, admin reset / autogenerada):
-        // si la vigencia ya venció, ni siquiera se concede el login
-        // (contacta con un administrador para reiniciarla).
+        // si la vigencia ya venció, ni siquiera se concede el login (A7:
+        // respuesta genérica; el detalle queda en audit_logs).
         //
         // Caducidad (fecha_expiracion_password, v1.14.1): expiración forward
         // calculada al cambiar la contraseña. Si venció, el login se concede
@@ -177,11 +196,10 @@ class AuthController
                     'resultado' => 'FAILURE',
                     'razon_fallo' => 'Password temporal expirado',
                 ], $email);
-                return $this->jsonError(
-                    'El password temporal ha expirado; contacta con un administrador para reiniciarlo',
-                    403,
-                    'auth.temp_password_expired'
-                );
+                // A7: respuesta idéntica al resto de fallos de login; el
+                // detalle ("contacta con un administrador") queda en audit_logs.
+                usleep(random_int(50000, 150000));
+                return $this->jsonError('Credenciales inválidas', 401, 'auth.invalid_credentials');
             }
         }
 
@@ -194,7 +212,9 @@ class AuthController
                 'resultado' => 'FAILURE',
                 'razon_fallo' => 'El tenant no está activo',
             ], $email);
-            return $this->jsonError('El tenant no está activo', 403, 'auth.tenant_inactive');
+            // A7: sin mensaje diferencial — el detalle queda en audit_logs.
+            usleep(random_int(50000, 150000));
+            return $this->jsonError('Credenciales inválidas', 401, 'auth.invalid_credentials');
         }
 
         // MFA TOTP (v1.15.0): si el usuario tiene MFA habilitado se exige un

@@ -397,8 +397,6 @@
 
             if (error.status === 401) {
                 message = t('login.error_401');
-            } else if (error.status === 403) {
-                message = t('login.error_403');
             } else if (error.status === 429) {
                 message = t('login.error_429');
             } else if (error.status === 408) {
